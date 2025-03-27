@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [main, dev, demo, hotfix, build-Docker]
+    branches: [main, dev, demo, hotfix]
   workflow_dispatch:
 
 jobs:
