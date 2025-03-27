@@ -1,0 +1,79 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main, dev, demo, hotfix]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: "Debug: Print Registry URL and Branch Name"
+        run: |
+          echo "ACR_LOGIN_SERVER: $ACR_LOGIN_SERVER"
+          echo "Current branch: ${{ github.ref }}"
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ env.ACR_PASSWORD }}
+
+      - name: Set Docker image tag
+        run: |
+          echo "Determining tag for branch: ${{ github.ref }}"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "TAG=latest" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "TAG=dev" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/demo" ]]; then
+            echo "TAG=demo" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/hotfix" ]]; then
+            echo "TAG=hotfix" >> $GITHUB_ENV
+          else
+            echo "TAG=other" >> $GITHUB_ENV
+          fi
+          echo "Tag set to: $TAG"
+
+      # --- Build and push ContentProcessor image ---
+      - name: Build and push ContentProcessor Docker image
+        run: |
+          cd src/ContentProcessor
+          IMAGE_NAME="$ACR_LOGIN_SERVER/contentprocessor:${TAG}"
+          echo "Using image name: ${IMAGE_NAME}"
+          docker build -t ${IMAGE_NAME} -f .devcontainer/Dockerfile .
+          docker push ${IMAGE_NAME}
+          echo "ContentProcessor image built and pushed successfully."
+
+      # --- Build and push ContentProcessorAPI image ---
+      - name: Build and push ContentProcessorAPI Docker image
+        run: |
+          cd src/ContentProcessorAPI
+          IMAGE_NAME="$ACR_LOGIN_SERVER/contentprocessorapi:${TAG}"
+          echo "Using image name: ${IMAGE_NAME}"
+          docker build -t ${IMAGE_NAME} -f .devcontainer/Dockerfile .
+          docker push ${IMAGE_NAME}
+          echo "ContentProcessorAPI image built and pushed successfully."
+
+      # --- Build and push ContentProcessorWeb image ---
+      - name: Build and push ContentProcessorWeb Docker image
+        run: |
+          cd src/ContentProcessorWeb
+          IMAGE_NAME="$ACR_LOGIN_SERVER/contentprocessorweb:${TAG}"
+          echo "Using image name: ${IMAGE_NAME}"
+          docker build -t ${IMAGE_NAME} -f .devcontainer/base.Dockerfile .
+          docker push ${IMAGE_NAME}
+          echo "ContentProcessorWeb image built and pushed successfully."
