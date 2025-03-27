@@ -7,6 +7,7 @@ on:
       - dev
       - demo
       - hotfix
+      - 'release/*'
   pull_request:
     types:
       - opened
@@ -53,10 +54,11 @@ jobs:
             echo "TAG=pullrequest-ignore" >> $GITHUB_ENV
           fi
 
+      # --- ContentProcessor Component ---
       - name: Build and push contentprocessor Docker image
         run: |
           cd src/ContentProcessor
-          # Use lowercase image name to meet Docker naming requirements
+          # Use lowercase image name per Docker naming rules.
           if [[ "${{ env.TAG }}" == "pullrequest-ignore" ]]; then
             IMAGE_NAME="contentprocessor:${{ env.TAG }}"
           else
@@ -64,6 +66,16 @@ jobs:
           fi
           echo "Using image name: ${IMAGE_NAME}"
           docker build -t ${IMAGE_NAME} -f Dockerfile .
+          
+          # Backup step (only for primary branches)
+          if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
+            BACKUP_IMAGE_NAME="${{ secrets.BACKUP_ACR_LOGIN_SERVER }}/contentprocessor:${{ env.TAG }}"
+            echo "Backing up image as: ${BACKUP_IMAGE_NAME}"
+            docker tag ${IMAGE_NAME} ${BACKUP_IMAGE_NAME}
+            docker push ${BACKUP_IMAGE_NAME}
+          fi
+          
+          # Push to primary registry if tag is valid
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
             docker push ${IMAGE_NAME}
             echo "contentprocessor image built and pushed successfully."
@@ -71,6 +83,7 @@ jobs:
             echo "Skipping Docker push for contentprocessor with tag: ${{ env.TAG }}"
           fi
 
+      # --- ContentProcessorAPI Component ---
       - name: Build and push contentprocessorapi Docker image
         run: |
           cd src/ContentProcessorAPI
@@ -81,6 +94,14 @@ jobs:
           fi
           echo "Using image name: ${IMAGE_NAME}"
           docker build -t ${IMAGE_NAME} -f Dockerfile .
+          
+          if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
+            BACKUP_IMAGE_NAME="${{ secrets.BACKUP_ACR_LOGIN_SERVER }}/contentprocessorapi:${{ env.TAG }}"
+            echo "Backing up image as: ${BACKUP_IMAGE_NAME}"
+            docker tag ${IMAGE_NAME} ${BACKUP_IMAGE_NAME}
+            docker push ${BACKUP_IMAGE_NAME}
+          fi
+          
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
             docker push ${IMAGE_NAME}
             echo "contentprocessorapi image built and pushed successfully."
@@ -88,6 +109,7 @@ jobs:
             echo "Skipping Docker push for contentprocessorapi with tag: ${{ env.TAG }}"
           fi
 
+      # --- ContentProcessorWeb Component ---
       - name: Build and push contentprocessorweb Docker image
         run: |
           cd src/ContentProcessorWeb
@@ -98,6 +120,14 @@ jobs:
           fi
           echo "Using image name: ${IMAGE_NAME}"
           docker build -t ${IMAGE_NAME} -f Dockerfile .
+          
+          if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
+            BACKUP_IMAGE_NAME="${{ secrets.BACKUP_ACR_LOGIN_SERVER }}/contentprocessorweb:${{ env.TAG }}"
+            echo "Backing up image as: ${BACKUP_IMAGE_NAME}"
+            docker tag ${IMAGE_NAME} ${BACKUP_IMAGE_NAME}
+            docker push ${BACKUP_IMAGE_NAME}
+          fi
+          
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
             docker push ${IMAGE_NAME}
             echo "contentprocessorweb image built and pushed successfully."
