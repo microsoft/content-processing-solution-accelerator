@@ -52,6 +52,7 @@ jobs:
       - name: Build and push ContentProcessor Docker image
         run: |
           cd src/ContentProcessor
+          echo "Current working directory: $(pwd)"
           IMAGE_NAME="$ACR_LOGIN_SERVER/contentprocessor:${TAG}"
           echo "Using image name: ${IMAGE_NAME}"
           docker build -t ${IMAGE_NAME} -f .devcontainer/Dockerfile .
@@ -62,6 +63,7 @@ jobs:
       - name: Build and push ContentProcessorAPI Docker image
         run: |
           cd src/ContentProcessorAPI
+          echo "Current working directory: $(pwd)"
           IMAGE_NAME="$ACR_LOGIN_SERVER/contentprocessorapi:${TAG}"
           echo "Using image name: ${IMAGE_NAME}"
           docker build -t ${IMAGE_NAME} -f .devcontainer/Dockerfile .
@@ -72,6 +74,7 @@ jobs:
       - name: Build and push ContentProcessorWeb Docker image
         run: |
           cd src/ContentProcessorWeb
+          echo "Current working directory: $(pwd)"
           IMAGE_NAME="$ACR_LOGIN_SERVER/contentprocessorweb:${TAG}"
           echo "Using image name: ${IMAGE_NAME}"
           docker build -t ${IMAGE_NAME} -f .devcontainer/base.Dockerfile .
