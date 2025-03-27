@@ -7,7 +7,6 @@ on:
       - dev
       - demo
       - hotfix
-      - 'release/*'
   pull_request:
     types:
       - opened
@@ -24,18 +23,6 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        component:
-          - name: ContentProcessor
-            context: src/ContentProcessor
-            dockerfile: Dockerfile
-          - name: ContentProcessorAPI
-            context: src/ContentProcessorAPI
-            dockerfile: Dockerfile
-          - name: ContentProcessorWeb
-            context: src/ContentProcessorWeb
-            dockerfile: Dockerfile
 
     steps:
       - name: Checkout repository
@@ -66,24 +53,35 @@ jobs:
             echo "TAG=pullrequest-ignore" >> $GITHUB_ENV
           fi
       
-      - name: Build Docker image for ${{ matrix.component.name }}
+      - name: Build and push ContentProcessor Docker image
         run: |
-          cd ${{ matrix.component.context }}
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.component.name }}:${{ env.TAG }} -f ${{ matrix.component.dockerfile }} .
-      
-      - name: Backup Docker image for ${{ matrix.component.name }}
-        if: ${{ env.TAG != 'pullrequest-ignore' }}
-        run: |
-          # Ensure the backup registry URL is set (e.g., via repository secret BACKUP_ACR_LOGIN_SERVER)
-          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.component.name }}:${{ env.TAG }} ${{ secrets.BACKUP_ACR_LOGIN_SERVER }}/${{ matrix.component.name }}:${{ env.TAG }}
-          docker push ${{ secrets.BACKUP_ACR_LOGIN_SERVER }}/${{ matrix.component.name }}:${{ env.TAG }}
-          echo "${{ matrix.component.name }} image backed up successfully."
-      
-      - name: Build and push Docker image for ${{ matrix.component.name }}
-        run: |
+          cd src/ContentProcessor
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessor:${{ env.TAG }} -f Dockerfile .
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
-            docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.component.name }}:${{ env.TAG }}
-            echo "${{ matrix.component.name }} image built and pushed successfully."
+            docker push ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessor:${{ env.TAG }}
+            echo "ContentProcessor image built and pushed successfully."
           else
-            echo "Skipping Docker push for ${{ matrix.component.name }} with tag: ${{ env.TAG }}"
+            echo "Skipping Docker push for ContentProcessor with tag: ${{ env.TAG }}"
+          fi
+
+      - name: Build and push ContentProcessorAPI Docker image
+        run: |
+          cd src/ContentProcessorAPI
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorAPI:${{ env.TAG }} -f Dockerfile .
+          if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
+            docker push ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorAPI:${{ env.TAG }}
+            echo "ContentProcessorAPI image built and pushed successfully."
+          else
+            echo "Skipping Docker push for ContentProcessorAPI with tag: ${{ env.TAG }}"
+          fi
+
+      - name: Build and push ContentProcessorWeb Docker image
+        run: |
+          cd src/ContentProcessorWeb
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorWeb:${{ env.TAG }} -f Dockerfile .
+          if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
+            docker push ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorWeb:${{ env.TAG }}
+            echo "ContentProcessorWeb image built and pushed successfully."
+          else
+            echo "Skipping Docker push for ContentProcessorWeb with tag: ${{ env.TAG }}"
           fi
