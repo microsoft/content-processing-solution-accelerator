@@ -52,13 +52,19 @@ jobs:
           else
             echo "TAG=pullrequest-ignore" >> $GITHUB_ENV
           fi
-      
+
       - name: Build and push ContentProcessor Docker image
         run: |
           cd src/ContentProcessor
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessor:${{ env.TAG }} -f Dockerfile .
+          if [[ "${{ env.TAG }}" == "pullrequest-ignore" ]]; then
+            IMAGE_NAME="ContentProcessor:${{ env.TAG }}"
+          else
+            IMAGE_NAME="${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessor:${{ env.TAG }}"
+          fi
+          echo "Using image name: ${IMAGE_NAME}"
+          docker build -t ${IMAGE_NAME} -f Dockerfile .
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
-            docker push ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessor:${{ env.TAG }}
+            docker push ${IMAGE_NAME}
             echo "ContentProcessor image built and pushed successfully."
           else
             echo "Skipping Docker push for ContentProcessor with tag: ${{ env.TAG }}"
@@ -67,9 +73,15 @@ jobs:
       - name: Build and push ContentProcessorAPI Docker image
         run: |
           cd src/ContentProcessorAPI
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorAPI:${{ env.TAG }} -f Dockerfile .
+          if [[ "${{ env.TAG }}" == "pullrequest-ignore" ]]; then
+            IMAGE_NAME="ContentProcessorAPI:${{ env.TAG }}"
+          else
+            IMAGE_NAME="${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorAPI:${{ env.TAG }}"
+          fi
+          echo "Using image name: ${IMAGE_NAME}"
+          docker build -t ${IMAGE_NAME} -f Dockerfile .
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
-            docker push ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorAPI:${{ env.TAG }}
+            docker push ${IMAGE_NAME}
             echo "ContentProcessorAPI image built and pushed successfully."
           else
             echo "Skipping Docker push for ContentProcessorAPI with tag: ${{ env.TAG }}"
@@ -78,9 +90,15 @@ jobs:
       - name: Build and push ContentProcessorWeb Docker image
         run: |
           cd src/ContentProcessorWeb
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorWeb:${{ env.TAG }} -f Dockerfile .
+          if [[ "${{ env.TAG }}" == "pullrequest-ignore" ]]; then
+            IMAGE_NAME="ContentProcessorWeb:${{ env.TAG }}"
+          else
+            IMAGE_NAME="${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorWeb:${{ env.TAG }}"
+          fi
+          echo "Using image name: ${IMAGE_NAME}"
+          docker build -t ${IMAGE_NAME} -f Dockerfile .
           if [[ "${{ env.TAG }}" == "latest" || "${{ env.TAG }}" == "dev" || "${{ env.TAG }}" == "demo" || "${{ env.TAG }}" == "hotfix" ]]; then
-            docker push ${{ secrets.ACR_LOGIN_SERVER }}/ContentProcessorWeb:${{ env.TAG }}
+            docker push ${IMAGE_NAME}
             echo "ContentProcessorWeb image built and pushed successfully."
           else
             echo "Skipping Docker push for ContentProcessorWeb with tag: ${{ env.TAG }}"
