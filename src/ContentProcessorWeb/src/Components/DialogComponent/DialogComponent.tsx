@@ -10,19 +10,8 @@ import {
   useId,
 } from "@fluentui/react-components";
 
-interface FooterButton {
-  text: string;
-  appearance: "primary" | "secondary";
-  onClick: () => void;
-}
+import { ConfirmationProps } from './DialogComponentTypes'
 
-interface ConfirmationProps {
-  title: string;
-  content: string;
-  isDialogOpen: boolean; // Controlled state for dialog visibility
-  onDialogClose: () => void; // Function to close the dialog
-  footerButtons: FooterButton[]; // Array of footer buttons
-}
 
 export const Confirmation: React.FC<ConfirmationProps> = ({
   title,

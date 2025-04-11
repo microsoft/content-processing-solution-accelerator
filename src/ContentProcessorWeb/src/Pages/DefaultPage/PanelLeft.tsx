@@ -7,7 +7,7 @@ import SchemaDropdown from './Components/SchemaDropdown/SchemaDropdown';
 import UploadFilesModal from "../../Components/UploadContent/UploadFilesModal.tsx";
 
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { fetchSchemaData, fetchContentTableData } from '../../store/slices/leftPanelSlice.ts';
+import { fetchSchemaData, fetchContentTableData, setRefreshGrid, fetchSwaggerData } from '../../store/slices/leftPanelSlice.ts';
 import { AppDispatch, RootState } from '../../store/index.ts';
 import { startLoader, stopLoader } from "../../store/slices/loaderSlice.ts";
 import { toast } from "react-toastify";
@@ -23,7 +23,8 @@ const PanelLeft: React.FC<PanelLeftProps> = () => {
   const store = useSelector((state: RootState) => ({
     schemaSelectedOption: state.leftPanel.schemaSelectedOption,
     page_size: state.leftPanel.gridData.page_size,
-    pageSize: state.leftPanel.pageSize
+    pageSize: state.leftPanel.pageSize,
+    isGridRefresh: state.leftPanel.isGridRefresh
   }), shallowEqual);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ const PanelLeft: React.FC<PanelLeftProps> = () => {
       try {
         dispatch(startLoader("1"));
         await Promise.allSettled([
+          dispatch(fetchSwaggerData()).unwrap(),
           dispatch(fetchSchemaData()).unwrap(),
           dispatch(fetchContentTableData({ pageSize: store.pageSize, pageNumber: 1 })).unwrap(),
         ]);
@@ -42,7 +44,13 @@ const PanelLeft: React.FC<PanelLeftProps> = () => {
     };
     fetchData();
 
-  }, [dispatch])
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (store.isGridRefresh) {
+      refreshGrid();
+    }
+  }, [store.isGridRefresh, dispatch]);
 
   const refreshGrid = async () => {
     try {
@@ -52,23 +60,25 @@ const PanelLeft: React.FC<PanelLeftProps> = () => {
       console.error("Error fetching data:", error);
     } finally {
       dispatch(stopLoader("1"));
+      dispatch(setRefreshGrid(false));
     }
   }
+
+  const handleImportContent = () => {
+    const { schemaSelectedOption } = store;
+    if (Object.keys(schemaSelectedOption).length === 0) {
+      toast.error("Please Select Schema");
+      return; 
+    }
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="panelLeft">
       <PanelToolbar icon={null} header="Processing Queue"></PanelToolbar>
-
-      <div style={({ display: "flex", flexWrap: 'wrap', alignItems: "end", gap: "10px", padding: "0px 16px 16px 16px" })}>
+      <div className="topContainer">
         <SchemaDropdown />
-        <Button appearance="primary" icon={<ArrowUploadRegular />} onClick={() => {
-          if (Object.keys(store.schemaSelectedOption).length === 0)
-            toast.error("Please Select Schema");
-          else
-            setIsModalOpen(true)
-        }
-        }
-        >
+        <Button appearance="primary" icon={<ArrowUploadRegular />} onClick={handleImportContent}>
           Import Content
         </Button>
         <UploadFilesModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />

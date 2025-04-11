@@ -1,41 +1,26 @@
 import * as React from "react";
-
 import PanelCenter from "./PanelCenter.tsx";
 import PanelLeft from "./PanelLeft.tsx";
 import PanelRight from "./PanelRight.tsx";
-import { makeStyles } from "@fluentui/react-components";
 import './Panels.styles.scss';
 
-// AppHooks
-import { useAppHooks } from "../../Hooks/useAppHooks.tsx";
-
 const Page: React.FC = () => {
-  const { isPanelOpen, panelWidth, togglePanel, handleMouseDownLeft, isRightPanelOpen, rightPanelWidth, toggleRightPanel, handleMouseDownRight } = useAppHooks();
-
   return (
-    <div className="layout" style={{ display: "flex" }}>
-      {isPanelOpen && (
-        <div className="panelLeft" style={{ flex: "37%", minWidth: "300px" }}>
-          <PanelLeft />
-        </div>
-      )}
-
-      <div className="panelCenter" style={{ flex: "31%", minWidth: "280px", background: 'white', border: "2px solid #D6D6D6", borderWidth: "2px 2px 0px 0px" }}>
-        <PanelCenter
-          isPanelOpen={isPanelOpen}
-          togglePanel={togglePanel}
-          isRightPanelOpen={isRightPanelOpen}
-          toggleRightPanel={toggleRightPanel}
-        />
+    <div className="layout">
+      <div className="panelLeft">
+        <PanelLeft />
       </div>
 
-      {isRightPanelOpen && (
-        <div className="panelRight" style={{ flex: "31%", minWidth: "280px", background: 'white', border: "1px solid #D6D6D6", borderWidth: "1px 1px 0px 0px" }}>
-          <PanelRight />
-        </div>
-      )}
+      <div className="panelCenter">
+        <PanelCenter />
+      </div>
+      
+      <div className="panelRight">
+        <PanelRight />
+      </div>
     </div>
   );
 };
 
 export default Page;
+

@@ -13,8 +13,10 @@ interface LeftPanelState {
     gridLoader: boolean;
     processId: string | null;
     selectedItem: any;
-    pageSize : number;
-    deleteFilesLoader: string[]
+    pageSize: number;
+    deleteFilesLoader: string[],
+    isGridRefresh: boolean;
+    swaggerJSON: any;
 }
 
 interface UploadMetadata {
@@ -28,6 +30,11 @@ interface UploadFileResponse {
     data?: any; // You can specify a more precise type for the response data if needed
 }
 
+export const fetchSwaggerData = createAsyncThunk<any, void>('/openapi', async (): Promise<any> => {
+    const url = '/openapi.json';
+    const response = await httpUtility.get(url);
+    return response;
+});
 
 // Async thunk for fetching data
 export const fetchSchemaData = createAsyncThunk<any, void>('/schemavault', async (): Promise<any> => {
@@ -49,15 +56,15 @@ interface DeleteApiResponse {
     process_id: string;
     status: string;
     message: string;
-  }
-export const deleteProcessedFile = createAsyncThunk<any, { processId: string | null }>('/contentprocessor/deleteProcessedFile/', async ({ processId }, {rejectWithValue}) => {
+}
+export const deleteProcessedFile = createAsyncThunk<any, { processId: string | null }>('/contentprocessor/deleteProcessedFile/', async ({ processId }, { rejectWithValue }) => {
     if (!processId) {
         return rejectWithValue("Reset store");
     }
     const url = '/contentprocessor/processed/' + processId;
     const response = await httpUtility.delete(url);
     console.log("response", response);
-    return response as DeleteApiResponse; ;
+    return response as DeleteApiResponse;;
 });
 
 export const uploadFile = createAsyncThunk<
@@ -105,14 +112,15 @@ const initialState: LeftPanelState = {
     schemaLoader: false,
     schemaError: null,
 
-    gridData: {...gridDefaultVal},
-    gridLoader : false,
+    gridData: { ...gridDefaultVal },
+    gridLoader: false,
     processId: null,
     selectedItem: {},
-    pageSize : 500,
+    isGridRefresh: false,
+    pageSize: 500,
 
-    deleteFilesLoader : [],
-    
+    deleteFilesLoader: [],
+    swaggerJSON: null
 };
 
 const leftPanelSlice = createSlice({
@@ -125,10 +133,26 @@ const leftPanelSlice = createSlice({
         setSelectedGridRow: (state, action) => {
             state.processId = action.payload.processId;
             state.selectedItem = action.payload.item;
-        }
+        },
+        setRefreshGrid: (state, action) => {
+            state.isGridRefresh = action.payload;
+        },
     },
     extraReducers: (builder) => {
         //Fetch Dropdown values
+
+        builder
+            .addCase(fetchSwaggerData.pending, (state) => {
+                state.swaggerJSON = null;
+            })
+            .addCase(fetchSwaggerData.fulfilled, (state, action: PayloadAction<any>) => { // Adjust `any` to the response data type
+                state.swaggerJSON = action.payload;
+            })
+            .addCase(fetchSwaggerData.rejected, (state, action) => {
+                state.swaggerJSON = null;
+            });
+
+
         builder
             .addCase(fetchSchemaData.pending, (state) => {
                 state.schemaLoader = true; // You can manage loading state if necessary
@@ -148,7 +172,7 @@ const leftPanelSlice = createSlice({
             .addCase(fetchContentTableData.pending, (state) => {
                 //state.schemaError = null;
                 state.gridLoader = true;
-                state.gridData = {...gridDefaultVal};
+                state.gridData = { ...gridDefaultVal };
             })
             .addCase(fetchContentTableData.fulfilled, (state, action: PayloadAction<any>) => { // Adjust `any` to the response data type
                 //state.schemaLoader = false;
@@ -177,33 +201,33 @@ const leftPanelSlice = createSlice({
             });
 
 
-         //Fetch Grid Data
-         builder
-         .addCase(deleteProcessedFile.pending, (state, action) => {
-            const processId = action.meta.arg.processId;
-            if (processId) {
-                state.deleteFilesLoader.push(processId);
-            }
-        })
-        .addCase(deleteProcessedFile.fulfilled, (state, action) => {
-            const processId = action.meta.arg.processId;
-            if (processId) {
-                state.deleteFilesLoader = state.deleteFilesLoader.filter(id => id !== processId);
-            }
-            if(action.payload.status === 'Success')
-                toast.success("File deleted successfully.")
-            else 
-             toast.error(action.payload.message)
-        })
-        .addCase(deleteProcessedFile.rejected, (state, action) => {
-            const processId = action.meta.arg.processId;
-            if (processId) {
-                state.deleteFilesLoader = state.deleteFilesLoader.filter(id => id !== processId);
-                toast.error("Failed to delete the file. Please try again.")
-            }
-        });
+        //Fetch Grid Data
+        builder
+            .addCase(deleteProcessedFile.pending, (state, action) => {
+                const processId = action.meta.arg.processId;
+                if (processId) {
+                    state.deleteFilesLoader.push(processId);
+                }
+            })
+            .addCase(deleteProcessedFile.fulfilled, (state, action) => {
+                const processId = action.meta.arg.processId;
+                if (processId) {
+                    state.deleteFilesLoader = state.deleteFilesLoader.filter(id => id !== processId);
+                }
+                if (action.payload.status === 'Success')
+                    toast.success("File deleted successfully.")
+                else
+                    toast.error(action.payload.message)
+            })
+            .addCase(deleteProcessedFile.rejected, (state, action) => {
+                const processId = action.meta.arg.processId;
+                if (processId) {
+                    state.deleteFilesLoader = state.deleteFilesLoader.filter(id => id !== processId);
+                    toast.error("Failed to delete the file. Please try again.")
+                }
+            });
     },
 });
 
-export const { setSchemaSelectedOption, setSelectedGridRow } = leftPanelSlice.actions;
+export const { setSchemaSelectedOption, setSelectedGridRow, setRefreshGrid } = leftPanelSlice.actions;
 export default leftPanelSlice.reducer;

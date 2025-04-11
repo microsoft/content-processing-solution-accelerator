@@ -12,6 +12,7 @@ interface CenterPanelState {
     isSavingInProgress: boolean;
     activeProcessId : string,
     processStepsData: any[];
+    isJSONEditorSearchEnabled: boolean;
 }
 
 
@@ -80,6 +81,7 @@ const initialState: CenterPanelState = {
     isSavingInProgress: false,
     activeProcessId : '',
     processStepsData: [],
+    isJSONEditorSearchEnabled : true,
 };
 
 const centerPanelSlice = createSlice({

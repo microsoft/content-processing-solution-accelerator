@@ -300,16 +300,22 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
         setIsDialogOpen(!isDialogOpen);
     };
 
+    const dialogContnet = () => {
+        return (
+            <p>Are you sure you want to delete this file?</p>
+        )
+    }
+
     return (
         <>
-            <div style={{ height: '100vh' }}>
+            <div className="gridContainer">
                 <Table
                     noNativeElements={true}
                     sortable
                     size="medium"
                     aria-label="Table with selection"
                     aria-rowcount={rows.length}
-                    style={{ minWidth: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+                   className="gridTable"
                 >
                     <TableHeader>
                         <TableRow aria-rowindex={1}>
@@ -323,7 +329,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                             {/* <div role="presentation" style={{ width: scrollbarWidth }} /> */}
                         </TableRow>
                     </TableHeader>
-                    <TableBody style={{ height: "100%" }}>
+                    <TableBody className="gridTableBody">
                         <div className="GridList">
                             <AutoSizer>
                                 {({ height, width }) => (
@@ -345,7 +351,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
 
             <Confirmation
                 title="Delete Confirmation"
-                content="Are you sure you want to delete this file?"
+                content={dialogContnet()}
                 isDialogOpen={isDialogOpen}
                 onDialogClose={toggleDialog}
                 footerButtons={[

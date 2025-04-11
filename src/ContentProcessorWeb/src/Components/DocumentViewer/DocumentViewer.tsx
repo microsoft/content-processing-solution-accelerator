@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Document } from "./DocumentViewer.types";
 import { TIFFViewer } from 'react-tiff';
 import './DocumentViewer.styles.scss';
 
@@ -107,7 +106,7 @@ const DocumentViewer = ({ className, metadata, urlWithSasToken, iframeKey }: IIF
             <div className={"invalidImagePopup"}>
                 <span className="imgEH">We can't open this file</span>
                 <p className="imgCtn">Something went wrong.</p>
-                 </div>
+            </div>
             : getContentComponent()
         }
     </div>

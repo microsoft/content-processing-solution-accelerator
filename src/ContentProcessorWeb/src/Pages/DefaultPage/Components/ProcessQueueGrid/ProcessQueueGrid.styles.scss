@@ -1,117 +1,132 @@
-.col1 {
-    min-width: 120px !important;
-}
+.gridContainer {
+    height: 100vh;
 
-.col2 {
-    min-width: 55px !important;
-    max-width: 85px !important;
-}
+    .gridTable {
+        min-width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
 
-.col3 {
-    min-width: 45px !important;
-    max-width: 70px !important;
-}
-
-.col4 {
-    min-width: 35px !important;
-    max-width: 85px !important;
-}
-
-.col5 {
-    min-width: 35px !important;
-    max-width: 85px !important;
-}
-
-.col6 {
-    min-width: 45px !important;
-    max-width: 85px !important;
-}
-
-.col7 {
-    min-width: 30px !important;
-    max-width: 35px !important;
-    box-sizing: border-box;
-}
-
-.roundedBtn {
-    border: 1px solid #BDBDBD;
-    border-radius: 20px;
-    text-align: center;
-    padding: 1px 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 75%;
-    white-space: nowrap;
-    font-size: 10px;
-    text-transform: capitalize;
-
-    span {
-        color: #2C3C85
+        .gridTableBody {
+            height: 100%;
+        }
     }
 
-    .ProcessedCls {
-        color: #00666D
+    .col1 {
+        min-width: 100px !important;
     }
 
-}
-
-.percentageContainer {
-    width: 100%;
-    text-align: center;
-
-    .gClass {
-        color: #359B35;
+    .col2 {
+        min-width: 55px !important;
+        max-width: 85px !important;
     }
 
-    .yClass {
-        color: #C19C00;
+    .col3 {
+        min-width: 45px !important;
+        max-width: 70px !important;
     }
 
-    .oClass {
-        color: #FF5F3DE5;
+    .col4 {
+        min-width: 35px !important;
+        max-width: 85px !important;
     }
 
-    .rClass {
-        color: #B10E1C;
+    .col5 {
+        min-width: 35px !important;
+        max-width: 85px !important;
     }
 
-    .textClass {
+    .col6 {
+        min-width: 55px !important;
+        max-width: 105px !important;
+        box-sizing: border-box;
+    }
+
+    .col7 {
+        min-width: 30px !important;
+        max-width: 35px !important;
+        box-sizing: border-box;
+    }
+
+    .roundedBtn {
+        border: 1px solid #BDBDBD;
+        border-radius: 20px;
+        text-align: center;
+        padding: 1px 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 75%;
+        white-space: nowrap;
+        font-size: 10px;
+        text-transform: capitalize;
+
+        span {
+            color: #2C3C85
+        }
+
+        .ProcessedCls {
+            color: #00666D
+        }
+
+    }
+
+    .percentageContainer {
+        width: 100%;
+        text-align: center;
+
+        .gClass {
+            color: #359B35;
+        }
+
+        .yClass {
+            color: #C19C00;
+        }
+
+        .oClass {
+            color: #FF5F3DE5;
+        }
+
+        .rClass {
+            color: #B10E1C;
+        }
+
+        .textClass {
+            color: #0F6CBD
+        }
+    }
+
+    .GridList {
+        width: 100%;
+        flex: 1 1 auto;
+        height: 100%;
+
+        >div {
+            width: 100% !important;
+        }
+    }
+
+    .columnCotainer {
+        font-size: 12px;
+        color: #323130;
+        width: 100%;
+    }
+
+    .centerAlign {
+        text-align: center;
+    }
+
+    .percentageContainer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .editPersonIcon {
+        margin-right: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #0F6CBD
     }
-}
-
-.GridList {
-    width: 100%;
-    // max-height: calc(100vh - 235px) !important;
-    // height: calc(100vh - 235px) !important;
-    flex: 1 1 auto;
-    height: 100%;
-
-    //background-color: red;
-    >div {
-        width: 100% !important;
-    }
-}
-
-.columnCotainer {
-    font-size: 12px;
-    color: #323130;
-    width: 100%;
-}
-
-.centerAlign {
-    text-align: center;
-}
-
-.percentageContainer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.editPersonIcon {
-    margin-right: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }

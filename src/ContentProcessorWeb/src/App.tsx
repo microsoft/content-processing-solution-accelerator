@@ -2,7 +2,6 @@ import * as React from "react";
 import { useEffect } from "react";
 import Header from "./Components/Header/Header.tsx"; // Import Header
 import "./Styles/App.css";
-import "./Components/Content/Content.css";
 import HomePage from "./Pages/HomePage.tsx";
 import DefaultPage from "./Pages/DefaultPage";
 //import AuxiliaryPage from "./Pages/AuxiliaryPage/AuxiliaryPage.tsx";

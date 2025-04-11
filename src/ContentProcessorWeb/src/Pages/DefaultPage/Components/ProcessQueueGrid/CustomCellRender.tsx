@@ -1,7 +1,7 @@
 import React from 'react';
 import { CaretUp16Filled, CaretDown16Filled, EditPersonFilled } from '@fluentui/react-icons';
 import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from '@fluentui/react-components';
-import { MoreVerticalRegular, MoreVerticalFilled, bundleIcon } from '@fluentui/react-icons';
+import { MoreVerticalRegular, MoreVerticalFilled, bundleIcon , Delete20Filled , Delete20Regular} from '@fluentui/react-icons';
 
 type CellRendererProps = {
   type: string;
@@ -11,6 +11,11 @@ type CellRendererProps = {
 const MoreVerticallIcon = bundleIcon(
   MoreVerticalFilled,
   MoreVerticalRegular
+);
+
+const DeleteIcon = bundleIcon(
+  Delete20Filled,
+  Delete20Regular
 );
 
 const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
@@ -51,21 +56,16 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
     }
 
     const wholeValue = Math.round(decimalValue * 100);
-    let color;
     let numberClass = '';
 
     // Apply color based on value
     if (wholeValue > 80) {
-      color = '#359B35';
       numberClass = 'gClass';
     } else if (wholeValue >= 50 && wholeValue <= 80) {
-      color = '#C19C00';
       numberClass = 'yClass';
     } else if (wholeValue >= 30 && wholeValue < 50) {
-      color = '#FF5F3DE5';
       numberClass = 'oClass';
     } else {
-      color = '#B10E1C';
       numberClass = 'rClass';
     }
 
@@ -86,8 +86,9 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
     if (lastModifiedBy === 'user') {
       return (
         <div className="percentageContainer">
+          <EditPersonFilled className="editPersonIcon" />
           <span className="textClass">
-            <EditPersonFilled className="editPersonIcon" />Verified
+            Verified
           </span>
         </div>
       );
@@ -122,6 +123,7 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
       <MenuPopover style={{ maxWidth: 'auto', minWidth: '80px' }} >
         <MenuList style={{ maxWidth: 'auto', minWidth: 'auto' }}>
           <MenuItem
+            icon={<DeleteIcon />}
             onClick={() => {
               setSelectedDeleteItem(item);
               toggleDialog();

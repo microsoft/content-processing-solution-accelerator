@@ -1,116 +1,23 @@
+.layout {
+  display: flex;
+}
+
 /* Panel container styling */
 
 .panelLeft {
-    /* background-color: var(--colorNeutralBackground4); */
-    position: relative;
-    display: flex;
-    height: 100%;
-    box-sizing: border-box;
-    flex-direction: column;
-    overflow-y: auto;
-    background-color: white;
-    border: 1px solid #D6D6D6;
-    border-width: 1px 1px 0px 0px;
-  }
-  
-  .panelRight {
-    /* background-color: var(--colorNeutralBackground4); */
-    position: relative;
-    display: flex;
-    height: 100%;
-    box-sizing: border-box;
-    flex-direction: column;
-    overflow-y: auto;
-    background-color: white;
-    border: 1px solid #D6D6D6;
-    border-width: 1px 0px 0px 0px;
-  }
-  
-  /* Resize functionality on panels */
-  
-  .resize-handle-left,
-  .resize-handle-right {
-    position: absolute;
-    top: 0;
-    width: 3px;
-    height: 100%;
-    cursor: ew-resize;
-    background-color: transparent;
-  }
-  
-  .resize-handle-left {
-    right: 0;
-  }
-  
-  .resize-handle-right {
-    left: 0;
-    z-index: 1;
-  }
-  
-  .resize-handle-left:hover,
-  .resize-handle-right:hover {
-    background-color: var(--colorNeutralStroke1);
-  }
-  
-  .resize-handle-right:hover {
-    background-color: var(--colorNeutralStroke1);
-  }
-  
-  .resize-handle-left:active,
-  .resize-handle-right:active {
-    background-color: var(--colorNeutralStroke1);
-  }
-  
-  .panelCenter {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    align-items: start;
-    box-sizing: border-box;
-  }
-  
-  .content {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    overflow: scroll;
-    box-sizing: border-box;
-    padding: 64px 16px 64px 16px;
-    height: 100%;
-    width: 100%;
-    margin: auto;
-    overflow-x: hidden;
-    overflow-y: auto;
-    margin-top: -64px;
-  
-  }
-  
-  .panelToolbar {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    padding: 16px 16px;
-    min-height: 64px;
-    justify-content: space-between;
-    box-sizing: border-box;
-    backdrop-filter: saturate(180%) blur(16px);
-    transition: all 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
-  }
-  
-  .buttonGroup {
-    display: flex;
-    align-items: center;
-  }
-  
-  .headerTitleGroup {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-  
+  /* background-color: var(--colorNeutralBackground4); */
+  position: relative;
+  display: flex;
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #D6D6D6;
+  border-width: 1px 1px 0px 0px;
+  flex: 37%;
+  min-width: 300px;
+
   .leftcontent {
     display: flex;
     flex-direction: column;
@@ -123,9 +30,67 @@
     margin: auto;
     overflow-x: hidden;
     overflow-y: auto;
-  
   }
   
+  .topContainer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+    padding: 0px 16px 16px 16px;
+  }
+}
+
+.panelCenter {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  align-items: start;
+  box-sizing: border-box;
+
+  flex: 31%;
+  min-width: 280px;
+  background: white;
+  border: 2px solid #d6d6d6;
+  border-width: 2px 2px 0 0;
+
+  .custom-test button {
+    padding: 0px !important;
+    padding: 5px 12px 12px 10px !important
+  }
+
+  .saveBtnDiv { 
+    display: flex;
+    justify-content: flex-end; 
+    align-items: center;
+
+    .msgp { 
+      margin: auto;
+       color: red; 
+    }
+  }
+}
+
+.panelRight {
+  /* background-color: var(--colorNeutralBackground4); */
+  position: relative;
+  display: flex;
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #D6D6D6;
+  border-width: 1px 0px 0px 0px;
+
+  flex: 31%;
+  min-width: 280px;
+  background: white;
+  border: 1px solid #d6d6d6;
+  border-width: 1px 1px 0 0;
+
   .panelRightContent {
     display: flex;
     flex-direction: column;
@@ -140,31 +105,29 @@
     overflow-y: auto;
     /* margin-top: -64px; */
   }
-  
-  .fullHeight {
-    height: 100vh;
+
+  .right-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
   }
-  
-  .brand,
-  .selectedRow {
-    background-color: #e0e0e0;
-    /* Light gray for selected row */
-    border: 2px solid #0078d4;
-    /* Blue border for selected row */
-  }
-  
-  /* .JSONEditorClass {
-    max-height: none !important;
-  } */
-  
-  .right-loader{
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-  }
-  
-  .custom-test button{
-    padding : 0px !important;
-    padding :5px 12px 12px 10px  !important
-  }
+
+ 
+}
+
+.panelToolbar {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 16px 16px;
+  min-height: 64px;
+  justify-content: space-between;
+  box-sizing: border-box;
+  backdrop-filter: saturate(180%) blur(16px);
+  transition: all 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.fullHeight {
+  height: 100vh;
+}
