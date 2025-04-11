@@ -25,7 +25,7 @@
     "react-scripts": "5.0.1",
     "react-toastify": "^11.0.5",
     "react-virtualized": "^9.22.6",
-    "react-virtualized-auto-sizer": "^1.0.25",
+    "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^1.8.11"
   },
   "scripts": {
