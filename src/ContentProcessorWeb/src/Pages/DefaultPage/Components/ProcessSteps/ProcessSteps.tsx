@@ -84,7 +84,7 @@ const ProcessSteps = () => {
                 restrictEdit={true}
                 restrictDelete={true}
                 restrictAdd={true}
-                rootName=""
+                rootName={step.step_name.toLowerCase()}
                 collapseAnimationTime={300}
                 theme={[{
                   styles: {

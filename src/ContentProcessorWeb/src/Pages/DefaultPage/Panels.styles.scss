@@ -4,7 +4,7 @@
 
 /* Panel container styling */
 
-.panelLeft {
+.panelLeftLayout {
   /* background-color: var(--colorNeutralBackground4); */
   position: relative;
   display: flex;
@@ -17,6 +17,23 @@
   border-width: 1px 1px 0px 0px;
   flex: 37%;
   min-width: 300px;
+
+  .collapseButtonDiv {
+    display: none;
+  }
+
+
+  .panelLeft {
+    position: relative;
+    display: flex;
+    height: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #D6D6D6;
+    border-width: 1px 1px 0px 0px;
+  }
 
   .leftcontent {
     display: flex;
@@ -31,13 +48,30 @@
     overflow-x: hidden;
     overflow-y: auto;
   }
-  
+
   .topContainer {
     display: flex;
     flex-wrap: wrap;
     align-items: end;
     gap: 10px;
     padding: 0px 16px 16px 16px;
+  }
+
+
+}
+
+.panelLeftLayout.collapse {
+  flex: none;
+  width: auto;
+  min-width: 20px;
+  transition: width 0.3s ease;
+
+  .collapseButtonDiv {
+    display: block !important;
+  }
+
+  .panelLeft {
+    display: none !important;
   }
 }
 
@@ -61,17 +95,38 @@
     padding: 5px 12px 12px 10px !important
   }
 
-  .saveBtnDiv { 
+  .saveBtnDiv {
     display: flex;
-    justify-content: flex-end; 
+    justify-content: flex-end;
     align-items: center;
 
-    .msgp { 
+    .msgp {
       margin: auto;
-       color: red; 
+      color: red;
     }
   }
+
+  .collapseButtonDiv {
+    display: none;
+  }
 }
+
+.panelCenter.collapse {
+  flex: none;
+  width: auto;
+  min-width: 20px;
+  border: 1px solid #d6d6d6;
+  border-width: 1px 1px 0 0;
+
+  .collapseButtonDiv {
+    display: block !important;
+  }
+
+  .pc {
+    display: none !important;
+  }
+}
+
 
 .panelRight {
   /* background-color: var(--colorNeutralBackground4); */
@@ -113,7 +168,24 @@
     height: 100%;
   }
 
- 
+  .collapseButtonDiv {
+    display: none;
+  }
+
+}
+
+.panelRight.collapse {
+  flex: none;
+  width: auto;
+  min-width: 20px;
+
+  .collapseButtonDiv {
+    display: block !important;
+  }
+
+  .pr {
+    display: none !important;
+  }
 }
 
 .panelToolbar {
@@ -130,4 +202,25 @@
 
 .fullHeight {
   height: 100vh;
+}
+
+.rotate-button {
+  writing-mode: vertical-rl;
+  /* Makes text go top to bottom */
+  text-orientation: mixed;
+  /* Keeps letters upright */
+  height: auto;
+  /* Automatically adjusts height */
+  width: fit-content;
+  /* Adjust width based on content */
+  background-color: #f0f0f0;
+  cursor: pointer;
+  min-width: 10px !important;
+
+  height: 172px;
+  padding: 16px 5px !important;
+  text-transform: uppercase;
+  font-size: 12px !important;
+  letter-spacing: 1px;
+  word-spacing: 3px;
 }

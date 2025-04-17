@@ -13,7 +13,7 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import CustomCellRender from "./CustomCellRender";
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { RootState, AppDispatch } from '../../../../store';
-import { setSelectedGridRow, deleteProcessedFile, fetchContentTableData } from '../../../../store/slices/leftPanelSlice';
+import { setSelectedGridRow, deleteProcessedFile } from '../../../../store/slices/leftPanelSlice';
 import useFileType from "../../../../Hooks/useFileType";
 import { Confirmation } from "../../../../Components/DialogComponent/DialogComponent.tsx";
 import { Item, TableRowData, ReactWindowRenderFnProps, GridComponentProps } from './ProcessQueueGridTypes.ts';
@@ -140,7 +140,6 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
     }, [store.gridData])
 
     useEffect(() => {
-        console.log("selectedRows", selectedRows, items);
         if (items.length > 0 && selectedRows.size > 0) {
             const selectedRow = [...selectedRows][0];
             if (typeof selectedRow === 'number') {
@@ -148,7 +147,6 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                 if (!selectedItem) {
                     setSelectedRows(new Set<TableRowId>([0]));
                 } else {
-                    console.log("selectedItem", selectedItem);
                     const findItem = getSelectedItem(selectedItem?.processId.label ?? '');
                     dispatch(setSelectedGridRow({ processId: selectedItem?.processId.label, item: findItem }));
                 }
@@ -289,9 +287,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                 toggleDialog();
                 await dispatch(deleteProcessedFile({ processId: selectedDeleteItem.processId.label ?? null }));
             } catch (error: any) {
-
-            } finally {
-                dispatch(fetchContentTableData({ pageSize: store.pageSize, pageNumber: 1 })).unwrap();
+                console.log("error : ", error)
             }
         }
     };
@@ -315,7 +311,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                     size="medium"
                     aria-label="Table with selection"
                     aria-rowcount={rows.length}
-                   className="gridTable"
+                    className="gridTable"
                 >
                     <TableHeader>
                         <TableRow aria-rowindex={1}>

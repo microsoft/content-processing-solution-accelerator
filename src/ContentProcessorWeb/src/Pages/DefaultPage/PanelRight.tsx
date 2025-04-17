@@ -4,11 +4,15 @@ import DocumentViewer from '../../Components/DocumentViewer/DocumentViewer.tsx'
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchContentFileData } from '../../store/slices/rightPanelSlice'
-
+import { updatePanelCollapse } from "../../store/slices/defaultPageSlice.ts";
+import { bundleIcon, ChevronDoubleLeft20Filled, ChevronDoubleLeft20Regular } from "@fluentui/react-icons";
+import { Button } from "@fluentui/react-components";
+const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLeft20Filled);
 interface PanelRightProps {
+  togglePanel: (panel: string) => void;
 }
 
-const PanelRight: React.FC<PanelRightProps> = () => {
+const PanelRight: React.FC<PanelRightProps> = ({ togglePanel }) => {
 
   const dispatch = useDispatch<AppDispatch>();
   const [fileData, setFileData] = useState({ 'urlWithSasToken': '', 'mimeType': '' })
@@ -41,10 +45,11 @@ const PanelRight: React.FC<PanelRightProps> = () => {
     }
   }, [store.processId, store.fileResponse])
 
-
   return (
-    <div className="panelRight">
-      <PanelToolbar icon={null} header="Source Document"></PanelToolbar>
+    <div className="pr panelRight">
+      <PanelToolbar icon={null} header="Source Document">
+        <Button icon={<ChevronDoubleLeft />} title="Collapse Panel" onClick={() => togglePanel('Right')} />
+      </PanelToolbar>
       <div className="panelRightContent">
         {
           store.rLoader ? <div className={"right-loader"}><p>Loading...</p></div>

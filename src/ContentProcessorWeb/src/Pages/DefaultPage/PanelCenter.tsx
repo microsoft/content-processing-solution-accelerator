@@ -12,8 +12,11 @@ import { fetchContentJsonData, setActiveProcessId } from '../../store/slices/cen
 import ProcessSteps from './Components/ProcessSteps/ProcessSteps';
 import { setRefreshGrid } from "../../store/slices/leftPanelSlice.ts";
 
+import { bundleIcon, ChevronDoubleLeft20Filled, ChevronDoubleLeft20Regular } from "@fluentui/react-icons";
+const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLeft20Filled);
+
 interface PanelCenterProps {
-  
+  togglePanel: (panel: string) => void;
 }
 
 const useStyles = makeStyles({
@@ -52,7 +55,7 @@ const useStyles = makeStyles({
     overflow: 'auto',
     background: '#f6f6f6',
     padding: '10px 5px',
-    boxSizing:'border-box'
+    boxSizing: 'border-box'
   },
 
   processTabItemCotnent: {
@@ -61,7 +64,7 @@ const useStyles = makeStyles({
     overflow: 'auto',
     background: '#f6f6f6',
     padding: '5px',
-    boxSizing:'border-box'
+    boxSizing: 'border-box'
   },
   fieldLabel: {
     fontWeight: 'bold',
@@ -86,7 +89,7 @@ const useStyles = makeStyles({
   }
 })
 
-const PanelCenter: React.FC<PanelCenterProps> = () => {
+const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
 
   const styles = useStyles();
   const dispatch = useDispatch<AppDispatch>();
@@ -164,11 +167,13 @@ const PanelCenter: React.FC<PanelCenterProps> = () => {
     try {
       dispatch(startLoader("1"));
       dispatch(setUpdateComments(comment))
-      await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': store.modified_result.extracted_result, 'comments': comment, 'savedComments': store.comments }))
+      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': store.modified_result.extracted_result, 'comments': comment, 'savedComments': store.comments }))
+      if (result?.type === 'SaveContentJSON-Comments/fulfilled') {
+        dispatch(setRefreshGrid(true));
+      }
     } catch (error) {
       console.error('API Error:', error);
     } finally {
-      dispatch(setRefreshGrid(true));
       dispatch(stopLoader("1"));
     }
   }
@@ -182,8 +187,10 @@ const PanelCenter: React.FC<PanelCenterProps> = () => {
   }
 
   return (
-    <div className={styles.panelCenter}>
-      <PanelToolbar icon={null} header="Output Review"></PanelToolbar>
+    <div className={`pc ${styles.panelCenter}`}>
+      <PanelToolbar icon={null} header="Output Review">
+        <Button icon={<ChevronDoubleLeft />} title="Collapse Panel" onClick={() => togglePanel('Center')} />
+      </PanelToolbar>
       <div className={styles.panelCenterTopSection} >
         <div className={styles.tabContainer}>
           <TabList selectedValue={selectedTab} onTabSelect={onTabSelect} className="custom-test" >

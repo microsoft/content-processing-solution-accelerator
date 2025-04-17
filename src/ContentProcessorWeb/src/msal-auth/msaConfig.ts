@@ -3,10 +3,10 @@ import { Configuration, LogLevel } from '@azure/msal-browser';
 
 export const msalConfig: Configuration = {
   auth: {
-    clientId: process.env.REACT_APP_MSAL_AUTH_CLIENT_ID as string,
-    authority: process.env.REACT_APP_MSAL_AUTH_AUTHORITY,
-    redirectUri: process.env.REACT_APP_MSAL_REDIRECT_URL as string,
-    postLogoutRedirectUri: process.env.REACT_APP_MSAL_POST_REDIRECT_URL as string,
+    clientId: process.env.REACT_APP_WEB_CLIENT_ID as string,
+    authority: process.env.REACT_APP_WEB_AUTHORITY,
+    redirectUri: process.env.REACT_APP_REDIRECT_URL as string,
+    postLogoutRedirectUri: process.env.REACT_APP_POST_REDIRECT_URL as string,
   },
   cache: {
     cacheLocation: 'localStorage', // Use localStorage for persistent cache
@@ -25,8 +25,8 @@ export const msalConfig: Configuration = {
   },
 };
 
-const loginScope = process.env.REACT_APP_MSAL_AUTH_SCOPE as string;
-const tokenScope = process.env.REACT_APP_MSAL_TOKEN_SCOPE as string;
+const loginScope = process.env.REACT_APP_WEB_SCOPE as string;
+const tokenScope = process.env.REACT_APP_API_SCOPE as string;
 
 // console.log("loginScope", loginScope);
 // console.log("tokenScope", tokenScope);

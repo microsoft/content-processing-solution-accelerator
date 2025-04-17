@@ -61,13 +61,13 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 3. Grab Scope Name for Impersonation
 
    - Select **Expose an API** in the left menu. Copy the Scope name, then paste it in some temporary place.  
-     The copied text will be used for Web Application Environment variable - **APP_MSAL_AUTH_SCOPE**.  
+     The copied text will be used for Web Application Environment variable - **APP_WEB_SCOPE**.  
      ![configure_app_registration_web_9](./Images/configure_app_registration_web_9.png)
 
 4. Grab Client Id for Web App
 
    - Select **Overview** in the left menu. Copy the Client Id, then paste it in some temporary place.  
-     The copied text will be used for Web Application Environment variable - **APP_MSAL_AUTH_CLIENT_ID**.  
+     The copied text will be used for Web Application Environment variable - **APP_WEB_CLIENT_ID**.  
      ![configure_app_registration_web_10](./Images/configure_app_registration_web_10.png)
 
 ## Step 3: Configure Application Registration - API Application
@@ -78,7 +78,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
      ![configure_app_registration_api_1](./Images/configure_app_registration_api_1.png)
 
    - Select **Expose an API** in the left menu. Copy the Scope name, then paste it in some temporary place.  
-     The copied text will be used for Web Application Environment variable - **APP_MSAL_TOKEN_SCOPE**.  
+     The copied text will be used for Web Application Environment variable - **APP_API_SCOPE**.  
      ![configure_app_registration_api_2](./Images/configure_app_registration_api_2.png)
 
 ## Step 4: Add Web Application's Client Id to Allowed Client Applications List in API Application Registration
@@ -100,7 +100,7 @@ Now, we will edit and deploy the Web Application Container with updated Environm
 
 1. Select **Containers** menu under **Application**. Then click **Environment variables** tab.
 ![update_env_app_1_1](./Images/update_env_app_1_1.png)
-2. Update 3 values which were taken in previous steps for **APP_MSAL_AUTH_CLIENT_ID**, **APP_MSAL_AUTH_SCOPE**, **APP_MSAL_TOKEN_SCOPE**.  
+2. Update 3 values which were taken in previous steps for **APP_WEB_CLIENT_ID**, **APP_WEB_SCOPE**, **APP_API_SCOPE**.  
 Click on **Save as a new revision**.
    The updated revision will be activated soon.
 

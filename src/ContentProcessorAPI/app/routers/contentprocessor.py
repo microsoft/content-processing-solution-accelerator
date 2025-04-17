@@ -517,5 +517,5 @@ async def delete_processed_file(
     return ContentResultDelete(
         status="Success" if deleted_file else "Failed",
         process_id=deleted_file.process_id if deleted_file else "",
-        message="" if deleted_file else "This record no longer exists. Please refresh the page."
+        message="" if deleted_file else "This record no longer exists. Please refresh."
     )

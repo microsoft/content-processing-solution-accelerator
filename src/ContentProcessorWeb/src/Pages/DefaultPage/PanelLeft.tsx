@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@fluentui/react-components";
-import { ArrowClockwiseRegular, ArrowUploadRegular } from "@fluentui/react-icons";
+import { ArrowClockwiseRegular, ArrowUploadRegular, ChevronDoubleLeft20Regular, ChevronDoubleLeft20Filled, bundleIcon } from "@fluentui/react-icons";
 import PanelToolbar from "../../Hooks/usePanelHooks.tsx";
 import ProcessQueueGrid from './Components/ProcessQueueGrid/ProcessQueueGrid.tsx';
 import SchemaDropdown from './Components/SchemaDropdown/SchemaDropdown';
@@ -12,10 +12,13 @@ import { AppDispatch, RootState } from '../../store/index.ts';
 import { startLoader, stopLoader } from "../../store/slices/loaderSlice.ts";
 import { toast } from "react-toastify";
 
+const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLeft20Filled);
+
 interface PanelLeftProps {
+  togglePanel: (panel: string) => void;
 }
 
-const PanelLeft: React.FC<PanelLeftProps> = () => {
+const PanelLeft: React.FC<PanelLeftProps> = ({ togglePanel }) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
@@ -24,7 +27,7 @@ const PanelLeft: React.FC<PanelLeftProps> = () => {
     schemaSelectedOption: state.leftPanel.schemaSelectedOption,
     page_size: state.leftPanel.gridData.page_size,
     pageSize: state.leftPanel.pageSize,
-    isGridRefresh: state.leftPanel.isGridRefresh
+    isGridRefresh: state.leftPanel.isGridRefresh,
   }), shallowEqual);
 
   useEffect(() => {
@@ -68,14 +71,17 @@ const PanelLeft: React.FC<PanelLeftProps> = () => {
     const { schemaSelectedOption } = store;
     if (Object.keys(schemaSelectedOption).length === 0) {
       toast.error("Please Select Schema");
-      return; 
+      return;
     }
     setIsModalOpen(true);
   };
 
   return (
     <div className="panelLeft">
-      <PanelToolbar icon={null} header="Processing Queue"></PanelToolbar>
+      <PanelToolbar icon={null} header="Processing Queue">
+        <Button icon={<ChevronDoubleLeft />} title="Collapse Panel" onClick={() => togglePanel('Left')}>
+        </Button>
+      </PanelToolbar>
       <div className="topContainer">
         <SchemaDropdown />
         <Button appearance="primary" icon={<ArrowUploadRegular />} onClick={handleImportContent}>

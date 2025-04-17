@@ -9,11 +9,19 @@ import {
 import { Button } from "@fluentui/react-button";
 import { Field, ProgressBar, makeStyles } from "@fluentui/react-components";
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
-import { fetchContentTableData, uploadFile } from "../../store/slices/leftPanelSlice";
+import { fetchContentTableData, setRefreshGrid, uploadFile } from "../../store/slices/leftPanelSlice";
 import { AppDispatch, RootState } from "../../store";
 import "./UploadFilesModal.styles.scss";
 
 import { CheckmarkCircle16Filled, DismissCircle16Filled } from "@fluentui/react-icons";
+
+import {
+  MessageBar,
+  MessageBarTitle,
+  MessageBarBody,
+  MessageBarIntent,
+  Link,
+} from "@fluentui/react-components";
 
 const useStyles = makeStyles({
   container: {
@@ -27,6 +35,15 @@ const useStyles = makeStyles({
   DismissCircle: {
     color: 'red'
   }
+});
+
+const useClasses = makeStyles({
+  messageContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    marginBottom: "10px"
+  },
 });
 
 
@@ -48,6 +65,7 @@ interface FileErrors {
 const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) => {
 
   const styles = useStyles();
+  const classes = useClasses();
 
   const [files, setFiles] = useState<File[]>([]);
   const [startUpload, setStartUpload] = useState(false);
@@ -61,6 +79,7 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
   const [uploadCompleted, setUploadCompleted] = useState(false);
 
 
+  const intents: MessageBarIntent[] = ["warning"];
   const store = useSelector((state: RootState) => ({
     schemaSelectedOption: state.leftPanel.schemaSelectedOption,
     page_size: state.leftPanel.gridData.page_size,
@@ -145,6 +164,7 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
   // Upload files
   const handleUpload = async () => {
     setUploading(true);
+    let uploadCount = 0;
     try {
       const schema = store.schemaSelectedOption?.optionValue ?? "defaultSchema";
 
@@ -153,12 +173,13 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
 
         try {
           await dispatch(uploadFile({ file, schema })).unwrap();
+          uploadCount++;
           setUploadProgress((prev) => ({ ...prev, [file.name]: 100 })); // Set progress to 100% after upload
         } catch (error: any) {
           // Capture and log the error specific to the file
           setFileErrors((prev) => ({
             ...prev,
-            [file.name]: { message: error.message }
+            [file.name]: { message: error }
           }));
           setUploadProgress((prev) => ({ ...prev, [file.name]: -1 })); // Optional: Indicate failure with -1 or another value
         }
@@ -167,16 +188,15 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
       //console.error("Overall upload failed:", error);
     } finally {
       setUploading(false);
-      // setFiles([]) // If you want to clear the files after upload
       setStartUpload(false);
       setUploadCompleted(true);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';  // Reset the file input
       }
-      dispatch(fetchContentTableData({ pageSize: store.pageSize, pageNumber: 1 })).unwrap();
+      if (uploadCount > 0)
+        dispatch(setRefreshGrid(true));
     }
   };
-
 
   const handleButtonClick = () => {
     fileInputRef.current?.click(); // Open file selector
@@ -202,6 +222,16 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
         <DialogTitle>Import Content</DialogTitle>
         <DialogContent>
           <div className="dialogBody">
+            <div className={classes.messageContainer}>
+              {intents.map((intent) => (
+                <MessageBar key={intent} intent={intent}>
+                  <MessageBarBody>
+                    <MessageBarTitle>Selected Schema  : {store.schemaSelectedOption.optionText} </MessageBarTitle>
+                    <br />Please upload files specific to "{store.schemaSelectedOption.optionText}"
+                  </MessageBarBody>
+                </MessageBar>
+              ))}
+            </div>
             {/* Drag & Drop Area with Centered Button & Message */}
             <div
               className={`drop-area ${dragging ? "dragging" : ""}`}

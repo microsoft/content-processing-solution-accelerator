@@ -131,23 +131,23 @@ module containerAppWeb 'deploy_container_app.bicep' = {
         value: containerAppApiEndpoint
       }
       {
-        name: 'APP_MSAL_AUTH_CLIENT_ID'
+        name: 'APP_WEB_CLIENT_ID'
         value: '<APP_REGISTRATION_CLIENTID>'
       }
       {
-        name: 'APP_MSAL_AUTH_AUTHORITY'
+        name: 'APP_WEB_AUTHORITY'
         value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
       }
       {
-        name: 'APP_MSAL_AUTH_SCOPE'
+        name: 'APP_WEB_SCOPE'
         value: '<FRONTEND_API_SCOPE>'
       }
       {
-        name: 'APP_MSAL_TOKEN_SCOPE'
+        name: 'APP_API_SCOPE'
         value: '<BACKEND_API_SCOPE>'
       }
       {
-        name: 'APP_ISLOGS_ENABLED'
+        name: 'APP_CONSOLE_LOG_ENABLED'
         value: 'false'
       }
     ]
