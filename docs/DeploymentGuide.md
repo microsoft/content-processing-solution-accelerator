@@ -118,7 +118,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Secondary Location** | A **less busy** region for **Azure Cosmos DB**, useful in case of availability constraints. | eastus2 |
 | **Deployment Type** | Select from a drop-down list. | GlobalStandard |
 | **GPT Model** | Choose from **gpt-4o**. | gpt-4o |
-| **GPT Model Deployment Capacity** | Configure capacity for **GPT models**. | 300k |
+| **GPT Model Deployment Capacity** | Configure capacity for **GPT models**. | 30k |
 
 </details>
 
