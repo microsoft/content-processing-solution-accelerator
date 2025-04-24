@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-import httpUtility from '../../Services/httpUtility';
+import httpUtility, { handleApiThunk } from '../../Services/httpUtility';
 import { toast } from "react-toastify";
 
 interface CenterPanelState {
@@ -10,64 +10,97 @@ interface CenterPanelState {
     modified_result: any;
     comments: string;
     isSavingInProgress: boolean;
-    activeProcessId : string,
+    activeProcessId: string,
     processStepsData: any[];
+    isJSONEditorSearchEnabled: boolean;
 }
 
+const getDisplayMessage = (text: string) => {
+    if (
+        text.startsWith('Processing of file with Process') &&
+        text.endsWith('not found.')
+    ) {
+        return 'This record no longer exists. Please refresh.';
+    }
+    return text;
+};
 
 // Create the async thunk with the argument and return types
-export const fetchContentJsonData = createAsyncThunk<any, { processId: string | null }>('/contentprocessor/processed/', async ({ processId }, {rejectWithValue}) => {
+export const fetchContentJsonData = createAsyncThunk<any, { processId: string | null }>('/contentprocessor/processed/', async ({ processId }, { rejectWithValue }) => {
     if (!processId) {
         return rejectWithValue("Reset store");
     }
     const url = '/contentprocessor/processed/' + processId;
-    const response = await httpUtility.get(url);
-    //console.log("response", response);
-    return response;
+
+    return handleApiThunk(
+        httpUtility.get<any>(url),
+        rejectWithValue,
+        'Failed to fetch content JSON data'
+    );
 });
 
 export const fetchProcessSteps = createAsyncThunk<any, { processId: string | null }>('/contentprocessor/processed/processId/steps', async ({ processId }, { rejectWithValue }) => {
     if (!processId) {
         return rejectWithValue("Reset store");
     }
-    const url = '/contentprocessor/processed/' + processId + "/steps";
-    const response = await httpUtility.get(url);
-    //console.log("response", response);
-    return response;
+    const url = `/contentprocessor/processed/${processId}/steps`;
+
+    return handleApiThunk(
+        httpUtility.get<any>(url),
+        rejectWithValue,
+        'Failed to fetch process steps'
+    );
 });
 
-export const saveContentJson = createAsyncThunk<any, { processId: string | null, contentJson: string, comments: string ,savedComments: string }>('SaveContentJSON-Comments', async ({ processId, contentJson, comments ,savedComments }) => {
+export const saveContentJson = createAsyncThunk<any, { processId: string | null, contentJson: string, comments: string, savedComments: string }>('SaveContentJSON-Comments', async ({ processId, contentJson, comments, savedComments }, { rejectWithValue }) => {
     try {
-        if (!processId) throw new Error("Process ID is required");
+        if (!processId) {
+            return rejectWithValue('Process ID is required');
+        }
 
         const url = `/contentprocessor/processed/${processId}`;
         const requests: Promise<any>[] = [];
 
+        // Add contentJson update if valid
         if (contentJson && Object.keys(contentJson).length > 0) {
             requests.push(
-                httpUtility.put(url, {
-                    process_id: processId,
-                    modified_result: contentJson,
-                })
+                handleApiThunk(
+                    httpUtility.put(url, {
+                        process_id: processId,
+                        modified_result: contentJson,
+                    }),
+                    rejectWithValue,
+                    'Failed to save content JSON'
+                )
             );
         }
-        if (comments.trim() !== '' || (savedComments!='' && comments.trim()=='') ) {
-            requests.push(
-                httpUtility.put(url, {
-                    process_id: processId,
-                    comment: comments,
-                })
-            );
-        }
-        if (requests.length === 0) {
-            return { message: "No updates were made" };
-        }
-        const responses = await Promise.all(requests);
 
-        return responses;
+        // Add comments update if applicable
+        if (comments.trim() !== '' || (savedComments !== '' && comments.trim() === '')) {
+            requests.push(
+                handleApiThunk(
+                    httpUtility.put(url, {
+                        process_id: processId,
+                        comment: comments,
+                    }),
+                    rejectWithValue,
+                    'Failed to save comments'
+                )
+            );
+        }
+
+        // If no changes, short-circuit
+        if (requests.length === 0) {
+            return { message: 'No updates were made' };
+        }
+
+        // Wait for all updates to complete
+        const responses = await Promise.all(requests);
+        return responses[0];
     } catch (error) {
         return Promise.reject(error);
     }
+
 });
 
 
@@ -78,8 +111,9 @@ const initialState: CenterPanelState = {
     modified_result: {},
     comments: '',
     isSavingInProgress: false,
-    activeProcessId : '',
+    activeProcessId: '',
     processStepsData: [],
+    isJSONEditorSearchEnabled: true,
 };
 
 const centerPanelSlice = createSlice({
@@ -89,12 +123,12 @@ const centerPanelSlice = createSlice({
         setModifiedResult: (state, action) => {
             state.modified_result = action.payload;
         },
-        setUpdateComments :  (state, action) => {
-           state.comments = action.payload
+        setUpdateComments: (state, action) => {
+            state.comments = action.payload
         },
-       setActiveProcessId :(state,action) =>{
-          state.activeProcessId = action.payload
-       }
+        setActiveProcessId: (state, action) => {
+            state.activeProcessId = action.payload
+        }
     },
     extraReducers: (builder) => {
         //Fetch Dropdown values
@@ -106,20 +140,22 @@ const centerPanelSlice = createSlice({
                 state.comments = '';
             })
             .addCase(fetchContentJsonData.fulfilled, (state, action) => { // Adjust `any` to the response data type
-                if(state.activeProcessId == action.payload.process_id){
+                if (state.activeProcessId == action.payload.process_id) {
                     state.contentData = action.payload;
-                    state.comments = action.payload.comment?? "" ;
+                    state.comments = action.payload.comment ?? "";
                     state.cLoader = false;
                 }
             })
-            .addCase(fetchContentJsonData.rejected, (state, action) => {
+            .addCase(fetchContentJsonData.rejected, (state, action: any) => {
                 state.cError = action.error.message || 'An error occurred';
                 state.cLoader = false;
-                //console.error("Error fetching JSON data:", action.error.message || 'An error occurred');
+                state.contentData = {};
+                state.comments = "";
+                toast.error(getDisplayMessage(action.payload))
             });
 
         builder
-            .addCase(saveContentJson.pending, (state,action) => {
+            .addCase(saveContentJson.pending, (state, action) => {
                 state.modified_result = {};
                 state.isSavingInProgress = true;
             })
@@ -127,8 +163,8 @@ const centerPanelSlice = createSlice({
                 toast.success("Data saved successfully!"); // Success toast
                 state.isSavingInProgress = false;
             })
-            .addCase(saveContentJson.rejected, (state, action) => {
-                toast.error("Date saving failed !");
+            .addCase(saveContentJson.rejected, (state, action: any) => {
+                toast.error(getDisplayMessage(action.payload))
                 state.isSavingInProgress = false;
             });
 
@@ -151,5 +187,5 @@ const centerPanelSlice = createSlice({
     },
 });
 
-export const { setModifiedResult ,setUpdateComments, setActiveProcessId} = centerPanelSlice.actions;
+export const { setModifiedResult, setUpdateComments, setActiveProcessId } = centerPanelSlice.actions;
 export default centerPanelSlice.reducer;

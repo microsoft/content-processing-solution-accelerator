@@ -31,7 +31,7 @@ class Application(AppMainBase):
         # Add Azure Credential
         self.application_context.set_credential(DefaultAzureCredential())
 
-    async def run(self):
+    async def run(self, test_mode: bool = False):
         # Get Process lists from the configuration - ex. ["extract", "transform", "evaluate", "save", "custom1", "custom2"....]
         steps = self.application_context.configuration.app_process_steps
 
@@ -53,7 +53,7 @@ class Application(AppMainBase):
             )
 
         # Start All registered processes
-        await handler_host_manager.start_handler_processes()
+        await handler_host_manager.start_handler_processes(test_mode)
 
 
 async def main():

@@ -28,8 +28,10 @@ dev = [
     "coverage>=7.6.10",
     "pydantic>=2.10.5",
     "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
+    "mongomock>=2.3.1",
     "ruff>=0.9.1",
 ]
 

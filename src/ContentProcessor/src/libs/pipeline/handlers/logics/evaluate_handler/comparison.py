@@ -1,7 +1,7 @@
 from typing import Any, List, Optional
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from libs.utils.utils import flatten_dict
 

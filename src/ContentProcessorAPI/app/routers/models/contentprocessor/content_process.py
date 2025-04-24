@@ -190,6 +190,41 @@ class ContentProcess(BaseModel):
         else:
             return None
 
+    def delete_processed_file(
+        self,
+        connection_string: str,
+        database_name: str,
+        collection_name: str,
+        storage_connection_string: str,
+        container_name: str,
+    ):
+        """
+        Delete the processed file from Cosmos DB & Storage account.
+        """
+        mongo_helper = CosmosMongDBHelper(
+            connection_string=connection_string,
+            db_name=database_name,
+            container_name=collection_name,
+            indexes=[("process_id", 1)],
+        )
+
+        blob_helper = StorageBlobHelper(
+            account_url=storage_connection_string, container_name=container_name
+        )
+
+        # Check if the process_id already exists in the database
+        existing_process = mongo_helper.find_document(
+            query={"process_id": self.process_id}
+        )
+
+        blob_helper.delete_folder(folder_name=self.process_id)
+
+        if existing_process:
+            mongo_helper.delete_document(item_id=self.process_id, field_name="process_id")
+            return ContentProcess(**existing_process[0])
+        else:
+            return None
+
     def update_process_result(
         self,
         connection_string: str,

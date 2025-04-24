@@ -2,7 +2,7 @@
 
 ## **Pre-requisites**
 
-To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups and resources**. Follow the steps in [Azure Account Set Up](./docs/AzureAccountSetUp.md).
+To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups, resources, app registrations, and assign roles at the resource group level**. This should include Contributor role at the subscription level and Role Based Access Control role on the subscription and/or resource group level. Follow the steps in [Azure Account Set Up](./AzureAccountSetUp.md).
 
 Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/?products=all&regions=all) page and select a **region** where the following services are available:
 
@@ -18,7 +18,7 @@ Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/g
 
 Here are some example regions where the services are available: East US, East US2, Australia East, UK South, France Central.
 
-### **Important Note for PowerShell Users**
+### **Important: Note for PowerShell Users**
 
 If you encounter issues running PowerShell scripts due to the policy of not being digitally signed, you can temporarily adjust the `ExecutionPolicy` by running the following command in an elevated PowerShell session:
 
@@ -28,9 +28,17 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This will allow the scripts to run for the current session without permanently changing your system's policy.
 
+<br>
+
+### **Important: Check Azure OpenAI Quota Availability**
+
+⚠️ To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./quota_check.md) before you deploy the solution.
+
+<br/>   
+
 ## Deployment Options & Steps
 
-Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, Local Environments, and Bicep deployments.
+Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, and Local Environments.
 
 | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/content-processing-solution-accelerator) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/content-processing-solution-accelerator) |
 |---|---|
@@ -40,7 +48,7 @@ Pick from the options below to see step-by-step instructions for GitHub Codespac
 
 ### GitHub Codespaces
 
-You can run this solution using GitHub Codespaces. The button will open a web-based VS Code instance in your browser:
+You can run this solution using [GitHub Codespaces](https://docs.github.com/en/codespaces). The button will open a web-based VS Code instance in your browser:
 
 1. Open the solution accelerator (this may take several minutes):
 
@@ -57,7 +65,7 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
 ### VS Code Dev Containers
 
-You can run this solution in VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+You can run this solution in [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers), which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
 
 1. Start Docker Desktop (install it if not already installed).
 2. Open the project:
@@ -109,8 +117,8 @@ When you start the deployment, most parameters will have **default values**, but
 | **Azure AI Content Understanding Location** | Select from a drop-down list of values. | Sweden Central |
 | **Secondary Location** | A **less busy** region for **Azure Cosmos DB**, useful in case of availability constraints. | eastus2 |
 | **Deployment Type** | Select from a drop-down list. | GlobalStandard |
-| **GPT Model** | Choose from **gpt-4, gpt-4o, gpt-4o-mini**. | gpt-4o |
-| **GPT Model Deployment Capacity** | Configure capacity for **GPT models**. | 100k |
+| **GPT Model** | Choose from **gpt-4o**. | gpt-4o |
+| **GPT Model Deployment Capacity** | Configure capacity for **GPT models**. | 30k |
 
 </details>
 
@@ -118,7 +126,7 @@ When you start the deployment, most parameters will have **default values**, but
   <summary><b>[Optional] Quota Recommendations</b></summary>
 
 By default, the **GPT model capacity** in deployment is set to **30k tokens**.  
-> **We recommend increasing the capacity to 100k tokens for optimal performance.**
+> **We recommend increasing the capacity to 100k tokens, if available, for optimal performance.**
 
 To adjust quota settings, follow these [steps](./AzureGPTQuotaSettings.md).
 
@@ -141,6 +149,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```sh
     azd auth login --tenant-id <tenant-id>
     ```
+
+    > **Note:** To retrieve the Tenant ID required for local deployment, you can go to **Tenant Properties** in [Azure Portal](https://portal.azure.com/) from the resource list. Alternatively, follow these steps:
+    >
+    > 1. Open the [Azure Portal](https://portal.azure.com/).
+    > 2. Navigate to **Azure Active Directory** from the left-hand menu.
+    > 3. Under the **Overview** section, locate the **Tenant ID** field. Copy the value displayed.
 
 2. Provision and deploy all the resources:
 
@@ -247,3 +261,10 @@ This will rebuild the source code, package it into a container, and push it to t
 4. **Deleting Resources After a Failed Deployment**  
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
+
+## Next Steps
+
+Now that you've completed your deployment, you can start using the solution. Try out these things to start getting familiar with the capabilities:
+* Open the web container app URL in your browser and explore the web user interface and upload your own invoices.
+* [Create your own schema definition](./CustomizeSchemaData.md), so you can upload and process your own types of documents.
+* [Ingest the API](API.md) for processing documents programmatically.

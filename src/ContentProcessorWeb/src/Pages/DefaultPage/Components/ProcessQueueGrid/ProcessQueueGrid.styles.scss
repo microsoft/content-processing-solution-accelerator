@@ -1,0 +1,131 @@
+.gridContainer {
+    height: 100vh;
+
+    .gridTable {
+        min-width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        .gridTableBody {
+            height: 100%;
+        }
+    }
+
+    .col1 {
+        min-width: 100px !important;
+    }
+
+    .col2 {
+        min-width: 55px !important;
+        max-width: 85px !important;
+    }
+
+    .col3 {
+        min-width: 45px !important;
+        max-width: 70px !important;
+    }
+
+    .col4 {
+        min-width: 35px !important;
+        max-width: 85px !important;
+    }
+
+    .col5 {
+        min-width: 35px !important;
+        max-width: 85px !important;
+    }
+
+    .col6 {
+        min-width: 55px !important;
+        max-width: 105px !important;
+        box-sizing: border-box;
+    }
+
+    .col7 {
+        min-width: 30px !important;
+        max-width: 35px !important;
+        box-sizing: border-box;
+    }
+
+    .roundedBtn {
+        border: 1px solid var(--colorNeutralForegroundDisabled);
+        border-radius: 20px;
+        text-align: center;
+        padding: 1px 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 75%;
+        white-space: nowrap;
+        font-size: 10px;
+        text-transform: capitalize;
+
+        span {
+            color: var(--colorPaletteCornflowerForeground2)
+        }
+
+        .ProcessedCls {
+            color: var(--colorPaletteLightTealForeground2)
+        }
+
+    }
+
+    .percentageContainer {
+        width: 100%;
+        text-align: center;
+
+        .gClass {
+            color: var(--colorStatusSuccessForeground3);
+        }
+
+        .yClass {
+            color: var(--colorPaletteGoldBorderActive);
+        }
+
+        .oClass {
+            color: var(--colorStatusWarningBackground3);
+        }
+
+        .rClass {
+            color: var(--colorStatusDangerForeground1);
+        }
+
+        .textClass {
+            color: var(--colorNeutralForeground2BrandHover)
+        }
+    }
+
+    .GridList {
+        width: 100%;
+        flex: 1 1 auto;
+        height: 100%;
+
+        >div {
+            width: 100% !important;
+        }
+    }
+
+    .columnCotainer {
+        font-size: 12px;
+        width: 100%;
+    }
+
+    .centerAlign {
+        text-align: center;
+    }
+
+    .percentageContainer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .editPersonIcon {
+        margin-right: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--colorNeutralForeground2BrandHover)
+    }
+}

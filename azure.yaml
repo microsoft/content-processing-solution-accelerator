@@ -15,4 +15,12 @@ hooks:
     windows:
       shell: pwsh
       run: $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"; $logFile = "azd_preprovision_$timestamp.log"; ./infra/scripts/docker-build.ps1 $env:AZURE_SUBSCRIPTION_ID $env:AZURE_ENV_NAME $env:AZURE_LOCATION $env:AZURE_RESOURCE_GROUP $env:USE_LOCAL_BUILD *>&1 | Tee-Object -FilePath $logFile
-
+  postprovision:
+    posix:
+      shell: sh
+      run: sed -i 's/\r$//' ./infra/scripts/post_deployment.sh; ./infra/scripts/post_deployment.sh
+      interactive: true
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/post_deployment.ps1
+      interactive: true

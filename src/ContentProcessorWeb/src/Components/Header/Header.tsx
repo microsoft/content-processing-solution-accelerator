@@ -26,9 +26,12 @@ import {
 } from "../../Imports/bundleIcons.tsx";
 import MainLogo from "../../Imports/MainLogo.svg";
 import "./Header.css";
-import { DocumentBulletListCubeRegular, InfoRegular} from "@fluentui/react-icons"
+import { DocumentBulletListCubeRegular, InfoRegular, DocumentData16Regular } from "@fluentui/react-icons"
 
 import useAuth from "../../msal-auth/useAuth.ts";
+import { useSelector, shallowEqual } from 'react-redux';
+import {  RootState } from '../../store/index.ts';
+import useSwaggerPreview from "../../Hooks/useSwaggerPreview.ts";
 
 interface HeaderPageProps {
   toggleTheme: () => void;
@@ -41,6 +44,12 @@ const tabConfigs = [
     value: "default", // Route path defined in App.tsx
     label: "Content", // Visible label on UI
   },
+
+  {
+    icon: <DocumentBulletListCubeRegular />, // Import bundle icon
+    value: "api", // Route path defined in App.tsx
+    label: "API Documentation", // Visible label on UI
+  },
   // Add more
 ];
 
@@ -48,6 +57,10 @@ const HeaderPage: React.FC<HeaderPageProps> = ({ toggleTheme, isDarkMode }) => {
   const { shortcutLabel } = useHeaderHooks({ toggleTheme, isDarkMode });
   const { user, logout, getToken } = useAuth();
 
+  const { openSwaggerUI } = useSwaggerPreview();
+  const store = useSelector((state: RootState) => ({
+    swaggerJSON: state.leftPanel.swaggerJSON,
+  }), shallowEqual);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,12 +82,20 @@ const HeaderPage: React.FC<HeaderPageProps> = ({ toggleTheme, isDarkMode }) => {
     _: React.SyntheticEvent,
     data: { value: TabValue }
   ) => {
-    const newRoute = Object.keys(tabRoutes).find(
-      (key) => tabRoutes[key] === data.value
-    );
-    if (newRoute) {
-      navigate(newRoute);
+    if (data.value == 'api') {
+      _.preventDefault(); 
+      const apiUrl: string = process.env.REACT_APP_API_BASE_URL as string; 
+      const token = localStorage.getItem('token') ?? undefined;
+      openSwaggerUI(store.swaggerJSON, apiUrl, token)
+    } else {
+      const newRoute = Object.keys(tabRoutes).find(
+        (key) => tabRoutes[key] === data.value
+      );
+      if (newRoute) {
+        navigate(newRoute);
+      }
     }
+
   };
 
 
@@ -100,8 +121,8 @@ const HeaderPage: React.FC<HeaderPageProps> = ({ toggleTheme, isDarkMode }) => {
         </TabList>
       </div>
       <div className="headerTag">
-      <InfoRegular style={{ marginRight: "4px" }}/> 
-      <span>AI-generated content may be incorrect</span>
+        <InfoRegular style={{ marginRight: "4px" }} />
+        <span>AI-generated content may be incorrect</span>
       </div>
 
       {/* Tools Section */}

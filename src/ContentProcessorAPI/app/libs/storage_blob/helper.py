@@ -90,3 +90,24 @@ class StorageBlobHelper:
             # Delete the (virtual) folder in the Container
             blob_client = container_client.get_blob_client(container_name)
             blob_client.delete_blob()
+
+    def delete_folder(self, folder_name, container_name=None):
+        container_client = self._get_container_client(container_name)
+
+        # List all blobs inside the folder
+        blobs_to_delete = container_client.list_blobs(name_starts_with=folder_name + "/")
+
+        # Delete each blob
+        for blob in blobs_to_delete:
+            blob_client = container_client.get_blob_client(blob.name)
+            blob_client.delete_blob()
+
+        blobs_to_delete = container_client.list_blobs()
+        if not blobs_to_delete:
+
+            # Get Parent Container
+            container_client = self._get_container_client()
+
+            # Delete the (virtual) folder in the Container
+            blob_client = container_client.get_blob_client(folder_name)
+            blob_client.delete_blob()

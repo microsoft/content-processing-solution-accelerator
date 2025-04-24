@@ -4,7 +4,7 @@ This document provides step-by-step instructions to configure Azure App Registra
 
 ## Prerequisites
 
-- Access to **Azure Active Directory (Azure AD)**
+- Access to **Microsoft Entra ID**
 - Necessary permissions to create and manage **App Registrations**
 
 ## Step 1: Add Authentication Provider
@@ -19,7 +19,15 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
    - Select **Microsoft** and set **Client secret expiration**, then click **Add** button.  
      ![add_auth_provider_web_2](./Images/add_auth_provider_web_2.png)
 
-2. Add Authentication Provider in API Service
+    - Set **Unauthenticated requests**, then click **Add** button.  
+     ![add_auth_provider_api_3](./Images/add_auth_provider_web_4.png)
+
+> **Note:** If you encounter the following error message indicating that your organization's policy prohibits the automatic use of secrets, please refer to our [Manual App Registration Configuration](./ManualAppRegistrationConfiguration.md) for detailed manual setup instructions.
+>  ![add_auth_provider_web_3](./Images/add_auth_provider_web_3.png)
+
+
+
+1. Add Authentication Provider in API Service
 
    - Go to deployed Container App and select `ca-cps-<randomname>-api` and click **Add Identity Provider** button in Authentication.  
      ![add_auth_provider_api_1](./Images/add_auth_provider_api_1.png)
@@ -58,16 +66,20 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
    - Grant admin consent to permissions.  
      ![configure_app_registration_web_8](./Images/configure_app_registration_web_8.png)
 
+     > ⚠️ **Granting Admin Consent:** If you don't have permission or aren't able to grant admin consent for the API permissions, please follow one of the steps below:<br/><br/>_Option 1 - Reach out to your Tenant Administrator:_ Contact your administrator to let them know your Application Registration ID and what permissions you woud like to have them consent and approve.<br/><br/>_Option 2 - Internal Microsoft Employees Only:_ Please refer to these detailed instructions on the admin consent granting process: [https://aka.ms/AzAdminConsentWiki](https://aka.ms/AzAdminConsentWiki)
+     
+
+
 3. Grab Scope Name for Impersonation
 
    - Select **Expose an API** in the left menu. Copy the Scope name, then paste it in some temporary place.  
-     The copied text will be used for Web Application Environment variable - **APP_MSAL_AUTH_SCOPE**.  
+     The copied text will be used for Web Application Environment variable - **APP_WEB_SCOPE**.  
      ![configure_app_registration_web_9](./Images/configure_app_registration_web_9.png)
 
 4. Grab Client Id for Web App
 
    - Select **Overview** in the left menu. Copy the Client Id, then paste it in some temporary place.  
-     The copied text will be used for Web Application Environment variable - **APP_MSAL_AUTH_CLIENT_ID**.  
+     The copied text will be used for Web Application Environment variable - **APP_WEB_CLIENT_ID**.  
      ![configure_app_registration_web_10](./Images/configure_app_registration_web_10.png)
 
 ## Step 3: Configure Application Registration - API Application
@@ -78,7 +90,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
      ![configure_app_registration_api_1](./Images/configure_app_registration_api_1.png)
 
    - Select **Expose an API** in the left menu. Copy the Scope name, then paste it in some temporary place.  
-     The copied text will be used for Web Application Environment variable - **APP_MSAL_TOKEN_SCOPE**.  
+     The copied text will be used for Web Application Environment variable - **APP_API_SCOPE**.  
      ![configure_app_registration_api_2](./Images/configure_app_registration_api_2.png)
 
 ## Step 4: Add Web Application's Client Id to Allowed Client Applications List in API Application Registration
@@ -100,7 +112,7 @@ Now, we will edit and deploy the Web Application Container with updated Environm
 
 1. Select **Containers** menu under **Application**. Then click **Environment variables** tab.
 ![update_env_app_1_1](./Images/update_env_app_1_1.png)
-2. Update 3 values which were taken in previous steps for **APP_MSAL_AUTH_CLIENT_ID**, **APP_MSAL_AUTH_SCOPE**, **APP_MSAL_TOKEN_SCOPE**.  
+2. Update 3 values which were taken in previous steps for **APP_WEB_CLIENT_ID**, **APP_WEB_SCOPE**, **APP_API_SCOPE**.  
 Click on **Save as a new revision**.
    The updated revision will be activated soon.
 

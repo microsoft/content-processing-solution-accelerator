@@ -11,7 +11,7 @@ User story
 
 This solution accelerator enables customers to programmatically extract data and apply schemas to unstructured documents across text-based and multi-modal content. During processing, extraction and data schema transformation - these steps are scored for accuracy to automate processing and identify as-needed human validation. This allows for improved accuracy and greater speed for data integration into downstream systems.
 
-It leverages Azure AI Foundry, Azure AI Content Understanding, Azure OpenAI Service, Azure blob storage, and Cosmos DB to transform large volumes of unstructured content through event-driven processing pipelines for integration into downstream applications and post-processing activities.
+It leverages Azure AI Foundry, Azure AI Content Understanding, Azure OpenAI Service, Azure blob storage, and Azure Cosmos DB to transform large volumes of unstructured content through event-driven processing pipelines for integration into downstream applications and post-processing activities.
 
 
 ### Technical key features
@@ -53,11 +53,17 @@ The sample data used in this repository is synthetic and generated using Azure O
 QUICK DEPLOY
 </h2>
 
-Follow the [quick deploy steps on the deployment guide](./docs/DeploymentGuide.md) to deploy this solution to your own Azure subscription.
+Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription.
+
+[Click here to launch the deployment guide](./docs/DeploymentGuide.md)
+
 
 | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/content-processing-solution-accelerator) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/content-processing-solution-accelerator) | 
 |---|---|
 
+<br>
+
+> ⚠️ **Important: Check Azure OpenAI Quota Availability** <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/quota_check.md) before you deploy the solution.
 
 <br/>   
 
