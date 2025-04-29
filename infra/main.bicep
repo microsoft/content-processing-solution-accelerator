@@ -55,19 +55,19 @@ param gptModelVersion string = '2024-08-06'
 param gptDeploymentCapacity int = 100
 
 @description('Minimum number of replicas to be added for Container App')
-param minReplicaContainerApp int = 1
+param minReplicaContainerApp int = 0
 
 @description('Maximum number of replicas to be added for Container App')
 param maxReplicaContainerApp int = 1
 
 @description('Minimum number of replicas to be added for Container Api')
-param minReplicaContainerApi int = 1
+param minReplicaContainerApi int = 0
 
 @description('Maximum number of replicas to be added for Container Api')
 param maxReplicaContainerApi int = 1
 
 @description('Minimum number of replicas to be added for Container Web App')
-param minReplicaContainerWeb int = 1
+param minReplicaContainerWeb int = 0
 
 @description('Maximum number of replicas to be added for Container Web App')
 param maxReplicaContainerWeb int = 1

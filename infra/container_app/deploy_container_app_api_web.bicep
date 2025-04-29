@@ -76,7 +76,7 @@ module containerApp 'deploy_container_app.bicep' = {
     containerEnvId: containerAppEnvId
     azureContainerRegistry: azureContainerRegistry
     azureContainerRegistryImage: 'contentprocessor'
-    azureContainerRegistryImageTag: 'latest'
+    azureContainerRegistryImageTag: 'demo_2025-04-24_108'
     managedIdentityId: containerRegistryReaderId
     containerEnvVars: [
       {
@@ -99,7 +99,7 @@ module containerAppApi 'deploy_container_app.bicep' = {
     containerEnvId: containerAppEnvId
     azureContainerRegistry: azureContainerRegistry
     azureContainerRegistryImage: 'contentprocessorapi'
-    azureContainerRegistryImageTag: 'latest'
+    azureContainerRegistryImageTag: 'demo_2025-04-24_108'
     managedIdentityId: containerRegistryReaderId
     allowedOrigins: [containerAppWebEndpoint]
     containerEnvVars: [
@@ -123,7 +123,7 @@ module containerAppWeb 'deploy_container_app.bicep' = {
     containerEnvId: containerAppEnvId
     azureContainerRegistry: azureContainerRegistry
     azureContainerRegistryImage: 'contentprocessorweb'
-    azureContainerRegistryImageTag: 'latest'
+    azureContainerRegistryImageTag: 'demo_2025-04-24_108'
     managedIdentityId: containerRegistryReaderId
     containerEnvVars: [
       {
