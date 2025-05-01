@@ -12,7 +12,7 @@
     "babel-preset-react-app": "^10.0.1",
     "contentprocessor_web": "file:",
     "cra-template-typescript": "1.2.0",
-    "json-edit-react": "^1.23.0",
+    "json-edit-react": "^1.26.2",
     "nth-check": "2.1.1",
     "postcss": "8.5.1",
     "prismjs": "^1.29.0",
