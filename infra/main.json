@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.34.44.8038",
-      "templateHash": "2631796362162534903"
+      "templateHash": "5679791373520019547"
     }
   },
   "parameters": {
@@ -918,7 +918,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.34.44.8038",
-              "templateHash": "6622167858340258597"
+              "templateHash": "183682259714166560"
             }
           },
           "parameters": {
@@ -1228,26 +1228,6 @@
               "dependsOn": [
                 "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('aiHubName'))]",
                 "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]",
-                "aiServicesDeployments"
-              ]
-            },
-            {
-              "type": "Microsoft.MachineLearningServices/workspaces/connections",
-              "apiVersion": "2024-07-01-preview",
-              "name": "[format('{0}/{1}', variables('aiHubName'), format('{0}-cu-connection-AzureOpenAI', variables('aiHubName')))]",
-              "properties": {
-                "category": "AIServices",
-                "target": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName_cu')), '2021-10-01').endpoint]",
-                "authType": "AAD",
-                "isSharedToAll": true,
-                "metadata": {
-                  "ApiType": "Azure",
-                  "ResourceId": "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName_cu'))]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('aiHubName'))]",
-                "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName_cu'))]",
                 "aiServicesDeployments"
               ]
             },
@@ -4097,5 +4077,23 @@
         "[resourceId('Microsoft.Resources/deployments', 'deploy_role_assignments')]"
       ]
     }
-  ]
+  ],
+  "outputs": {
+    "CONTAINER_WEB_APP_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_container_app_api_web'), '2022-09-01').outputs.containerAppWebName.value]"
+    },
+    "CONTAINER_API_APP_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_container_app_api_web'), '2022-09-01').outputs.containerAppApiName.value]"
+    },
+    "CONTAINER_WEB_APP_FQDN": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_container_app_api_web'), '2022-09-01').outputs.containweAppWebEndPoint.value]"
+    },
+    "CONTAINER_API_APP_FQDN": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_container_app_api_web'), '2022-09-01').outputs.containweAppApiEndPoint.value]"
+    }
+  }
 }

@@ -213,23 +213,6 @@ resource aiHub 'Microsoft.MachineLearningServices/workspaces@2023-08-01-preview'
       aiServicesDeployments
     ]
   }
-
-  resource aiServiceContentUnderstandingConnection 'connections@2024-07-01-preview' = {
-    name: '${aiHubName}-cu-connection-AzureOpenAI'
-    properties: {
-      category: 'AIServices'
-      target: aiServices_CU.properties.endpoint
-      authType: 'AAD'
-      isSharedToAll: true
-      metadata: {
-        ApiType: 'Azure'
-        ResourceId: aiServices_CU.id
-      }
-    }
-    dependsOn: [
-      aiServicesDeployments
-    ]
-  }
 }
 
 resource aiHubProject 'Microsoft.MachineLearningServices/workspaces@2024-01-01-preview' = {

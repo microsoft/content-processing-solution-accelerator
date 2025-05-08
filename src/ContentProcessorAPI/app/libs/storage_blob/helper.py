@@ -93,7 +93,7 @@ class StorageBlobHelper:
 
     def delete_folder(self, folder_name, container_name=None):
         container_client = self._get_container_client(container_name)
-        
+
         # List all blobs inside the folder
         blobs_to_delete = container_client.list_blobs(name_starts_with=folder_name + "/")
 
@@ -101,7 +101,7 @@ class StorageBlobHelper:
         for blob in blobs_to_delete:
             blob_client = container_client.get_blob_client(blob.name)
             blob_client.delete_blob()
-        
+
         blobs_to_delete = container_client.list_blobs()
         if not blobs_to_delete:
 

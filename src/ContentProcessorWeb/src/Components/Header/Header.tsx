@@ -57,6 +57,8 @@ const HeaderPage: React.FC<HeaderPageProps> = ({ toggleTheme, isDarkMode }) => {
   const { shortcutLabel } = useHeaderHooks({ toggleTheme, isDarkMode });
   const { user, logout, getToken } = useAuth();
 
+  const authEnabled = process.env.REACT_APP_AUTH_ENABLED?.toLowerCase() !== 'false'; // Defaults to true if not set
+
   const { openSwaggerUI } = useSwaggerPreview();
   const store = useSelector((state: RootState) => ({
     swaggerJSON: state.leftPanel.swaggerJSON,
@@ -126,24 +128,26 @@ const HeaderPage: React.FC<HeaderPageProps> = ({ toggleTheme, isDarkMode }) => {
       </div>
 
       {/* Tools Section */}
-      <div className="headerTools">
-        <Menu hasIcons positioning={{ autoSize: true }}>
-          <MenuTrigger disableButtonEnhancement>
-            <Avatar
-              color="colorful"
-              name={user?.name}
-              aria-label="App"
-              className="clickable-avatar"
-            />
-          </MenuTrigger>
-          <MenuPopover style={{ minWidth: "192px" }}>
-            <MenuList>
-              <MenuDivider />
-              <MenuItem icon={<ArrowExit />} onClick={logout}>Logout</MenuItem>
-            </MenuList>
-          </MenuPopover>
-        </Menu>
-      </div>
+      { authEnabled && 
+        <div className="headerTools">
+          <Menu hasIcons positioning={{ autoSize: true }}>
+            <MenuTrigger disableButtonEnhancement>
+              <Avatar
+                color="colorful"
+                name={user?.name}
+                aria-label="App"
+                className="clickable-avatar"
+              />
+            </MenuTrigger>
+            <MenuPopover style={{ minWidth: "192px" }}>
+              <MenuList>
+                <MenuDivider />
+                <MenuItem icon={<ArrowExit />} onClick={logout}>Logout</MenuItem>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
+        </div>
+      }
     </Header>
   );
 };

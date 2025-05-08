@@ -492,6 +492,7 @@ async def get_original_file(
             file_stream, media_type=content_type_string, headers=headers
         )
 
+
 @router.delete(
     "/processed/{process_id}",
     response_model=ContentResultDelete,
@@ -502,9 +503,9 @@ async def get_original_file(
 )
 async def delete_processed_file(
     process_id: str, app_config: AppConfiguration = Depends(get_app_config)
-    ) -> ContentResultDelete:
+) -> ContentResultDelete:
     try:
-        deleted_file =  CosmosContentProcess(process_id=process_id).delete_processed_file(
+        deleted_file = CosmosContentProcess(process_id=process_id).delete_processed_file(
             connection_string=app_config.app_cosmos_connstr,
             database_name=app_config.app_cosmos_database,
             collection_name=app_config.app_cosmos_container_process,

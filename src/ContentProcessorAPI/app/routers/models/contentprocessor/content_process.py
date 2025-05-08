@@ -189,7 +189,7 @@ class ContentProcess(BaseModel):
             return ContentProcess(**existing_process[0])
         else:
             return None
-    
+
     def delete_processed_file(
         self,
         connection_string: str,

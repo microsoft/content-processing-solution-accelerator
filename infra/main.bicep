@@ -251,3 +251,8 @@ module updateContainerApp './container_app/deploy_container_app_api_web.bicep' =
   }
   dependsOn: [roleAssignments]
 }
+
+output CONTAINER_WEB_APP_NAME string = containerApps.outputs.containerAppWebName
+output CONTAINER_API_APP_NAME string = containerApps.outputs.containerAppApiName
+output CONTAINER_WEB_APP_FQDN string = containerApps.outputs.containweAppWebEndPoint
+output CONTAINER_API_APP_FQDN string = containerApps.outputs.containweAppApiEndPoint
