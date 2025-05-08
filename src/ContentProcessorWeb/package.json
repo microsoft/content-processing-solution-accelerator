@@ -9,7 +9,7 @@
     "@fluentui/react-icons": "latest",
     "@reduxjs/toolkit": "^2.2.7",
     "axios": "^1.7.5",
-    "babel-preset-react-app": "^10.0.1",
+    "babel-preset-react-app": "^10.1.0",
     "contentprocessor_web": "file:",
     "cra-template-typescript": "1.3.0",
     "json-edit-react": "^1.23.0",
