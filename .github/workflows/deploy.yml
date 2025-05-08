@@ -74,10 +74,9 @@ jobs:
         id: generate_rg_name
         run: |
           echo "Generating a unique resource group name..."
-          TIMESTAMP=$(date +%Y%m%d%H%M)
-          # Define the common part and add a "cps-" prefix
-          COMMON_PART="automation"
-          UNIQUE_RG_NAME="cps-${COMMON_PART}${TIMESTAMP}"
+          ACCL_NAME="cpc"  # Account name as specified
+          SHORT_UUID=$(uuidgen | cut -d'-' -f1)
+          UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
           echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
           echo "Generated Resource_GROUP_PREFIX: ${UNIQUE_RG_NAME}"
 
