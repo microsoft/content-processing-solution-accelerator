@@ -230,9 +230,9 @@ platformdirs==4.3.7 \
 poppler-utils==0.1.0 \
     --hash=sha256:a6336b4c7d59e49d339b92c60d1f63905f577ab106038bde940a6861deefd3f3 \
     --hash=sha256:e97a92dcfde57b21a90c3070694e58f8eea155515ae8e624266a052d0776a349
-portalocker==2.10.1 \
-    --hash=sha256:53a5984ebc86a025552264b459b46a2086e269b21823cb572f8f28ee759e45bf \
-    --hash=sha256:ef1bf844e878ab08aee7e40184156e1151f228f103aa5c6bd0724cc330960f8f
+portalocker==3.1.1 \
+    --hash=sha256:80e984e24de292ff258a5bea0e4f3f778fff84c0ae1275dbaebc4658de4aacb3 \
+    --hash=sha256:ec20f6dda2ad9ce89fa399a5f31f4f1495f515958f0cb7ca6543cef7bb5a749e
 pre-commit==4.1.0 \
     --hash=sha256:ae3f018575a588e30dfddfab9a05448bfbd6b73d78709617b5a2b853549716d4 \
     --hash=sha256:d29e7cb346295bcc1cc75fc3e92e343495e3ea0196c9ec6ba53f49f10ab6ae7b
