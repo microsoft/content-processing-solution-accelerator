@@ -12,12 +12,12 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     env:
-      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     steps:
-      - name: Checkout repositoryy
+      - name: Checkout repository
         uses: actions/checkout@v2
 
       - name: Set up Docker Buildx
