@@ -84,12 +84,26 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 ## Step 3: Configure Application Registration - API Application
 
-1. Grab Scope Name for Impersonation
+1. Add the `user_impersonation` Scope to the API (Important!)
 
    - Go to deployed Container App `ca-cps-<randomname>-api` and select **Authentication** menu, then select created Application Registration.  
      ![configure_app_registration_api_1](./images/configure_app_registration_api_1.png)
 
-   - Select **Expose an API** in the left menu. Copy the Scope name, then paste it in some temporary place.  
+   - Select **Expose an API** in the left menu.
+   
+   - If you don't see any scopes defined, click on **+ Add a scope** to add the required scope.
+     - For Application ID URI, use the default (automatically generated) or enter a custom URI if needed
+     - Add the following scope details:
+       - Scope name: `user_impersonation`
+       - Admin consent display name: `Access API App`
+       - Admin consent description: `Allows the app to access the API application as the signed-in user`
+     - Click **Add scope**
+
+   > ⚠️ **Important:** This step is crucial for authentication to work properly. If this scope is not added, clients will receive a "AADSTS650057: Invalid resource" error when trying to authenticate.
+
+2. Grab Scope Name for Impersonation
+
+   - Once the scope is created, copy the full scope name (it should look like `api://{client-id}/user_impersonation`), then paste it in some temporary place.  
      The copied text will be used for Web Application Environment variable - **APP_API_SCOPE**.  
      ![configure_app_registration_api_2](./images/configure_app_registration_api_2.png)
 
@@ -119,3 +133,52 @@ Click on **Save as a new revision**.
 ## Conclusion
 
 You have successfully configured the front-end and back-end Azure App Registrations with proper API permissions and security settings.
+
+## Authenticating Using Azure CLI
+
+If you need to authenticate to the API using Azure CLI (for scripting or testing purposes), you can use one of the following commands:
+
+### Option 1: Login with scope
+
+```bash
+az login --scope api://<api_client_id>/user_impersonation
+```
+
+Replace `<api_client_id>` with your API application's client ID.
+
+### Option 2: Get an access token
+
+```bash
+az account get-access-token --scope api://<api_client_id>/user_impersonation
+```
+
+Replace `<api_client_id>` with your API application's client ID.
+
+## Troubleshooting
+
+### Common Errors
+
+#### AADSTS650057: Invalid resource
+
+Error message: `AADSTS650057: Invalid resource. List of valid resources from app registration: . (the list is empty)`
+
+**Cause**: This error occurs when the API application doesn't have any scopes exposed in its App Registration.
+
+**Solution**: 
+1. Go to the API Application Registration in Azure Portal
+2. Navigate to "Expose an API"
+3. Verify that the `user_impersonation` scope is created (or add it if missing) as described in [Step 3.1](#step-3-configure-application-registration---api-application)
+4. Make sure to use the correct scope format when authenticating: `api://<api_client_id>/user_impersonation`
+
+#### HTTP 401 Unauthorized
+
+**Cause**: This error may occur when:
+- The token doesn't have the required scopes
+- The API application doesn't recognize the token's audience
+- The token is invalid or expired
+
+**Solution**:
+1. Verify that you have added the API permissions and granted admin consent as described in [Step 2.2](#step-2-configure-application-registration---web-application)
+2. Verify that the web application's client ID is added to the allowed client applications list as described in [Step 4](#step-4-add-web-applications-client-id-to-allowed-client-applications-list-in-api-application-registration)
+3. Check that your token includes the correct scopes
+4. Ensure that both App Registrations are properly configured

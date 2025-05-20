@@ -97,11 +97,15 @@ This guide provides detailed steps to manually register both front-end and backe
 
 - Go to **Expose an API**
 - Click **+ Add a scope**
-- Use default Application ID URI
-- Add:
+- Use default Application ID URI (or enter a custom one if needed)
+- Add the following scope details:
   - Scope name: `user_impersonation`
-  - Admin consent details
+  - Admin consent display name: `Access API App`
+  - Admin consent description: `Allows the app to access the API application as the signed-in user`
 - Click **Add scope**  
+
+> ⚠️ **Important:** This step is crucial for authentication to work properly. If this scope is not properly configured, clients will receive a "AADSTS650057: Invalid resource" error when trying to authenticate.
+
 ![manual_register_app_api_2](./images/manual_register_app_api_2.png)
 
 ### 3. Configure Certificates and Secrets
@@ -137,3 +141,51 @@ This guide provides detailed steps to manually register both front-end and backe
 You have now manually configured Azure App Registrations.
 
 For further configuration and steps, proceed to Step 2 in [Configure App Authentication](./ConfigureAppAuthentication.md#step-2-configure-application-registration---web-application).
+
+## Authenticating Using Azure CLI
+
+If you need to authenticate to the API using Azure CLI (for scripting or testing purposes), you can use one of the following commands:
+
+### Option 1: Login with scope
+
+```bash
+az login --scope api://<api_client_id>/user_impersonation
+```
+
+Replace `<api_client_id>` with your API application's client ID.
+
+### Option 2: Get an access token
+
+```bash
+az account get-access-token --scope api://<api_client_id>/user_impersonation
+```
+
+Replace `<api_client_id>` with your API application's client ID.
+
+## Troubleshooting
+
+### Common Authentication Errors
+
+#### AADSTS650057: Invalid resource
+
+Error message: `AADSTS650057: Invalid resource. List of valid resources from app registration: . (the list is empty)`
+
+**Cause**: This error occurs when the API application doesn't have any scopes exposed in its App Registration.
+
+**Solution**: 
+1. Go to the API Application Registration in Azure Portal
+2. Navigate to "Expose an API"
+3. Verify that the `user_impersonation` scope is created (or add it if missing) as described in [Step 2.2](#2-expose-an-api)
+4. Make sure to use the correct scope format when authenticating: `api://<api_client_id>/user_impersonation`
+
+#### HTTP 401 Unauthorized
+
+**Cause**: This error may occur when:
+- The token doesn't have the required scopes
+- The API application doesn't recognize the token's audience
+- The token is invalid or expired
+
+**Solution**:
+1. Verify that the Web Application has the API permissions added and admin consent granted
+2. Check that the web application's client ID is added to the allowed client applications list in the API's authentication settings
+3. Ensure that both App Registrations are properly configured with the correct URLs and scopes
