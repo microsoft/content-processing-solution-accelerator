@@ -17,7 +17,7 @@ jobs:
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repositoryy
         uses: actions/checkout@v2
 
       - name: Set up Docker Buildx
