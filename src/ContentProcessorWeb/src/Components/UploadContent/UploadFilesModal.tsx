@@ -185,7 +185,7 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
         }
       }
     } catch (error) {
-      //console.error("Overall upload failed:", error);
+      //console.error("Overall upload failed:", error );
     } finally {
       setUploading(false);
       setStartUpload(false);
