@@ -43,6 +43,7 @@ param gptModelName string = 'gpt-4o'
 @description('Version of the GPT model to deploy:')
 @allowed([
   '2024-08-06'
+  '0613'
 ])
 param gptModelVersion string = '2024-08-06'
 
@@ -141,7 +142,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     solutionLocation: resourceGroupLocation
     keyVaultName: kvault.outputs.keyvaultName
     cuLocation: contentUnderstandingLocation
-    deploymentType: deploymentType
+    deploymentType: gptModelName == 'gpt-4' ? 'Standard' : deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
     gptDeploymentCapacity: gptDeploymentCapacity
