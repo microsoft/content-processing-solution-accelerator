@@ -43,6 +43,7 @@ type default_deployment_param_type = {
   resource_group_location: string
   resource_name_prefix: object
   resource_name_format_string: string
+  enable_waf: bool
 }
 
 @export()

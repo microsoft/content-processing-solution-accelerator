@@ -56,6 +56,7 @@ var deployment_param default_deployment_param_type = {
   resource_group_location: resourceGroup().location
   resource_name_prefix: {}
   resource_name_format_string: '{0}avm-cps'
+  enable_waf: false
 }
 
 var ai_deployment ai_deployment_param_type = {
