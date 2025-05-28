@@ -85,7 +85,7 @@ var container_app_deployment container_app_deployment_info_type = {
 var abbrs = loadJsonContent('./abbreviations.json')
 
 // ========== Managed Identity ========== //
-module avmManagedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
+module avmManagedIdentity './modules/managed-identity.bicep' = {
   name: format(deployment_param.resource_name_format_string, abbrs.security.managedIdentity)
   params: {
     name: '${abbrs.security.managedIdentity}${deployment_param.solution_prefix}'
@@ -120,23 +120,36 @@ module bicepOwnerRoleAssignment 'modules/role_assignment.bicep' = {
 // }
 
 // ========== Key Vault Module ========== //
-module avmKeyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
+module avmKeyVault './modules/key-vault.bicep' = {
+  //name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
   params: {
-    name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    tags: {
-      app: deployment_param.solution_prefix
+    name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
+    keyVaultParams:  {
+      name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
       location: deployment_param.resource_group_location
-    }
-    roleAssignments: [
-      {
-        principalId: avmManagedIdentity.outputs.principalId
-        roleDefinitionIdOrName: 'Key Vault Administrator'
+      tags: {
+        app: deployment_param.solution_prefix
+        location: deployment_param.resource_group_location
       }
-    ]
-    enablePurgeProtection: false
-    enableSoftDelete: true
+      roleAssignments: [
+        {
+          principalId: avmManagedIdentity.outputs.principalId
+          roleDefinitionIdOrName: 'Key Vault Administrator'
+        }
+      ]
+      enablePurgeProtection: false
+      enableSoftDelete: true
+      publicNetworkAccess: 'Enabled'
+      keyvaultsku: 'standard'
+      // Add missing AVM parameters for parity with classic resource
+      enableRbacAuthorization: true
+      createMode: 'default'
+      enableTelemetry: false
+      // networkAcls, privateEndpoints, diagnosticSettings, keys, secrets, lock can be added if needed
+      enableVaultForDiskEncryption: true
+      enableVaultForTemplateDeployment: true
+      softDeleteRetentionInDays: 7
+    }
   }
   scope: resourceGroup(resourceGroup().name)
 }
