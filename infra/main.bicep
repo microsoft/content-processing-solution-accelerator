@@ -121,10 +121,10 @@ module bicepOwnerRoleAssignment 'modules/role_assignment.bicep' = {
 
 // ========== Key Vault Module ========== //
 module avmKeyVault './modules/key-vault.bicep' = {
-  //name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
+  name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
   params: {
     name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
-    keyVaultParams:  {
+    keyVaultParams: {
       name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
       location: deployment_param.resource_group_location
       tags: {

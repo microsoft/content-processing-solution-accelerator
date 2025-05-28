@@ -1,3 +1,4 @@
+metadata name = 'Key Vault Module'
 // ========== Key Vault Module ========== //
 // param name string
 // param location string
@@ -30,7 +31,7 @@ module avmKeyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
     roleAssignments: keyVaultParams.roleAssignments
     enablePurgeProtection: keyVaultParams.enablePurgeProtection
     enableSoftDelete: keyVaultParams.enableSoftDelete
-    enableVaultForDiskEncryption : keyVaultParams.enableVaultForDiskEncryption
+    enableVaultForDiskEncryption: keyVaultParams.enableVaultForDiskEncryption
     enableVaultForTemplateDeployment: keyVaultParams.enableVaultForTemplateDeployment
     publicNetworkAccess: keyVaultParams.publicNetworkAccess
     sku: keyVaultParams.keyvaultsku
@@ -38,7 +39,6 @@ module avmKeyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
     enableRbacAuthorization: keyVaultParams.enableRbacAuthorization
     createMode: keyVaultParams.createMode
     enableTelemetry: keyVaultParams.enableTelemetry
-
   }
 }
 
