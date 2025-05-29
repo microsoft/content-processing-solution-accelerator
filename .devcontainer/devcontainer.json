@@ -41,7 +41,8 @@
                 "tamasfe.even-better-toml",
                 "yzhang.markdown-all-in-one",
                 "ms-azuretools.azure-dev",
-                "ms-vscode.azurecli"
+                "ms-vscode.azurecli",
+                "ms-azuretools.vscode-bicep"
             ]
         }
     },

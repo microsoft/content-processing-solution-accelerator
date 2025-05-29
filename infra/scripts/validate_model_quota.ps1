@@ -43,7 +43,7 @@ Write-Host "🔍 Checking quota for $ModelType in $Location ..."
 $ModelInfo = az cognitiveservices usage list --location $Location --query "[?name.value=='$ModelType']" --output json | ConvertFrom-Json
 
 if (-not $ModelInfo) {
-    Write-Error "❌ ERROR: No quota information found for model: $Model in location: $Location for model type: $ModelType."
+    Write-Information "❌ ERROR: No quota information found for model: $Model in location: $Location for model type: $ModelType."
     exit 1
 }
 
@@ -60,7 +60,8 @@ if ($ModelInfo) {
     if ($Available -lt $Capacity) {
         Write-Error "❌ ERROR: Insufficient quota for model: $Model in location: $Location. Available: $Available, Requested: $Capacity."
         exit 1
-    } else {
+    }
+    else {
         Write-Host "✅ Sufficient quota for model: $Model in location: $Location. Available: $Available, Requested: $Capacity."
     }
 }

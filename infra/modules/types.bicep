@@ -65,14 +65,14 @@ type container_app_deployment_info_type = {
 @export()
 func make_solution_prefix(unique_id string) string => 'cps-${padLeft(take(unique_id, 12), 12, '0')}'
 
-type keyvault_sku_type = 'standard' | 'premium' 
+type keyvault_sku_type = 'standard' | 'premium'
 
-type keyvault_public_network_access_type = 'Disabled' | 'Enabled' 
+type keyvault_public_network_access_type = 'Disabled' | 'Enabled'
 
-@export() 
+@export()
 type key_vault_param_type = {
   @description('Name of the Key Vault')
-  name: string
+  keyvault_name: string
   @description('Location of the Key Vault')
   location: string
   @description('Tags for the Key Vault')

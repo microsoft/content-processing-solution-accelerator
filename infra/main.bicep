@@ -106,17 +106,27 @@ module avmManagedIdentity './modules/managed-identity.bicep' = {
 }
 
 // Assign Owner role to the managed identity in the resource group
-module bicepOwnerRoleAssignment 'modules/role_assignment.bicep' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-owner')
+module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-owner')
   params: {
-    managedIdentityResourceId: avmManagedIdentity.outputs.resourceId
-    managedIdentityPrincipalId: avmManagedIdentity.outputs.principalId
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
-    ) // Built-in role 'Owner'
+    resourceId: avmManagedIdentity.outputs.resourceId
+    principalId: avmManagedIdentity.outputs.principalId
+    roleDefinitionId: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
   }
 }
+
+// Assign Owner role to the managed identity in the resource group
+// module bicepOwnerRoleAssignment 'modules/role_assignment.bicep' = {
+//   name: format(deployment_param.resource_name_format_string, 'rbac-owner')
+//   params: {
+//     managedIdentityResourceId: avmManagedIdentity.outputs.resourceId
+//     managedIdentityPrincipalId: avmManagedIdentity.outputs.principalId
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
+//     ) // Built-in role 'Owner'
+//   }
+// }
 // module managedIdentityModule 'deploy_managed_identity.bicep' = {
 //   name: 'deploy_managed_identity'
 //   params: {
@@ -133,7 +143,7 @@ module avmKeyVault './modules/key-vault.bicep' = {
   params: {
     name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
     keyVaultParams: {
-      name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
+      keyvault_name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
       location: deployment_param.resource_group_location
       tags: {
         app: deployment_param.solution_prefix

@@ -1,0 +1,15 @@
+{
+    "aiModelDeployments": [
+        {
+            "name": "GPT-4o",
+            "model": {
+                "name": "gpt-4o",
+                "format": "openai"
+            },
+            "sku": {
+                "name": "GlobalStandard",
+                "capacity": 100
+            }
+        }
+    ]
+}
