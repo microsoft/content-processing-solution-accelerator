@@ -17,15 +17,15 @@ metadata name = 'Key Vault Module'
 
 import {
   key_vault_param_type
+  default_deployment_param_type
 } from './types.bicep'
 
 param keyVaultParams key_vault_param_type
-param name string
-
+param deployment_param default_deployment_param_type
 module avmKeyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
-  name: name
+  name: 'deploy_keyvault'
   params: {
-    name: keyVaultParams.name
+    name: keyVaultParams.keyvaultName
     location: keyVaultParams.location
     tags: keyVaultParams.tags
     roleAssignments: keyVaultParams.roleAssignments
@@ -41,6 +41,8 @@ module avmKeyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
     enableTelemetry: keyVaultParams.enableTelemetry
   }
 }
+
+// Adding additional resource deployment for WAF enabled
 
 output resourceId string = avmKeyVault.outputs.resourceId
 output vaultUri string = avmKeyVault.outputs.uri
