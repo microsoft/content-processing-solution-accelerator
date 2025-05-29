@@ -12,9 +12,13 @@ import {
 } from './modules/types.bicep'
 
 // ========== get up parameters from parameter file ========== //
+@description('Name of the environment to deploy the solution into:')
 param environmentName string
+@description('Location for the content understanding service: WestUS | SwedenCentral | AustraliaEast')
 param contentUnderstandingLocation content_understanding_available_location_type
+@description('Type of GPT deployment to use: Standard | GlobalStandard')
 param deploymentType gpt_deployment_type = 'GlobalStandard'
+@description('Name of the GPT model to deploy: gpt-4o-mini | gpt-4o | gpt-4')
 param gptModelName gpt_model_name_type = 'gpt-4o'
 @minLength(1)
 @description('Version of the GPT model to deploy:')
@@ -23,8 +27,8 @@ param gptModelName gpt_model_name_type = 'gpt-4o'
 ])
 param gptModelVersion string = '2024-08-06'
 @minValue(10)
-@description('Capacity of the GPT deployment:')
-param gptDeploymentCapacity int = 100
+@description('Capacity of the GPT deployment: (minimum 10)')
+param gptDeploymentCapacity int
 param useLocalBuild string = 'false'
 
 // ============ make up Parameters from bicep parameter module ========== //
@@ -40,6 +44,10 @@ param useLocalBuild string = 'false'
 //     useLocalBuild: useLocalBuild
 //   }
 // }
+
+// param deployment_parameter default_deployment_param_type
+// param ai_deployment_parameter ai_deployment_param_type
+// param container_app_parameter container_app_deployment_info_type
 
 // =========== Build Parameters ========== //
 var deployment_param default_deployment_param_type = {
@@ -979,7 +987,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
 //   dependsOn: [roleAssignments]
 // }
 
-// output CONTAINER_WEB_APP_NAME string = containerApps.outputs.containerAppWebName
-// output CONTAINER_API_APP_NAME string = containerApps.outputs.containerAppApiName
-// output CONTAINER_WEB_APP_FQDN string = containerApps.outputs.containweAppWebEndPoint
-// output CONTAINER_API_APP_FQDN string = containerApps.outputs.containweAppApiEndPoint
+output CONTAINER_WEB_APP_NAME string = avmContainerApp_Web.outputs.name
+output CONTAINER_API_APP_NAME string = avmContainerApp_API.outputs.name
+output CONTAINER_WEB_APP_FQDN string = avmContainerApp_Web.outputs.fqdn
+output CONTAINER_API_APP_FQDN string = avmContainerApp_API.outputs.fqdn
