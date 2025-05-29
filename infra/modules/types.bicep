@@ -64,3 +64,39 @@ type container_app_deployment_info_type = {
 
 @export()
 func make_solution_prefix(unique_id string) string => 'cps-${padLeft(take(unique_id, 12), 12, '0')}'
+
+type keyvault_sku_type = 'standard' | 'premium' 
+
+type keyvault_public_network_access_type = 'Disabled' | 'Enabled' 
+
+@export() 
+type key_vault_param_type = {
+  @description('Name of the Key Vault')
+  name: string
+  @description('Location of the Key Vault')
+  location: string
+  @description('Tags for the Key Vault')
+  tags: object
+  @description('Role assignments for the Key Vault')
+  roleAssignments: array
+  @description('Enable purge protection for the Key Vault')
+  enablePurgeProtection: bool
+  @description('Enable soft delete for the Key Vault')
+  enableSoftDelete: bool
+  @description('Enable vault for disk encryption')
+  enableVaultForDiskEncryption: bool
+  @description('Enable vault for template deployment')
+  enableVaultForTemplateDeployment: bool
+  @description('Public network access setting for the Key Vault')
+  publicNetworkAccess: keyvault_public_network_access_type
+  @description('SKU of the Key Vault')
+  keyvaultsku: keyvault_sku_type
+  @description('Soft delete retention period in days')
+  softDeleteRetentionInDays: int
+  @description('Enable RBAC authorization for the Key Vault')
+  enableRbacAuthorization: bool
+  @description('Create mode for the Key Vault')
+  createMode: string
+  @description('Enable telemetry for the Key Vault')
+  enableTelemetry: bool
+}
