@@ -11,12 +11,11 @@ hooks:
   preprovision:
     posix:
       shell: sh
-      run: sudo chmod u+r+x ./infra/scripts/validate_model_deployment_quotas.sh; sudo chmod u+r+x ./infra/scripts/validate_model_quota.sh; .infra/scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments; timestamp=$(date +"%Y%m%d-%H%M%S"); logFile="azd_preprovision_$timestamp.log"; sed -i 's/\r$//' ./infra/scripts/docker-build.sh; ./infra/scripts/docker-build.sh "$AZURE_SUBSCRIPTION_ID" "$AZURE_ENV_NAME" "$AZURE_LOCATION" "$AZURE_RESOURCE_GROUP" "$USE_LOCAL_BUILD" 2>&1 | tee "$logFile"
+      run: sudo chmod u+r+x ./infra/scripts/validate_model_deployment_quotas.sh; sudo chmod u+r+x ./infra/scripts/validate_model_quota.sh; ./infra/scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments"; timestamp=$(date +"%Y%m%d-%H%M%S"); logFile="azd_preprovision_$timestamp.log"; sed -i 's/\r$//' ./infra/scripts/docker-build.sh; ./infra/scripts/docker-build.sh "$AZURE_SUBSCRIPTION_ID" "$AZURE_ENV_NAME" "$AZURE_LOCATION" "$AZURE_RESOURCE_GROUP" "$USE_LOCAL_BUILD" 2>&1 | tee "$logFile"
     windows:
       shell: pwsh
       run: ./infra/scripts/validate_model_deployment_quotas.ps1 -Subscription $env:AZURE_SUBSCRIPTION_ID -Location $env:AZURE_LOCATION -ModelsParameter "aiModelDeployments" ;$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"; $logFile = "azd_preprovision_$timestamp.log"; Tee-Object -FilePath $logFile
       interactive: true
-      continueOnError: false
   postprovision:
     posix:
       shell: sh

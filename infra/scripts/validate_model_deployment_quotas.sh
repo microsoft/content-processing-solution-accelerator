@@ -46,7 +46,7 @@ if [[ ${#MISSING_PARAMS[@]} -ne 0 ]]; then
     exit 1
 fi
 
-aiModelDeployments=$(jq -c ".aiModelDeployments.value[]" ./infra/ai-resources.json)
+aiModelDeployments=$(jq -c ".aiModelDeployments[]" ./infra/ai-resources.json)
 
 if [ $? -ne 0 ]; then
   echo "Error: Failed to parse ai-resources.json. Ensure jq is installed and the JSON file is valid."
@@ -65,7 +65,7 @@ while IFS= read -r deployment; do
   capacity=$(echo "$deployment" | jq -r '.sku.capacity')
 
   echo "🔍 Validating model deployment: $name ..."
-    ./scripts/validate_model_quota.sh --location "$LOCATION" --model "$model" --capacity $capacity --deployment-type $type
+    ./infra/scripts/validate_model_quota.sh --location "$LOCATION" --model "$model" --capacity $capacity --deployment-type $type
   
   # Check if the script failed
   if [ $? -ne 0 ]; then
