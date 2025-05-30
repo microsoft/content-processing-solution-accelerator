@@ -100,3 +100,52 @@ type key_vault_param_type = {
   @description('Enable telemetry for the Key Vault')
   enableTelemetry: bool
 }
+
+
+type app_insights_retention_in_days = 30 | 60 | 90 | 120 | 180 | 270 | 365
+type app_insights_kind = 'web' | 'other'
+type app_insights_applicationType = 'web' | 'other'
+type app_insights_flow_type = 'Bluefield' | 'Basic'
+type app_insights_sku_name = 'PerGB2018' | 'CapacityReservation' | 'Premium' | 'Standard' | 'Free' | 'PerNode' | 'LACluster' | 'Standalone'
+
+@export()
+type app_insights_param_type = {
+  @description('Name of the Application Insights resource')
+  appInsightsName: string
+  @description('Location for the Application Insights and Log Analytics Workspace resources')
+  location: string
+  // @description('Workspace resource ID for the Application Insights resource')
+  // workspaceResourceId: string
+  @description('Retention period in days for the Application Insights resource')
+  retentionInDays: app_insights_retention_in_days
+  @description('Kind of the Application Insights resource')
+  kind: app_insights_kind
+  @description('Disable IP masking for the Application Insights resource')
+  disableIpMasking: bool
+  @description('Flow type for the Application Insights resource')
+  flowType: app_insights_flow_type
+  @description('Application Type for the Application Insights resource')
+  applicationType: app_insights_applicationType
+  @description('Disable local authentication for the Application Insights resource')
+  disableLocalAuth: bool
+  @description('Force customer storage for profiler in Application Insights resource')
+  forceCustomerStorageForProfiler: bool
+  @description('Public network access for ingestion in Application Insights resource')
+  publicNetworkAccessForIngestion: 'Enabled' | 'Disabled'
+  @description('Public network access for query in Application Insights resource')
+  publicNetworkAccessForQuery: 'Enabled' | 'Disabled'
+  @description('Request source for the Application Insights resource')
+  requestSource: 'rest' | 'other'
+
+  @description('Name of the Log Analytics Workspace resource')
+  logAnalyticsWorkspaceName: string
+  @description('SKU name for the Log Analytics Workspace resource')
+  skuName: app_insights_sku_name
+  @description('This is the features properties for Log Analytics Workspace resource')
+  features: {
+    @description('Search version for the Log Analytics Workspace resource')
+    searchVersion: 1
+  }
+
+
+}
