@@ -141,9 +141,9 @@ module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignme
 module avmKeyVault './modules/key-vault.bicep' = {
   name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
   params: {
-    name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
+    deployment_param: deployment_param
     keyVaultParams: {
-      keyvault_name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
+      keyvaultName: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
       location: deployment_param.resource_group_location
       tags: {
         app: deployment_param.solution_prefix
@@ -182,41 +182,37 @@ module avmKeyVault './modules/key-vault.bicep' = {
 //   scope: resourceGroup(resourceGroup().name)
 // }
 
-// ========== Application insights ========== //
-module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.2' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.logAnalyticsWorkspace)
+// ========== Application insights and Log Analytics Workspace (AVM module) ========== //
+module avmAppInsightsAndLogAnalytics './modules/app-insights.bicep' = {
+  name: format(deployment_param.resource_name_format_string, 'ai-law-avm')
   params: {
-    name: '${abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    diagnosticSettings: [{ useThisWorkspace: true }]
-    skuName: 'PerGB2018'
-    dataRetention: 30
+    deployment_param: deployment_param
+    appInsights_param: {
+      appInsightsName: '${abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
+      logAnalyticsWorkspaceName: '${abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
+      location: deployment_param.resource_group_location
+      kind: 'web'
+      retentionInDays: 30
+      features: {
+        searchVersion: 1
+      }
+      skuName: 'PerGB2018'
+      applicationType: 'web'
+      disableIpMasking: false
+      disableLocalAuth: false
+      flowType: 'Bluefield'
+      forceCustomerStorageForProfiler: false
+      //ImmediatePurgeDataOn30Days: true
+      //IngestionMode: 'LogAnalytics'
+      publicNetworkAccessForIngestion: 'Enabled'
+      publicNetworkAccessForQuery: 'Disabled'
+      requestSource: 'rest'
+      
+    }
   }
+  scope: resourceGroup(resourceGroup().name)
 }
 
-module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.applicationInsights)
-  params: {
-    name: '${abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
-    retentionInDays: 30
-    kind: 'web'
-    disableIpMasking: false
-    flowType: 'Bluefield'
-    diagnosticSettings: [{ workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId }]
-  }
-}
-
-// module applicationInsights 'deploy_app_insights.bicep' = {
-//   name: 'deploy_app_insights'
-//   params: {
-//     applicationInsightsName: '${abbrs.managementGovernance.applicationInsights}${solutionPrefix}'
-//     logAnalyticsWorkspaceName: '${abbrs.managementGovernance.logAnalyticsWorkspace}${solutionPrefix}'
-//   }
-// }
-
-// // ========== Container Registry ========== //
 module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.9.1' = {
   name: format(deployment_param.resource_name_format_string, abbrs.containers.containerRegistry)
   params: {
@@ -375,7 +371,7 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
     allowSharedKeyAccess: false
     diagnosticSettings: [
       {
-        workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+        workspaceResourceId: avmAppInsightsAndLogAnalytics.outputs.logAnalyticsWorkspaceId
       }
     ]
     blobServices: {
@@ -384,7 +380,7 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
       containerDeleteRetentionPoloicyEnabled: false
       diagnosticSettings: [
         {
-          workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+          workspaceResourceId: avmAppInsightsAndLogAnalytics.outputs.logAnalyticsWorkspaceId
         }
       ]
     }
@@ -416,7 +412,7 @@ module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' =
     associatedKeyVaultResourceId: avmKeyVault.outputs.resourceId
     associatedStorageAccountResourceId: avmAiServices_storage_hub.outputs.resourceId
     associatedContainerRegistryResourceId: avmContainerRegistry.outputs.resourceId
-    associatedApplicationInsightsResourceId: avmApplicationInsights.outputs.resourceId
+    associatedApplicationInsightsResourceId: avmAppInsightsAndLogAnalytics.outputs.applicationInsightsId
 
     kind: 'Hub'
     connections: [
@@ -470,6 +466,18 @@ module avmAiProject 'br/public:avm/res/machine-learning-services/workspace:0.12.
 //   scope: resourceGroup(resourceGroup().name)
 // }
 
+//TODO: Remove
+
+module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.2' = {
+  name: 'workspaceDeployment'
+  params: {
+    // Required parameters
+    name: avmAppInsightsAndLogAnalytics.outputs.logAnalyticsWorkspaceName
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+
 // ========== Container App Environment ========== //
 module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
   name: format(deployment_param.resource_name_format_string, abbrs.containers.containerAppsEnvironment)
@@ -484,7 +492,7 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: avmLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId
+        customerId: avmAppInsightsAndLogAnalytics.outputs.logAnalyticsWorkspaceId
         sharedKey: avmLogAnalyticsWorkspace.outputs.primarySharedKey
       }
     }

@@ -61,6 +61,7 @@ var deployment_param default_deployment_param_type = {
   resource_group_location: resourceGroupLocation
   resource_name_prefix: {}
   resource_name_format_string: resource_format_string
+  enable_waf: false // Set to true if you want to enable WAF
 }
 
 var ai_deployment ai_deployment_param_type = {
