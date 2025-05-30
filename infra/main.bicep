@@ -106,17 +106,27 @@ module avmManagedIdentity './modules/managed-identity.bicep' = {
 }
 
 // Assign Owner role to the managed identity in the resource group
-module bicepOwnerRoleAssignment 'modules/role_assignment.bicep' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-owner')
+module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-owner')
   params: {
-    managedIdentityResourceId: avmManagedIdentity.outputs.resourceId
-    managedIdentityPrincipalId: avmManagedIdentity.outputs.principalId
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
-    ) // Built-in role 'Owner'
+    resourceId: avmManagedIdentity.outputs.resourceId
+    principalId: avmManagedIdentity.outputs.principalId
+    roleDefinitionId: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
   }
 }
+
+// Assign Owner role to the managed identity in the resource group
+// module bicepOwnerRoleAssignment 'modules/role_assignment.bicep' = {
+//   name: format(deployment_param.resource_name_format_string, 'rbac-owner')
+//   params: {
+//     managedIdentityResourceId: avmManagedIdentity.outputs.resourceId
+//     managedIdentityPrincipalId: avmManagedIdentity.outputs.principalId
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
+//     ) // Built-in role 'Owner'
+//   }
+// }
 // module managedIdentityModule 'deploy_managed_identity.bicep' = {
 //   name: 'deploy_managed_identity'
 //   params: {

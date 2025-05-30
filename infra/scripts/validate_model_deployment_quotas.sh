@@ -46,10 +46,10 @@ if [[ ${#MISSING_PARAMS[@]} -ne 0 ]]; then
     exit 1
 fi
 
-aiModelDeployments=$(jq -c ".parameters.$MODELS_PARAMETER.value[]" ./infra/main.parameters.json)
+aiModelDeployments=$(jq -c ".aiModelDeployments.value[]" ./infra/ai-resources.json)
 
 if [ $? -ne 0 ]; then
-  echo "Error: Failed to parse main.parameters.json. Ensure jq is installed and the JSON file is valid."
+  echo "Error: Failed to parse ai-resources.json. Ensure jq is installed and the JSON file is valid."
   exit 1
 fi
 
