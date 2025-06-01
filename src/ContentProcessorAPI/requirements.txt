@@ -9,12 +9,12 @@ anyio==4.9.0 \
 azure-appconfiguration==1.7.1 \
     --hash=sha256:3ebe41e9be3f4ae6ca61e5dbc42c4b7cc007a01054a8506501a26dfc199fd3ec \
     --hash=sha256:6e62b040a0210071be4423aafbdca3b053884c0d412855e3f8eff8e8d0b1a02b
-azure-core==1.34.0 \
-    --hash=sha256:0615d3b756beccdb6624d1c0ae97284f38b78fb59a2a9839bf927c66fbbdddd6 \
-    --hash=sha256:bdb544989f246a0ad1c85d72eeb45f2f835afdcbc5b45e43f0dbde7461c81ece
-azure-identity==1.22.0 \
-    --hash=sha256:26d6c63f2ca453c77c3e74be8613941ad074e05d0c8be135247573752c249ad8 \
-    --hash=sha256:c8f5ef23e5295c2fa300c984dd9f5e1fe43503fc25c121c37ff6a15e39b800b9
+azure-core==1.33.0 \
+    --hash=sha256:9b5b6d0223a1d38c37500e6971118c1e0f13f54951e6893968b38910bc9cda8f \
+    --hash=sha256:f367aa07b5e3005fec2c1e184b882b0b039910733907d001c20fb08ebb8c0eb9
+azure-identity==1.23.0 \
+    --hash=sha256:d9cdcad39adb49d4bb2953a217f62aec1f65bbb3c63c9076da2be2a47e53dde4 \
+    --hash=sha256:dbbeb64b8e5eaa81c44c565f264b519ff2de7ff0e02271c49f3cb492762a50b0
 azure-storage-blob==12.25.1 \
     --hash=sha256:1f337aab12e918ec3f1b638baada97550673911c4ceed892acc8e4e891b74167 \
     --hash=sha256:4f294ddc9bc47909ac66b8934bd26b50d2000278b10ad82cc109764fdc6e0e3b
