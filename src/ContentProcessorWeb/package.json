@@ -7,7 +7,7 @@
     "@azure/msal-react": "^3.0.4",
     "@fluentui/react-components": "^9.63.0",
     "@fluentui/react-icons": "latest",
-    "@reduxjs/toolkit": "^2.2.7",
+    "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.7.5",
     "babel-preset-react-app": "^10.1.0",
     "contentprocessor_web": "file:",
