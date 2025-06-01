@@ -58,7 +58,7 @@
     "@types/react-window": "^1.8.8",
     "customize-cra": "^1.0.0",
     "gh-pages": "^6.3.0",
-    "globals": "^16.0.0",
+    "globals": "^16.2.0",
     "husky": "^9.1.7",
     "raw-loader": "^4.0.2",
     "react-app-rewired": "^2.2.1",
