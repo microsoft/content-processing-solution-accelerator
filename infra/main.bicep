@@ -142,9 +142,9 @@ module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignme
 module avmKeyVault './modules/key-vault.bicep' = {
   name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
   params: {
-    name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
+    //name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
     keyVaultParams: {
-      keyvault_name: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
+      keyvaultName: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
       location: deployment_param.resource_group_location
       tags: {
         app: deployment_param.solution_prefix
@@ -169,6 +169,7 @@ module avmKeyVault './modules/key-vault.bicep' = {
       enableVaultForTemplateDeployment: true
       softDeleteRetentionInDays: 7
     }
+    deployment_param: deployment_param
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -567,7 +568,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: '<APP_CONFIG_ENDPOINT>'
+            value: avmAppConfig.outputs.endpoint
           }
         ]
       }
@@ -617,7 +618,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: '<APP_CONFIG_ENDPOINT>'
+            value: avmAppConfig.outputs.endpoint
           }
         ]
         probes: [
