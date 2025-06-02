@@ -282,10 +282,7 @@ module avmStorageAccount_RoleAssignment_avmContainerApp_blob 'br/public:avm/ptn/
 }
 
 module avmStorageAccount_RoleAssignment_avmContainerApp_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(
-    deployment_param.resource_name_format_string,
-    'role-assignment-storage-data-contributor-container-app-queue'
-  )
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-storage-contributor-container-app-queue')
   params: {
     resourceId: avmContainerApp.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
