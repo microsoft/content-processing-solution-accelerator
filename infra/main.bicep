@@ -251,14 +251,14 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
-      {
-        principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-      }
-      {
-        principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-        roleDefinitionIdOrName: 'Storage Queue Data Contributor'
-      }
+      // {
+      //   principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+      //   roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+      // }
+      // {
+      //   principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+      //   roleDefinitionIdOrName: 'Storage Queue Data Contributor'
+      // }
     ]
     networkAcls: {
       bypass: 'AzureServices'
@@ -267,6 +267,31 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
     }
     supportsHttpsTrafficOnly: true
     accessTier: 'Hot'
+  }
+}
+
+module avmStorageAccount_RoleAssignment_avmContainerApp_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-storage-data-contributor-container-app')
+  params: {
+    resourceId: avmContainerApp.outputs.resourceId
+    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    roleName: 'Storage Blob Data Contributor'
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module avmStorageAccount_RoleAssignment_avmContainerApp_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(
+    deployment_param.resource_name_format_string,
+    'role-assignment-storage-data-contributor-container-app-queue'
+  )
+  params: {
+    resourceId: avmContainerApp.outputs.resourceId
+    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    roleName: 'Storage Queue Data Contributor'
+    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -309,12 +334,12 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
     customSubDomainName: '${abbrs.ai.aiServices}${deployment_param.solution_prefix}'
     disableLocalAuth: true
     publicNetworkAccess: 'Enabled'
-    roleAssignments: [
-      {
-        principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-      }
-    ]
+    // roleAssignments: [
+    //   {
+    //     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    //     roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+    //   }
+    // ]
     deployments: [
       {
         name: ai_deployment.gpt_model_name
@@ -333,6 +358,18 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
   }
 }
 
+// Role Assignment
+module avmAiServices_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-ai-services')
+  params: {
+    resourceId: avmContainerApp.outputs.resourceId
+    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    roleName: 'Cognitive Services OpenAI User'
+    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' //'Cognitive Services OpenAI User'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.10.2' = {
   name: format(deployment_param.resource_name_format_string, 'aicu-')
 
@@ -348,12 +385,22 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.10.2' = 
     }
     customSubDomainName: 'aicu-${deployment_param.solution_prefix}'
     disableLocalAuth: true
-    roleAssignments: [
-      {
-        principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-        roleDefinitionIdOrName: 'Cognitive Services User'
-      }
-    ]
+    // roleAssignments: [
+    //   {
+    //     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    //     roleDefinitionIdOrName: 'Cognitive Services User'
+    //   }
+    // ]
+  }
+}
+
+module avmAiServices_cu_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-ai-services-cu')
+  params: {
+    resourceId: avmContainerApp.outputs.resourceId
+    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908' //'Cognitive Services User'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -510,17 +557,27 @@ module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assig
   scope: resourceGroup(resourceGroup().name)
 }
 
-module bicepAcrPullRoleAssignment 'modules/role_assignment.bicep' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-acr-pull')
+module bicepAcrPullRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'rabc-acr-pull')
   params: {
-    managedIdentityResourceId: avmContainerRegistryReader.outputs.resourceId
-    managedIdentityPrincipalId: avmContainerRegistryReader.outputs.principalId
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '7f951dda-4ed3-4680-a7ca-43fe172d538d'
-    ) // AcrPull role
+    resourceId: avmContainerRegistry.outputs.resourceId
+    principalId: avmContainerRegistryReader.outputs.principalId
+    roleDefinitionId: '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull role
+    principalType: 'ServicePrincipal'
   }
 }
+
+// module bicepAcrPullRoleAssignment_ 'modules/role_assignment.bicep' = {
+//   name: format(deployment_param.resource_name_format_string, 'rbac-acr-pull')
+//   params: {
+//     managedIdentityResourceId: avmContainerRegistryReader.outputs.resourceId
+//     managedIdentityPrincipalId: avmContainerRegistryReader.outputs.principalId
+//     roleDefinitionId: subscriptionResourceId(
+//       'Microsoft.Authorization/roleDefinitions',
+//       '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+//     ) // AcrPull role
+//   }
+// }
 
 // module containerAppEnv './container_app/deploy_container_app_env.bicep' = {
 //   name: 'deploy_container_app_env'
@@ -750,7 +807,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_API_BASE_URL'
-            value: 'avmContainerApp_API.outputs.fqdn'
+            value: avmContainerApp_API.outputs.fqdn
           }
           {
             name: 'APP_WEB_CLIENT_ID'
@@ -850,7 +907,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
     keyValues: [
       {
         name: 'APP_AZURE_OPENAI_ENDPOINT'
-        value: avmAiServices.outputs.endpoint
+        value: avmAiServices.outputs.endpoint //TODO: replace with actual endpoint
       }
       {
         name: 'APP_AZURE_OPENAI_MODEL'
@@ -858,7 +915,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_CONTENT_UNDERSTANDING_ENDPOINT'
-        value: avmAiServices_cu.outputs.endpoint
+        value: avmAiServices_cu.outputs.endpoint //TODO: replace with actual endpoint
       }
       {
         name: 'APP_COSMOS_CONTAINER_PROCESS'
@@ -914,31 +971,64 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_STORAGE_BLOB_URL'
-        value: avmStorageAccount.outputs.serviceEndpoints.blob
+        value: avmStorageAccount.outputs.serviceEndpoints.blob //TODO: replace with actual blob URL
       }
       {
         name: 'APP_STORAGE_QUEUE_URL'
-        value: avmStorageAccount.outputs.serviceEndpoints.queue
+        value: avmStorageAccount.outputs.serviceEndpoints.queue //TODO: replace with actual queue URL
       }
       {
         name: 'APP_AI_PROJECT_CONN_STR'
         value: '${deployment_param.resource_group_location}.api.azureml.ms;${subscription().subscriptionId};${resourceGroup().name};${avmAiProject.name}'
+        //TODO: replace with actual AI project connection string
       }
     ]
-    roleAssignments: [
-      {
-        principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-        roleDefinitionIdOrName: 'App Configuration Data Reader'
-      }
-      {
-        principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
-        roleDefinitionIdOrName: 'App Configuration Data Reader'
-      }
-      // {
-      //   principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId
-      //   roleDefinitionIdOrName: 'App Configuration Data Reader'
-      // }
-    ]
+    // roleAssignments: [
+    //   {
+    //     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    //     roleDefinitionIdOrName: 'App Configuration Data Reader'
+    //   }
+    //   {
+    //     principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+    //     roleDefinitionIdOrName: 'App Configuration Data Reader'
+    //   }
+    // {
+    //   principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId
+    //   roleDefinitionIdOrName: 'App Configuration Data Reader'
+    // }
+    // ]
+  }
+}
+
+module avmRoleAssignment_container_app 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-app-config-data-reader')
+  params: {
+    resourceId: avmContainerApp.outputs.resourceId
+    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    roleDefinitionId: '516239f1-63e1-4d78-a4de-a74fb236a071' // Built-in
+    roleName: 'App Configuration Data Reader'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module avmRoleAssignment_container_app_api 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-app-config-data-reader-api')
+  params: {
+    resourceId: avmContainerApp_API.outputs.resourceId
+    principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+    roleDefinitionId: '516239f1-63e1-4d78-a4de-a74fb236a071' // Built-in
+    roleName: 'App Configuration Data Reader'
+    principalType: 'ServicePrincipal'
+  }
+}
+module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'role-assignment-app-config-data-reader-web')
+  params: {
+    resourceId: avmContainerApp_Web.outputs.resourceId
+    principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId
+    roleDefinitionId: '516239f1-63e1-4d78-a4de-a74fb236a071' // Built-in  
+    roleName: 'App Configuration Data Reader'
+    principalType: 'ServicePrincipal'
   }
 }
 
