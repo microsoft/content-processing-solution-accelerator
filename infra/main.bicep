@@ -553,6 +553,7 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
         workloadProfileType: 'Consumption'
       }
     ]
+    publicNetworkAccess: 'Enabled'
   }
 }
 
