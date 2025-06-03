@@ -872,7 +872,12 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
   params: {
     name: '${abbrs.databases.cosmosDBDatabase}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
-    mongodbDatabases: []
+    mongodbDatabases: [
+      {
+        name: 'default'
+        tag: 'default database'
+      }
+    ]
     tags: {
       app: deployment_param.solution_prefix
       location: deployment_param.resource_group_location
@@ -882,12 +887,12 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
     serverVersion: '7.0'
     capabilitiesToAdd: [
       'EnableMongo'
-      'EnableServerless'
     ]
     enableAnalyticalStorage: true
     defaultConsistencyLevel: 'Session'
     maxIntervalInSeconds: 5
     maxStalenessPrefix: 100
+    zoneRedundant: false
   }
 }
 // module cosmosdb './deploy_cosmos_db.bicep' = {
