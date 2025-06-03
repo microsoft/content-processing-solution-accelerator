@@ -107,7 +107,7 @@ module avmManagedIdentity './modules/managed-identity.bicep' = {
 
 // Assign Owner role to the managed identity in the resource group
 module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-owner')
+  name: format(deployment_param.resource_name_format_string, 'rbac-owner')
   params: {
     resourceId: avmManagedIdentity.outputs.resourceId
     principalId: avmManagedIdentity.outputs.principalId
@@ -176,7 +176,7 @@ module avmKeyVault './modules/key-vault.bicep' = {
 }
 
 module avmKeyVault_RoleAssignment_appConfig 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-keyvault-app-config')
+  name: format(deployment_param.resource_name_format_string, 'rbac-keyvault-app-config')
   params: {
     resourceId: avmKeyVault.outputs.resourceId
     principalId: avmAppConfig.outputs.systemAssignedMIPrincipalId
@@ -283,7 +283,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
 }
 
 module avmStorageAccount_RoleAssignment_avmContainerApp_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-storage-data-contributor-container-app')
+  name: format(deployment_param.resource_name_format_string, 'rbac-storage-data-contributor-container-app')
   params: {
     resourceId: avmStorageAccount.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -293,11 +293,33 @@ module avmStorageAccount_RoleAssignment_avmContainerApp_blob 'br/public:avm/ptn/
   }
 }
 
+module avmStorageAccount_RoleAssignment_avmContainerApp_API_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'rbac-storage-data-contributor-container-api')
+  params: {
+    resourceId: avmStorageAccount.outputs.resourceId
+    principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+    roleName: 'Storage Blob Data Contributor'
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module avmStorageAccount_RoleAssignment_avmContainerApp_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-storage-contributor-container-app-queue')
+  name: format(deployment_param.resource_name_format_string, 'rbac-storage-contributor-container-app-queue')
   params: {
     resourceId: avmStorageAccount.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    roleName: 'Storage Queue Data Contributor'
+    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module avmStorageAccount_RoleAssignment_avmContainerApp_API_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+  name: format(deployment_param.resource_name_format_string, 'rbac-storage-data-contributor-container-api-queue')
+  params: {
+    resourceId: avmStorageAccount.outputs.resourceId
+    principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
     roleName: 'Storage Queue Data Contributor'
     roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
     principalType: 'ServicePrincipal'
@@ -369,7 +391,7 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
 
 // Role Assignment
 module avmAiServices_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-ai-services')
+  name: format(deployment_param.resource_name_format_string, 'rbac-ai-services')
   params: {
     resourceId: avmAiServices.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -404,7 +426,7 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.10.2' = 
 }
 
 module avmAiServices_cu_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-ai-services-cu')
+  name: format(deployment_param.resource_name_format_string, 'rbac-ai-services-cu')
   params: {
     resourceId: avmAiServices_cu.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -627,7 +649,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
     containers: [
       {
         name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
+        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:dblee'
 
         resources: {
           cpu: '4'
@@ -663,7 +685,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
           {
             server: deployment_param.public_container_image_endpoint
             image: 'contentprocessorapi'
-            imageTag: 'latest'
+            imageTag: 'dblee'
           }
         ]
       : null
@@ -678,7 +700,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
     containers: [
       {
         name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
+        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:dblee'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -743,6 +765,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
       ]
     }
     ingressExternal: true
+    activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
     ingressAllowInsecure: true
     corsPolicy: {
@@ -894,6 +917,12 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
     maxIntervalInSeconds: 5
     maxStalenessPrefix: 100
     zoneRedundant: false
+
+    networkRestrictions: {
+      publicNetworkAccess: 'Enabled'
+      ipRules: []
+      virtualNetworkRules: []
+    }
   }
 }
 // module cosmosdb './deploy_cosmos_db.bicep' = {
@@ -1021,7 +1050,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
 }
 
 module avmRoleAssignment_container_app 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-app-config-data-reader')
+  name: format(deployment_param.resource_name_format_string, 'rbac-app-config-data-reader')
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -1032,7 +1061,7 @@ module avmRoleAssignment_container_app 'br/public:avm/ptn/authorization/resource
 }
 
 module avmRoleAssignment_container_app_api 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-app-config-data-reader-api')
+  name: format(deployment_param.resource_name_format_string, 'rbac-app-config-data-reader-api')
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
@@ -1042,7 +1071,7 @@ module avmRoleAssignment_container_app_api 'br/public:avm/ptn/authorization/reso
   }
 }
 module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'role-assignment-app-config-data-reader-web')
+  name: format(deployment_param.resource_name_format_string, 'rbac-app-config-data-reader-web')
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId
