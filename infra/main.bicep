@@ -49,6 +49,7 @@ param deployment_param default_deployment_param_type = {
   resource_name_prefix: {}
   resource_name_format_string: '{0}avm-cps'
   enable_waf: true
+  enable_telemetry: true
   naming_abbrs: loadJsonContent('./abbreviations.json')
 }
 
@@ -74,6 +75,10 @@ param container_app_deployment container_app_deployment_info_type = {
     minReplicas: 1
   }
 }
+
+// ============== //
+// Resources      //
+// ============== //
 
 // ========== Managed Identity ========== //
 module avmManagedIdentity './modules/managed-identity.bicep' = {
@@ -157,6 +162,7 @@ module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspac
     name: '${deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     diagnosticSettings: [{ useThisWorkspace: true }]
+    enableTelemetry: deployment_param.enable_telemetry
     skuName: 'PerGB2018'
     dataRetention: 30
   }

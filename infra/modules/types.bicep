@@ -43,6 +43,10 @@ type default_deployment_param_type = {
   resource_group_location: string
   resource_name_prefix: object
   resource_name_format_string: string
+  @description('Azure Resource Naming Abbreviations')
+  naming_abbrs: object
+  @description('Optional. Enable or disable telemetry for the deployment.')
+  enable_telemetry: bool
   enable_waf: bool
 }
 
@@ -101,12 +105,19 @@ type key_vault_param_type = {
   enableTelemetry: bool
 }
 
-
 type app_insights_retention_in_days = 30 | 60 | 90 | 120 | 180 | 270 | 365
 type app_insights_kind = 'web' | 'other'
 type app_insights_applicationType = 'web' | 'other'
 type app_insights_flow_type = 'Bluefield' | 'Basic'
-type app_insights_sku_name = 'PerGB2018' | 'CapacityReservation' | 'Premium' | 'Standard' | 'Free' | 'PerNode' | 'LACluster' | 'Standalone'
+type app_insights_sku_name =
+  | 'PerGB2018'
+  | 'CapacityReservation'
+  | 'Premium'
+  | 'Standard'
+  | 'Free'
+  | 'PerNode'
+  | 'LACluster'
+  | 'Standalone'
 
 @export()
 type app_insights_param_type = {
@@ -151,7 +162,6 @@ type app_insights_param_type = {
 type container_registry_sku_type = 'Basic' | 'Standard' | 'Premium'
 type public_network_access_type = 'Enabled' | 'Disabled'
 type zone_redundancy_type = 'Enabled' | 'Disabled'
-
 
 @export()
 type container_registry_param_type = {
