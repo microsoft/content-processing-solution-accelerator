@@ -231,16 +231,23 @@ module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
 // }
 
 // // ========== Container Registry ========== //
-module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.9.1' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.containers.containerRegistry)
+module avmContainerRegistry 'modules/container-registry.bicep' = {
+  //name: format(deployment_param.resource_name_format_string, abbrs.containers.containerRegistry)
   params: {
-    name: '${abbrs.containers.containerRegistry}${replace(deployment_param.solution_prefix, '-', '')}'
-    location: deployment_param.resource_group_location
-    acrSku: 'Basic'
-    publicNetworkAccess: 'Enabled'
-    zoneRedundancy: 'Disabled'
+    containerRegistryParams: {
+      acrName: '${abbrs.containers.containerRegistry}${replace(deployment_param.solution_prefix, '-', '')}'
+      location: deployment_param.resource_group_location
+      acrSku: 'Basic'
+      publicNetworkAccess: 'Enabled'
+      zoneRedundancy: 'Disabled'
+    }
+    defaultDeploymentParams: deployment_param
   }
 }
+
+
+
+
 // module containerRegistry 'deploy_container_registry.bicep' = {
 //   name: 'deploy_container_registry'
 //   params: {
@@ -649,7 +656,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
     containers: [
       {
         name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:dblee'
+        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
 
         resources: {
           cpu: '4'
@@ -686,7 +693,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
           {
             server: deployment_param.public_container_image_endpoint
             image: 'contentprocessorapi'
-            imageTag: 'dblee'
+            imageTag: 'latest'
           }
         ]
       : null
@@ -701,7 +708,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
     containers: [
       {
         name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:dblee'
+        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1076,7 +1083,7 @@ module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/reso
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId
-    roleDefinitionId: '516239f1-63e1-4d78-a4de-a74fb236a071' // Built-in  
+    roleDefinitionId: '516239f1-63e1-4d78-a4de-a74fb236a071' // Built-in
     roleName: 'App Configuration Data Reader'
     principalType: 'ServicePrincipal'
   }

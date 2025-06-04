@@ -146,6 +146,23 @@ type app_insights_param_type = {
     @description('Search version for the Log Analytics Workspace resource')
     searchVersion: 1
   }
+}
+
+type container_registry_sku_type = 'Basic' | 'Standard' | 'Premium'
+type public_network_access_type = 'Enabled' | 'Disabled'
+type zone_redundancy_type = 'Enabled' | 'Disabled'
 
 
+@export()
+type container_registry_param_type = {
+  @description('Name of the Azure Container Registry')
+  acrName: string
+  @description('Location for the Azure Container Registry')
+  location: string
+  @description('SKU for the Azure Container Registry')
+  acrSku: container_registry_sku_type
+  @description('Public network access setting for the Azure Container Registry')
+  publicNetworkAccess: public_network_access_type
+  @description('Zone redundancy setting for the Azure Container Registry')
+  zoneRedundancy: zone_redundancy_type
 }
