@@ -153,37 +153,41 @@ module avmKeyVault_RoleAssignment_appConfig 'br/public:avm/ptn/authorization/res
 }
 
 // ========== Application insights ========== //
-module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.2' = {
-  name: format(
-    deployment_param.resource_name_format_string,
-    deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace
-  )
+module avmAppInsightsLogAnalyticsWorkspace './modules/app-insights.bicep' = {
+  //name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.logAnalyticsWorkspace)
   params: {
-    name: '${deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    diagnosticSettings: [{ useThisWorkspace: true }]
-    enableTelemetry: deployment_param.enable_telemetry
-    skuName: 'PerGB2018'
-    dataRetention: 30
+    appInsights_param: {
+      appInsightsName: '${deployment_param.naming_abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
+      location: deployment_param.resource_group_location
+      //diagnosticSettings: [{ useThisWorkspace: true }]
+      skuName: 'PerGB2018'
+      applicationType: 'web'
+      disableIpMasking: false
+      disableLocalAuth: false
+      flowType: 'Bluefield'
+      kind: 'web'
+      logAnalyticsWorkspaceName: '${deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
+      publicNetworkAccessForQuery: 'Enabled'
+      requestSource: 'rest'
+      retentionInDays: 30
+    }
+    deployment_param: deployment_param
   }
 }
 
-module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
-  name: format(
-    deployment_param.resource_name_format_string,
-    deployment_param.naming_abbrs.managementGovernance.applicationInsights
-  )
-  params: {
-    name: '${deployment_param.naming_abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
-    retentionInDays: 30
-    kind: 'web'
-    disableIpMasking: false
-    flowType: 'Bluefield'
-    diagnosticSettings: [{ workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId }]
-  }
-}
+// module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
+//   name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.applicationInsights)
+//   params: {
+//     name: '${abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
+//     location: deployment_param.resource_group_location
+//     workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+//     retentionInDays: 30
+//     kind: 'web'
+//     disableIpMasking: false
+//     flowType: 'Bluefield'
+//     diagnosticSettings: [{ workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId }]
+//   }
+// }
 
 // ========== Container Registry ========== //
 module avmContainerRegistry 'modules/container-registry.bicep' = {
@@ -365,7 +369,8 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
     allowSharedKeyAccess: false
     diagnosticSettings: [
       {
-        workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+        //workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+        workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId
       }
     ]
     blobServices: {
@@ -374,7 +379,8 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
       containerDeleteRetentionPoloicyEnabled: false
       diagnosticSettings: [
         {
-          workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+          //workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
+          workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId
         }
       ]
     }
@@ -406,7 +412,7 @@ module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' =
     associatedKeyVaultResourceId: avmKeyVault.outputs.resourceId
     associatedStorageAccountResourceId: avmAiServices_storage_hub.outputs.resourceId
     associatedContainerRegistryResourceId: avmContainerRegistry.outputs.resourceId
-    associatedApplicationInsightsResourceId: avmApplicationInsights.outputs.resourceId
+    associatedApplicationInsightsResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.applicationInsightsId
 
     kind: 'Hub'
     connections: [
@@ -459,8 +465,8 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: avmLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId
-        sharedKey: avmLogAnalyticsWorkspace.outputs.primarySharedKey
+        customerId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId
+        sharedKey: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspacePrimaryKey
       }
     }
     zoneRedundant: false
