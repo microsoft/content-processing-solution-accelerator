@@ -50,7 +50,7 @@ param useLocalBuild string = 'false'
 // param container_app_parameter container_app_deployment_info_type
 
 // =========== Build Parameters ========== //
-var deployment_param default_deployment_param_type = {
+param deployment_param default_deployment_param_type = {
   environment_name: environmentName
   unique_id: toLower(uniqueString(subscription().id, environmentName, resourceGroup().location))
   use_local_build: useLocalBuild == 'true' ? 'localbuild' : 'usecontainer'
@@ -64,10 +64,14 @@ var deployment_param default_deployment_param_type = {
   resource_group_location: resourceGroup().location
   resource_name_prefix: {}
   resource_name_format_string: '{0}avm-cps'
-  enable_waf: false
+  enable_waf: true
+  naming_abbrs: loadJsonContent('./abbreviations.json')
 }
 
-var ai_deployment ai_deployment_param_type = {
+// ========== Load Abbreviations ========== //
+// var abbrs object = loadJsonContent('./abbreviations.json')
+
+param ai_deployment ai_deployment_param_type = {
   gpt_deployment_type_name: deploymentType
   gpt_model_name: gptModelName
   gpt_model_version: gptModelVersion
@@ -75,7 +79,7 @@ var ai_deployment ai_deployment_param_type = {
   content_understanding_available_location: contentUnderstandingLocation
 }
 
-var container_app_deployment container_app_deployment_info_type = {
+param container_app_deployment container_app_deployment_info_type = {
   container_app: {
     maxReplicas: 1
     minReplicas: 1
@@ -89,14 +93,12 @@ var container_app_deployment container_app_deployment_info_type = {
     minReplicas: 1
   }
 }
-// ========== Load Abbreviations ========== //
-var abbrs = loadJsonContent('./abbreviations.json')
 
 // ========== Managed Identity ========== //
 module avmManagedIdentity './modules/managed-identity.bicep' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.security.managedIdentity)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.security.managedIdentity)
   params: {
-    name: '${abbrs.security.managedIdentity}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.security.managedIdentity}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     tags: {
       app: deployment_param.solution_prefix
@@ -141,11 +143,11 @@ module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignme
 
 // ========== Key Vault Module ========== //
 module avmKeyVault './modules/key-vault.bicep' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.security.keyVault)
   params: {
     //name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
     keyVaultParams: {
-      keyvaultName: '${abbrs.security.keyVault}${deployment_param.solution_prefix}'
+      keyvaultName: '${deployment_param.naming_abbrs.security.keyVault}${deployment_param.solution_prefix}'
       location: deployment_param.resource_group_location
       tags: {
         app: deployment_param.solution_prefix
@@ -198,9 +200,12 @@ module avmKeyVault_RoleAssignment_appConfig 'br/public:avm/ptn/authorization/res
 
 // ========== Application insights ========== //
 module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.2' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.logAnalyticsWorkspace)
+  name: format(
+    deployment_param.resource_name_format_string,
+    deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace
+  )
   params: {
-    name: '${abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     diagnosticSettings: [{ useThisWorkspace: true }]
     skuName: 'PerGB2018'
@@ -209,9 +214,12 @@ module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspac
 }
 
 module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.applicationInsights)
+  name: format(
+    deployment_param.resource_name_format_string,
+    deployment_param.naming_abbrs.managementGovernance.applicationInsights
+  )
   params: {
-    name: '${abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     workspaceResourceId: avmLogAnalyticsWorkspace.outputs.resourceId
     retentionInDays: 30
@@ -235,7 +243,7 @@ module avmContainerRegistry 'modules/container-registry.bicep' = {
   //name: format(deployment_param.resource_name_format_string, abbrs.containers.containerRegistry)
   params: {
     containerRegistryParams: {
-      acrName: '${abbrs.containers.containerRegistry}${replace(deployment_param.solution_prefix, '-', '')}'
+      acrName: '${deployment_param.naming_abbrs.containers.containerRegistry}${replace(deployment_param.solution_prefix, '-', '')}'
       location: deployment_param.resource_group_location
       acrSku: 'Basic'
       publicNetworkAccess: 'Enabled'
@@ -254,9 +262,9 @@ module avmContainerRegistry 'modules/container-registry.bicep' = {
 
 // // ========== Storage Account ========== //
 module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.storage.storageAccount)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.storage.storageAccount)
   params: {
-    name: '${abbrs.storage.storageAccount}${replace(deployment_param.solution_prefix, '-', '')}'
+    name: '${deployment_param.naming_abbrs.storage.storageAccount}${replace(deployment_param.solution_prefix, '-', '')}'
     location: deployment_param.resource_group_location
     skuName: 'Standard_LRS'
     kind: 'StorageV2'
@@ -354,10 +362,10 @@ module avmStorageAccount_RoleAssignment_avmContainerApp_API_queue 'br/public:avm
 // ]
 
 module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.ai.aiServices)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.ai.aiServices)
 
   params: {
-    name: '${abbrs.ai.aiServices}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.ai.aiServices}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     sku: 'S0'
     managedIdentities: { systemAssigned: true }
@@ -366,7 +374,7 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
       app: deployment_param.solution_prefix
       location: deployment_param.resource_group_location
     }
-    customSubDomainName: '${abbrs.ai.aiServices}${deployment_param.solution_prefix}'
+    customSubDomainName: '${deployment_param.naming_abbrs.ai.aiServices}${deployment_param.solution_prefix}'
     disableLocalAuth: true
     publicNetworkAccess: 'Enabled'
     // roleAssignments: [
@@ -483,10 +491,10 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
 }
 
 module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.ai.aiHub)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.ai.aiHub)
   params: {
-    name: '${abbrs.ai.aiHub}${deployment_param.solution_prefix}'
-    friendlyName: '${abbrs.ai.aiHub}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.ai.aiHub}${deployment_param.solution_prefix}'
+    friendlyName: '${deployment_param.naming_abbrs.ai.aiHub}${deployment_param.solution_prefix}'
     description: 'AI Hub for CPS template'
     location: deployment_param.resource_group_location
     sku: 'Basic'
@@ -524,14 +532,14 @@ module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' =
 }
 
 module avmAiProject 'br/public:avm/res/machine-learning-services/workspace:0.12.1' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.ai.aiHubProject)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.ai.aiHubProject)
   params: {
-    name: '${abbrs.ai.aiHubProject}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.ai.aiHubProject}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     managedIdentities: { systemAssigned: true }
     kind: 'Project'
     sku: 'Basic'
-    friendlyName: '${abbrs.ai.aiHubProject}${deployment_param.solution_prefix}'
+    friendlyName: '${deployment_param.naming_abbrs.ai.aiHubProject}${deployment_param.solution_prefix}'
     hubResourceId: avmAiHub.outputs.resourceId
   }
 }
@@ -556,9 +564,12 @@ module avmAiProject 'br/public:avm/res/machine-learning-services/workspace:0.12.
 
 // ========== Container App Environment ========== //
 module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.containers.containerAppsEnvironment)
+  name: format(
+    deployment_param.resource_name_format_string,
+    deployment_param.naming_abbrs.containers.containerAppsEnvironment
+  )
   params: {
-    name: '${abbrs.containers.containerAppsEnvironment}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.containers.containerAppsEnvironment}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     tags: {
       app: deployment_param.solution_prefix
@@ -630,7 +641,7 @@ module bicepAcrPullRoleAssignment 'br/public:avm/ptn/authorization/resource-role
 module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
   name: format(deployment_param.resource_name_format_string, 'caapp-')
   params: {
-    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
+    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
     location: deployment_param.resource_group_location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
@@ -652,7 +663,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
 
     containers: [
       {
-        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}'
+        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}'
         image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
 
         resources: {
@@ -681,7 +692,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
 module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
   name: format(deployment_param.resource_name_format_string, 'caapi-')
   params: {
-    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
+    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
     location: deployment_param.resource_group_location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
@@ -704,7 +715,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
 
     containers: [
       {
-        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
+        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
         image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
@@ -797,7 +808,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
 module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
   name: format(deployment_param.resource_name_format_string, 'caweb-')
   params: {
-    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-web'
+    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-web'
     location: deployment_param.resource_group_location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
@@ -837,7 +848,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
     }
     containers: [
       {
-        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-web'
+        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-web'
         image: '${deployment_param.public_container_image_endpoint}/contentprocessorweb:latest'
         resources: {
           cpu: '4'
@@ -897,9 +908,9 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
 
 // ========== Cosmos Database for Mongo DB ========== //
 module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.databases.cosmosDBDatabase)
+  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.databases.cosmosDBDatabase)
   params: {
-    name: '${abbrs.databases.cosmosDBDatabase}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.databases.cosmosDBDatabase}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
     mongodbDatabases: [
       {
@@ -941,9 +952,12 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
 
 // ========== App Configuration ========== //
 module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6.3' = {
-  name: format(deployment_param.resource_name_format_string, abbrs.developerTools.appConfigurationStore)
+  name: format(
+    deployment_param.resource_name_format_string,
+    deployment_param.naming_abbrs.developerTools.appConfigurationStore
+  )
   params: {
-    name: '${abbrs.developerTools.appConfigurationStore}${deployment_param.solution_prefix}'
+    name: '${deployment_param.naming_abbrs.developerTools.appConfigurationStore}${deployment_param.solution_prefix}'
     location: deployment_param.resource_group_location
 
     tags: {
@@ -1147,7 +1161,7 @@ module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/reso
 module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
   name: format(deployment_param.resource_name_format_string, 'caapp-update-')
   params: {
-    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
+    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
     location: deployment_param.resource_group_location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
@@ -1169,7 +1183,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
 
     containers: [
       {
-        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}'
+        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}'
         image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
 
         resources: {
@@ -1202,7 +1216,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
 module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' = {
   name: format(deployment_param.resource_name_format_string, 'caapi-update-')
   params: {
-    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
+    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
     location: deployment_param.resource_group_location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
@@ -1225,7 +1239,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' =
 
     containers: [
       {
-        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
+        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
         image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
