@@ -245,9 +245,6 @@ module avmContainerRegistry 'modules/container-registry.bicep' = {
   }
 }
 
-
-
-
 // module containerRegistry 'deploy_container_registry.bicep' = {
 //   name: 'deploy_container_registry'
 //   params: {
@@ -665,7 +662,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
+            value: ''
           }
         ]
       }
@@ -716,7 +713,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
+            value: ''
           }
         ]
         probes: [
@@ -1146,6 +1143,181 @@ module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/reso
 //   }
 //   dependsOn: [roleAssignments]
 // }
+
+module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
+  name: format(deployment_param.resource_name_format_string, 'caapp-update-')
+  params: {
+    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
+    location: deployment_param.resource_group_location
+    environmentResourceId: avmContainerAppEnv.outputs.resourceId
+    workloadProfileName: 'Consumption'
+    registries: deployment_param.use_local_build == 'localbuild'
+      ? [
+          {
+            server: deployment_param.public_container_image_endpoint
+            identity: avmContainerRegistryReader.outputs.principalId
+          }
+        ]
+      : null
+
+    managedIdentities: {
+      systemAssigned: true
+      userAssignedResourceIds: [
+        avmContainerRegistryReader.outputs.resourceId
+      ]
+    }
+
+    containers: [
+      {
+        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}'
+        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
+
+        resources: {
+          cpu: '4'
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: avmAppConfig.outputs.endpoint
+          }
+        ]
+      }
+    ]
+    activeRevisionsMode: 'Single'
+    ingressExternal: false
+    disableIngress: true
+    scaleSettings: {
+      minReplicas: container_app_deployment.container_app.minReplicas
+      maxReplicas: container_app_deployment.container_app.maxReplicas
+    }
+  }
+  dependsOn: [
+    avmStorageAccount_RoleAssignment_avmContainerApp_blob
+    avmStorageAccount_RoleAssignment_avmContainerApp_queue
+    avmRoleAssignment_container_app
+  ]
+}
+
+module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' = {
+  name: format(deployment_param.resource_name_format_string, 'caapi-update-')
+  params: {
+    name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
+    location: deployment_param.resource_group_location
+    environmentResourceId: avmContainerAppEnv.outputs.resourceId
+    workloadProfileName: 'Consumption'
+    registries: deployment_param.use_local_build == 'localbuild'
+      ? [
+          {
+            server: deployment_param.public_container_image_endpoint
+            image: 'contentprocessorapi'
+            imageTag: 'latest'
+          }
+        ]
+      : null
+
+    managedIdentities: {
+      systemAssigned: true
+      userAssignedResourceIds: [
+        avmContainerRegistryReader.outputs.resourceId
+      ]
+    }
+
+    containers: [
+      {
+        name: '${abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
+        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
+        resources: {
+          cpu: '4'
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: avmAppConfig.outputs.endpoint
+          }
+        ]
+        probes: [
+          // Liveness Probe - Checks if the app is still running
+          {
+            type: 'Liveness'
+            httpGet: {
+              path: '/startup' // Your app must expose this endpoint
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+          // Readiness Probe - Checks if the app is ready to receive traffic
+          {
+            type: 'Readiness'
+            httpGet: {
+              path: '/startup'
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+          {
+            type: 'Startup'
+            httpGet: {
+              path: '/startup'
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 20 // Wait 10s before checking
+            periodSeconds: 5 // Check every 15s
+            failureThreshold: 10 // Restart if it fails 5 times
+          }
+        ]
+      }
+    ]
+    scaleSettings: {
+      minReplicas: container_app_deployment.container_api.minReplicas
+      maxReplicas: container_app_deployment.container_api.maxReplicas
+      rules: [
+        {
+          name: 'http-scaler'
+          http: {
+            metadata: {
+              concurrentRequests: '100'
+            }
+          }
+        }
+      ]
+    }
+    ingressExternal: true
+    activeRevisionsMode: 'Single'
+    ingressTransport: 'auto'
+    ingressAllowInsecure: true
+    corsPolicy: {
+      allowedOrigins: [
+        '*'
+      ]
+      allowedMethods: [
+        'GET'
+        'POST'
+        'PUT'
+        'DELETE'
+        'OPTIONS'
+      ]
+      allowedHeaders: [
+        'Authorization'
+        'Content-Type'
+        '*'
+      ]
+    }
+  }
+  dependsOn: [
+    avmStorageAccount_RoleAssignment_avmContainerApp_API_blob
+    avmStorageAccount_RoleAssignment_avmContainerApp_API_queue
+    avmRoleAssignment_container_app_api
+  ]
+}
 
 output CONTAINER_WEB_APP_NAME string = avmContainerApp_Web.outputs.name
 output CONTAINER_API_APP_NAME string = avmContainerApp_API.outputs.name
