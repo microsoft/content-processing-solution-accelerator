@@ -128,10 +128,10 @@ type app_insights_param_type = {
   applicationType: app_insights_applicationType
   @description('Disable local authentication for the Application Insights resource')
   disableLocalAuth: bool
-  @description('Force customer storage for profiler in Application Insights resource')
-  forceCustomerStorageForProfiler: bool
-  @description('Public network access for ingestion in Application Insights resource')
-  publicNetworkAccessForIngestion: 'Enabled' | 'Disabled'
+  // @description('Force customer storage for profiler in Application Insights resource')
+  // forceCustomerStorageForProfiler: bool
+  // @description('Public network access for ingestion in Application Insights resource')
+  // publicNetworkAccessForIngestion: 'Enabled' | 'Disabled'
   @description('Public network access for query in Application Insights resource')
   publicNetworkAccessForQuery: 'Enabled' | 'Disabled'
   @description('Request source for the Application Insights resource')
@@ -141,11 +141,15 @@ type app_insights_param_type = {
   logAnalyticsWorkspaceName: string
   @description('SKU name for the Log Analytics Workspace resource')
   skuName: app_insights_sku_name
-  @description('This is the features properties for Log Analytics Workspace resource')
-  features: {
-    @description('Search version for the Log Analytics Workspace resource')
-    searchVersion: 1
-  }
+  // @description('This is the features properties for Log Analytics Workspace resource') --DEFAULT to 1
+  // features: {
+  //   @description('Search version for the Log Analytics Workspace resource')
+  //   searchVersion: 1
+  // }
+  // diagnosticSettings: {
+  //   @description('Enable diagnostic settings for the Application Insights resource')
+  //   enableDiagnosticSettings: bool
+  // }
 }
 
 type container_registry_sku_type = 'Basic' | 'Standard' | 'Premium'

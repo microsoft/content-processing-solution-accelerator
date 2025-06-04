@@ -26,6 +26,7 @@ module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspac
     location: appInsights_param.location
     skuName: appInsights_param.skuName
     dataRetention: appInsights_param.retentionInDays
+    diagnosticSettings: [ { useThisWorkspace: true }] //TODO: Add as a parameter
     // features: {
     //   searchVersion: appInsights_param.features.searchVersion
     // }
@@ -43,10 +44,10 @@ module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
     disableIpMasking: appInsights_param.disableIpMasking
     disableLocalAuth: appInsights_param.disableLocalAuth
     flowType: appInsights_param.flowType
-    forceCustomerStorageForProfiler: appInsights_param.forceCustomerStorageForProfiler
+    //forceCustomerStorageForProfiler: appInsights_param.forceCustomerStorageForProfiler
     //immediatePurgeDataOn30Days: false
     //IngestionMode: 'LogAnalytics'
-    publicNetworkAccessForIngestion: appInsights_param.publicNetworkAccessForIngestion
+    //publicNetworkAccessForIngestion: appInsights_param.publicNetworkAccessForIngestion
     publicNetworkAccessForQuery: appInsights_param.publicNetworkAccessForQuery
     requestSource: appInsights_param.requestSource
 
@@ -54,5 +55,8 @@ module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
 }
 
 output applicationInsightsId string = avmApplicationInsights.outputs.resourceId
-output logAnalyticsWorkspaceId string = avmLogAnalyticsWorkspace.outputs.resourceId
+output logAnalyticsWorkspaceId string = avmLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId
+output logAnalyticsWorkspaceResourceId string = avmLogAnalyticsWorkspace.outputs.resourceId
 output logAnalyticsWorkspaceName string = avmLogAnalyticsWorkspace.outputs.name
+@secure()
+output logAnalyticsWorkspacePrimaryKey string = avmLogAnalyticsWorkspace.outputs.primarySharedKey
