@@ -663,8 +663,9 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
         ]
       }
     ]
-
+    activeRevisionsMode: 'Single'
     ingressExternal: false
+    disableIngress: true
     scaleSettings: {
       minReplicas: container_app_deployment.container_app.minReplicas
       maxReplicas: container_app_deployment.container_app.maxReplicas
@@ -841,7 +842,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_API_BASE_URL'
-            value: avmContainerApp_API.outputs.fqdn
+            value: 'https://${avmContainerApp_API.outputs.fqdn}'
           }
           {
             name: 'APP_WEB_CLIENT_ID'
