@@ -15,7 +15,6 @@ import {
   default_deployment_param_type
 } from './types.bicep'
 
-
 param appInsights_param app_insights_param_type
 param deployment_param default_deployment_param_type
 
@@ -26,7 +25,7 @@ module avmLogAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspac
     location: appInsights_param.location
     skuName: appInsights_param.skuName
     dataRetention: appInsights_param.retentionInDays
-    diagnosticSettings: [ { useThisWorkspace: true }] //TODO: Add as a parameter
+    diagnosticSettings: [{ useThisWorkspace: true }] //TODO: Add as a parameter
     // features: {
     //   searchVersion: appInsights_param.features.searchVersion
     // }
@@ -50,7 +49,6 @@ module avmApplicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
     //publicNetworkAccessForIngestion: appInsights_param.publicNetworkAccessForIngestion
     publicNetworkAccessForQuery: appInsights_param.publicNetworkAccessForQuery
     requestSource: appInsights_param.requestSource
-
   }
 }
 

@@ -48,6 +48,7 @@ type default_deployment_param_type = {
   @description('Optional. Enable or disable telemetry for the deployment.')
   enable_telemetry: bool
   enable_waf: bool
+  tags: object
 }
 
 @export()
@@ -72,6 +73,11 @@ func make_solution_prefix(unique_id string) string => 'cps-${padLeft(take(unique
 type keyvault_sku_type = 'standard' | 'premium'
 
 type keyvault_public_network_access_type = 'Disabled' | 'Enabled'
+
+import {
+  privateEndpointSingleServiceType
+  privateEndpointMultiServiceType
+} from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 
 @export()
 type key_vault_param_type = {
@@ -103,6 +109,8 @@ type key_vault_param_type = {
   createMode: string
   @description('Enable telemetry for the Key Vault')
   enableTelemetry: bool
+  @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+  privateEndpoints: privateEndpointSingleServiceType[]?
 }
 
 type app_insights_retention_in_days = 30 | 60 | 90 | 120 | 180 | 270 | 365
@@ -179,4 +187,6 @@ type container_registry_param_type = {
   publicNetworkAccess: public_network_access_type
   @description('Zone redundancy setting for the Azure Container Registry')
   zoneRedundancy: zone_redundancy_type
+  @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+  privateEndpoints: privateEndpointSingleServiceType[]?
 }
