@@ -217,7 +217,6 @@ module avmPrivateDnsZoneAiServices 'br/public:avm/res/network/private-dns-zone:0
     name: zone.key
     params: {
       name: zone.key
-      location: deployment_param.resource_group_location
       tags: deployment_param.tags
       enableTelemetry: deployment_param.enable_telemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -236,7 +235,6 @@ module avmPrivateDnsZoneAiFoundryStorage 'br/public:avm/res/network/private-dns-
     name: 'private-dns-zone-aifoundry-storage-${zone.value}'
     params: {
       name: zone.key
-      location: deployment_param.resource_group_location
       tags: deployment_param.tags
       enableTelemetry: deployment_param.enable_telemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -255,7 +253,6 @@ module avmPrivateDnsZoneAiFoundryWorkspace 'br/public:avm/res/network/private-dn
     name: 'private-dns-zone-aifoundry-workspace-${zone.value}-${i}'
     params: {
       name: zone.key
-      location: deployment_param.resource_group_location
       tags: deployment_param.tags
       enableTelemetry: deployment_param.enable_telemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -270,8 +267,7 @@ var cosmosdbMongoPrivateDnsZones = {
 module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (deployment_param.enable_waf) {
   name: 'private-dns-zone-cosmos-mongo'
   params: {
-    name: cosmosdbMongoPrivateDnsZones['privatelink.mongo.cosmos.azure.com']
-    location: deployment_param.resource_group_location
+    name: items(cosmosdbMongoPrivateDnsZones)[0].key
     tags: deployment_param.tags
     enableTelemetry: deployment_param.enable_telemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -285,11 +281,10 @@ var appStoragePrivateDnsZones = {
 }
 
 module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
-    name: 'private-dns-zone-app-storage-${zone}'
+  for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
+    name: 'private-dns-zone-app-storage-${zone.value}-${i}'
     params: {
       name: zone.key
-      location: deployment_param.resource_group_location
       tags: deployment_param.tags
       enableTelemetry: deployment_param.enable_telemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -305,8 +300,7 @@ var appConfigPrivateDnsZones = {
 module avmPrivateDnsZoneAppConfig 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (deployment_param.enable_waf) {
   name: 'private-dns-zone-app-config'
   params: {
-    name: appConfigPrivateDnsZones['privatelink.azconfig.io']
-    location: deployment_param.resource_group_location
+    name: items(appConfigPrivateDnsZones)[0].key
     tags: deployment_param.tags
     enableTelemetry: deployment_param.enable_telemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -322,7 +316,6 @@ module avmPrivateDnsZoneKeyVault 'br/public:avm/res/network/private-dns-zone:0.7
   name: 'private-dns-zone-key-vault'
   params: {
     name: items(keyVaultPrivateDnsZones)[0].key
-    location: deployment_param.resource_group_location
     tags: deployment_param.tags
     enableTelemetry: deployment_param.enable_telemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -338,7 +331,6 @@ module avmPrivateDnsZoneContainerRegistry 'br/public:avm/res/network/private-dns
   name: 'private-dns-zone-container-registry'
   params: {
     name: items(containerRegistryPrivateDnsZones)[0].key
-    location: deployment_param.resource_group_location
     tags: deployment_param.tags
     enableTelemetry: deployment_param.enable_telemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
@@ -916,9 +908,9 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
     publicNetworkAccess: 'Enabled'
 
     // <========== WAF related parameters
-    infrastructureSubnetResourceId: (deployment_param.enable_waf)
-      ? avmVirtualNetwork.outputs.subnetResourceIds[1]
-      : null // Use the container app subnet
+    // infrastructureSubnetResourceId: (deployment_param.enable_waf)
+    //   ? avmVirtualNetwork.outputs.subnetResourceIds[1]
+    //   : null // Use the container app subnet
     zoneRedundant: (deployment_param.enable_waf) ? true : false
   }
 }
