@@ -11,10 +11,10 @@ hooks:
   preprovision:
     posix:
       shell: sh
-      run: timestamp=$(date +"%Y%m%d-%H%M%S"); logFile="azd_preprovision_$timestamp.log"; sed -i 's/\r$//' ./infra/scripts/docker-build.sh; ./infra/scripts/docker-build.sh "$AZURE_SUBSCRIPTION_ID" "$AZURE_ENV_NAME" "$AZURE_LOCATION" "$AZURE_RESOURCE_GROUP" "$USE_LOCAL_BUILD" 2>&1 | tee "$logFile"
+      run: timestamp=$(date +"%Y%m%d-%H%M%S"); logFile="azd_preprovision_$timestamp.log"; sed -i 's/\r$//' ./infra/scripts/docker-build.sh; ./infra/scripts/docker-build.sh "$AZURE_SUBSCRIPTION_ID" "$AZURE_ENV_NAME" "$AZURE_LOCATION" "$AZURE_RESOURCE_GROUP" "$USE_LOCAL_BUILD" "$AZURE_ENV_IMAGETAG" 2>&1 | tee "$logFile"
     windows:
       shell: pwsh
-      run: $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"; $logFile = "azd_preprovision_$timestamp.log"; ./infra/scripts/docker-build.ps1 $env:AZURE_SUBSCRIPTION_ID $env:AZURE_ENV_NAME $env:AZURE_LOCATION $env:AZURE_RESOURCE_GROUP $env:USE_LOCAL_BUILD *>&1 | Tee-Object -FilePath $logFile
+      run: $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"; $logFile = "azd_preprovision_$timestamp.log"; ./infra/scripts/docker-build.ps1 $env:AZURE_SUBSCRIPTION_ID $env:AZURE_ENV_NAME $env:AZURE_LOCATION $env:AZURE_RESOURCE_GROUP $env:USE_LOCAL_BUILD $env:AZURE_ENV_IMAGETAG  *>&1 | Tee-Object -FilePath $logFile
   postprovision:
     posix:
       shell: sh

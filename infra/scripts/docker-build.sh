@@ -7,10 +7,11 @@ echo $2
 echo $3
 echo $4
 echo $5
+echo $6
 
 # Check if the required arguments are provided
 if [ "$#" -ne 5 ]; then
-    echo "Usage: docker-build.sh <AZURE_SUBSCRIPTION_ID> <ENV_NAME> <AZURE_LOCATION> <AZURE_RESOURCE_GROUP> <USE_LOCAL_BUILD>"
+    echo "Usage: docker-build.sh <AZURE_SUBSCRIPTION_ID> <ENV_NAME> <AZURE_LOCATION> <AZURE_RESOURCE_GROUP> <USE_LOCAL_BUILD> <AZURE_ENV_IMAGETAG>"
     exit 1
 fi
 
@@ -19,6 +20,7 @@ ENV_NAME=$2
 AZURE_LOCATION=$3
 AZURE_RESOURCE_GROUP=$4
 USE_LOCAL_BUILD=$5
+AZURE_ENV_IMAGETAG=$6
 
 USE_LOCAL_BUILD=$(echo "$USE_LOCAL_BUILD" | grep -iq "^true$" && echo "true" || echo "false")
 
@@ -49,9 +51,9 @@ if [ "$USE_LOCAL_BUILD" = "true" ]; then
     echo "Deployed container registry in location."
 
     # Construct full image names
-    CONTENTPROCESSOR_IMAGE_URI="$ACR_NAME.azurecr.io/contentprocessor:latest"
-    CONTENTPROCESSORAPI_IMAGE_URI="$ACR_NAME.azurecr.io/contentprocessorapi:latest"
-    CONTENTPROCESSORWEB_IMAGE_URI="$ACR_NAME.azurecr.io/contentprocessorweb:latest"
+    CONTENTPROCESSOR_IMAGE_URI="$ACR_NAME.azurecr.io/contentprocessor:$AZURE_ENV_IMAGETAG"
+    CONTENTPROCESSORAPI_IMAGE_URI="$ACR_NAME.azurecr.io/contentprocessorapi:$AZURE_ENV_IMAGETAG"
+    CONTENTPROCESSORWEB_IMAGE_URI="$ACR_NAME.azurecr.io/contentprocessorweb:$AZURE_ENV_IMAGETAG"
 
     # Azure login
     echo "Logging into Azure Container Registry: $ACR_NAME"

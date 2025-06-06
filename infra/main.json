@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.35.1.17967",
-      "templateHash": "12841296004328754819"
+      "templateHash": "15234454470886032390"
     }
   },
   "parameters": {
@@ -54,12 +54,6 @@
     "gptModelName": {
       "type": "string",
       "defaultValue": "gpt-4o",
-      "allowedValues": [
-        "gpt-4o-mini",
-        "gpt-4o",
-        "gpt-4"
-      ],
-      "minLength": 1,
       "metadata": {
         "description": "Name of the GPT model to deploy:"
       }
@@ -67,10 +61,6 @@
     "gptModelVersion": {
       "type": "string",
       "defaultValue": "2024-08-06",
-      "allowedValues": [
-        "2024-08-06"
-      ],
-      "minLength": 1,
       "metadata": {
         "description": "Version of the GPT model to deploy:"
       }

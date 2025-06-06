@@ -36,6 +36,7 @@ This will allow the scripts to run for the current session without permanently c
 
 <br/>   
 
+
 ## Deployment Options & Steps
 
 Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, and Local Environments.
@@ -111,15 +112,19 @@ Consider the following settings during your deployment to modify specific settin
 
 When you start the deployment, most parameters will have **default values**, but you can update the following settings by following the steps [here](../docs/CustomizingAzdParameters.md):
 
-| **Setting** | **Description** | **Default value** |
-|-------------|-----------------|-------------------|
-| **Azure Region** | The region where resources will be created. | East US |
-| **Azure AI Content Understanding Location** | Select from a drop-down list of values. | Sweden Central |
-| **Secondary Location** | A **less busy** region for **Azure Cosmos DB**, useful in case of availability constraints. | eastus2 |
-| **Deployment Type** | Select from a drop-down list. | GlobalStandard |
-| **GPT Model** | Choose from **gpt-4o**. | gpt-4o |
-| **GPT Model Deployment Capacity** | Configure capacity for **GPT models**. | 30k |
-| **Existing Log analytics workspace** | To reuse the existing Log analytics workspace Id. |  |
+| **Setting**                                 | **Description**                                                                             | **Default Value** |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------- |
+| **Azure Region**                            | The region where resources will be created.                                                 | East US           |
+| **Azure AI Content Understanding Location** | Location for the **Content Understanding** service.                                         | Sweden Central    |
+| **Secondary Location**                      | A **less busy** region for **Azure Cosmos DB**, useful in case of availability constraints. | eastus2           |
+| **Deployment Type**                         | Select from a drop-down list.                                                               | GlobalStandard    |
+| **GPT Model**                               | Choose from **gpt-4o**.                                                                     | gpt-4o            |
+| **GPT Model Version**                       | GPT model version used in the deployment.                                                   | 2024-08-06        |
+| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models**.                                                      | 30k               |
+| **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
+| **Image Tag**                               | Image version for deployment (allowed values: `latest`, `dev`, `hotfix`).                   | latest            |
+| **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID instead of creating a new one.              | *(none)*          |
+
 
 </details>
 
