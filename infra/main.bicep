@@ -126,7 +126,7 @@ module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-sec
 module avmNetworkSecurityGroup_Bastion 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
   name: format(
     deployment_param.resource_name_format_string,
-    '${deployment_param.naming_abbrs.networking.networkSecurityGroup}Bastion'
+    '${deployment_param.naming_abbrs.networking.networkSecurityGroup}bastion'
   )
   params: {
     name: '${deployment_param.naming_abbrs.networking.networkSecurityGroup}${deployment_param.solution_prefix}-bastion'
@@ -225,14 +225,15 @@ module avmPrivateDnsZoneAiServices 'br/public:avm/res/network/private-dns-zone:0
 ]
 
 // Private DNS Zone for AI foundry Storage Blob
-var aiFoundryStoragePrivateDnsZones = {
+var storagePrivateDnsZones = {
   'privatelink.blob.${environment().suffixes.storage}': 'blob'
+  'privatelink.queue.${environment().suffixes.storage}': 'queue'
   'privatelink.file.${environment().suffixes.storage}': 'file'
 }
 
-module avmPrivateDnsZoneAiFoundryStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in items(aiFoundryStoragePrivateDnsZones): if (deployment_param.enable_waf) {
-    name: 'private-dns-zone-aifoundry-storage-${zone.value}'
+module avmPrivateDnsZoneStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+  for zone in items(storagePrivateDnsZones): if (deployment_param.enable_waf) {
+    name: 'private-dns-zone-storage-${zone.value}'
     params: {
       name: zone.key
       tags: deployment_param.tags
@@ -274,23 +275,23 @@ module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zon
   }
 }
 
-// Private DNS Zone for Application Storage Account
-var appStoragePrivateDnsZones = {
-  'privatelink.blob.${environment().suffixes.storage}': 'blob'
-  'privatelink.queue.${environment().suffixes.storage}': 'queue'
-}
+// // Private DNS Zone for Application Storage Account
+// var appStoragePrivateDnsZones = {
+//   'privatelink.blob.${environment().suffixes.storage}': 'blob'
+//   'privatelink.queue.${environment().suffixes.storage}': 'queue'
+// }
 
-module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
-    name: 'private-dns-zone-app-storage-${zone.value}-${i}'
-    params: {
-      name: zone.key
-      tags: deployment_param.tags
-      enableTelemetry: deployment_param.enable_telemetry
-      virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
-    }
-  }
-]
+// module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+//   for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
+//     name: 'private-dns-zone-app-storage-${zone.value}-${i}'
+//     params: {
+//       name: zone.key
+//       tags: deployment_param.tags
+//       enableTelemetry: deployment_param.enable_telemetry
+//       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
+//     }
+//   }
+// ]
 
 // Private DNS Zone for App Configuration
 var appConfigPrivateDnsZones = {
@@ -515,8 +516,29 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
       ? [
           {
             name: 'storage-private-endpoint-blob'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-blob'
+                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[0].outputs.resourceId
+                }
+              ]
+            }
             subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
             service: 'blob'
+          }
+          {
+            name: 'storage-private-endpoint-queue'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-queue'
+                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[1].outputs.resourceId
+                }
+              ]
+            }
+            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+            service: 'queue'
           }
         ]
       : []
@@ -775,21 +797,21 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'aistoragehub-dns-zone-blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZonesAppStorage[0].outputs.resourceId
+                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[0].outputs.resourceId
                 }
               ]
             }
             subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
           }
           {
-            name: 'aistoragehub-private-endpoint-queue'
+            name: 'aistoragehub-private-endpoint-file'
             privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            service: 'queue'
+            service: 'file'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
                 {
-                  name: 'aistoragehub-dns-zone-queue'
-                  privateDnsZoneResourceId: avmPrivateDnsZonesAppStorage[1].outputs.resourceId
+                  name: 'aistoragehub-dns-zone-file'
+                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[2].outputs.resourceId
                 }
               ]
             }
@@ -908,10 +930,10 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
     publicNetworkAccess: 'Enabled'
 
     // <========== WAF related parameters
-    // infrastructureSubnetResourceId: (deployment_param.enable_waf)
-    //   ? avmVirtualNetwork.outputs.subnetResourceIds[1]
-    //   : null // Use the container app subnet
-    zoneRedundant: (deployment_param.enable_waf) ? true : false
+    zoneRedundant: (deployment_param.enable_waf) ? false : true
+    infrastructureSubnetResourceId: (deployment_param.enable_waf)
+      ? avmVirtualNetwork.outputs.subnetResourceIds[1] // Use the container app subnet
+      : null // Use the container app subnet
   }
 }
 
@@ -1338,26 +1360,58 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
     ]
 
+    publicNetworkAccess: 'Enabled' // Always enabled for App Configuration
     // WAF related parameters
-    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (deployment_param.enable_waf)
-      ? [
-          {
-            name: 'appconfig-private-endpoint'
-            privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'appconfig-dns-zone-group'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAppConfig.outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-          }
-        ]
-      : []
+    //   publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
+    //   privateEndpoints: (deployment_param.enable_waf)
+    //     ? [
+    //         {
+    //           name: 'appconfig-private-endpoint'
+    //           privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+    //           privateDnsZoneGroup: {
+    //             privateDnsZoneGroupConfigs: [
+    //               {
+    //                 name: 'appconfig-dns-zone-group'
+    //                 privateDnsZoneResourceId: avmPrivateDnsZoneAppConfig.outputs.resourceId
+    //               }
+    //             ]
+    //           }
+    //           subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+    //         }
+    //       ]
+    //     : []
   }
+}
+
+module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-store:0.6.3' = if (deployment_param.enable_waf) {
+  name: format(
+    deployment_param.resource_name_format_string,
+    '${deployment_param.naming_abbrs.developerTools.appConfigurationStore}-update'
+  )
+  params: {
+    name: '${deployment_param.naming_abbrs.developerTools.appConfigurationStore}${deployment_param.solution_prefix}'
+    location: deployment_param.resource_group_location
+
+    publicNetworkAccess: 'Disabled'
+    privateEndpoints: [
+      {
+        name: 'appconfig-private-endpoint'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'appconfig-dns-zone-group'
+              privateDnsZoneResourceId: avmPrivateDnsZoneAppConfig.outputs.resourceId
+            }
+          ]
+        }
+        subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+      }
+    ]
+  }
+
+  dependsOn: [
+    avmAppConfig
+  ]
 }
 
 module avmRoleAssignment_container_app 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
