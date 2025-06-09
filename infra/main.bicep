@@ -1482,7 +1482,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
+            value: replace(avmAppConfig.outputs.endpoint,'azconfig.io','privatelink.azconfig.io')
           }
         ]
       }
@@ -1537,7 +1537,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' =
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
+            value: replace(avmAppConfig.outputs.endpoint,'azconfig.io','privatelink.azconfig.io')
           }
         ]
         probes: [
