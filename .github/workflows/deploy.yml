@@ -124,8 +124,8 @@ jobs:
                 secondaryLocation="EastUs2" \
                 contentUnderstandingLocation="WestUS" \
                 deploymentType="GlobalStandard" \
-                gptModelName="gpt-4o" \
-                gptModelVersion="2024-08-06" \
+                gptModelName="gpt-4.1" \
+                gptModelVersion="2025-04-14" \
                 gptDeploymentCapacity="30" \
                 minReplicaContainerApp="1" \
                 maxReplicaContainerApp="1" \

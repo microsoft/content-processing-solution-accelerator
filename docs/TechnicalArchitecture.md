@@ -30,7 +30,7 @@ Using Azure Storage Queue, pipeline work steps and processing jobs are added to 
 Used to detect and extract text from images and PDFs. This service also retrieves the coordinates of each piece of text, along with confidence scores, by leveraging built-in (pretrained) models. This utilizes the prebuild-layout 2024-12-01-preview for extraction.
 
 ### Azure OpenAI Service
-Using Azure OpenAI Service, a deployment of the GPT-4o 2024-10-01-preview model is used during the content processing pipeline to extract content. GPT Vision is used for extraction and validation functions during processing. This model can be changed to a different Azure OpenAI Service model if desired, but this has not been thoroughly tested and may be affected by the output token limits.
+Using Azure OpenAI Service, a deployment of the GPT-4.1 2025-04-14 model is used during the content processing pipeline to extract content. GPT Vision is used for extraction and validation functions during processing. This model can be changed to a different Azure OpenAI Service model if desired, but this has not been thoroughly tested and may be affected by the output token limits.
 
 ### Blob Storage
 Using Azure Blob Storage, schema .py files, source files for processing, and final output JSON files are stored in blob storage.

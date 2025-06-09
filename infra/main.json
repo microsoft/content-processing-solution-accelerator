@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.35.1.17967",
-      "templateHash": "15234454470886032390"
+      "version": "0.36.1.42791",
+      "templateHash": "12817067577745543929"
     }
   },
   "parameters": {
@@ -53,14 +53,14 @@
     },
     "gptModelName": {
       "type": "string",
-      "defaultValue": "gpt-4o",
+      "defaultValue": "gpt-4.1",
       "metadata": {
         "description": "Name of the GPT model to deploy:"
       }
     },
     "gptModelVersion": {
       "type": "string",
-      "defaultValue": "2024-08-06",
+      "defaultValue": "2025-04-14",
       "metadata": {
         "description": "Version of the GPT model to deploy:"
       }
@@ -128,6 +128,10 @@
       "metadata": {
         "description": "Optional: Existing Log Analytics Workspace Resource ID"
       }
+    },
+    "imageTag": {
+      "type": "string",
+      "defaultValue": "latest"
     }
   },
   "variables": {
@@ -393,8 +397,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "3237931210750164965"
+              "version": "0.36.1.42791",
+              "templateHash": "17040083292589011391"
             }
           },
           "parameters": {
@@ -479,8 +483,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "1503106947863889964"
+              "version": "0.36.1.42791",
+              "templateHash": "11049431112452456133"
             }
           },
           "parameters": {
@@ -588,8 +592,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "4417744862326794406"
+              "version": "0.36.1.42791",
+              "templateHash": "1305630352036876197"
             }
           },
           "parameters": {
@@ -606,6 +610,7 @@
           },
           "variables": {
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
+            "existingLawSubscriptionId": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2], '')]",
             "existingLawResourceGroup": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[4], '')]",
             "existingLawName": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[8], '')]"
           },
@@ -643,7 +648,7 @@
                 "publicNetworkAccessForIngestion": "Enabled",
                 "publicNetworkAccessForQuery": "Disabled",
                 "Request_Source": "rest",
-                "WorkspaceResourceId": "[if(variables('useExisting'), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')))]"
+                "WorkspaceResourceId": "[if(variables('useExisting'), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingLawSubscriptionId'), variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')))]"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
@@ -658,6 +663,10 @@
             "logAnalyticsWorkspaceName": {
               "type": "string",
               "value": "[if(variables('useExisting'), variables('existingLawName'), parameters('logAnalyticsWorkspaceName'))]"
+            },
+            "logAnalyticsWorkspaceSubscription": {
+              "type": "string",
+              "value": "[if(variables('useExisting'), variables('existingLawSubscriptionId'), split(subscription().id, '/')[2])]"
             },
             "logAnalyticsWorkspaceResourceGroup": {
               "type": "string",
@@ -687,8 +696,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "12870101648257851199"
+              "version": "0.36.1.42791",
+              "templateHash": "6955709595359352278"
             }
           },
           "parameters": {
@@ -773,8 +782,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "8070899038568610427"
+              "version": "0.36.1.42791",
+              "templateHash": "3200993772301267162"
             }
           },
           "parameters": {
@@ -931,8 +940,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "13810365425953827110"
+              "version": "0.36.1.42791",
+              "templateHash": "9667477416787926279"
             }
           },
           "parameters": {
@@ -1487,6 +1496,9 @@
           },
           "logAnalyticsWorkspaceResourceGroup": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_insights'), '2022-09-01').outputs.logAnalyticsWorkspaceResourceGroup.value]"
+          },
+          "logAnalyticsWorkspaceSubscription": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_insights'), '2022-09-01').outputs.logAnalyticsWorkspaceSubscription.value]"
           }
         },
         "template": {
@@ -1495,8 +1507,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "12849612969576340024"
+              "version": "0.36.1.42791",
+              "templateHash": "17443204944330265380"
             }
           },
           "parameters": {
@@ -1513,6 +1525,9 @@
               "type": "string"
             },
             "logAnalyticsWorkspaceResourceGroup": {
+              "type": "string"
+            },
+            "logAnalyticsWorkspaceSubscription": {
               "type": "string"
             }
           },
@@ -1536,8 +1551,8 @@
                 "appLogsConfiguration": {
                   "destination": "log-analytics",
                   "logAnalyticsConfiguration": {
-                    "customerId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('logAnalyticsWorkspaceResourceGroup')), 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2023-09-01').customerId]",
-                    "sharedKey": "[listKeys(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('logAnalyticsWorkspaceResourceGroup')), 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2023-09-01').primarySharedKey]"
+                    "customerId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('logAnalyticsWorkspaceSubscription'), parameters('logAnalyticsWorkspaceResourceGroup')), 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2023-09-01').customerId]",
+                    "sharedKey": "[listKeys(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('logAnalyticsWorkspaceSubscription'), parameters('logAnalyticsWorkspaceResourceGroup')), 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2023-09-01').primarySharedKey]"
                   }
                 },
                 "zoneRedundant": false,
@@ -1625,6 +1640,9 @@
           },
           "useLocalBuild": {
             "value": "false"
+          },
+          "imageTag": {
+            "value": "latest"
           }
         },
         "template": {
@@ -1633,8 +1651,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "6288181929674095968"
+              "version": "0.36.1.42791",
+              "templateHash": "2659069563004380992"
             }
           },
           "parameters": {
@@ -1710,6 +1728,9 @@
             "useLocalBuild": {
               "type": "string",
               "defaultValue": "false"
+            },
+            "imageTag": {
+              "type": "string"
             }
           },
           "variables": {
@@ -2004,7 +2025,7 @@
                     "value": "contentprocessor"
                   },
                   "azureContainerRegistryImageTag": {
-                    "value": "latest"
+                    "value": "[parameters('imageTag')]"
                   },
                   "managedIdentityId": {
                     "value": "[parameters('containerRegistryReaderId')]"
@@ -2036,8 +2057,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.35.1.17967",
-                      "templateHash": "17874244636612129409"
+                      "version": "0.36.1.42791",
+                      "templateHash": "13562163699289922411"
                     }
                   },
                   "parameters": {
@@ -2179,7 +2200,7 @@
                     "value": "contentprocessorapi"
                   },
                   "azureContainerRegistryImageTag": {
-                    "value": "latest"
+                    "value": "[parameters('imageTag')]"
                   },
                   "managedIdentityId": {
                     "value": "[parameters('containerRegistryReaderId')]"
@@ -2216,8 +2237,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.35.1.17967",
-                      "templateHash": "17874244636612129409"
+                      "version": "0.36.1.42791",
+                      "templateHash": "13562163699289922411"
                     }
                   },
                   "parameters": {
@@ -2359,7 +2380,7 @@
                     "value": "contentprocessorweb"
                   },
                   "azureContainerRegistryImageTag": {
-                    "value": "latest"
+                    "value": "[parameters('imageTag')]"
                   },
                   "managedIdentityId": {
                     "value": "[parameters('containerRegistryReaderId')]"
@@ -2408,8 +2429,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.35.1.17967",
-                      "templateHash": "17874244636612129409"
+                      "version": "0.36.1.42791",
+                      "templateHash": "13562163699289922411"
                     }
                   },
                   "parameters": {
@@ -2592,8 +2613,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "18013369407849007542"
+              "version": "0.36.1.42791",
+              "templateHash": "3850312828243192450"
             }
           },
           "parameters": {
@@ -2700,8 +2721,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "12698338841871546352"
+              "version": "0.36.1.42791",
+              "templateHash": "10346977865586942127"
             }
           },
           "parameters": {
@@ -2945,8 +2966,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "6748924733076412812"
+              "version": "0.36.1.42791",
+              "templateHash": "4418232655579357592"
             }
           },
           "parameters": {
@@ -3148,6 +3169,9 @@
           },
           "useLocalBuild": {
             "value": "[variables('useLocalBuildLower')]"
+          },
+          "imageTag": {
+            "value": "[parameters('imageTag')]"
           }
         },
         "template": {
@@ -3156,8 +3180,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.35.1.17967",
-              "templateHash": "6288181929674095968"
+              "version": "0.36.1.42791",
+              "templateHash": "2659069563004380992"
             }
           },
           "parameters": {
@@ -3233,6 +3257,9 @@
             "useLocalBuild": {
               "type": "string",
               "defaultValue": "false"
+            },
+            "imageTag": {
+              "type": "string"
             }
           },
           "variables": {
@@ -3527,7 +3554,7 @@
                     "value": "contentprocessor"
                   },
                   "azureContainerRegistryImageTag": {
-                    "value": "latest"
+                    "value": "[parameters('imageTag')]"
                   },
                   "managedIdentityId": {
                     "value": "[parameters('containerRegistryReaderId')]"
@@ -3559,8 +3586,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.35.1.17967",
-                      "templateHash": "17874244636612129409"
+                      "version": "0.36.1.42791",
+                      "templateHash": "13562163699289922411"
                     }
                   },
                   "parameters": {
@@ -3702,7 +3729,7 @@
                     "value": "contentprocessorapi"
                   },
                   "azureContainerRegistryImageTag": {
-                    "value": "latest"
+                    "value": "[parameters('imageTag')]"
                   },
                   "managedIdentityId": {
                     "value": "[parameters('containerRegistryReaderId')]"
@@ -3739,8 +3766,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.35.1.17967",
-                      "templateHash": "17874244636612129409"
+                      "version": "0.36.1.42791",
+                      "templateHash": "13562163699289922411"
                     }
                   },
                   "parameters": {
@@ -3882,7 +3909,7 @@
                     "value": "contentprocessorweb"
                   },
                   "azureContainerRegistryImageTag": {
-                    "value": "latest"
+                    "value": "[parameters('imageTag')]"
                   },
                   "managedIdentityId": {
                     "value": "[parameters('containerRegistryReaderId')]"
@@ -3931,8 +3958,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.35.1.17967",
-                      "templateHash": "17874244636612129409"
+                      "version": "0.36.1.42791",
+                      "templateHash": "13562163699289922411"
                     }
                   },
                   "parameters": {

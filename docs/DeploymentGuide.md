@@ -118,8 +118,8 @@ When you start the deployment, most parameters will have **default values**, but
 | **Azure AI Content Understanding Location** | Location for the **Content Understanding** service.                                         | Sweden Central    |
 | **Secondary Location**                      | A **less busy** region for **Azure Cosmos DB**, useful in case of availability constraints. | eastus2           |
 | **Deployment Type**                         | Select from a drop-down list.                                                               | GlobalStandard    |
-| **GPT Model**                               | Choose from **gpt-4o**.                                                                     | gpt-4o            |
-| **GPT Model Version**                       | GPT model version used in the deployment.                                                   | 2024-08-06        |
+| **GPT Model**                               | Choose from **gpt-4.1**.                                                                     | gpt-4.1            |
+| **GPT Model Version**                       | GPT model version used in the deployment.                                                   | 2025-04-14        |
 | **GPT Model Deployment Capacity**           | Configure capacity for **GPT models**.                                                      | 30k               |
 | **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
 | **Image Tag**                               | Image version for deployment (allowed values: `latest`, `dev`, `hotfix`).                   | latest            |
