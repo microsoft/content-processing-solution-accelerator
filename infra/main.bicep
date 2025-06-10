@@ -106,6 +106,8 @@ module avmNetworkSecurityGroup 'br/public:avm/res/network/network-security-group
   }
 }
 
+// Securing a custom VNET in Azure Container Apps with Network Security Groups 
+// https://learn.microsoft.com/en-us/azure/container-apps/firewall-integration?tabs=workload-profiles
 module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
   name: format(
     deployment_param.resource_name_format_string,
@@ -119,7 +121,51 @@ module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-sec
     diagnosticSettings: [
       { workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId }
     ]
-    securityRules: []
+    securityRules: [
+      //Inbound Rules
+      {
+        name: 'AllowHttpsInbound'
+        properties: {
+          access: 'Allow'
+          direction: 'Inbound'
+          priority: 100
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationPortRanges: ['443', '80']
+          destinationAddressPrefixes: ['10.0.2.0/24']
+          destinationAddressPrefix: '*'
+        }
+      }
+      {
+        name: 'AllowAzureLoadBalancerInbound'
+        properties: {
+          access: 'Allow'
+          direction: 'Inbound'
+          priority: 102
+          protocol: '*'
+          sourceAddressPrefix: 'AzureLoadBalancer'
+          sourcePortRange: '*'
+          destinationPortRanges: ['30000-32767']
+          destinationAddressPrefixes: ['10.0.2.0/24']
+          destinationAddressPrefix: '*'
+        }
+      }
+      {
+        name: 'AllowSideCarsInbound'
+        properties: {
+          access: 'Allow'
+          direction: 'Inbound'
+          priority: 103
+          protocol: '*'
+          sourcePortRange: '*'
+          destinationPortRange: '*'
+          sourceAddressPrefixes: ['10.0.2.0/24']
+          destinationAddressPrefix: '*'
+        }
+      }
+      //Outbound Rules
+    ]
   }
 }
 
@@ -276,22 +322,22 @@ module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zon
 }
 
 // // Private DNS Zone for Application Storage Account
-// var appStoragePrivateDnsZones = {
-//   'privatelink.blob.${environment().suffixes.storage}': 'blob'
-//   'privatelink.queue.${environment().suffixes.storage}': 'queue'
-// }
+var appStoragePrivateDnsZones = {
+  'privatelink.blob.${environment().suffixes.storage}': 'blob'
+  'privatelink.queue.${environment().suffixes.storage}': 'queue'
+}
 
-// module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-//   for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
-//     name: 'private-dns-zone-app-storage-${zone.value}-${i}'
-//     params: {
-//       name: zone.key
-//       tags: deployment_param.tags
-//       enableTelemetry: deployment_param.enable_telemetry
-//       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
-//     }
-//   }
-// ]
+module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+  for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
+    name: 'private-dns-zone-app-storage-${zone.value}-${i}'
+    params: {
+      name: zone.key
+      tags: deployment_param.tags
+      enableTelemetry: deployment_param.enable_telemetry
+      virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
+    }
+  }
+]
 
 // Private DNS Zone for App Configuration
 var appConfigPrivateDnsZones = {
@@ -429,7 +475,6 @@ module avmKeyVault './modules/key-vault.bicep' = {
                   }
                 ]
               }
-
               subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
             }
           ]
@@ -646,35 +691,35 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
     // WAF related parameters
     //publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
     publicNetworkAccess: 'Enabled' // Always enabled for AI Services
-    privateEndpoints: (deployment_param.enable_waf)
-      ? [
-          {
-            name: 'ai-services-private-endpoint'
-            privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'ai-services-dns-zone-cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[0].outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-openai'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[1].outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-azure'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[2].outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-contentunderstanding'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[3].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-          }
-        ]
-      : []
+    // privateEndpoints: (deployment_param.enable_waf)
+    //   ? [
+    //       {
+    //         name: 'ai-services-private-endpoint'
+    //         privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+    //         privateDnsZoneGroup: {
+    //           privateDnsZoneGroupConfigs: [
+    //             {
+    //               name: 'ai-services-dns-zone-cognitiveservices'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[0].outputs.resourceId
+    //             }
+    //             {
+    //               name: 'ai-services-dns-zone-openai'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[1].outputs.resourceId
+    //             }
+    //             {
+    //               name: 'ai-services-dns-zone-azure'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[2].outputs.resourceId
+    //             }
+    //             {
+    //               name: 'ai-services-dns-zone-contentunderstanding'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[3].outputs.resourceId
+    //             }
+    //           ]
+    //         }
+    //         subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+    //       }
+    //     ]
+    //   : []
   }
 }
 
@@ -706,29 +751,30 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.10.2' = 
     customSubDomainName: 'aicu-${deployment_param.solution_prefix}'
     disableLocalAuth: true
 
+    publicNetworkAccess: 'Enabled' // Always enabled for AI Services
     // WAF related parameters
-    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (deployment_param.enable_waf)
-      ? [
-          {
-            name: 'aicu-private-endpoint'
-            privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'aicu-dns-zone-cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[0].outputs.resourceId
-                }
-                {
-                  name: 'aicu-dns-zone-contentunderstanding'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[3].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-          }
-        ]
-      : []
+    //   publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
+    //   privateEndpoints: (deployment_param.enable_waf)
+    //     ? [
+    //         {
+    //           name: 'aicu-private-endpoint'
+    //           privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+    //           privateDnsZoneGroup: {
+    //             privateDnsZoneGroupConfigs: [
+    //               {
+    //                 name: 'aicu-dns-zone-cognitiveservices'
+    //                 privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[0].outputs.resourceId
+    //               }
+    //               {
+    //                 name: 'aicu-dns-zone-contentunderstanding'
+    //                 privateDnsZoneResourceId: avmPrivateDnsZoneAiServices[3].outputs.resourceId
+    //               }
+    //             ]
+    //           }
+    //           subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+    //         }
+    //       ]
+    //     : []
   }
 }
 
@@ -785,40 +831,41 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
       }
     ]
 
+    publicNetworkAccess: 'Enabled' // Always enabled for AI Storage Hub
     // WAF related parameters
-    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (deployment_param.enable_waf)
-      ? [
-          {
-            name: 'aistoragehub-private-endpoint-blob'
-            privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            service: 'blob'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'aistoragehub-dns-zone-blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[0].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-          }
-          {
-            name: 'aistoragehub-private-endpoint-file'
-            privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            service: 'file'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'aistoragehub-dns-zone-file'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[2].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-          }
-        ]
-      : []
+    // publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
+    // privateEndpoints: (deployment_param.enable_waf)
+    //   ? [
+    //       {
+    //         name: 'aistoragehub-private-endpoint-blob'
+    //         privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+    //         service: 'blob'
+    //         privateDnsZoneGroup: {
+    //           privateDnsZoneGroupConfigs: [
+    //             {
+    //               name: 'aistoragehub-dns-zone-blob'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneStorage[0].outputs.resourceId
+    //             }
+    //           ]
+    //         }
+    //         subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+    //       }
+    //       {
+    //         name: 'aistoragehub-private-endpoint-file'
+    //         privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+    //         service: 'file'
+    //         privateDnsZoneGroup: {
+    //           privateDnsZoneGroupConfigs: [
+    //             {
+    //               name: 'aistoragehub-dns-zone-file'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneStorage[2].outputs.resourceId
+    //             }
+    //           ]
+    //         }
+    //         subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+    //       }
+    //     ]
+    //   : []
   }
 }
 
@@ -860,29 +907,30 @@ module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' =
       }
     ]
 
+    publicNetworkAccess: 'Enabled' // Always enabled for AI Hub
     //<======================= WAF related parameters
-    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (deployment_param.enable_waf)
-      ? [
-          {
-            name: 'ai-hub-private-endpoint'
-            privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'ai-hub-dns-zone-amlworkspace'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiFoundryWorkspace[0].outputs.resourceId
-                }
-                {
-                  name: 'ai-hub-dns-zone-notebooks'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneAiFoundryWorkspace[1].outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-          }
-        ]
-      : []
+    // publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
+    // privateEndpoints: (deployment_param.enable_waf)
+    //   ? [
+    //       {
+    //         name: 'ai-hub-private-endpoint'
+    //         privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+    //         privateDnsZoneGroup: {
+    //           privateDnsZoneGroupConfigs: [
+    //             {
+    //               name: 'ai-hub-dns-zone-amlworkspace'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneAiFoundryWorkspace[0].outputs.resourceId
+    //             }
+    //             {
+    //               name: 'ai-hub-dns-zone-notebooks'
+    //               privateDnsZoneResourceId: avmPrivateDnsZoneAiFoundryWorkspace[1].outputs.resourceId
+    //             }
+    //           ]
+    //         }
+    //         subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+    //       }
+    //     ]
+    //   : []
   }
 }
 
@@ -920,14 +968,13 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
         sharedKey: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspacePrimaryKey
       }
     }
-
     workloadProfiles: [
       {
         name: 'Consumption'
         workloadProfileType: 'Consumption'
       }
     ]
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
 
     // <========== WAF related parameters
     zoneRedundant: (deployment_param.enable_waf) ? false : true
@@ -1343,11 +1390,23 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_STORAGE_BLOB_URL'
-        value: (deployment_param.enable_waf) ? replace(avmStorageAccount.outputs.serviceEndpoints.blob, 'blob.core.windows.net', 'privatelink.blob.core.windows.net') : avmStorageAccount.outputs.serviceEndpoints.blob //TODO: replace with actual blob URL
+        value: (deployment_param.enable_waf)
+          ? replace(
+              avmStorageAccount.outputs.serviceEndpoints.blob,
+              'blob.core.windows.net',
+              'privatelink.blob.core.windows.net'
+            )
+          : avmStorageAccount.outputs.serviceEndpoints.blob //TODO: replace with actual blob URL
       }
       {
         name: 'APP_STORAGE_QUEUE_URL'
-        value: (deployment_param.enable_waf) ? replace(avmStorageAccount.outputs.serviceEndpoints.queue, 'queue.core.windows.net', 'privatelink.queue.core.windows.net') : avmStorageAccount.outputs.serviceEndpoints.queue //TODO: replace with actual queue URL
+        value: (deployment_param.enable_waf)
+          ? replace(
+              avmStorageAccount.outputs.serviceEndpoints.queue,
+              'queue.core.windows.net',
+              'privatelink.queue.core.windows.net'
+            )
+          : avmStorageAccount.outputs.serviceEndpoints.queue //TODO: replace with actual queue URL
       }
       {
         name: 'APP_AI_PROJECT_CONN_STR'
@@ -1356,7 +1415,13 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_COSMOS_CONNSTR'
-        value: (deployment_param.enable_waf) ? replace(avmCosmosDB.outputs.primaryReadWriteConnectionString, 'mongo.cosmos.azure.com', 'privatelink.mongo.cosmos.azure.com') : avmCosmosDB.outputs.primaryReadWriteConnectionString
+        value: (deployment_param.enable_waf)
+          ? replace(
+              avmCosmosDB.outputs.primaryReadWriteConnectionString,
+              'mongo.cosmos.azure.com',
+              'privatelink.mongo.cosmos.azure.com'
+            )
+          : avmCosmosDB.outputs.primaryReadWriteConnectionString
       }
     ]
 
@@ -1482,7 +1547,9 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: (deployment_param.enable_waf) ? replace(avmAppConfig.outputs.endpoint,'azconfig.io','privatelink.azconfig.io') : avmAppConfig.outputs.endpoint
+            value: (deployment_param.enable_waf)
+              ? replace(avmAppConfig.outputs.endpoint, 'azconfig.io', 'privatelink.azconfig.io')
+              : avmAppConfig.outputs.endpoint
           }
         ]
       }
@@ -1537,7 +1604,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' =
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: replace(avmAppConfig.outputs.endpoint,'azconfig.io','privatelink.azconfig.io')
+            value: replace(avmAppConfig.outputs.endpoint, 'azconfig.io', 'privatelink.azconfig.io')
           }
         ]
         probes: [
