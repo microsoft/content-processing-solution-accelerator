@@ -243,8 +243,8 @@ module avmVirtualNetwork 'br/public:avm/res/network/virtual-network:0.6.1' = if 
         addressPrefix: '10.0.2.0/24'
         networkSecurityGroupResourceId: avmNetworkSecurityGroup_Containers.outputs.resourceId
         delegation: 'Microsoft.App/environments'
-        privateEndpointNetworkPolicies: 'Disabled'
-        privateLinkServiceNetworkPolicies: 'Enabled'
+        // privateEndpointNetworkPolicies: 'Disabled'
+        // privateLinkServiceNetworkPolicies: 'Enabled'
       }
       {
         name: 'admin'
@@ -333,22 +333,22 @@ module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zon
 }
 
 // // Private DNS Zone for Application Storage Account
-var appStoragePrivateDnsZones = {
-  'privatelink.blob.${environment().suffixes.storage}': 'blob'
-  'privatelink.queue.${environment().suffixes.storage}': 'queue'
-}
+// var appStoragePrivateDnsZones = {
+//   'privatelink.blob.${environment().suffixes.storage}': 'blob'
+//   'privatelink.queue.${environment().suffixes.storage}': 'queue'
+// }
 
-module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
-    name: 'private-dns-zone-app-storage-${zone.value}-${i}'
-    params: {
-      name: zone.key
-      tags: deployment_param.tags
-      enableTelemetry: deployment_param.enable_telemetry
-      virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
-    }
-  }
-]
+// module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+//   for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
+//     name: 'private-dns-zone-app-storage-${zone.value}-${i}'
+//     params: {
+//       name: zone.key
+//       tags: deployment_param.tags
+//       enableTelemetry: deployment_param.enable_telemetry
+//       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
+//     }
+//   }
+// ]
 
 // Private DNS Zone for App Configuration
 var appConfigPrivateDnsZones = {
