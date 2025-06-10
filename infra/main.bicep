@@ -988,7 +988,11 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
     publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
 
     // <========== WAF related parameters
-    zoneRedundant: (deployment_param.enable_waf) ? false : true
+    zoneRedundant: (deployment_param.enable_waf) ? true : false
+
+    platformReservedCidr: '172.17.17.0/24'
+    platformReservedDnsIP: '172.17.17.17'
+
     infrastructureSubnetResourceId: (deployment_param.enable_waf)
       ? avmVirtualNetwork.outputs.subnetResourceIds[1] // Use the container app subnet
       : null // Use the container app subnet
