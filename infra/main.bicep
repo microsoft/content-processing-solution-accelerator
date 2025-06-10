@@ -134,7 +134,6 @@ module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-sec
           sourcePortRange: '*'
           destinationPortRanges: ['443', '80']
           destinationAddressPrefixes: ['10.0.2.0/24']
-          destinationAddressPrefix: '*'
         }
       }
       {
@@ -148,7 +147,6 @@ module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-sec
           sourcePortRange: '*'
           destinationPortRanges: ['30000-32767']
           destinationAddressPrefixes: ['10.0.2.0/24']
-          destinationAddressPrefix: '*'
         }
       }
       {
@@ -159,12 +157,25 @@ module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-sec
           priority: 103
           protocol: '*'
           sourcePortRange: '*'
-          destinationPortRange: '*'
           sourceAddressPrefixes: ['10.0.2.0/24']
+          destinationPortRange: '*'
           destinationAddressPrefix: '*'
         }
       }
       //Outbound Rules
+      {
+        name: 'AllowOutboundToAzureServices'
+        properties: {
+          access: 'Allow'
+          direction: 'Outbound'
+          priority: 100
+          protocol: '*'
+          sourceAddressPrefixes: ['10.0.2.0/24']
+          sourcePortRange: '*'
+          destinationPortRange: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
     ]
   }
 }
