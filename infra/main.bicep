@@ -1405,23 +1405,11 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_STORAGE_BLOB_URL'
-        value: (deployment_param.enable_waf)
-          ? replace(
-              avmStorageAccount.outputs.serviceEndpoints.blob,
-              'blob.core.windows.net',
-              'privatelink.blob.core.windows.net'
-            )
-          : avmStorageAccount.outputs.serviceEndpoints.blob //TODO: replace with actual blob URL
+        value: avmStorageAccount.outputs.serviceEndpoints.blob //TODO: replace with actual blob URL
       }
       {
         name: 'APP_STORAGE_QUEUE_URL'
-        value: (deployment_param.enable_waf)
-          ? replace(
-              avmStorageAccount.outputs.serviceEndpoints.queue,
-              'queue.core.windows.net',
-              'privatelink.queue.core.windows.net'
-            )
-          : avmStorageAccount.outputs.serviceEndpoints.queue //TODO: replace with actual queue URL
+        value: avmStorageAccount.outputs.serviceEndpoints.queue //TODO: replace with actual queue URL
       }
       {
         name: 'APP_AI_PROJECT_CONN_STR'
@@ -1430,13 +1418,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_COSMOS_CONNSTR'
-        value: (deployment_param.enable_waf)
-          ? replace(
-              avmCosmosDB.outputs.primaryReadWriteConnectionString,
-              'mongo.cosmos.azure.com',
-              'privatelink.mongo.cosmos.azure.com'
-            )
-          : avmCosmosDB.outputs.primaryReadWriteConnectionString
+        value: avmCosmosDB.outputs.primaryReadWriteConnectionString
       }
     ]
 
@@ -1562,9 +1544,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: (deployment_param.enable_waf)
-              ? replace(avmAppConfig.outputs.endpoint, 'azconfig.io', 'privatelink.azconfig.io')
-              : avmAppConfig.outputs.endpoint
+            value: avmAppConfig.outputs.endpoint
           }
         ]
       }
@@ -1619,7 +1599,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' =
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: replace(avmAppConfig.outputs.endpoint, 'azconfig.io', 'privatelink.azconfig.io')
+            value: avmAppConfig.outputs.endpoint
           }
         ]
         probes: [
