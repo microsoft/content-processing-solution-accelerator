@@ -106,7 +106,7 @@ module avmNetworkSecurityGroup 'br/public:avm/res/network/network-security-group
   }
 }
 
-// Securing a custom VNET in Azure Container Apps with Network Security Groups 
+// Securing a custom VNET in Azure Container Apps with Network Security Groups
 // https://learn.microsoft.com/en-us/azure/container-apps/firewall-integration?tabs=workload-profiles
 module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
   name: format(
@@ -269,6 +269,8 @@ var openAiPrivateDnsZones = {
   'privatelink.services.ai.azure.com': 'account'
   'privatelink.contentunderstanding.ai.azure.com': 'account'
 }
+
+@batchSize(1)
 module avmPrivateDnsZoneAiServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
   for zone in items(openAiPrivateDnsZones): if (deployment_param.enable_waf) {
     name: zone.key
@@ -288,7 +290,8 @@ var storagePrivateDnsZones = {
   'privatelink.file.${environment().suffixes.storage}': 'file'
 }
 
-module avmPrivateDnsZoneStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
+@batchSize(1)
+module avmPrivateDnsZoneStorages 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
   for zone in items(storagePrivateDnsZones): if (deployment_param.enable_waf) {
     name: 'private-dns-zone-storage-${zone.value}'
     params: {
@@ -306,6 +309,7 @@ var aiHubPrivateDnsZones = {
   'privatelink.notebooks.azure.net': 'amlworkspace'
 }
 
+@batchSize(1)
 module avmPrivateDnsZoneAiFoundryWorkspace 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
   for (zone, i) in items(aiHubPrivateDnsZones): if (deployment_param.enable_waf) {
     name: 'private-dns-zone-aifoundry-workspace-${zone.value}-${i}'
@@ -576,7 +580,9 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'storage-dns-zone-group-blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[0].outputs.resourceId
+                  privateDnsZoneResourceId: avmPrivateDnsZoneStorages[0].outputs.resourceId
+                  // bicep doesn't recognize collection - avmPrivateDnsZoneStorages
+                  // privateDnsZoneResourceId : filter(avmPrivateDnsZoneStorages, zone => contains(zone.outputs.name, 'blob'))[0].outputs.resourceId
                 }
               ]
             }
@@ -589,7 +595,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'storage-dns-zone-group-queue'
-                  privateDnsZoneResourceId: avmPrivateDnsZoneStorage[1].outputs.resourceId
+                  privateDnsZoneResourceId: avmPrivateDnsZoneStorages[2].outputs.resourceId
                 }
               ]
             }
@@ -985,8 +991,9 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
         workloadProfileType: 'Consumption'
       }
     ]
-    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
 
+    //publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled' // Always enabled for Container Apps Environment
     // <========== WAF related parameters
     //zoneRedundant: (deployment_param.enable_waf) ? true : false
 
