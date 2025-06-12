@@ -1,44 +1,55 @@
 metadata name = 'AVM Storage Account Module'
 
-import {
-  default_deployment_param_type as default_deployment_param_type
-} from './types.bicep'
+@description('The name of the Storage Account')
+param storageAccountName string
 
-param deployment_param default_deployment_param_type
+@description('The location of the Storage Account')
+param location string
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
-@description('Optional. Array of role assignments to create.')
-param roleAssignments roleAssignmentType[]?
+@description('Tags to be applied to the Storage Account')
+param tags object
+
+@description('Role assignments for the Storage Account')
+param roleAssignments array = []
+
+@description('SKU for the Storage Account')
+param skuName string = 'Standard_LRS'
+
+@description('Kind of the Storage Account')
+param kind string = 'StorageV2'
+
+@description('Enable system assigned managed identity')
+param enableSystemAssignedIdentity bool = true
+
+@description('Minimum TLS version')
+param minimumTlsVersion string = 'TLS1_2'
+
+@description('Network ACLs for the Storage Account')
+param networkAcls object = {
+  bypass: 'AzureServices'
+  defaultAction: 'Allow'
+  ipRules: []
+}
+
+@description('Supports HTTPS traffic only')
+param supportsHttpsTrafficOnly bool = true
+
+@description('Access tier for the Storage Account')
+param accessTier string = 'Hot'
 
 module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.storage.storageAccount)
+  name: storageAccountName
   params: {
-    name: '${deployment_param.naming_abbrs.storage.storageAccount}${replace(deployment_param.solution_prefix, '-', '')}'
-    location: deployment_param.resource_group_location
-    skuName: 'Standard_LRS'
-    kind: 'StorageV2'
-    managedIdentities: { systemAssigned: true }
-    minimumTlsVersion: 'TLS1_2'
-    roleAssignments: [
-      {
-        principalId: avmManagedIdentity.outputs.principalId
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-      }
-      // {
-      //   principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-      //   roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-      // }
-      // {
-      //   principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
-      //   roleDefinitionIdOrName: 'Storage Queue Data Contributor'
-      // }
-    ]
-    networkAcls: {
-      bypass: 'AzureServices'
-      defaultAction: 'Allow'
-      ipRules: []
-    }
-    supportsHttpsTrafficOnly: true
-    accessTier: 'Hot'
+    name: storageAccountName
+    location: location
+    skuName: skuName
+    kind: kind
+    managedIdentities: enableSystemAssignedIdentity ? { systemAssigned: true } : {}
+    minimumTlsVersion: minimumTlsVersion
+    roleAssignments: roleAssignments
+    networkAcls: networkAcls
+    supportsHttpsTrafficOnly: supportsHttpsTrafficOnly
+    accessTier: accessTier
+    tags: tags
   }
 }

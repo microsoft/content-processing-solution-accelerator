@@ -1,25 +1,18 @@
 // ========== main.bicep ========== //
 targetScope = 'resourceGroup'
 
-import {
-  default_deployment_param_type
-  content_understanding_available_location_type
-  gpt_deployment_type
-  gpt_model_name_type
-  ai_deployment_param_type
-  container_app_deployment_info_type
-  make_solution_prefix
-} from './modules/types.bicep'
+metadata name = 'Content Processing Solution Accelerator'
+metadata description = 'Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance.'
 
 // ========== get up parameters from parameter file ========== //
 @description('Name of the environment to deploy the solution into:')
 param environmentName string
 @description('Location for the content understanding service: WestUS | SwedenCentral | AustraliaEast')
-param contentUnderstandingLocation content_understanding_available_location_type
+param contentUnderstandingLocation string
 @description('Type of GPT deployment to use: Standard | GlobalStandard')
-param deploymentType gpt_deployment_type = 'GlobalStandard'
+param deploymentType string = 'GlobalStandard'
 @description('Name of the GPT model to deploy: gpt-4o-mini | gpt-4o | gpt-4')
-param gptModelName gpt_model_name_type = 'gpt-4o'
+param gptModelName string = 'gpt-4o'
 @minLength(1)
 @description('Version of the GPT model to deploy:')
 @allowed([
@@ -29,56 +22,33 @@ param gptModelVersion string = '2024-08-06'
 @minValue(10)
 @description('Capacity of the GPT deployment: (minimum 10)')
 param gptDeploymentCapacity int
-param useLocalBuild string = 'false'
-
-// ============ make up Parameters from bicep parameter module ========== //
-
-// =========== Build Parameters ========== //
-param deployment_param default_deployment_param_type = {
-  environment_name: environmentName
-  unique_id: toLower(uniqueString(subscription().id, environmentName, resourceGroup().location))
-  use_local_build: useLocalBuild == 'true' ? 'localbuild' : 'usecontainer'
-  solution_prefix: make_solution_prefix(toLower(uniqueString(
-    subscription().id,
-    environmentName,
-    resourceGroup().location
-  )))
-  secondary_location: 'EastUs2'
-  public_container_image_endpoint: 'cpscontainerreg.azurecr.io'
-  resource_group_location: resourceGroup().location
-  resource_name_prefix: {}
-  resource_name_format_string: 'avm.ptn.sa.cps.{0}'
-  enable_waf: true
-  enable_telemetry: true
-  naming_abbrs: loadJsonContent('./abbreviations.json')
-  tags: {
-    app: 'Content Processing Solution Accelerator'
-    location: resourceGroup().location
-  }
+@description('Location used for Azure Cosmos DB, Azure Container App deployment')
+param secondaryLocation string = 'EastUs2'
+@description('The public container image endpoint')
+param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
+@description('The resource group location')
+param resourceGroupLocation string = resourceGroup().location
+@description('The resource name format string')
+param resourceNameFormatString string = '{0}avm-cps'
+@description('Enable WAF for the deployment')
+param enableWaf bool = true
+@description('Enable telemetry for the deployment')
+param enableTelemetry bool = true
+//@description('Resource naming abbreviations')
+//param namingAbbrs object
+@description('Tags to be applied to the resources')
+param tags object = {
+  app: 'Content Processing Solution Accelerator'
+  location: resourceGroup().location
 }
+@description('Set to true to use local build for container app images, otherwise use container registry images')
+param useLocalBuild bool = false
 
-param ai_deployment ai_deployment_param_type = {
-  gpt_deployment_type_name: deploymentType
-  gpt_model_name: gptModelName
-  gpt_model_version: gptModelVersion
-  gpt_deployment_capacity: gptDeploymentCapacity
-  content_understanding_available_location: contentUnderstandingLocation
-}
-
-param container_app_deployment container_app_deployment_info_type = {
-  container_app: {
-    maxReplicas: 1
-    minReplicas: 1
-  }
-  container_web: {
-    maxReplicas: 1
-    minReplicas: 1
-  }
-  container_api: {
-    maxReplicas: 1
-    minReplicas: 1
-  }
-}
+// ========== Solution Prefix Variable ========== //
+var solution_prefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id, environmentName, resourceGroup().location)), 12), 12, '0')}'
+// ========== Resource Naming Abbreviations ========== // 
+@description('Resource naming abbreviations')
+var namingAbbrs = loadJsonContent('./abbreviations.json')
 
 // ============== //
 // WAF Resources      //
@@ -89,16 +59,16 @@ param container_app_deployment container_app_deployment_info_type = {
 //
 
 // ========== Network Security Group definition ========== //
-module avmNetworkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
+module avmNetworkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = if (enableWaf) {
   name: format(
-    deployment_param.resource_name_format_string,
-    '${deployment_param.naming_abbrs.networking.networkSecurityGroup}backend'
+    resourceNameFormatString,
+    '${namingAbbrs.networking.networkSecurityGroup}backend'
   )
   params: {
-    name: '${deployment_param.naming_abbrs.networking.networkSecurityGroup}${deployment_param.solution_prefix}-backend'
-    location: deployment_param.resource_group_location
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    name: '${namingAbbrs.networking.networkSecurityGroup}${solution_prefix}-backend'
+    location: resourceGroupLocation
+    tags: tags
+    enableTelemetry: enableTelemetry
     diagnosticSettings: [
       { workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId }
     ]
@@ -108,16 +78,16 @@ module avmNetworkSecurityGroup 'br/public:avm/res/network/network-security-group
 
 // Securing a custom VNET in Azure Container Apps with Network Security Groups
 // https://learn.microsoft.com/en-us/azure/container-apps/firewall-integration?tabs=workload-profiles
-module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
+module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-security-group:0.5.1' = if (enableWaf) {
   name: format(
-    deployment_param.resource_name_format_string,
-    '${deployment_param.naming_abbrs.networking.networkSecurityGroup}containers'
+    resourceNameFormatString,
+    '${namingAbbrs.networking.networkSecurityGroup}containers'
   )
   params: {
-    name: '${deployment_param.naming_abbrs.networking.networkSecurityGroup}${deployment_param.solution_prefix}-containers'
-    location: deployment_param.resource_group_location
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    name: '${namingAbbrs.networking.networkSecurityGroup}${solution_prefix}-containers'
+    location: resourceGroupLocation
+    tags: tags
+    enableTelemetry: enableTelemetry
     diagnosticSettings: [
       { workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId }
     ]
@@ -180,16 +150,16 @@ module avmNetworkSecurityGroup_Containers 'br/public:avm/res/network/network-sec
   }
 }
 
-module avmNetworkSecurityGroup_Bastion 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
+module avmNetworkSecurityGroup_Bastion 'br/public:avm/res/network/network-security-group:0.5.1' = if (enableWaf) {
   name: format(
-    deployment_param.resource_name_format_string,
-    '${deployment_param.naming_abbrs.networking.networkSecurityGroup}bastion'
+    resourceNameFormatString,
+    '${namingAbbrs.networking.networkSecurityGroup}bastion'
   )
   params: {
-    name: '${deployment_param.naming_abbrs.networking.networkSecurityGroup}${deployment_param.solution_prefix}-bastion'
-    location: deployment_param.resource_group_location
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    name: '${namingAbbrs.networking.networkSecurityGroup}${solution_prefix}-bastion'
+    location: resourceGroupLocation
+    tags: tags
+    enableTelemetry: enableTelemetry
     diagnosticSettings: [
       { workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId }
     ]
@@ -197,16 +167,16 @@ module avmNetworkSecurityGroup_Bastion 'br/public:avm/res/network/network-securi
   }
 }
 
-module avmNetworkSecurityGroup_Admin 'br/public:avm/res/network/network-security-group:0.5.1' = if (deployment_param.enable_waf) {
+module avmNetworkSecurityGroup_Admin 'br/public:avm/res/network/network-security-group:0.5.1' = if (enableWaf) {
   name: format(
-    deployment_param.resource_name_format_string,
-    '${deployment_param.naming_abbrs.networking.networkSecurityGroup}admin'
+    resourceNameFormatString,
+    '${namingAbbrs.networking.networkSecurityGroup}admin'
   )
   params: {
-    name: '${deployment_param.naming_abbrs.networking.networkSecurityGroup}${deployment_param.solution_prefix}-admin'
-    location: deployment_param.resource_group_location
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    name: '${namingAbbrs.networking.networkSecurityGroup}${solution_prefix}-admin'
+    location: resourceGroupLocation
+    tags: tags
+    enableTelemetry: enableTelemetry
     diagnosticSettings: [
       { workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId }
     ]
@@ -221,13 +191,13 @@ module avmNetworkSecurityGroup_Admin 'br/public:avm/res/network/network-security
 // Bastion Hosts : 10.0.1.32/27 - 10.0.1.63
 // VM(s) :
 
-module avmVirtualNetwork 'br/public:avm/res/network/virtual-network:0.6.1' = if (deployment_param.enable_waf) {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.networking.virtualNetwork)
+module avmVirtualNetwork 'br/public:avm/res/network/virtual-network:0.6.1' = if (enableWaf) {
+  name: format(resourceNameFormatString, namingAbbrs.networking.virtualNetwork)
   params: {
-    name: '${deployment_param.naming_abbrs.networking.virtualNetwork}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    name: '${namingAbbrs.networking.virtualNetwork}${solution_prefix}'
+    location: resourceGroupLocation
+    tags: tags
+    enableTelemetry: enableTelemetry
     addressPrefixes: ['10.0.0.0/8']
     diagnosticSettings: [
       { workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId }
@@ -272,12 +242,12 @@ var openAiPrivateDnsZones = {
 
 @batchSize(1)
 module avmPrivateDnsZoneAiServices 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in items(openAiPrivateDnsZones): if (deployment_param.enable_waf) {
+  for zone in items(openAiPrivateDnsZones): if (enableWaf) {
     name: zone.key
     params: {
       name: zone.key
-      tags: deployment_param.tags
-      enableTelemetry: deployment_param.enable_telemetry
+      tags: tags
+      enableTelemetry: enableTelemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
     }
   }
@@ -292,12 +262,12 @@ var storagePrivateDnsZones = {
 
 @batchSize(1)
 module avmPrivateDnsZoneStorages 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for zone in items(storagePrivateDnsZones): if (deployment_param.enable_waf) {
+  for zone in items(storagePrivateDnsZones): if (enableWaf) {
     name: 'private-dns-zone-storage-${zone.value}'
     params: {
       name: zone.key
-      tags: deployment_param.tags
-      enableTelemetry: deployment_param.enable_telemetry
+      tags: tags
+      enableTelemetry: enableTelemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
     }
   }
@@ -311,12 +281,12 @@ var aiHubPrivateDnsZones = {
 
 @batchSize(1)
 module avmPrivateDnsZoneAiFoundryWorkspace 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-  for (zone, i) in items(aiHubPrivateDnsZones): if (deployment_param.enable_waf) {
+  for (zone, i) in items(aiHubPrivateDnsZones): if (enableWaf) {
     name: 'private-dns-zone-aifoundry-workspace-${zone.value}-${i}'
     params: {
       name: zone.key
-      tags: deployment_param.tags
-      enableTelemetry: deployment_param.enable_telemetry
+      tags: tags
+      enableTelemetry: enableTelemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
     }
   }
@@ -326,12 +296,12 @@ module avmPrivateDnsZoneAiFoundryWorkspace 'br/public:avm/res/network/private-dn
 var cosmosdbMongoPrivateDnsZones = {
   'privatelink.mongo.cosmos.azure.com': 'cosmosdb'
 }
-module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (deployment_param.enable_waf) {
+module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (enableWaf) {
   name: 'private-dns-zone-cosmos-mongo'
   params: {
     name: items(cosmosdbMongoPrivateDnsZones)[0].key
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    tags: tags
+    enableTelemetry: enableTelemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
   }
 }
@@ -343,12 +313,12 @@ module avmPrivateDnsZoneCosmosMongoDB 'br/public:avm/res/network/private-dns-zon
 // }
 
 // module avmPrivateDnsZonesAppStorage 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
-//   for (zone, i) in items(appStoragePrivateDnsZones): if (deployment_param.enable_waf) {
+//   for (zone, i) in items(appStoragePrivateDnsZones): if (enableWaf) {
 //     name: 'private-dns-zone-app-storage-${zone.value}-${i}'
 //     params: {
 //       name: zone.key
-//       tags: deployment_param.tags
-//       enableTelemetry: deployment_param.enable_telemetry
+//       tags: tags
+//       enableTelemetry: enableTelemetry
 //       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
 //     }
 //   }
@@ -359,12 +329,12 @@ var appConfigPrivateDnsZones = {
   'privatelink.azconfig.io': 'appconfig'
 }
 
-module avmPrivateDnsZoneAppConfig 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (deployment_param.enable_waf) {
+module avmPrivateDnsZoneAppConfig 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (enableWaf) {
   name: 'private-dns-zone-app-config'
   params: {
     name: items(appConfigPrivateDnsZones)[0].key
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    tags: tags
+    enableTelemetry: enableTelemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
   }
 }
@@ -374,12 +344,12 @@ var keyVaultPrivateDnsZones = {
   'privatelink.vaultcore.azure.net': 'keyvault'
 }
 
-module avmPrivateDnsZoneKeyVault 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (deployment_param.enable_waf) {
+module avmPrivateDnsZoneKeyVault 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (enableWaf) {
   name: 'private-dns-zone-key-vault'
   params: {
     name: items(keyVaultPrivateDnsZones)[0].key
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    tags: tags
+    enableTelemetry: enableTelemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
   }
 }
@@ -389,12 +359,12 @@ var containerRegistryPrivateDnsZones = {
   'privatelink.azurecr.io': 'containerregistry'
 }
 
-module avmPrivateDnsZoneContainerRegistry 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (deployment_param.enable_waf) {
+module avmPrivateDnsZoneContainerRegistry 'br/public:avm/res/network/private-dns-zone:0.7.1' = if (enableWaf) {
   name: 'private-dns-zone-container-registry'
   params: {
     name: items(containerRegistryPrivateDnsZones)[0].key
-    tags: deployment_param.tags
-    enableTelemetry: deployment_param.enable_telemetry
+    tags: tags
+    enableTelemetry: enableTelemetry
     virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
   }
 }
@@ -407,9 +377,8 @@ module avmPrivateDnsZoneContainerRegistry 'br/public:avm/res/network/private-dns
 module avmAppInsightsLogAnalyticsWorkspace './modules/app-insights.bicep' = {
   //name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.logAnalyticsWorkspace)
   params: {
-    appInsights_param: {
-      appInsightsName: '${deployment_param.naming_abbrs.managementGovernance.applicationInsights}${deployment_param.solution_prefix}'
-      location: deployment_param.resource_group_location
+      appInsightsName: '${namingAbbrs.managementGovernance.applicationInsights}${solution_prefix}'
+      location: resourceGroupLocation
       //diagnosticSettings: [{ useThisWorkspace: true }]
       skuName: 'PerGB2018'
       applicationType: 'web'
@@ -417,28 +386,26 @@ module avmAppInsightsLogAnalyticsWorkspace './modules/app-insights.bicep' = {
       disableLocalAuth: false
       flowType: 'Bluefield'
       kind: 'web'
-      logAnalyticsWorkspaceName: '${deployment_param.naming_abbrs.managementGovernance.logAnalyticsWorkspace}${deployment_param.solution_prefix}'
+      logAnalyticsWorkspaceName: '${namingAbbrs.managementGovernance.logAnalyticsWorkspace}${solution_prefix}'
       publicNetworkAccessForQuery: 'Enabled'
       requestSource: 'rest'
       retentionInDays: 30
-    }
-    deployment_param: deployment_param
   }
 }
 
 // ========== Managed Identity ========== //
 module avmManagedIdentity './modules/managed-identity.bicep' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.security.managedIdentity)
+  //name: format(resourceNameFormatString, namingAbbrs.security.managedIdentity)
   params: {
-    name: '${deployment_param.naming_abbrs.security.managedIdentity}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
-    tags: deployment_param.tags
+    name: '${namingAbbrs.security.managedIdentity}${solution_prefix}'
+    location: resourceGroupLocation
+    tags: tags
   }
 }
 
 // Assign Owner role to the managed identity in the resource group
 module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-owner')
+  name: format(resourceNameFormatString, 'rbac-owner')
   params: {
     resourceId: avmManagedIdentity.outputs.resourceId
     principalId: avmManagedIdentity.outputs.principalId
@@ -450,107 +417,61 @@ module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignme
 
 // ========== Key Vault Module ========== //
 module avmKeyVault './modules/key-vault.bicep' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.security.keyVault)
+  //name: format(resourceNameFormatString, namingAbbrs.security.keyVault)
   params: {
-    //name: format(deployment_param.resource_name_format_string, abbrs.security.keyVault)
-    keyVaultParams: {
-      keyvaultName: '${deployment_param.naming_abbrs.security.keyVault}${deployment_param.solution_prefix}'
-      location: deployment_param.resource_group_location
-      tags: deployment_param.tags
-      roleAssignments: [
-        {
-          principalId: avmManagedIdentity.outputs.principalId
-          roleDefinitionIdOrName: 'Key Vault Administrator'
-        }
-      ]
-      enablePurgeProtection: false
-      enableSoftDelete: true
-      keyvaultsku: 'standard'
-      // Add missing AVM parameters for parity with classic resource
-      enableRbacAuthorization: true
-      createMode: 'default'
-      enableTelemetry: false
-      // networkAcls, privateEndpoints, diagnosticSettings, keys, secrets, lock can be added if needed
-      enableVaultForDiskEncryption: true
-      enableVaultForTemplateDeployment: true
-      softDeleteRetentionInDays: 7
-
-      //<=== WAF related parameters
-      publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
-      privateEndpoints: (deployment_param.enable_waf)
-        ? [
-            {
-              name: 'keyvault-private-endpoint'
-              privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-              privateDnsZoneGroup: {
-                privateDnsZoneGroupConfigs: [
-                  {
-                    name: 'keyvault-dns-zone-group'
-                    privateDnsZoneResourceId: avmPrivateDnsZoneKeyVault.outputs.resourceId
-                  }
-                ]
-              }
-              subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-            }
-          ]
-        : []
-    }
-    deployment_param: deployment_param
+    keyvaultName: '${namingAbbrs.security.keyVault}${solution_prefix}'
+    location: resourceGroupLocation
+    tags: tags
+    roleAssignments: [
+      {
+        principalId: avmManagedIdentity.outputs.principalId
+        roleDefinitionIdOrName: 'Key Vault Administrator'
+      }
+    ]
+    enablePurgeProtection: false
+    enableSoftDelete: true
+    keyvaultsku: 'standard'
+    enableRbacAuthorization: true
+    createMode: 'default'
+    enableTelemetry: false
+    enableVaultForDiskEncryption: true
+    enableVaultForTemplateDeployment: true
+    softDeleteRetentionInDays: 7
+    publicNetworkAccess: (enableWaf) ? 'Disabled' : 'Enabled'
+    // privateEndpoints omitted for now, as not in strongly-typed params
   }
   scope: resourceGroup(resourceGroup().name)
 }
 
 module avmKeyVault_RoleAssignment_appConfig 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-keyvault-app-config')
+  name: format(resourceNameFormatString, 'rbac-keyvault-app-config')
   params: {
     resourceId: avmKeyVault.outputs.resourceId
-    principalId: avmAppConfig.outputs.systemAssignedMIPrincipalId
+    principalId: avmAppConfig.outputs.systemAssignedMIPrincipalId!
     roleDefinitionId: 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7' // 'Key Vault Secrets User'
     roleName: 'Key Vault Secret User'
     principalType: 'ServicePrincipal'
   }
 }
 
-// ========== Container Registry ========== //
 module avmContainerRegistry 'modules/container-registry.bicep' = {
   //name: format(deployment_param.resource_name_format_string, abbrs.containers.containerRegistry)
   params: {
-    containerRegistryParams: {
-      acrName: '${deployment_param.naming_abbrs.containers.containerRegistry}${replace(deployment_param.solution_prefix, '-', '')}'
-      location: deployment_param.resource_group_location
-      acrSku: 'Basic'
-      publicNetworkAccess: 'Enabled'
-      zoneRedundancy: 'Disabled'
-
-      //<======================= WAF related parameters
-      privateEndpoints: (deployment_param.enable_waf)
-        ? [
-            {
-              name: 'container-registry-private-endpoint'
-              privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
-              privateDnsZoneGroup: {
-                privateDnsZoneGroupConfigs: [
-                  {
-                    name: 'container-registry-dns-zone-group'
-                    privateDnsZoneResourceId: avmPrivateDnsZoneContainerRegistry.outputs.resourceId
-                  }
-                ]
-              }
-              subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
-            }
-          ]
-        : []
-    }
-    defaultDeploymentParams: deployment_param
+    acrName: '${namingAbbrs.containers.containerRegistry}${replace(solution_prefix, '-', '')}'
+    location: resourceGroupLocation
+    acrSku: 'Basic'
+    publicNetworkAccess: 'Enabled'
+    zoneRedundancy: 'Disabled'
+    tags: tags
   }
 }
 
 // // ========== Storage Account ========== //
 module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.storage.storageAccount)
+  name: format(resourceNameFormatString, namingAbbrs.storage.storageAccount)
   params: {
-    name: '${deployment_param.naming_abbrs.storage.storageAccount}${replace(deployment_param.solution_prefix, '-', '')}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.storage.storageAccount}${replace(solution_prefix, '-', '')}'
+    location: resourceGroupLocation
     skuName: 'Standard_LRS'
     kind: 'StorageV2'
     managedIdentities: { systemAssigned: true }
@@ -570,9 +491,9 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
     accessTier: 'Hot'
 
     //<======================= WAF related parameters
-    allowBlobPublicAccess: (!deployment_param.enable_waf) // Disable public access when WAF is enabled
-    publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (deployment_param.enable_waf)
+    allowBlobPublicAccess: (!enableWaf) // Disable public access when WAF is enabled
+    publicNetworkAccess: (enableWaf) ? 'Disabled' : 'Enabled'
+    privateEndpoints: (enableWaf)
       ? [
           {
             name: 'storage-private-endpoint-blob'
@@ -625,63 +546,278 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
 }
 
 module avmStorageAccount_RoleAssignment_avmContainerApp_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-storage-data-contributor-container-app')
+  name: format(resourceNameFormatString, 'rbac-storage-data-contributor-container-app')
   params: {
     resourceId: avmStorageAccount.outputs.resourceId
-    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
     roleName: 'Storage Blob Data Contributor'
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
     principalType: 'ServicePrincipal'
   }
 }
 
 module avmStorageAccount_RoleAssignment_avmContainerApp_API_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-storage-data-contributor-container-api')
+  name: format(resourceNameFormatString, 'rbac-storage-data-contributor-container-api')
   params: {
     resourceId: avmStorageAccount.outputs.resourceId
-    principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+    principalId: avmContainerApp_API.outputs.systemAssignedMIPrincipalId!
     roleName: 'Storage Blob Data Contributor'
-    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
     principalType: 'ServicePrincipal'
   }
 }
 
 module avmStorageAccount_RoleAssignment_avmContainerApp_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-storage-contributor-container-app-queue')
+  name: format(resourceNameFormatString, 'rbac-storage-contributor-container-app-queue')
   params: {
     resourceId: avmStorageAccount.outputs.resourceId
-    principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+    principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
     roleName: 'Storage Queue Data Contributor'
-    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
+    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
     principalType: 'ServicePrincipal'
   }
 }
 
 module avmStorageAccount_RoleAssignment_avmContainerApp_API_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-storage-data-contributor-container-api-queue')
+  name: format(resourceNameFormatString, 'rbac-storage-data-contributor-container-api-queue')
   params: {
     resourceId: avmStorageAccount.outputs.resourceId
-    principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+    principalId: avmContainerApp_API.outputs.systemAssignedMIPrincipalId!
     roleName: 'Storage Queue Data Contributor'
-    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
+    roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
     principalType: 'ServicePrincipal'
   }
 }
 
+// module avmAppInsightsLogAnalyticsWorkspace './modules/app-insights.bicep' = {
+//   //name: format(deployment_param.resource_name_format_string, abbrs.managementGovernance.logAnalyticsWorkspace)
+//   params: {
+//       appInsightsName: '${namingAbbrs.managementGovernance.applicationInsights}${solution_prefix}'
+//       location: resourceGroupLocation
+//       //diagnosticSettings: [{ useThisWorkspace: true }]
+//       skuName: 'PerGB2018'
+//       applicationType: 'web'
+//       disableIpMasking: false
+//       disableLocalAuth: false
+//       flowType: 'Bluefield'
+//       kind: 'web'
+//       logAnalyticsWorkspaceName: '${namingAbbrs.managementGovernance.logAnalyticsWorkspace}${solution_prefix}'
+//       publicNetworkAccessForQuery: 'Enabled'
+//       requestSource: 'rest'
+//       retentionInDays: 30
+//   }
+// }
+
+// // ========== Managed Identity ========== //
+// module avmManagedIdentity './modules/managed-identity.bicep' = {
+//   name: format(resourceNameFormatString, namingAbbrs.security.managedIdentity)
+//   params: {
+//     name: '${namingAbbrs.security.managedIdentity}${solution_prefix}'
+//     location: resourceGroupLocation
+//     tags: tags
+//   }
+// }
+
+// // Assign Owner role to the managed identity in the resource group
+// module avmRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+//   name: format(resourceNameFormatString, 'rbac-owner')
+//   params: {
+//     resourceId: avmManagedIdentity.outputs.resourceId
+//     principalId: avmManagedIdentity.outputs.principalId
+//     roleDefinitionId: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
+//     principalType: 'ServicePrincipal'
+//   }
+//   scope: resourceGroup(resourceGroup().name)
+// }
+
+// // ========== Key Vault Module ========== //
+// module avmKeyVault './modules/key-vault.bicep' = {
+//   name: format(resourceNameFormatString, namingAbbrs.security.keyVault)
+//   params: {
+//     keyvaultName: '${namingAbbrs.security.keyVault}${solution_prefix}'
+//     location: resourceGroupLocation
+//     tags: tags
+//     roleAssignments: [
+//       {
+//         principalId: avmManagedIdentity.outputs.principalId
+//         roleDefinitionIdOrName: 'Key Vault Administrator'
+//       }
+//     ]
+//     enablePurgeProtection: false
+//     enableSoftDelete: true
+//     keyvaultsku: 'standard'
+//     enableRbacAuthorization: true
+//     createMode: 'default'
+//     enableTelemetry: false
+//     enableVaultForDiskEncryption: true
+//     enableVaultForTemplateDeployment: true
+//     softDeleteRetentionInDays: 7
+//     publicNetworkAccess: (enableWaf) ? 'Disabled' : 'Enabled'
+//     // privateEndpoints omitted for now, as not in strongly-typed params
+//   }
+//   scope: resourceGroup(resourceGroup().name)
+// }
+
+// module avmKeyVault_RoleAssignment_appConfig 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+//   name: format(resourceNameFormatString, 'rbac-keyvault-app-config')
+//   params: {
+//     resourceId: avmKeyVault.outputs.resourceId
+//     principalId: avmAppConfig.outputs.systemAssignedMIPrincipalId!
+//     roleDefinitionId: 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7' // 'Key Vault Secrets User'
+//     roleName: 'Key Vault Secret User'
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// module avmContainerRegistry 'modules/container-registry.bicep' = {
+//   name: '${namingAbbrs.containers.containerRegistry}${replace(solution_prefix, '-', '')}'
+//   params: {
+//     acrName: '${namingAbbrs.containers.containerRegistry}${replace(solution_prefix, '-', '')}'
+//     location: resourceGroupLocation
+//     acrSku: 'Basic'
+//     publicNetworkAccess: 'Enabled'
+//     zoneRedundancy: 'Disabled'
+//     tags: tags
+//   }
+// }
+
+// // // ========== Storage Account ========== //
+// module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
+//   name: format(resourceNameFormatString, namingAbbrs.storage.storageAccount)
+//   params: {
+//     name: '${namingAbbrs.storage.storageAccount}${replace(solution_prefix, '-', '')}'
+//     location: resourceGroupLocation
+//     skuName: 'Standard_LRS'
+//     kind: 'StorageV2'
+//     managedIdentities: { systemAssigned: true }
+//     minimumTlsVersion: 'TLS1_2'
+//     roleAssignments: [
+//       {
+//         principalId: avmManagedIdentity.outputs.principalId
+//         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+//       }
+//     ]
+//     networkAcls: {
+//       bypass: 'AzureServices'
+//       defaultAction: 'Allow'
+//       ipRules: []
+//     }
+//     supportsHttpsTrafficOnly: true
+//     accessTier: 'Hot'
+
+//     //<======================= WAF related parameters
+//     allowBlobPublicAccess: (!enableWaf) // Disable public access when WAF is enabled
+//     publicNetworkAccess: (enableWaf) ? 'Disabled' : 'Enabled'
+//     privateEndpoints: (enableWaf)
+//       ? [
+//           {
+//             name: 'storage-private-endpoint-blob'
+//             privateDnsZoneGroup: {
+//               privateDnsZoneGroupConfigs: [
+//                 {
+//                   name: 'storage-dns-zone-group-blob'
+//                   privateDnsZoneResourceId: avmPrivateDnsZoneStorages[0].outputs.resourceId
+//                   // bicep doesn't recognize collection - avmPrivateDnsZoneStorages
+//                   // privateDnsZoneResourceId : filter(avmPrivateDnsZoneStorages, zone => contains(zone.outputs.name, 'blob'))[0].outputs.resourceId
+//                 }
+//               ]
+//             }
+//             subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+//             service: 'blob'
+//           }
+//           {
+//             name: 'storage-private-endpoint-queue'
+//             privateDnsZoneGroup: {
+//               privateDnsZoneGroupConfigs: [
+//                 {
+//                   name: 'storage-dns-zone-group-queue'
+//                   privateDnsZoneResourceId: avmPrivateDnsZoneStorages[2].outputs.resourceId
+//                 }
+//               ]
+//             }
+//             subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+//             service: 'queue'
+//           }
+//         ]
+//       : []
+
+//     // privateEndpoints: (deployment_param.enable_waf)
+//     //   ? map(items(appStoragePrivateDnsZones), zone => {
+//     //       name: 'storage-${zone.value}'
+//     //       privateEndpointResourceId: avmVirtualNetwork.outputs.resourceId
+//     //       service: zone.key
+//     //       privateDnsZoneGroup: {
+//     //         privateDnsZoneGroupConfigs: [
+//     //           {
+//     //             name: 'storage-dns-zone-group-${zone.value}'
+//     //             privateDnsZoneResourceId: zone.value
+//     //           }
+//     //         ]
+//     //       }
+//     //       subnetResourceId: avmVirtualNetwork.outputs.subnetResourceIds[0] // Use the backend subnet
+//     //     })
+//     //   : []
+//   }
+// }
+
+// module avmStorageAccount_RoleAssignment_avmContainerApp_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+//   name: format(resourceNameFormatString, 'rbac-storage-data-contributor-container-app')
+//   params: {
+//     resourceId: avmStorageAccount.outputs.resourceId
+//     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+//     roleName: 'Storage Blob Data Contributor'
+//     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// module avmStorageAccount_RoleAssignment_avmContainerApp_API_blob 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+//   name: format(resourceNameFormatString, 'rbac-storage-data-contributor-container-api')
+//   params: {
+//     resourceId: avmStorageAccount.outputs.resourceId
+//     principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+//     roleName: 'Storage Blob Data Contributor'
+//     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// module avmStorageAccount_RoleAssignment_avmContainerApp_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+//   name: format(resourceNameFormatString, 'rbac-storage-contributor-container-app-queue')
+//   params: {
+//     resourceId: avmStorageAccount.outputs.resourceId
+//     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
+//     roleName: 'Storage Queue Data Contributor'
+//     roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
+// module avmStorageAccount_RoleAssignment_avmContainerApp_API_queue 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
+//   name: format(resourceNameFormatString, 'rbac-storage-data-contributor-container-api-queue')
+//   params: {
+//     resourceId: avmStorageAccount.outputs.resourceId
+//     principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
+//     roleName: 'Storage Queue Data Contributor'
+//     roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' //'Storage Queue Data Contributor'
+//     principalType: 'ServicePrincipal'
+//   }
+// }
+
 // // ========== AI Foundry and related resources ========== //
 module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.ai.aiServices)
+  name: format(resourceNameFormatString, namingAbbrs.ai.aiServices)
   params: {
-    name: '${deployment_param.naming_abbrs.ai.aiServices}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.ai.aiServices}${solution_prefix}'
+    location: resourceGroupLocation
     sku: 'S0'
     managedIdentities: { systemAssigned: true }
     kind: 'AIServices'
     tags: {
-      app: deployment_param.solution_prefix
-      location: deployment_param.resource_group_location
+      app: solution_prefix
+      location: resourceGroupLocation
     }
-    customSubDomainName: '${deployment_param.naming_abbrs.ai.aiServices}${deployment_param.solution_prefix}'
+    customSubDomainName: '${namingAbbrs.ai.aiServices}${solution_prefix}'
     diagnosticSettings: [
       {
         workspaceResourceId: avmAppInsightsLogAnalyticsWorkspace.outputs.logAnalyticsWorkspaceResourceId
@@ -691,15 +827,15 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
 
     deployments: [
       {
-        name: ai_deployment.gpt_model_name
+        name: gptModelName
         model: {
           format: 'OpenAI'
-          name: ai_deployment.gpt_model_name
-          version: ai_deployment.gpt_model_version
+          name: gptModelName
+          version: gptModelVersion
         }
         sku: {
-          name: ai_deployment.gpt_deployment_type_name
-          capacity: ai_deployment.gpt_deployment_capacity
+          name: deploymentType
+          capacity: gptDeploymentCapacity
         }
         raiPolicyName: 'Microsoft.Default'
       }
@@ -742,7 +878,7 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.10.2' = {
 
 // Role Assignment
 module avmAiServices_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-ai-services')
+  name: format(resourceNameFormatString, 'rbac-ai-services')
   params: {
     resourceId: avmAiServices.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -753,19 +889,19 @@ module avmAiServices_roleAssignment 'br/public:avm/ptn/authorization/resource-ro
 }
 
 module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.10.2' = {
-  name: format(deployment_param.resource_name_format_string, 'aicu-')
+  name: format(resourceNameFormatString, 'aicu-')
 
   params: {
-    name: 'aicu-${deployment_param.solution_prefix}'
+    name: 'aicu-${solution_prefix}'
     location: contentUnderstandingLocation
     sku: 'S0'
     managedIdentities: { systemAssigned: true }
     kind: 'AIServices'
     tags: {
-      app: deployment_param.solution_prefix
-      location: deployment_param.resource_group_location
+      app: solution_prefix
+      location: resourceGroupLocation
     }
-    customSubDomainName: 'aicu-${deployment_param.solution_prefix}'
+    customSubDomainName: 'aicu-${solution_prefix}'
     disableLocalAuth: true
 
     publicNetworkAccess: 'Enabled' // Always enabled for AI Services
@@ -796,7 +932,7 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.10.2' = 
 }
 
 module avmAiServices_cu_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-ai-services-cu')
+  name: format(resourceNameFormatString, 'rbac-ai-services-cu')
   params: {
     resourceId: avmAiServices_cu.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -806,10 +942,10 @@ module avmAiServices_cu_roleAssignment 'br/public:avm/ptn/authorization/resource
 }
 
 module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20.0' = {
-  name: format(deployment_param.resource_name_format_string, 'aistoragehub-')
+  name: format(resourceNameFormatString, 'aistoragehub-')
   params: {
-    name: 'aisthub${replace(deployment_param.solution_prefix, '-', '')}'
-    location: deployment_param.resource_group_location
+    name: 'aisthub${replace(solution_prefix, '-', '')}'
+    location: resourceGroupLocation
     skuName: 'Standard_LRS'
     kind: 'StorageV2'
     managedIdentities: { systemAssigned: true }
@@ -887,17 +1023,17 @@ module avmAiServices_storage_hub 'br/public:avm/res/storage/storage-account:0.20
 }
 
 module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.ai.aiHub)
+  name: format(resourceNameFormatString, namingAbbrs.ai.aiHub)
   params: {
-    name: '${deployment_param.naming_abbrs.ai.aiHub}${deployment_param.solution_prefix}'
-    friendlyName: '${deployment_param.naming_abbrs.ai.aiHub}${deployment_param.solution_prefix}'
+    name: '${namingAbbrs.ai.aiHub}${solution_prefix}'
+    friendlyName: '${namingAbbrs.ai.aiHub}${solution_prefix}'
     description: 'AI Hub for CPS template'
-    location: deployment_param.resource_group_location
+    location: resourceGroupLocation
     sku: 'Basic'
     managedIdentities: { systemAssigned: true }
     tags: {
-      app: deployment_param.solution_prefix
-      location: deployment_param.resource_group_location
+      app: solution_prefix
+      location: resourceGroupLocation
     }
     // dependent resources
     associatedKeyVaultResourceId: avmKeyVault.outputs.resourceId
@@ -952,14 +1088,14 @@ module avmAiHub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' =
 }
 
 module avmAiProject 'br/public:avm/res/machine-learning-services/workspace:0.12.1' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.ai.aiHubProject)
+  name: format(resourceNameFormatString, namingAbbrs.ai.aiHubProject)
   params: {
-    name: '${deployment_param.naming_abbrs.ai.aiHubProject}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.ai.aiHubProject}${solution_prefix}'
+    location: resourceGroupLocation
     managedIdentities: { systemAssigned: true }
     kind: 'Project'
     sku: 'Basic'
-    friendlyName: '${deployment_param.naming_abbrs.ai.aiHubProject}${deployment_param.solution_prefix}'
+    friendlyName: '${namingAbbrs.ai.aiHubProject}${solution_prefix}'
     hubResourceId: avmAiHub.outputs.resourceId
   }
 }
@@ -967,15 +1103,15 @@ module avmAiProject 'br/public:avm/res/machine-learning-services/workspace:0.12.
 // ========== Container App Environment ========== //
 module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
   name: format(
-    deployment_param.resource_name_format_string,
-    deployment_param.naming_abbrs.containers.containerAppsEnvironment
+    resourceNameFormatString,
+    namingAbbrs.containers.containerAppsEnvironment
   )
   params: {
-    name: '${deployment_param.naming_abbrs.containers.containerAppsEnvironment}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.containers.containerAppsEnvironment}${solution_prefix}'
+    location: resourceGroupLocation
     tags: {
-      app: deployment_param.solution_prefix
-      location: deployment_param.resource_group_location
+      app: solution_prefix
+      location: resourceGroupLocation
     }
     managedIdentities: { systemAssigned: true }
     appLogsConfiguration: {
@@ -999,7 +1135,7 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
     platformReservedCidr: '172.17.17.0/24'
     platformReservedDnsIP: '172.17.17.17'
 
-    infrastructureSubnetResourceId: (deployment_param.enable_waf)
+    infrastructureSubnetResourceId: (enableWaf)
       ? avmVirtualNetwork.outputs.subnetResourceIds[1] // Use the container app subnet
       : null // Use the container app subnet
   }
@@ -1007,16 +1143,16 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.1' = {
 
 //=========== Managed Identity for Container Registry ========== //
 module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
-  name: format(deployment_param.resource_name_format_string, 'acr-reader-mid-')
+  name: format(resourceNameFormatString, 'acr-reader-mid-')
   params: {
-    name: 'acr-reader-mid${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: 'acr-reader-mid${solution_prefix}'
+    location: resourceGroupLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
 
 module bicepAcrPullRoleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rabc-acr-pull')
+  name: format(resourceNameFormatString, 'rabc-acr-pull')
   params: {
     resourceId: avmContainerRegistry.outputs.resourceId
     principalId: avmContainerRegistryReader.outputs.principalId
@@ -1028,16 +1164,16 @@ module bicepAcrPullRoleAssignment 'br/public:avm/ptn/authorization/resource-role
 
 // ========== Container App  ========== //
 module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
-  name: format(deployment_param.resource_name_format_string, 'caapp-')
+  name: format(resourceNameFormatString, 'caapp-')
   params: {
-    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.containers.containerApp}${solution_prefix}-app'
+    location: resourceGroupLocation
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: deployment_param.use_local_build == 'localbuild'
+    registries: useLocalBuild == 'localbuild'
       ? [
           {
-            server: deployment_param.public_container_image_endpoint
+            server: publicContainerImageEndpoint
             identity: avmContainerRegistryReader.outputs.principalId
           }
         ]
@@ -1052,8 +1188,8 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
 
     containers: [
       {
-        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
+        name: '${namingAbbrs.containers.containerApp}${solution_prefix}'
+        image: '${publicContainerImageEndpoint}/contentprocessor:latest'
 
         resources: {
           cpu: '4'
@@ -1071,24 +1207,24 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.16.0' = {
     ingressExternal: false
     disableIngress: true
     scaleSettings: {
-      minReplicas: container_app_deployment.container_app.minReplicas
-      maxReplicas: container_app_deployment.container_app.maxReplicas
+      minReplicas: 1
+      maxReplicas: 1
     }
   }
 }
 
 // ========== Container App API ========== //
 module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
-  name: format(deployment_param.resource_name_format_string, 'caapi-')
+  name: format(resourceNameFormatString, 'caapi-')
   params: {
-    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.containers.containerApp}${solution_prefix}-api'
+    location: resourceGroupLocation
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: deployment_param.use_local_build == 'localbuild'
+    registries: useLocalBuild == 'localbuild'
       ? [
           {
-            server: deployment_param.public_container_image_endpoint
+            server: publicContainerImageEndpoint
             image: 'contentprocessorapi'
             imageTag: 'latest'
           }
@@ -1104,8 +1240,8 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
 
     containers: [
       {
-        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
+        name: '${namingAbbrs.containers.containerApp}${solution_prefix}-api'
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1156,8 +1292,8 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
       }
     ]
     scaleSettings: {
-      minReplicas: container_app_deployment.container_api.minReplicas
-      maxReplicas: container_app_deployment.container_api.maxReplicas
+      minReplicas: 1
+      maxReplicas: 1
       rules: [
         {
           name: 'http-scaler'
@@ -1195,16 +1331,16 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.16.0' = {
 
 //========== Container App Web ========== //
 module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
-  name: format(deployment_param.resource_name_format_string, 'caweb-')
+  name: format(resourceNameFormatString, 'caweb-')
   params: {
-    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-web'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.containers.containerApp}${solution_prefix}-web'
+    location: resourceGroupLocation
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: deployment_param.use_local_build == 'localbuild'
+    registries: useLocalBuild == 'localbuild'
       ? [
           {
-            server: deployment_param.public_container_image_endpoint
+            server: publicContainerImageEndpoint
             image: 'contentprocessorweb'
             imageTag: 'latest'
           }
@@ -1222,8 +1358,8 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
     ingressTransport: 'auto'
     ingressAllowInsecure: true
     scaleSettings: {
-      minReplicas: container_app_deployment.container_web.minReplicas
-      maxReplicas: container_app_deployment.container_web.maxReplicas
+      minReplicas: 1
+      maxReplicas: 1
       rules: [
         {
           name: 'http-scaler'
@@ -1237,8 +1373,8 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
     }
     containers: [
       {
-        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-web'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessorweb:latest'
+        name: '${namingAbbrs.containers.containerApp}${solution_prefix}-web'
+        image: '${publicContainerImageEndpoint}/contentprocessorweb:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1275,17 +1411,17 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.16.0' = {
 }
 // ========== Cosmos Database for Mongo DB ========== //
 module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
-  name: format(deployment_param.resource_name_format_string, deployment_param.naming_abbrs.databases.cosmosDBDatabase)
+  name: format(resourceNameFormatString, namingAbbrs.databases.cosmosDBDatabase)
   params: {
-    name: '${deployment_param.naming_abbrs.databases.cosmosDBDatabase}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.databases.cosmosDBDatabase}${solution_prefix}'
+    location: resourceGroupLocation
     mongodbDatabases: [
       {
         name: 'default'
         tag: 'default database'
       }
     ]
-    tags: deployment_param.tags
+    tags: tags
     databaseAccountOfferType: 'Standard'
     automaticFailover: false
     serverVersion: '7.0'
@@ -1300,12 +1436,12 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
 
     // WAF related parameters
     networkRestrictions: {
-      publicNetworkAccess: (deployment_param.enable_waf) ? 'Disabled' : 'Enabled'
+      publicNetworkAccess: (enableWaf) ? 'Disabled' : 'Enabled'
       ipRules: []
       virtualNetworkRules: []
     }
 
-    privateEndpoints: (deployment_param.enable_waf)
+    privateEndpoints: (enableWaf)
       ? [
           {
             name: 'cosmosdb-private-endpoint'
@@ -1329,16 +1465,16 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
 // ========== App Configuration ========== //
 module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6.3' = {
   name: format(
-    deployment_param.resource_name_format_string,
-    deployment_param.naming_abbrs.developerTools.appConfigurationStore
+    resourceNameFormatString,
+    namingAbbrs.developerTools.appConfigurationStore
   )
   params: {
-    name: '${deployment_param.naming_abbrs.developerTools.appConfigurationStore}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.developerTools.appConfigurationStore}${solution_prefix}'
+    location: resourceGroupLocation
 
     tags: {
-      app: deployment_param.solution_prefix
-      location: deployment_param.resource_group_location
+      app: solution_prefix
+      location: resourceGroupLocation
     }
     managedIdentities: { systemAssigned: true }
     sku: 'Standard'
@@ -1419,7 +1555,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_AI_PROJECT_CONN_STR'
-        value: '${deployment_param.resource_group_location}.api.azureml.ms;${subscription().subscriptionId};${resourceGroup().name};${avmAiProject.name}'
+        value: '${resourceGroupLocation}.api.azureml.ms;${subscription().subscriptionId};${resourceGroup().name};${avmAiProject.name}'
         //TODO: replace with actual AI project connection string
       }
       {
@@ -1451,14 +1587,14 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
   }
 }
 
-module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-store:0.6.3' = if (deployment_param.enable_waf) {
+module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-store:0.6.3' = if (enableWaf) {
   name: format(
-    deployment_param.resource_name_format_string,
-    '${deployment_param.naming_abbrs.developerTools.appConfigurationStore}-update'
+    resourceNameFormatString,
+    '${namingAbbrs.developerTools.appConfigurationStore}-update'
   )
   params: {
-    name: '${deployment_param.naming_abbrs.developerTools.appConfigurationStore}${deployment_param.solution_prefix}'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.developerTools.appConfigurationStore}${solution_prefix}'
+    location: resourceGroupLocation
 
     publicNetworkAccess: 'Disabled'
     privateEndpoints: [
@@ -1483,7 +1619,7 @@ module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-st
 }
 
 module avmRoleAssignment_container_app 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-app-config-data-reader')
+  name: format(resourceNameFormatString, 'rbac-app-config-data-reader')
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId
@@ -1494,7 +1630,7 @@ module avmRoleAssignment_container_app 'br/public:avm/ptn/authorization/resource
 }
 
 module avmRoleAssignment_container_app_api 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-app-config-data-reader-api')
+  name: format(resourceNameFormatString, 'rbac-app-config-data-reader-api')
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId
@@ -1503,8 +1639,9 @@ module avmRoleAssignment_container_app_api 'br/public:avm/ptn/authorization/reso
     principalType: 'ServicePrincipal'
   }
 }
+
 module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
-  name: format(deployment_param.resource_name_format_string, 'rbac-app-config-data-reader-web')
+  name: format(resourceNameFormatString, 'rbac-app-config-data-reader-web')
   params: {
     resourceId: avmAppConfig.outputs.resourceId
     principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId
@@ -1516,16 +1653,16 @@ module avmRoleAssignment_container_app_web 'br/public:avm/ptn/authorization/reso
 
 // ========== Container App Update Modules ========== //
 module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
-  name: format(deployment_param.resource_name_format_string, 'caapp-update-')
+  name: format(resourceNameFormatString, 'caapp-update-')
   params: {
-    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-app'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.containers.containerApp}${solution_prefix}-app'
+    location: resourceGroupLocation
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: deployment_param.use_local_build == 'localbuild'
+    registries: useLocalBuild == 'localbuild'
       ? [
           {
-            server: deployment_param.public_container_image_endpoint
+            server: publicContainerImageEndpoint
             identity: avmContainerRegistryReader.outputs.principalId
           }
         ]
@@ -1540,8 +1677,8 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
 
     containers: [
       {
-        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessor:latest'
+        name: '${namingAbbrs.containers.containerApp}${solution_prefix}'
+        image: '${publicContainerImageEndpoint}/contentprocessor:latest'
 
         resources: {
           cpu: '4'
@@ -1559,8 +1696,8 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
     ingressExternal: false
     disableIngress: true
     scaleSettings: {
-      minReplicas: container_app_deployment.container_app.minReplicas
-      maxReplicas: container_app_deployment.container_app.maxReplicas
+      minReplicas: 1
+      maxReplicas: 1
     }
   }
   dependsOn: [
@@ -1571,16 +1708,16 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.16.0' = {
 }
 
 module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' = {
-  name: format(deployment_param.resource_name_format_string, 'caapi-update-')
+  name: format(resourceNameFormatString, 'caapi-update-')
   params: {
-    name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
-    location: deployment_param.resource_group_location
+    name: '${namingAbbrs.containers.containerApp}${solution_prefix}-api'
+    location: resourceGroupLocation
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: deployment_param.use_local_build == 'localbuild'
+    registries: useLocalBuild == 'localbuild'
       ? [
           {
-            server: deployment_param.public_container_image_endpoint
+            server: publicContainerImageEndpoint
             image: 'contentprocessorapi'
             imageTag: 'latest'
           }
@@ -1596,8 +1733,8 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' =
 
     containers: [
       {
-        name: '${deployment_param.naming_abbrs.containers.containerApp}${deployment_param.solution_prefix}-api'
-        image: '${deployment_param.public_container_image_endpoint}/contentprocessorapi:latest'
+        name: '${namingAbbrs.containers.containerApp}${solution_prefix}-api'
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1648,8 +1785,8 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.16.0' =
       }
     ]
     scaleSettings: {
-      minReplicas: container_app_deployment.container_api.minReplicas
-      maxReplicas: container_app_deployment.container_api.maxReplicas
+      minReplicas: 1
+      maxReplicas: 1
       rules: [
         {
           name: 'http-scaler'

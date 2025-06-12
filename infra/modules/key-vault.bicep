@@ -15,30 +15,65 @@ metadata name = 'Key Vault Module'
 // param createMode string = 'default'
 // param enableTelemetry bool = true
 
-import {
-  key_vault_param_type
-  default_deployment_param_type
-} from './types.bicep'
+@description('The name of the Key Vault')
+param keyvaultName string
 
-param keyVaultParams key_vault_param_type
-param deployment_param default_deployment_param_type
+@description('The location of the Key Vault')
+param location string
+
+@description('Tags to be applied to the Key Vault')
+param tags object
+
+@description('Role assignments for the Key Vault')
+param roleAssignments array = []
+
+@description('Enable purge protection for the Key Vault')
+param enablePurgeProtection bool = false
+
+@description('Enable soft delete for the Key Vault')
+param enableSoftDelete bool = true
+
+@description('Enable vault for disk encryption')
+param enableVaultForDiskEncryption bool = true
+
+@description('Enable vault for template deployment')
+param enableVaultForTemplateDeployment bool = true
+
+@description('Public network access setting for the Key Vault')
+param publicNetworkAccess string = 'Enabled'
+
+@description('SKU of the Key Vault')
+param keyvaultsku string = 'standard'
+
+@description('Soft delete retention period in days')
+param softDeleteRetentionInDays int = 7
+
+@description('Enable RBAC authorization for the Key Vault')
+param enableRbacAuthorization bool = true
+
+@description('Create mode for the Key Vault')
+param createMode string = 'default'
+
+@description('Enable telemetry for the Key Vault')
+param enableTelemetry bool = true
+
 module avmKeyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
   name: 'deploy_keyvault'
   params: {
-    name: keyVaultParams.keyvaultName
-    location: keyVaultParams.location
-    tags: keyVaultParams.tags
-    roleAssignments: keyVaultParams.roleAssignments
-    enablePurgeProtection: keyVaultParams.enablePurgeProtection
-    enableSoftDelete: keyVaultParams.enableSoftDelete
-    enableVaultForDiskEncryption: keyVaultParams.enableVaultForDiskEncryption
-    enableVaultForTemplateDeployment: keyVaultParams.enableVaultForTemplateDeployment
-    publicNetworkAccess: keyVaultParams.publicNetworkAccess
-    sku: keyVaultParams.keyvaultsku
-    softDeleteRetentionInDays: keyVaultParams.softDeleteRetentionInDays
-    enableRbacAuthorization: keyVaultParams.enableRbacAuthorization
-    createMode: keyVaultParams.createMode
-    enableTelemetry: keyVaultParams.enableTelemetry
+    name: keyvaultName
+    location: location
+    tags: tags
+    roleAssignments: roleAssignments
+    enablePurgeProtection: enablePurgeProtection
+    enableSoftDelete: enableSoftDelete
+    enableVaultForDiskEncryption: enableVaultForDiskEncryption
+    enableVaultForTemplateDeployment: enableVaultForTemplateDeployment
+    publicNetworkAccess: publicNetworkAccess
+    sku: keyvaultsku
+    softDeleteRetentionInDays: softDeleteRetentionInDays
+    enableRbacAuthorization: enableRbacAuthorization
+    createMode: createMode
+    enableTelemetry: enableTelemetry
   }
 }
 
