@@ -13,8 +13,8 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_SECONDARY_LOCATION`         | string  | `eastus2`                 | Specifies a secondary Azure region.                                                   |
 | `AZURE_ENV_CU_LOCATION`                | string  | `WestUS`                  | Sets the location for the Azure Content Understanding service.                        |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`          | Defines the model deployment type (allowed values: `Standard`, `GlobalStandard`).     |
-| `AZURE_ENV_MODEL_NAME`                 | string  | `gpt-4o`                  | Specifies the GPT model name (allowed values: `gpt-4o`).       
-| `AZURE_ENV_MODEL_VERSION`                 | string  | `2024-08-06`                  | Specifies the GPT model version (allowed values: `2024-08-06`).                       |
+| `AZURE_ENV_MODEL_NAME`                 | string  | `gpt-4.1`                  | Specifies the GPT model name (allowed values: `gpt-4.1`).       
+| `AZURE_ENV_MODEL_VERSION`                 | string  | `2025-04-14`                  | Specifies the GPT model version (allowed values: `2025-04-14`).                       |
 | `AZURE_ENV_MODEL_CAPACITY`             | integer | `30`                        | Sets the model capacity (choose based on your subscription's available GPT capacity). |
 | `USE_LOCAL_BUILD`                      | boolean | `false`                     | Indicates whether to use a local container build for deployment.                      |
 | `AZURE_ENV_IMAGETAG`                      | boolean | `latest`                     | Set the Image tag Like (allowed values: latest, dev, hotfix)                       |

@@ -31,10 +31,10 @@ param contentUnderstandingLocation string
 param deploymentType string = 'GlobalStandard'
 
 @description('Name of the GPT model to deploy:')
-param gptModelName string = 'gpt-4o'
+param gptModelName string = 'gpt-4.1'
 
 @description('Version of the GPT model to deploy:')
-param gptModelVersion string = '2024-08-06'
+param gptModelVersion string = '2025-04-14'
 
 //var gptModelVersion = '2024-02-15-preview'
 

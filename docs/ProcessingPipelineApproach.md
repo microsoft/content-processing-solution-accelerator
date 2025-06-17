@@ -23,13 +23,13 @@ At the application level, when a file is processed a number of steps take place 
 
     Uses Azure AI Content Understanding Service to detect and extract text from images and PDFs. This service also retrieves the coordinates of each piece of text, along with confidence scores, by leveraging built-in (pretrained) models.
 
-2. **Map Pipeline** – Mapping Extracted Text with Azure OpenAI Service GPT-4o
+2. **Map Pipeline** – Mapping Extracted Text with Azure OpenAI Service GPT-4.1
 
-    Takes the extracted text (as context) and the associated document images, then applies GPT-4o’s vision capabilities to interpret the content. It maps the recognized text to a predefined entity schema, providing structured data fields and confidence scores derived from model log probabilities.
+    Takes the extracted text (as context) and the associated document images, then applies GPT-4.1’s vision capabilities to interpret the content. It maps the recognized text to a predefined entity schema, providing structured data fields and confidence scores derived from model log probabilities.
 
 3. **Evaluate Pipeline** – Merging and Evaluating Extraction Results
 
-    Combines confidence scores from both the Extract pipeline (Azure AI Content Understanding) and the Map pipeline (GPT-4o). It then calculates an overall confidence level by merging and comparing these scores, ensuring accuracy and consistency in the final extracted data. 
+    Combines confidence scores from both the Extract pipeline (Azure AI Content Understanding) and the Map pipeline (GPT-4.1). It then calculates an overall confidence level by merging and comparing these scores, ensuring accuracy and consistency in the final extracted data. 
 
 4. **Save Pipeline** – Storing Results in Azure Blob Storage and Azure Cosmos DB
 
