@@ -18,7 +18,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_MODEL_CAPACITY`             | integer | `30`                        | Sets the model capacity (choose based on your subscription's available GPT capacity). |
 | `USE_LOCAL_BUILD`                      | boolean | `false`                     | Indicates whether to use a local container build for deployment.                      |
 | `AZURE_ENV_IMAGETAG`                      | boolean | `latest`                     | Set the Image tag Like (allowed values: latest, dev, hotfix)                       |
-| `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | `<Existing Workspace Id>` | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
+| `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
 
 
 ## How to Set a Parameter
