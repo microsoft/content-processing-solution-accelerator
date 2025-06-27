@@ -706,7 +706,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
     ]
     networkAcls: {
       bypass: 'AzureServices'
-      defaultAction: 'Deny'
+      defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
       ipRules: []
     }
     supportsHttpsTrafficOnly: true
