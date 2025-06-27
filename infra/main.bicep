@@ -53,7 +53,7 @@ param gptModelVersion string = '2024-08-06'
 param gptDeploymentCapacity int
 
 @description('Optional. Location used for Azure Cosmos DB, Azure Container App deployment.')
-param secondaryLocation string = 'EastUs2'
+param secondaryLocation string = (location == 'eastus2') ? 'westus2' : 'eastus2'
 
 @description('Optional. The public container image endpoint.')
 param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
@@ -1786,9 +1786,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
     ]
     disableLocalAuth: false
-    replicaLocations: [
-      secondaryLocation
-    ]
+    replicaLocations: (resourceGroupLocation != secondaryLocation) ? [secondaryLocation] : []
     roleAssignments: [
       {
         principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId!
