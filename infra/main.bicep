@@ -385,7 +385,7 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.7.1' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
     name: 'dns-zone-${i}'
     params: {
-      name: '${zone}-${solutionPrefix}'
+      name: zone
       tags: tags
       enableTelemetry: enableTelemetry
       virtualNetworkLinks: [{ virtualNetworkResourceId: avmVirtualNetwork.outputs.resourceId }]
