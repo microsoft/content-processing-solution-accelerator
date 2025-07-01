@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "4455095207947106270"
+      "templateHash": "2054400867460750387"
     }
   },
   "parameters": {
@@ -3875,6 +3875,10 @@
     "AZURE_ENV_IMAGETAG": {
       "type": "string",
       "value": "[parameters('imageTag')]"
+    },
+    "SOLUTION_NAME": {
+      "type": "string",
+      "value": "[variables('solutionPrefix')]"
     }
   }
 }

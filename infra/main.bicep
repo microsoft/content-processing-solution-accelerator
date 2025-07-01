@@ -254,3 +254,4 @@ output CONTAINER_API_APP_FQDN string = containerApps.outputs.containweAppApiEndP
 output CONTAINER_APP_USER_IDENTITY_ID string = containerAppEnv.outputs.containerRegistryReaderId
 output CONTAINER_APP_USER_PRINCIPAL_ID string = containerAppEnv.outputs.containerRegistryReaderPrincipalId
 output AZURE_ENV_IMAGETAG string = imageTag
+output SOLUTION_NAME string = solutionPrefix
