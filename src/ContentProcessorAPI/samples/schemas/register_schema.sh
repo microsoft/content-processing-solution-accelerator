@@ -9,6 +9,7 @@ fi
 # Assign arguments to variables
 API_ENDPOINT_URL=$1
 SCHEMA_INFO_JSON=$2
+GITHUB_OUTPUT_FILE=${GITHUB_OUTPUT:-/tmp/schema_output.txt}
 
 # Validate if the JSON file exists
 if [ ! -f "$SCHEMA_INFO_JSON" ]; then
@@ -49,9 +50,11 @@ jq -c '.[]' "$SCHEMA_INFO_JSON" | while read -r schema_entry; do
     # Print the API response
     if [ "$HTTP_STATUS" -eq 200 ]; then
         # Extract Id and Description from the response JSON
+        SAFE_NAME=$(echo "$CLASS_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_')
         ID=$(echo "$RESPONSE_BODY" | jq -r '.Id')
         DESC=$(echo "$RESPONSE_BODY" | jq -r '.Description')
         echo "$DESC's Schema Id - $ID"
+        echo "${SAFE_NAME}_schema_id=$ID" >> "$GITHUB_OUTPUT_FILE"
     else
         echo "Failed to upload '$SCHEMA_FILE'. HTTP Status: $HTTP_STATUS"
         echo "Error Response: $RESPONSE_BODY"
