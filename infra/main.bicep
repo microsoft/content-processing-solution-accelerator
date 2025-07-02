@@ -75,14 +75,15 @@ param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags =
   app: 'Content Processing Solution Accelerator'
   location: resourceGroup().location
 }
-@description('Optional. Set to true to use local build for container app images, otherwise use container registry images.')
-param useLocalBuild bool = false
 
 @description('Optional. Enable scaling for the container apps. Defaults to false.')
 param enableScaling bool = false
 
 @description('Optional: Existing Log Analytics Workspace Resource ID')
 param existingLogAnalyticsWorkspaceId string = '' 
+
+@description('Use this parameter to use an existing AI project resource ID')
+param existingFoundryProjectResourceId string = ''
 
 // ========== Solution Prefix Variable ========== //
 // @description('Optional. A unique deployment timestamp for solution prefix generation.')
@@ -1035,11 +1036,16 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
 //   }
 // }
 
+
+
 // // ========== AI Foundry and related resources ========== //
-module avmAiServices 'br/public:avm/res/cognitive-services/account:0.11.0' = {
+module avmAiServices 'modules/account/main.bicep' = {
   name: format(resourceNameFormatString, 'aisa-')
   params: {
     name: 'aisa-${solutionPrefix}'
+    projectName: 'aifp-${solutionPrefix}'
+    projectDescription: 'aifp-${solutionPrefix}'
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     location: aiDeploymentsLocation
     sku: 'S0'
     allowProjectManagement: true
@@ -1128,14 +1134,14 @@ module avmAiServices 'br/public:avm/res/cognitive-services/account:0.11.0' = {
   }
 }
 
-module project 'modules/ai-foundry-project.bicep' = {
-  name: format(resourceNameFormatString, 'aifp-')
-  params: {
-    name: 'aifp--${solutionPrefix}'
-    location: resourceGroup().location
-    aiServicesName: avmAiServices.outputs.name
-  }
-}
+// module project 'modules/ai-foundry-project.bicep' = {
+//   name: format(resourceNameFormatString, 'aifp-')
+//   params: {
+//     name: 'aifp-${solutionPrefix}'
+//     location: resourceGroup().location
+//     aiServicesName: avmAiServices.outputs.name
+//   }
+// }
 
 // Role Assignment
 // module avmAiServices_roleAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.2' = {
@@ -1284,15 +1290,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.17.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: useLocalBuild == 'localbuild'
-      ? [
-          {
-            server: publicContainerImageEndpoint
-            identity: avmContainerRegistryReader.outputs.principalId
-          }
-        ]
-      : null
-
+    registries: null
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1341,23 +1339,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.17.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: useLocalBuild == 'localbuild'
-      ? [
-          {
-            server: avmContainerRegistry.outputs.loginServer
-            identity: avmContainerRegistryReader.outputs.principalId
-          }
-        ]
-      : null
-    // registries: useLocalBuild == 'localbuild'
-    //   ? [
-    //       {
-    //         server: publicContainerImageEndpoint
-    //         image: 'contentprocessorapi'
-    //         imageTag: 'latest'
-    //       }
-    //     ]
-    //   : null
+    registries: null
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1365,13 +1347,10 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.17.0' = {
         avmContainerRegistryReader.outputs.resourceId
       ]
     }
-
     containers: [
       {
         name: 'ca-${solutionPrefix}-api'
-        image: (useLocalBuild != 'localbuild')
-          ? '${publicContainerImageEndpoint}/contentprocessorapi:latest'
-          : avmContainerRegistry.outputs.loginServer
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1468,23 +1447,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.17.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: useLocalBuild == 'localbuild'
-      ? [
-          {
-            server: avmContainerRegistry.outputs.loginServer
-            identity: avmContainerRegistryReader.outputs.principalId
-          }
-        ]
-      : null
-    // registries: useLocalBuild == 'localbuild'
-    //   ? [
-    //       {
-    //         server: publicContainerImageEndpoint
-    //         image: 'contentprocessorweb'
-    //         imageTag: 'latest'
-    //       }
-    //     ]
-    //   : null
+    registries: null
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1513,9 +1476,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.17.0' = {
     containers: [
       {
         name: 'ca-${solutionPrefix}-web'
-        image: (useLocalBuild != 'localbuild')
-          ? '${publicContainerImageEndpoint}/contentprocessorweb:latest'
-          : avmContainerRegistry.outputs.loginServer
+        image: '${publicContainerImageEndpoint}/contentprocessorweb:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1721,7 +1682,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_AI_PROJECT_ENDPOINT'
-        value: project.outputs.projectEndpoint
+        value: avmAiServices.outputs.aiProjectInfo.apiEndpoint
       }
       {
         name: 'APP_COSMOS_CONNSTR'
@@ -1757,7 +1718,6 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
     avmAiServices_cu
     avmStorageAccount
     avmCosmosDB
-    project
   ]
 }
 
@@ -1836,14 +1796,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.17.0' = {
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: useLocalBuild == 'localbuild'
-      ? [
-          {
-            server: publicContainerImageEndpoint
-            identity: avmContainerRegistryReader.outputs.principalId
-          }
-        ]
-      : null
+    registries: null
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1851,7 +1804,6 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.17.0' = {
         avmContainerRegistryReader.outputs.resourceId
       ]
     }
-
     containers: [
       {
         name: 'ca-${solutionPrefix}'
@@ -1902,23 +1854,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.17.0' =
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: useLocalBuild == 'localbuild'
-      ? [
-          {
-            server: avmContainerRegistry.outputs.loginServer
-            identity: avmContainerRegistryReader.outputs.principalId
-          }
-        ]
-      : null
-    // registries: useLocalBuild == 'localbuild'
-    //   ? [
-    //       {
-    //         server: publicContainerImageEndpoint
-    //         image: 'contentprocessorapi'
-    //         imageTag: 'latest'
-    //       }
-    //     ]
-    //   : null
+    registries: null
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1930,9 +1866,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.17.0' =
     containers: [
       {
         name: 'ca-${solutionPrefix}-api'
-        image: (useLocalBuild != 'localbuild')
-          ? '${publicContainerImageEndpoint}/contentprocessorapi:latest'
-          : avmContainerRegistry.outputs.loginServer
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:latest'
         resources: {
           cpu: '4'
           memory: '8.0Gi'

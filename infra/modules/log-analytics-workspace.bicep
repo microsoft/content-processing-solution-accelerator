@@ -37,7 +37,7 @@ module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0
 
 resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = if (useExistingWorkspace) {
   name: existingLawName
-  scope: resourceGroup(existingLawSubscription ,existingLawResourceGroup)
+  scope: resourceGroup(existingLawSubscription, existingLawResourceGroup)
 }
 
 var lawKeys = useExistingWorkspace ? listKeys(existingLogAnalyticsWorkspace.id, '2020-08-01') : logAnalyticsWorkspace.outputs.primarySharedKey
