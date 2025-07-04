@@ -19,7 +19,7 @@ param azureExistingAIProjectResourceId string = ''
 // // Extract components from existing AI Project Resource ID if provided
 var useExistingProject = !empty(azureExistingAIProjectResourceId)
 var existingProjName = useExistingProject ? last(split(azureExistingAIProjectResourceId, '/')) : ''
-var existingProjEndpoint = useExistingProject ? format('https://{0}.services.ai.azure.com/api/projects/{0}', existingProjName) : ''
+var existingProjEndpoint = useExistingProject ? format('https://{0}.services.ai.azure.com/api/projects/{1}', aiServicesName, existingProjName) : ''
 
 // Reference to cognitive service in current resource group for new projects
 resource cogServiceReference 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
