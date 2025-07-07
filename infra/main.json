@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "5051872456300539828"
+      "templateHash": "12587990285876720392"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -24856,7 +24856,7 @@
           "networkAcls": {
             "value": {
               "bypass": "AzureServices",
-              "defaultAction": "Allow"
+              "defaultAction": "[if(parameters('enablePrivateNetworking'), 'Deny', 'Allow')]"
             }
           },
           "disableLocalAuth": {
@@ -24893,7 +24893,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "3041578275611732364"
+              "templateHash": "16330577693396165210"
             },
             "name": "Cognitive Services",
             "description": "This module deploys a Cognitive Service."
@@ -26087,11 +26087,11 @@
               "resourceGroup": "[variables('existingCognitiveServiceDetails')[4]]",
               "name": "[variables('existingCognitiveServiceDetails')[8]]"
             },
-            "cognigive_service_dependencies": {
+            "cognitive_service_dependencies": {
               "condition": "[not(variables('useExistingService'))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
-              "name": "[format('cognigive_service_dependencies-{0}', uniqueString('cognigive_service_dependencies', deployment().name))]",
+              "name": "[format('cognitive_service_dependencies-{0}', uniqueString('cognitive_service_dependencies', deployment().name))]",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -26143,7 +26143,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "13861656449810456066"
+                      "templateHash": "4128376395637895528"
                     }
                   },
                   "definitions": {
@@ -28106,7 +28106,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.36.1.42791",
-                              "templateHash": "6625892890991710866"
+                              "templateHash": "125568697111155565"
                             }
                           },
                           "definitions": {
@@ -28183,7 +28183,7 @@
                           "variables": {
                             "useExistingProject": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
                             "existingProjName": "[if(variables('useExistingProject'), last(split(parameters('azureExistingAIProjectResourceId'), '/')), '')]",
-                            "existingProjEndpoint": "[if(variables('useExistingProject'), format('https://{0}.services.ai.azure.com/api/projects/{0}', variables('existingProjName')), '')]"
+                            "existingProjEndpoint": "[if(variables('useExistingProject'), format('https://{0}.services.ai.azure.com/api/projects/{1}', parameters('aiServicesName'), variables('existingProjName')), '')]"
                           },
                           "resources": {
                             "cogServiceReference": {
@@ -28263,11 +28263,11 @@
                 "cognitiveServiceNew"
               ]
             },
-            "existing_cognigive_service_dependencies": {
+            "existing_cognitive_service_dependencies": {
               "condition": "[variables('useExistingService')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
-              "name": "[format('existing_cognigive_service_dependencies-{0}', uniqueString('existing_cognigive_service_dependencies', deployment().name))]",
+              "name": "[format('existing_cognitive_service_dependencies-{0}', uniqueString('existing_cognitive_service_dependencies', deployment().name))]",
               "subscriptionId": "[variables('existingCognitiveServiceDetails')[2]]",
               "resourceGroup": "[variables('existingCognitiveServiceDetails')[4]]",
               "properties": {
@@ -28324,7 +28324,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.1.42791",
-                      "templateHash": "13861656449810456066"
+                      "templateHash": "4128376395637895528"
                     }
                   },
                   "definitions": {
@@ -30287,7 +30287,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.36.1.42791",
-                              "templateHash": "6625892890991710866"
+                              "templateHash": "125568697111155565"
                             }
                           },
                           "definitions": {
@@ -30364,7 +30364,7 @@
                           "variables": {
                             "useExistingProject": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
                             "existingProjName": "[if(variables('useExistingProject'), last(split(parameters('azureExistingAIProjectResourceId'), '/')), '')]",
-                            "existingProjEndpoint": "[if(variables('useExistingProject'), format('https://{0}.services.ai.azure.com/api/projects/{0}', variables('existingProjName')), '')]"
+                            "existingProjEndpoint": "[if(variables('useExistingProject'), format('https://{0}.services.ai.azure.com/api/projects/{1}', parameters('aiServicesName'), variables('existingProjName')), '')]"
                           },
                           "resources": {
                             "cogServiceReference": {
@@ -30491,21 +30491,21 @@
               "metadata": {
                 "description": "The principal ID of the system assigned identity."
               },
-              "value": ""
+              "value": "[if(variables('useExistingService'), reference('cognitiveServiceExisting', '2025-04-01-preview', 'full').identity.principalId, tryGet(tryGet(if(variables('useExistingService'), reference('cognitiveServiceExisting', '2025-04-01-preview', 'full'), reference('cognitiveServiceNew', '2025-04-01-preview', 'full')), 'identity'), 'principalId'))]"
             },
             "location": {
               "type": "string",
               "metadata": {
                 "description": "The location the resource was deployed into."
               },
-              "value": ""
+              "value": "[if(variables('useExistingService'), reference('cognitiveServiceExisting', '2025-04-01-preview', 'full').location, if(variables('useExistingService'), reference('cognitiveServiceExisting', '2025-04-01-preview', 'full'), reference('cognitiveServiceNew', '2025-04-01-preview', 'full')).location)]"
             },
             "exportedSecrets": {
               "$ref": "#/definitions/secretsOutputType",
               "metadata": {
                 "description": "A hashtable of references to the secrets exported to the provided Key Vault. The key of each reference is each secret's name."
               },
-              "value": {}
+              "value": "[if(variables('useExistingService'), reference('existing_cognitive_service_dependencies').outputs.exportedSecrets.value, reference('cognitive_service_dependencies').outputs.exportedSecrets.value)]"
             },
             "privateEndpoints": {
               "type": "array",
@@ -30515,11 +30515,11 @@
               "metadata": {
                 "description": "The private endpoints of the congitive services account."
               },
-              "value": []
+              "value": "[if(variables('useExistingService'), reference('existing_cognitive_service_dependencies').outputs.privateEndpoints.value, reference('cognitive_service_dependencies').outputs.privateEndpoints.value)]"
             },
             "aiProjectInfo": {
               "$ref": "#/definitions/aiProjectOutputType",
-              "value": "[if(variables('useExistingService'), reference('existing_cognigive_service_dependencies').outputs.aiProjectInfo.value, reference('cognigive_service_dependencies').outputs.aiProjectInfo.value)]"
+              "value": "[if(variables('useExistingService'), reference('existing_cognitive_service_dependencies').outputs.aiProjectInfo.value, reference('cognitive_service_dependencies').outputs.aiProjectInfo.value)]"
             }
           }
         }
@@ -30528,9 +30528,9 @@
         "avmContainerApp",
         "avmManagedIdentity",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "avmVirtualNetwork",
         "logAnalyticsWorkspace"
       ]
@@ -32868,8 +32868,8 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "avmVirtualNetwork"
       ]
     },

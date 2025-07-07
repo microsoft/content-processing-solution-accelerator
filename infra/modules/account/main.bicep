@@ -323,7 +323,7 @@ output exportedSecrets secretsOutputType = useExistingService ? existing_cogniti
 @description('The private endpoints of the congitive services account.')
 output privateEndpoints privateEndpointOutputType[] = useExistingService ? existing_cognitive_service_dependencies.outputs.privateEndpoints : cognitive_service_dependencies.outputs.privateEndpoints
 
-import { aiProjectOutputType } from './project.bicep'
+import { aiProjectOutputType } from './modules/project.bicep'
 output aiProjectInfo aiProjectOutputType = useExistingService ? existing_cognitive_service_dependencies.outputs.aiProjectInfo : cognitive_service_dependencies.outputs.aiProjectInfo
 
 // ================ //

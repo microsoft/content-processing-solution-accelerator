@@ -590,8 +590,7 @@ module avmAiServices 'modules/account/main.bicep' = {
     ]
     networkAcls: {
       bypass: 'AzureServices'
-      //defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
-      defaultAction: 'Allow' // Always allow for AI Services
+      defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
     }
     disableLocalAuth: true
     enableTelemetry: enableTelemetry
