@@ -1,6 +1,6 @@
 ## How to Check & Update Quota
  
-Please follow [quota check instructions guide](./Quota_Check.md) to check quota availability by region.
+Please follow [quota check instructions guide](./quota_check.md) to check quota availability by region.
 
 1. **Navigate** to the [Azure AI Foundry portal](https://ai.azure.com/).  
 2. **Select** the AI Project associated with this accelerator.  
