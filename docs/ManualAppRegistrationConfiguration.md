@@ -127,7 +127,7 @@ This guide provides detailed steps to manually register both front-end and backe
     - **Issuer URL**: `https://sts.windows.net/<tenant_id>/v2.0`
     - **Allowed Token Audiences**: Usually the Application ID URI or Client ID
 - Click **Add**  
-![manual_register_app_api_4](./images/manual_register_app_api_4.png)
+![manual_register_app_api_4](./images/manual_register_app_web_4.png)
 ![manual_register_app_api_5](./images/manual_register_app_api_5.png)
 
 ---
