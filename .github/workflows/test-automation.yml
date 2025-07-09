@@ -1,15 +1,6 @@
 name: Test Automation Content Processing
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'tests/e2e-test/**'
-  schedule:
-      - cron: '0 13 * * *'  # Runs at 1 PM UTC
-  workflow_dispatch:
   workflow_call: 
     inputs:
       CP_WEB_URL:
