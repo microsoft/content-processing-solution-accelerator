@@ -106,6 +106,8 @@ $AZURE_ENV_IMAGETAG = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_IMAGETAG" -De
 $CONTAINER_WEB_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_WEB_APP_NAME" -Required $true
 $CONTAINER_API_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_API_APP_NAME" -Required $true
 $CONTAINER_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_NAME" -Required $true
+$ACR_NAME = Get-AzdEnvValueOrDefault -KeyName "CONTAINER_REGISTRY_NAME" -Required $true
+$ACR_ENDPOINT = Get-AzdEnvValueOrDefault -KeyName "CONTAINER_REGISTRY_LOGIN_SERVER" -Required $true
 
 # Export the variables for later use
 Write-Host "Using the following parameters:"
@@ -119,24 +121,24 @@ Ensure-AzLogin
 Write-Output "Starting build process."
 
 # Deploy container registry
-Write-Host "Deploying container registry"
-$OUTPUTS = az deployment group create --resource-group $AZURE_RESOURCE_GROUP --template-file "$TemplateFile" --parameters environmentName=$ENV_NAME acrPullPrincipalIds="['$($CONTAINER_APP_USER_PRINCIPAL_ID)']" --query "properties.outputs" --output json | ConvertFrom-Json
+# Write-Host "Deploying container registry"
+# $OUTPUTS = az deployment group create --resource-group $AZURE_RESOURCE_GROUP --template-file "$TemplateFile" --parameters environmentName=$ENV_NAME acrPullPrincipalIds="['$($CONTAINER_APP_USER_PRINCIPAL_ID)']" --query "properties.outputs" --output json | ConvertFrom-Json
 
 # Extract ACR name and endpoint
-$ACR_NAME = $OUTPUTS.createdAcrName.value
-$ACR_ENDPOINT = $OUTPUTS.acrEndpoint.value
+# $ACR_NAME = $OUTPUTS.createdAcrName.value
+# $ACR_ENDPOINT = $OUTPUTS.acrEndpoint.value
 
 Write-Host "Extracted ACR Name: $ACR_NAME"
 Write-Host "Extracted ACR Endpoint: $ACR_ENDPOINT"
 
-# Set ACR details as environment variables in AZD
-azd env set ACR_NAME $ACR_NAME
-azd env set ACR_ENDPOINT $ACR_ENDPOINT
+# # Set ACR details as environment variables in AZD
+# azd env set ACR_NAME $ACR_NAME
+# azd env set ACR_ENDPOINT $ACR_ENDPOINT
 
-Write-Host "Saved ACR details to AZD environment variables."
+# Write-Host "Saved ACR details to AZD environment variables."
 
 # Log in to Azure Container Registry
-Write-Host "Logging into Azure Container Registry: $ACR_NAME"
+Write-Host "Logging into Azure Container Registry: $ACR_NAME with endpoint $ACR_ENDPOINT"
 az acr login -n $ACR_NAME
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to log in to ACR"

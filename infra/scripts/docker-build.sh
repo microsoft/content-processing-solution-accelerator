@@ -37,7 +37,8 @@ AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest" 
 CONTAINER_WEB_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WEB_APP_NAME" "" true)
 CONTAINER_API_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_API_APP_NAME" "" true)
 CONTAINER_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_APP_NAME" "" true)
-
+$ACR_NAME = $(get_azd_env_value_or_default "CONTAINER_REGISTRY_NAME" "" true)
+$ACR_ENDPOINT = $(get_azd_env_value_or_default "CONTAINER_REGISTRY_LOGIN_SERVER" "" true)
 
 echo "Using the following parameters:"
 echo "AZURE_SUBSCRIPTION_ID = $AZURE_SUBSCRIPTION_ID"
@@ -54,24 +55,24 @@ if ! az account show --only-show-errors &>/dev/null; then
 fi
 
 # Deploy container registry
-echo "Deploying container registry..."
-DEPLOY_OUTPUT=$(az deployment group create \
-    --resource-group "$AZURE_RESOURCE_GROUP" \
-    --template-file "$TEMPLATE_FILE" \
-    --parameters environmentName="$ENV_NAME" acrPullPrincipalIds="['$CONTAINER_APP_USER_PRINCIPAL_ID']" \
-    --query "properties.outputs" \
-    --output json)
+# echo "Deploying container registry..."
+# DEPLOY_OUTPUT=$(az deployment group create \
+#     --resource-group "$AZURE_RESOURCE_GROUP" \
+#     --template-file "$TEMPLATE_FILE" \
+#     --parameters environmentName="$ENV_NAME" acrPullPrincipalIds="['$CONTAINER_APP_USER_PRINCIPAL_ID']" \
+#     --query "properties.outputs" \
+#     --output json)
 
-ACR_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.createdAcrName.value')
-ACR_ENDPOINT=$(echo "$DEPLOY_OUTPUT" | jq -r '.acrEndpoint.value')
+# ACR_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.createdAcrName.value')
+# ACR_ENDPOINT=$(echo "$DEPLOY_OUTPUT" | jq -r '.acrEndpoint.value')
 
-echo "Extracted ACR Name: $ACR_NAME"
-echo "Extracted ACR Endpoint: $ACR_ENDPOINT"
+# echo "Extracted ACR Name: $ACR_NAME"
+# echo "Extracted ACR Endpoint: $ACR_ENDPOINT"
 
-azd env set ACR_NAME "$ACR_NAME"
-azd env set ACR_ENDPOINT "$ACR_ENDPOINT"
+# azd env set ACR_NAME "$ACR_NAME"
+# azd env set ACR_ENDPOINT "$ACR_ENDPOINT"
 
-echo "Logging into ACR..."
+echo "Logging into Azure Container Registry: $ACR_NAME with endpoint $ACR_ENDPOINT"
 az acr login -n "$ACR_NAME"
 
 # Build and push function
