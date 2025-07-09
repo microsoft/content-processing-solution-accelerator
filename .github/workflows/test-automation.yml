@@ -1,19 +1,24 @@
 name: Test Automation Content Processing
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-    paths:
-      - 'tests/e2e-test/**'
-  schedule:
-      - cron: '0 13 * * *'  # Runs at 1 PM UTC
-  workflow_dispatch:
+  workflow_call: 
+    inputs:
+      CP_WEB_URL:
+        required: true
+        type: string
+      CP_RG:
+        required: true
+        type: string
+      CP_CONTAINERAPP_PREFIX:
+        required: true
+        type: string
 
 env:
-    url: ${{ vars.CP_WEB_URL }}
+    url: ${{ inputs.CP_WEB_URL }}
+    CP_RG: ${{ inputs.CP_RG }}
+    CP_CONTAINERAPP_PREFIX: ${{ inputs.CP_CONTAINERAPP_PREFIX }}
     accelerator_name: "Content Processing"
+
 
 jobs:
   test:
@@ -27,11 +32,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-
-      - name: Azure CLI Login
-        uses: azure/login@v2
-        with:
-          creds: '{"clientId":"${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+      
+      - name: Login to Azure
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
 
       - name: Start Container App
         id: start-container-app
@@ -39,9 +44,9 @@ jobs:
         with:
           azcliversion: 'latest'
           inlineScript: |
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ vars.CP_RG }}/providers/Microsoft.App/containerApps/${{ vars.CP_CONTAINERAPP_PREFIX }}-app/start?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ vars.CP_RG }}/providers/Microsoft.App/containerApps/${{ vars.CP_CONTAINERAPP_PREFIX }}-api/start?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ vars.CP_RG }}/providers/Microsoft.App/containerApps/${{ vars.CP_CONTAINERAPP_PREFIX }}-web/start?api-version=2025-01-01"
+            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-app/start?api-version=2025-01-01"
+            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-api/start?api-version=2025-01-01"
+            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-web/start?api-version=2025-01-01"
 
       - name: Install dependencies
         run: |
@@ -50,6 +55,41 @@ jobs:
 
       - name: Ensure browsers are installed
         run: python -m playwright install --with-deps chromium
+
+      - name: Validate URL
+        run: |
+          if [ -z "${{ env.url }}" ]; then
+            echo "ERROR: No URL provided for testing"
+            exit 1
+  
+          fi
+
+          echo "Testing URL: ${{ env.url }}"
+
+
+      - name: Wait for Application to be Ready
+        run: |
+          echo "Waiting for application to be ready at ${{ env.url }} "
+          max_attempts=10
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt: Checking if application is ready..."
+            if curl -f -s "${{ env.url }}" > /dev/null; then
+              echo "Application is ready!"
+              break
+
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Application is not ready after $max_attempts attempts"
+              exit 1
+            fi
+            
+            echo "Application not ready, waiting 30 seconds..."
+            sleep 30
+            attempt=$((attempt + 1))
+          done
 
       - name: Run tests(1)
         id: test1
@@ -127,7 +167,7 @@ jobs:
         with:
           azcliversion: 'latest'
           inlineScript: |
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ vars.CP_RG }}/providers/Microsoft.App/containerApps/${{ vars.CP_CONTAINERAPP_PREFIX }}-app/stop?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ vars.CP_RG }}/providers/Microsoft.App/containerApps/${{ vars.CP_CONTAINERAPP_PREFIX }}-api/stop?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ vars.CP_RG }}/providers/Microsoft.App/containerApps/${{ vars.CP_CONTAINERAPP_PREFIX }}-web/stop?api-version=2025-01-01"
+            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-app/stop?api-version=2025-01-01"
+            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-api/stop?api-version=2025-01-01"
+            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-web/stop?api-version=2025-01-01"
             az logout
