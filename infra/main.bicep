@@ -65,7 +65,7 @@ param resourceGroupLocation string = resourceGroup().location
 param resourceNameFormatString string = '{0}avm-cps'
 
 @description('Optional. Enable WAF for the deployment.')
-param enablePrivateNetworking bool = true
+param enablePrivateNetworking bool
 
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
@@ -1387,14 +1387,32 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.17.0' =
 // Outputs      //
 // ============ //
 
-@description('The resource ID of the Container App Environment.')
+@description('The name of the Container App used for Web App.')
 output CONTAINER_WEB_APP_NAME string = avmContainerApp_Web.outputs.name
-@description('The resource ID of the Container App API.')
+
+@description('The name of the Container App used for API.')
 output CONTAINER_API_APP_NAME string = avmContainerApp_API.outputs.name
-@description('The resource ID of the Container App Environment.')
+
+@description('The FQDN of the Container App.')
 output CONTAINER_WEB_APP_FQDN string = avmContainerApp_Web.outputs.fqdn
-@description('The resource ID of the Container App API.')
+
+@description('The FQDN of the Container App API.')
 output CONTAINER_API_APP_FQDN string = avmContainerApp_API.outputs.fqdn
+
+@description('The name of the Container App used for APP.')
+output CONTAINER_APP_NAME string = avmContainerApp.outputs.name
+
+@description('The user identity resource ID used fot the Container APP.')
+output CONTAINER_APP_USER_IDENTITY_ID string = avmContainerRegistryReader.outputs.resourceId
+
+@description('The user identity Principal ID used fot the Container APP.')
+output CONTAINER_APP_USER_PRINCIPAL_ID string = avmContainerRegistryReader.outputs.principalId
+
+@description('The name of the Azure Container Registry.')
+output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
+
+@description('The login server of the Azure Container Registry.')
+output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
 
 @description('The resource group the resources were deployed into.')
 output resourceGroupName string = resourceGroup().name
