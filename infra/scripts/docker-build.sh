@@ -101,6 +101,7 @@ build_and_push_image() {
             --name "$CONTAINER_APP" \
             --resource-group "$AZURE_RESOURCE_GROUP" \
             --image "$IMAGE_URI" \
+            --set-env-vars REFRESH_TIMESTAMP=$(date +%Y%m%d%H%M%S) \
             --only-show-errors
 
         echo "Updated registry for container app: $CONTAINER_APP"

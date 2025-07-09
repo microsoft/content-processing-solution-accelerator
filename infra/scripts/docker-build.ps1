@@ -39,9 +39,10 @@ function Build-And-Push-Image {
 
     if($CONTAINER_APP_NAME)
     {
+        $timestamp = Get-Date -Format "yyyyMMddHHmmss"
         Write-Host "Updating the Container app registry server & image"
         az containerapp registry set --name $CONTAINER_APP_NAME --resource-group $AZURE_RESOURCE_GROUP --server "$ACR_NAME.azurecr.io" --identity $CONTAINER_APP_USER_IDENTITY_ID --only-show-errors
-        az containerapp update --name $CONTAINER_APP_NAME --resource-group $AZURE_RESOURCE_GROUP --image $IMAGE_URI --only-show-errors
+        az containerapp update --name $CONTAINER_APP_NAME --resource-group $AZURE_RESOURCE_GROUP --image $IMAGE_URI --set-env-vars REFRESH_TIMESTAMP=$timestamp --only-show-errors
         Write-Host "Updated the registry for Container: $CONTAINER_APP_NAME"
     }
 }
