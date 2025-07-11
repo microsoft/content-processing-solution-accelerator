@@ -3,6 +3,9 @@
 #     template: azd-init@1.11.1
 name: content-processing
 
+requiredVersions:
+  azd: ">=1.15.0 !=1.17.1"
+
 metadata:
   template: content-processing@1.0
   name: content-processinge@1.0
