@@ -382,7 +382,7 @@
       "name": "default",
       "properties": {
         "tags": {
-          "templateName": "Content Processing"
+          "TemplateName": "Content Processing"
         }
       }
     },
