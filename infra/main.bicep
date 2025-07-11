@@ -80,6 +80,16 @@ var resourceGroupLocation = resourceGroup().location
 // Load the abbrevations file required to name the azure resources.
 var abbrs = loadJsonContent('./abbreviations.json')
 
+// ========== Resource Group Tag ========== //
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+  name: 'default'
+  properties: {
+    tags: {
+      templateName: 'Content Processing'
+    }
+  }
+}
+
 // ========== Managed Identity ========== //
 module managedIdentityModule 'deploy_managed_identity.bicep' = {
   name: 'deploy_managed_identity'
