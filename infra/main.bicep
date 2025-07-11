@@ -467,6 +467,13 @@ module avmContainerRegistry 'modules/container-registry.bicep' = {
     acrSku: 'Standard'
     publicNetworkAccess: 'Enabled'
     zoneRedundancy: 'Disabled'
+    roleAssignments: [
+      {
+        principalId: avmContainerRegistryReader.outputs.principalId
+        roleDefinitionIdOrName: 'AcrPull'
+        principalType: 'ServicePrincipal'
+      }
+    ]
     tags: tags
   }
 }
