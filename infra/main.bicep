@@ -417,6 +417,16 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
   }
 }
 
+// ========== Resource Group Tag ========== //
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+  name: 'default'
+  properties: {
+    tags: {
+      TemplateName: 'Content Processing'
+    }
+  }
+}
+
 // ========== Managed Identity ========== //
 module avmManagedIdentity './modules/managed-identity.bicep' = {
   params: {
