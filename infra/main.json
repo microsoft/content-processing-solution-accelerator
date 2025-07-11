@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.1.42791",
-      "templateHash": "12587990285876720392"
+      "templateHash": "961802883849358046"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -119,7 +119,6 @@
     },
     "enablePrivateNetworking": {
       "type": "bool",
-      "defaultValue": true,
       "metadata": {
         "description": "Optional. Enable WAF for the deployment."
       }
@@ -15893,20 +15892,107 @@
           "zoneRedundancy": {
             "value": "Disabled"
           },
+          "roleAssignments": {
+            "value": [
+              {
+                "principalId": "[reference('avmContainerRegistryReader').outputs.principalId.value]",
+                "roleDefinitionIdOrName": "AcrPull",
+                "principalType": "ServicePrincipal"
+              }
+            ]
+          },
           "tags": {
             "value": "[parameters('tags')]"
           }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
           "contentVersion": "1.0.0.0",
           "metadata": {
             "_generator": {
               "name": "bicep",
               "version": "0.36.1.42791",
-              "templateHash": "8441318505264724450"
+              "templateHash": "11910096117865508081"
             },
             "name": "Container Registry Module"
+          },
+          "definitions": {
+            "roleAssignmentType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                  }
+                },
+                "roleDefinitionIdOrName": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                  }
+                },
+                "principalId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                  }
+                },
+                "principalType": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Device",
+                    "ForeignGroup",
+                    "Group",
+                    "ServicePrincipal",
+                    "User"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The principal type of the assigned principal ID."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The description of the role assignment."
+                  }
+                },
+                "condition": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                  }
+                },
+                "conditionVersion": {
+                  "type": "string",
+                  "allowedValues": [
+                    "2.0"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Version of the condition."
+                  }
+                },
+                "delegatedManagedIdentityResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The Resource Id of the delegated managed identity resource."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a role assignment.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            }
           },
           "parameters": {
             "acrName": {
@@ -15942,6 +16028,16 @@
                 "description": "Zone redundancy setting for the Azure Container Registry"
               }
             },
+            "roleAssignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/roleAssignmentType"
+              },
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Array of role assignments to create."
+              }
+            },
             "tags": {
               "type": "object",
               "defaultValue": {},
@@ -15950,8 +16046,8 @@
               }
             }
           },
-          "resources": [
-            {
+          "resources": {
+            "avmContainerRegistry": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
               "name": "[parameters('acrName')]",
@@ -15975,6 +16071,9 @@
                   },
                   "zoneRedundancy": {
                     "value": "[parameters('zoneRedundancy')]"
+                  },
+                  "roleAssignments": {
+                    "value": "[parameters('roleAssignments')]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -18996,19 +19095,26 @@
                 }
               }
             }
-          ],
+          },
           "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[reference('avmContainerRegistry').outputs.name.value]"
+            },
             "resourceId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', parameters('acrName')), '2022-09-01').outputs.resourceId.value]"
+              "value": "[reference('avmContainerRegistry').outputs.resourceId.value]"
             },
             "loginServer": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', parameters('acrName')), '2022-09-01').outputs.loginServer.value]"
+              "value": "[reference('avmContainerRegistry').outputs.loginServer.value]"
             }
           }
         }
-      }
+      },
+      "dependsOn": [
+        "avmContainerRegistryReader"
+      ]
     },
     "avmStorageAccount": {
       "type": "Microsoft.Resources/deployments",
@@ -30527,10 +30633,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "avmVirtualNetwork",
         "logAnalyticsWorkspace"
       ]
@@ -32868,8 +32974,8 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "avmVirtualNetwork"
       ]
     },
@@ -49999,30 +50105,65 @@
     "CONTAINER_WEB_APP_NAME": {
       "type": "string",
       "metadata": {
-        "description": "The resource ID of the Container App Environment."
+        "description": "The name of the Container App used for Web App."
       },
       "value": "[reference('avmContainerApp_Web').outputs.name.value]"
     },
     "CONTAINER_API_APP_NAME": {
       "type": "string",
       "metadata": {
-        "description": "The resource ID of the Container App API."
+        "description": "The name of the Container App used for API."
       },
       "value": "[reference('avmContainerApp_API').outputs.name.value]"
     },
     "CONTAINER_WEB_APP_FQDN": {
       "type": "string",
       "metadata": {
-        "description": "The resource ID of the Container App Environment."
+        "description": "The FQDN of the Container App."
       },
       "value": "[reference('avmContainerApp_Web').outputs.fqdn.value]"
     },
     "CONTAINER_API_APP_FQDN": {
       "type": "string",
       "metadata": {
-        "description": "The resource ID of the Container App API."
+        "description": "The FQDN of the Container App API."
       },
       "value": "[reference('avmContainerApp_API').outputs.fqdn.value]"
+    },
+    "CONTAINER_APP_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Container App used for APP."
+      },
+      "value": "[reference('avmContainerApp').outputs.name.value]"
+    },
+    "CONTAINER_APP_USER_IDENTITY_ID": {
+      "type": "string",
+      "metadata": {
+        "description": "The user identity resource ID used fot the Container APP."
+      },
+      "value": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+    },
+    "CONTAINER_APP_USER_PRINCIPAL_ID": {
+      "type": "string",
+      "metadata": {
+        "description": "The user identity Principal ID used fot the Container APP."
+      },
+      "value": "[reference('avmContainerRegistryReader').outputs.principalId.value]"
+    },
+    "CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Azure Container Registry."
+      },
+      "value": "[reference('avmContainerRegistry').outputs.name.value]"
+    },
+    "CONTAINER_REGISTRY_LOGIN_SERVER": {
+      "type": "string",
+      "metadata": {
+        "description": "The login server of the Azure Container Registry."
+      },
+      "value": "[reference('avmContainerRegistry').outputs.loginServer.value]"
     },
     "resourceGroupName": {
       "type": "string",
