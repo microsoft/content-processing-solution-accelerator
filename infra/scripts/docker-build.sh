@@ -37,8 +37,8 @@ AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest" 
 CONTAINER_WEB_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WEB_APP_NAME" "" true)
 CONTAINER_API_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_API_APP_NAME" "" true)
 CONTAINER_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_APP_NAME" "" true)
-$ACR_NAME = $(get_azd_env_value_or_default "CONTAINER_REGISTRY_NAME" "" true)
-$ACR_ENDPOINT = $(get_azd_env_value_or_default "CONTAINER_REGISTRY_LOGIN_SERVER" "" true)
+ACR_NAME=$(get_azd_env_value_or_default "CONTAINER_REGISTRY_NAME" "" true)
+ACR_ENDPOINT=$(get_azd_env_value_or_default "CONTAINER_REGISTRY_LOGIN_SERVER" "" true)
 
 echo "Using the following parameters:"
 echo "AZURE_SUBSCRIPTION_ID = $AZURE_SUBSCRIPTION_ID"
