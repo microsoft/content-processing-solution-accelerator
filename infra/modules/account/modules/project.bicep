@@ -2,7 +2,7 @@
 param name string
 
 @description('Required. The location of the Project resource.')
-param location string = resourceGroup().location
+param location string
 
 @description('Optional. The description of the AI Foundry project to create. Defaults to the project name.')
 param desc string = name
@@ -19,7 +19,7 @@ param azureExistingAIProjectResourceId string = ''
 // // Extract components from existing AI Project Resource ID if provided
 var useExistingProject = !empty(azureExistingAIProjectResourceId)
 var existingProjName = useExistingProject ? last(split(azureExistingAIProjectResourceId, '/')) : ''
-var existingProjEndpoint = useExistingProject ? format('https://{0}.services.ai.azure.com/api/projects/{1}', aiServicesName, existingProjName) : ''
+// var existingProjEndpoint = useExistingProject ? format('https://{0}.services.ai.azure.com/api/projects/{1}', aiServicesName, existingProjName) : ''
 
 // Reference to cognitive service in current resource group for new projects
 resource cogServiceReference 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
@@ -41,11 +41,19 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
   }
 }
 
+// Assign identity to existing project
+resource existingProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = if (useExistingProject && !empty(existingProjName)) {
+  name: existingProjName
+  parent: cogServiceReference
+  location: location
+  identity: { type: 'SystemAssigned' }
+}
+
 @description('AI Project metadata including name, resource ID, and API endpoint.')
 output aiProjectInfo aiProjectOutputType = {
-  name: useExistingProject ? existingProjName : aiProject.name
-  resourceId: useExistingProject ? azureExistingAIProjectResourceId : aiProject.id
-  apiEndpoint: useExistingProject ? existingProjEndpoint : aiProject.properties.endpoints['AI Foundry API']
+  name: useExistingProject ? existingProject.name : aiProject.name
+  resourceId: useExistingProject ? existingProject.id : aiProject.id
+  apiEndpoint: useExistingProject ? existingProject.properties.endpoints['AI Foundry API'] : aiProject.properties.endpoints['AI Foundry API']
 }
 
 @export()

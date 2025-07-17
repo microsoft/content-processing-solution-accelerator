@@ -277,7 +277,7 @@ module existing_cognitive_service_dependencies './modules/dependencies.bicep' = 
     projectName: projectName
     projectDescription: projectDescription
     azureExistingAIProjectResourceId: existingFoundryProjectResourceId
-    location: location
+    location: cognitiveServiceExisting.?location!
     deployments: deployments
     diagnosticSettings: diagnosticSettings
     lock: lock
