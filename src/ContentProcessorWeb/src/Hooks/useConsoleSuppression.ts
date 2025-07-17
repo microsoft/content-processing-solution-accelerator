@@ -2,8 +2,14 @@ import { useEffect } from "react";
 
 // Custom hook to suppress console logs, warnings, and errors in localhost
 const useConsoleSuppression = () => {
+
+  function toBoolean(value: unknown): boolean {
+    return (window.location.hostname === "localhost") ? true : String(value).toLowerCase() === "true";
+  }
+
   useEffect(() => {
-    if (window.location.hostname !== "localhost") {
+    const isConsoleFlag = toBoolean(process.env.REACT_APP_CONSOLE_LOG_ENABLED);
+    if (isConsoleFlag !== true) {
       // Save the original console methods
       const originalConsoleError = console.error;
       const originalConsoleWarn = console.warn;
@@ -11,10 +17,10 @@ const useConsoleSuppression = () => {
       const originalConsoleInfo = console.info;
 
       // Suppress console methods
-      console.error = () => {};
-      console.warn = () => {};
-      console.log = () => {};
-      console.info = () => {};
+      console.error = () => { };
+      console.warn = () => { };
+      console.log = () => { };
+      console.info = () => { };
 
       // Clean up when component unmounts
       return () => {

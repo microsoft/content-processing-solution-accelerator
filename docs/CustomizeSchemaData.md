@@ -65,7 +65,7 @@ A schema should be created that includes all fields you expect to extract and tr
     3. The name of the main schema class that will get instantiated.
     4. Friendly, readable description of the schema. this value will be show up in UI.
 
-    > ![Schema Registartion REST API call with payload](./Images/schema-register-api.png)
+    > ![Schema Registartion REST API call with payload](./images/schema-register-api.png)
 
     After running the request, you will see a response with an ID confirming the schema has been added. It will now show up in the web UI in the schema dropdown as well.
 

@@ -34,7 +34,12 @@ jobs:
           login-server: ${{ env.ACR_LOGIN_SERVER }}
           username: ${{ env.ACR_USERNAME }}
           password: ${{ env.ACR_PASSWORD }}
-
+      
+      - name: Get registry
+        id: registry
+        run: |
+          echo "ext_registry=${{ env.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io'}}" >> $GITHUB_OUTPUT
+        
       - name: Set Docker image tags
         id: tag
         run: |
@@ -64,8 +69,8 @@ jobs:
           file: ./src/ContentProcessor/Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/contentprocessor:${{ env.BASE_TAG }}
-            ${{ env.ACR_LOGIN_SERVER }}/contentprocessor:${{ env.DATE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.BASE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.DATE_TAG }}
 
       - name: Build and Push ContentProcessorAPI Docker image
         uses: docker/build-push-action@v6
@@ -74,8 +79,8 @@ jobs:
           file: ./src/ContentProcessorAPI/Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/contentprocessorapi:${{ env.BASE_TAG }}
-            ${{ env.ACR_LOGIN_SERVER }}/contentprocessorapi:${{ env.DATE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.BASE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.DATE_TAG }}
 
       - name: Build and Push ContentProcessorWeb Docker image
         uses: docker/build-push-action@v6
@@ -84,5 +89,5 @@ jobs:
           file: ./src/ContentProcessorWeb/Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/contentprocessorweb:${{ env.BASE_TAG }}
-            ${{ env.ACR_LOGIN_SERVER }}/contentprocessorweb:${{ env.DATE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}

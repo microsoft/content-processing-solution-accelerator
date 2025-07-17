@@ -102,6 +102,7 @@ class CosmosMongDBHelper:
         result = self.container.update_one(query, {"$set": update})
         return result
 
-    def delete_document(self, item_id: str):
-        result = self.container.delete_one({"Id": item_id})
+    def delete_document(self, item_id: str, field_name: str = None):
+        field_name = field_name or "Id"  # Use "Id" if field_name is empty or None
+        result = self.container.delete_one({field_name: item_id})
         return result

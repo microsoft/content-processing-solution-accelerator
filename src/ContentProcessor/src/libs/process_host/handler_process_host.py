@@ -40,11 +40,11 @@ class HandlerHostManager:
             }
         )
 
-    async def start_handler_processes(self):
+    async def start_handler_processes(self, test_mode: bool = False):
         for handler in self.handlers:
             handler["handler_info"].handler.start()
 
-        while True:
+        while not test_mode:
             for handler in self.handlers:
                 handler["handler_info"].handler.join(timeout=1)
                 if (

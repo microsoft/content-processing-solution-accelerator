@@ -23,7 +23,7 @@ This guide provides detailed steps to manually register both front-end and backe
   - Copy the Ingress URL from the Overview .
 
 - Click **Register**  
-  ![manual_register_app_web_1](./Images/manual_register_app_web_1.png)
+  ![manual_register_app_web_1](./images/manual_register_app_web_1.png)
 
 
 ### 2. Expose an API
@@ -37,7 +37,7 @@ This guide provides detailed steps to manually register both front-end and backe
   - Admin consent display name: `Access Web App`
   - Admin consent description: `Allows the app to access the web application as the signed-in user`
 - Click **Add scope**  
-  ![manual_register_app_web_2](./Images/manual_register_app_web_2.png)
+  ![manual_register_app_web_2](./images/manual_register_app_web_2.png)
 
 
 ### 3. Configure Certificates and Secrets
@@ -49,7 +49,13 @@ This guide provides detailed steps to manually register both front-end and backe
 - Start (Optional for custom range): Set the starting date of the secret's validity
 - End (Optional for custom range): Set the ending date of the secret's validity
 - Click **Add** and remember to copy and store the secret value securely as it will not be shown again
-![manual_register_app_web_3](./Images/manual_register_app_web_3.png)
+![manual_register_app_web_3](./images/manual_register_app_web_3.png)
+
+### 3. Get Tenant ID
+- Go to **Tenant Properties** in [Azure Portal](https://portal.azure.com)
+- Copy the Tenant ID (will be used in next step)
+
+![manual_register_app_web_6](./images/manual_register_app_web_6.png)
 
 ### 4. Set Up Authentication in Web Container App
 
@@ -58,15 +64,13 @@ This guide provides detailed steps to manually register both front-end and backe
 - Click **Add Identity Provider**
 - Choose **Microsoft**
 - Input:
-- **Client ID**: The Application (client) ID from the app registration
-- **Client Secret**: The secret value you generated in Certificates & Secrets from the app registration
-- **Issuer URL**: `https://sts.windows.net/<tenant_id>/v2.0`
-- **Allowed Token Audiences**: Usually the Application ID URI or Client ID
+  - **Client ID**: The Application (client) ID from the app registration
+  - **Client Secret**: The secret value you generated in Certificates & Secrets from the app registration
+  - **Issuer URL**: `https://sts.windows.net/<tenant_id>/v2.0`
+  - **Allowed Token Audiences**: Usually the Application ID URI or Client ID
 - Click **Add**  
   
-![manual_register_app_web_4](./Images/manual_register_app_web_4.png)
-
-
+![manual_register_app_web_4](./images/manual_register_app_web_4.png)
 
 
 ## Step 2: Register API Application
@@ -87,7 +91,7 @@ This guide provides detailed steps to manually register both front-end and backe
   - Copy the Ingress URL from the Overview .
 
 - Click **Register**  
-  ![manual_register_app_api_1](./Images/manual_register_app_api_1.png)
+  ![manual_register_app_api_1](./images/manual_register_app_api_1.png)
 
   ### 2. Expose an API
 
@@ -98,7 +102,7 @@ This guide provides detailed steps to manually register both front-end and backe
   - Scope name: `user_impersonation`
   - Admin consent details
 - Click **Add scope**  
-![manual_register_app_api_2](./Images/manual_register_app_api_2.png)
+![manual_register_app_api_2](./images/manual_register_app_api_2.png)
 
 ### 3. Configure Certificates and Secrets
 
@@ -109,7 +113,7 @@ This guide provides detailed steps to manually register both front-end and backe
 - Start (Optional for custom range): Set the starting date of the secret's validity
 - End (Optional for custom range): Set the ending date of the secret's validity
 - Click **Add** and remember to copy and store the secret value securely as it will not be shown again
-![manual_register_app_api_3](./Images/manual_register_app_api_3.png)
+![manual_register_app_api_3](./images/manual_register_app_api_3.png)
 
 ### 4. Set Up Authentication in API Container App
 
@@ -123,8 +127,8 @@ This guide provides detailed steps to manually register both front-end and backe
     - **Issuer URL**: `https://sts.windows.net/<tenant_id>/v2.0`
     - **Allowed Token Audiences**: Usually the Application ID URI or Client ID
 - Click **Add**  
-![manual_register_app_api_4](./Images/manual_register_app_api_4.png)
-![manual_register_app_api_5](./Images/manual_register_app_api_5.png)
+![manual_register_app_api_4](./images/manual_register_app_web_4.png)
+![manual_register_app_api_5](./images/manual_register_app_api_5.png)
 
 ---
 

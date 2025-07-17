@@ -6,7 +6,7 @@ import io
 import urllib.parse
 import uuid
 
-from fastapi import APIRouter, Body, Depends, File, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from pymongo.results import UpdateResult
 
@@ -28,6 +28,7 @@ from app.routers.models.contentprocessor.model import (
     ContentProcess,
     ContentProcessorRequest,
     ContentResultUpdate,
+    ContentResultDelete,
     Paging,
     ProcessFile,
     Status,
@@ -490,3 +491,32 @@ async def get_original_file(
         return StreamingResponse(
             file_stream, media_type=content_type_string, headers=headers
         )
+
+
+@router.delete(
+    "/processed/{process_id}",
+    response_model=ContentResultDelete,
+    summary="Delete the processed content result",
+    description="""
+            Returns the deleted record for a given process ID.
+            """,
+)
+async def delete_processed_file(
+    process_id: str, app_config: AppConfiguration = Depends(get_app_config)
+) -> ContentResultDelete:
+    try:
+        deleted_file = CosmosContentProcess(process_id=process_id).delete_processed_file(
+            connection_string=app_config.app_cosmos_connstr,
+            database_name=app_config.app_cosmos_database,
+            collection_name=app_config.app_cosmos_container_process,
+            storage_connection_string=app_config.app_storage_blob_url,
+            container_name=app_config.app_cps_processes,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return ContentResultDelete(
+        status="Success" if deleted_file else "Failed",
+        process_id=deleted_file.process_id if deleted_file else "",
+        message="" if deleted_file else "This record no longer exists. Please refresh."
+    )

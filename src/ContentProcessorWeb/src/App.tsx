@@ -2,10 +2,8 @@ import * as React from "react";
 import { useEffect } from "react";
 import Header from "./Components/Header/Header.tsx"; // Import Header
 import "./Styles/App.css";
-import "./Components/Panels/Panels.css";
-import "./Components/Content/Content.css";
 import HomePage from "./Pages/HomePage.tsx";
-import DefaultPage from "./Pages/DefaultPage/DefaultPage.tsx";
+import DefaultPage from "./Pages/DefaultPage";
 //import AuxiliaryPage from "./Pages/AuxiliaryPage/AuxiliaryPage.tsx";
 import NotFound from "./Pages/NotFound.tsx";
 import { ToastContainer } from "react-toastify";
@@ -18,7 +16,7 @@ import {
 } from "react-router-dom";
 import Spinner from "./Components/Spinner/Spinner.tsx";
 
-import { useDispatch, useSelector,shallowEqual  } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { RootState } from './store';
 
 
@@ -31,7 +29,7 @@ const App: React.FC<AppProps> = ({ isDarkMode, toggleTheme }) => {
 
   const store = useSelector((state: RootState) => ({
     loader: state.loader.loadingStack
-  }),shallowEqual );
+  }), shallowEqual);
 
   // Apply or remove the "dark-mode" class on the body element based on isDarkMode
   useEffect(() => {

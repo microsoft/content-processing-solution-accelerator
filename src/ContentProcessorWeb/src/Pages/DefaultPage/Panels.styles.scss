@@ -1,0 +1,224 @@
+.layout {
+  display: flex;
+}
+
+/* Panel container styling */
+
+.panelLeftLayout {
+  position: relative;
+  display: flex;
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralBackground3Pressed);
+  border-width: 1px 1px 0px 0px;
+  flex: 37%;
+  min-width: 300px;
+
+  .collapseButtonDiv {
+    display: none;
+  }
+
+
+  .panelLeft {
+    position: relative;
+    display: flex;
+    height: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    overflow-y: auto;
+    background-color: var(--colorNeutralBackground1);
+    border: 1px solid var(--colorNeutralBackground3Pressed);
+    border-width: 1px 1px 0px 0px;
+  }
+
+  .leftcontent {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    overflow: scroll;
+    box-sizing: border-box;
+    padding: 0px 16px 16px 16px;
+    height: 100%;
+    width: 100%;
+    margin: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .topContainer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+    padding: 0px 16px 16px 16px;
+  }
+
+
+}
+
+.panelLeftLayout.collapse {
+  flex: none;
+  width: auto;
+  min-width: 20px;
+  transition: width 0.3s ease;
+
+  .collapseButtonDiv {
+    display: block !important;
+  }
+
+  .panelLeft {
+    display: none !important;
+  }
+}
+
+.panelCenter {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  align-items: start;
+  box-sizing: border-box;
+
+  flex: 31%;
+  min-width: 280px;
+  background: var(--colorNeutralBackground1);
+  border: 2px solid var(--colorNeutralBackground3Pressed);
+  border-width: 2px 2px 0 0;
+
+  .custom-test button {
+    padding: 0px !important;
+    padding: 5px 12px 12px 10px !important
+  }
+
+  .saveBtnDiv {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    .msgp {
+      margin: auto;
+      color: var(--colorPaletteRedBackground3);
+    }
+  }
+
+  .collapseButtonDiv {
+    display: none;
+  }
+}
+
+.panelCenter.collapse {
+  flex: none;
+  width: auto;
+  min-width: 20px;
+  border: 1px solid var(--colorNeutralBackground3Pressed);
+  border-width: 1px 1px 0 0;
+
+  .collapseButtonDiv {
+    display: block !important;
+  }
+
+  .pc {
+    display: none !important;
+  }
+}
+
+
+.panelRight {
+   background-color: var(--colorNeutralBackground4);
+  position: relative;
+  display: flex;
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralBackground3Pressed);
+  border-width: 1px 0px 0px 0px;
+
+  flex: 31%;
+  min-width: 280px;
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralBackground3Pressed);
+  border-width: 1px 1px 0 0;
+
+  .panelRightContent {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    overflow: scroll;
+    box-sizing: border-box;
+    padding: 0px 16px 16px 16px;
+    height: 100%;
+    width: 100%;
+    margin: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* margin-top: -64px; */
+  }
+
+  .right-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  .collapseButtonDiv {
+    display: none;
+  }
+
+}
+
+.panelRight.collapse {
+  flex: none;
+  width: auto;
+  min-width: 20px;
+
+  .collapseButtonDiv {
+    display: block !important;
+  }
+
+  .pr {
+    display: none !important;
+  }
+}
+
+.panelToolbar {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 16px 16px;
+  min-height: 64px;
+  justify-content: space-between;
+  box-sizing: border-box;
+  backdrop-filter: saturate(180%) blur(16px);
+  transition: all 0.3s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.fullHeight {
+  height: 100vh;
+}
+
+.rotate-button {
+  writing-mode: vertical-rl;
+  /* Makes text go top to bottom */
+  text-orientation: mixed;
+  /* Keeps letters upright */
+  height: auto;
+  /* Automatically adjusts height */
+  width: fit-content;
+  /* Adjust width based on content */
+  cursor: pointer;
+  min-width: 10px !important;
+
+  height: 172px;
+  padding: 16px 5px !important;
+  text-transform: uppercase;
+  font-size: 12px !important;
+  letter-spacing: 1px;
+  word-spacing: 3px;
+}
