@@ -149,12 +149,6 @@ jobs:
               gptModelName="gpt-4o" \
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
-              minReplicaContainerApp="1" \
-              maxReplicaContainerApp="1" \
-              minReplicaContainerApi="1" \
-              maxReplicaContainerApi="1" \
-              minReplicaContainerWeb="1" \
-              maxReplicaContainerWeb="1" \
               aiDeploymentsLocation="${{ env.AZURE_LOCATION }}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
