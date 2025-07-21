@@ -143,6 +143,7 @@ jobs:
             --template-file infra/main.json \
             --parameters \
               environmentName="${{ env.ENVIRONMENT_NAME }}" \
+              enablePrivateNetworking="false" \
               secondaryLocation="EastUs2" \
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
