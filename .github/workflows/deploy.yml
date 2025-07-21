@@ -144,7 +144,7 @@ jobs:
             --parameters \
               environmentName="${{ env.ENVIRONMENT_NAME }}" \
               enablePrivateNetworking="false" \
-              secondaryLocation="EastUs2" \
+              secondaryLocation="eastus2" \
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-4o" \
