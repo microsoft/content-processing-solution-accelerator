@@ -16,7 +16,6 @@ jobs:
       propertydamageclaimform_schema_id: ${{ steps.register.outputs.propertylossdamageclaimform_schema_id }}
       RESOURCE_GROUP_NAME: ${{ steps.generate_rg_name.outputs.RESOURCE_GROUP_NAME }}
       CONTAINER_WEB_APPURL: ${{ steps.get_output.outputs.CONTAINER_WEB_APPURL }}
-      SOLUTION_NAME: ${{ steps.get_output.outputs.SOLUTION_NAME }}
       DEPLOYMENT_SUCCESS: ${{ steps.deployment_status.outputs.SUCCESS }}
       AI_SERVICES_NAME: ${{ steps.get_ai_services_name.outputs.AI_SERVICES_NAME }}
       KEYVAULTS: ${{ steps.list_keyvaults.outputs.KEYVAULTS }}
@@ -173,11 +172,6 @@ jobs:
           export CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_NAME.value')
           echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
 
-          export SOLUTION_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.SOLUTION_NAME.value')
-          echo "SOLUTION_NAME=$SOLUTION_NAME" >> $GITHUB_ENV
-          echo "SOLUTION_NAME=$SOLUTION_NAME" >> $GITHUB_OUTPUT
-
-
       - name: Register schemas
         id: register
         run: |
@@ -285,7 +279,6 @@ jobs:
     with:
       CP_WEB_URL: ${{ needs.deploy.outputs.CONTAINER_WEB_APPURL }}
       CP_RG: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
-      CP_CONTAINERAPP_PREFIX: ${{ format('ca-{0}', needs.deploy.outputs.SOLUTION_NAME ) }}
     secrets: inherit
 
   cleanup:
