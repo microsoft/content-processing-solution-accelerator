@@ -14,10 +14,12 @@ get_azd_env_value_or_default() {
     local default="$2"
     local required="${3:-false}"
 
-    value=$(azd env get-value "$key" 2>/dev/null || echo "")
+    local value
+    value=$(azd env get-value "$key" 2>/dev/null)
+    local exit_code=$?
 
-    if [ -z "$value" ]; then
-        if [ "$required" = true ]; then
+    if [ $exit_code -ne 0 ] || [ -z "$value" ]; then
+        if [ "$required" = "true" ]; then
             echo "❌ Required environment key '$key' not found." >&2
             exit 1
         else
@@ -27,6 +29,7 @@ get_azd_env_value_or_default() {
 
     echo "$value"
 }
+
 # Required env variables
 AZURE_SUBSCRIPTION_ID=$(get_azd_env_value_or_default "AZURE_SUBSCRIPTION_ID" "" true)
 ENV_NAME=$(get_azd_env_value_or_default "AZURE_ENV_NAME" "" true)
@@ -37,8 +40,8 @@ AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest" 
 CONTAINER_WEB_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WEB_APP_NAME" "" true)
 CONTAINER_API_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_API_APP_NAME" "" true)
 CONTAINER_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_APP_NAME" "" true)
-$ACR_NAME = $(get_azd_env_value_or_default "CONTAINER_REGISTRY_NAME" "" true)
-$ACR_ENDPOINT = $(get_azd_env_value_or_default "CONTAINER_REGISTRY_LOGIN_SERVER" "" true)
+ACR_NAME=$(get_azd_env_value_or_default "CONTAINER_REGISTRY_NAME" "" true)
+ACR_ENDPOINT=$(get_azd_env_value_or_default "CONTAINER_REGISTRY_LOGIN_SERVER" "" true)
 
 echo "Using the following parameters:"
 echo "AZURE_SUBSCRIPTION_ID = $AZURE_SUBSCRIPTION_ID"
