@@ -165,7 +165,7 @@ jobs:
           export CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_API_APP_NAME.value')
           echo "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" >> $GITHUB_ENV
 
-          export CONTAINER_WEB_APPURL=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_FQDN.value')
+          export CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_FQDN.value')"
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_ENV
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_OUTPUT
 
