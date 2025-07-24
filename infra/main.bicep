@@ -86,8 +86,7 @@ param existingLogAnalyticsWorkspaceId string = ''
 param existingFoundryProjectResourceId string = ''
 
 // ========== Variables ========== //
-var solutionPrefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id, environmentName, resourceGroup().location)), 12), 12, '0')}'
-
+var solutionPrefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id, environmentName, resourceGroup().location, resourceGroup().name)), 12), 12, '0')}'
 // ============== //
 // Resources      //
 // ============== //
