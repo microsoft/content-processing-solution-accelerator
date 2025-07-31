@@ -1,4 +1,6 @@
-from azure.identity import DefaultAzureCredential
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+from typing import Any
 
 from libs.application.application_configuration import AppConfiguration
 from libs.base.application_models import AppModelBase
@@ -11,10 +13,10 @@ class AppContext(AppModelBase):
     """
 
     configuration: AppConfiguration = None
-    credential: DefaultAzureCredential = None
+    credential: Any = None  # Azure credential object
 
     def set_configuration(self, configuration: AppConfiguration):
         self.configuration = configuration
 
-    def set_credential(self, credential: DefaultAzureCredential):
+    def set_credential(self, credential: Any):
         self.credential = credential

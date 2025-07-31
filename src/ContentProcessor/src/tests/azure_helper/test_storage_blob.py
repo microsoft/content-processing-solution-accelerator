@@ -1,20 +1,22 @@
 import pytest
 from io import BytesIO
-from libs.azure_helper.storage_blob import StorageBlobHelper
+from unittest.mock import MagicMock, patch
+
+# Ensure Azure credentials are mocked before any imports
+with patch("helpers.azure_credential_utils.get_azure_credential") as mock_cred:
+    mock_cred.return_value = MagicMock()
+    from libs.azure_helper.storage_blob import StorageBlobHelper
 
 
 @pytest.fixture
 def mock_blob_service_client(mocker):
+    """Mock BlobServiceClient class for tests."""
     return mocker.patch("libs.azure_helper.storage_blob.BlobServiceClient")
 
 
 @pytest.fixture
-def mock_default_azure_credential(mocker):
-    return mocker.patch("libs.azure_helper.storage_blob.DefaultAzureCredential")
-
-
-@pytest.fixture
-def storage_blob_helper(mock_blob_service_client, mock_default_azure_credential):
+def storage_blob_helper(mock_blob_service_client):
+    """Create StorageBlobHelper with mocked BlobServiceClient."""
     return StorageBlobHelper(
         account_url="https://testaccount.blob.core.windows.net",
         container_name="testcontainer",

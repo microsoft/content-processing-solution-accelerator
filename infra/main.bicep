@@ -810,6 +810,10 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.17.0' = {
             name: 'APP_CONFIG_ENDPOINT'
             value: ''
           }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
         ]
       }
     ]
@@ -853,6 +857,10 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.17.0' = {
           {
             name: 'APP_CONFIG_ENDPOINT'
             value: ''
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
           }
         ]
         probes: [
@@ -1272,6 +1280,10 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.17.0' = {
             name: 'APP_CONFIG_ENDPOINT'
             value: avmAppConfig.outputs.endpoint
           }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
         ]
       }
     ]
@@ -1326,6 +1338,10 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.17.0' =
           {
             name: 'APP_CONFIG_ENDPOINT'
             value: avmAppConfig.outputs.endpoint
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
           }
         ]
         probes: [
