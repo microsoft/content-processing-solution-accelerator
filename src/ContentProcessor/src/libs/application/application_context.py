@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 from typing import Any
 
-from helpers.azure_credential_utils import get_azure_credential
-
 from libs.application.application_configuration import AppConfiguration
 from libs.base.application_models import AppModelBase
 

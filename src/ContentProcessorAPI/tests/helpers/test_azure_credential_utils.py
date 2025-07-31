@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import pytest
 import sys
 import os
@@ -6,7 +9,9 @@ from unittest.mock import patch, MagicMock
 # Ensure src/backend is on the Python path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-import helpers.azure_credential_utils as azure_credential_utils
+# Import after path modification (flake8: noqa)
+import helpers.azure_credential_utils as azure_credential_utils  # noqa: E402
+
 
 # Synchronous tests
 

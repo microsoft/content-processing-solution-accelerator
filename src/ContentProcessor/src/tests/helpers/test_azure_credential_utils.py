@@ -9,9 +9,12 @@ from unittest.mock import patch, MagicMock
 # Ensure src directory is on the Python path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-import helpers.azure_credential_utils as azure_credential_utils
+# Import after path modification (flake8: noqa)
+import helpers.azure_credential_utils as azure_credential_utils  # noqa: E402
+
 
 # Synchronous tests
+
 
 @patch("helpers.azure_credential_utils.os.getenv")
 @patch("helpers.azure_credential_utils.DefaultAzureCredential")
@@ -29,6 +32,7 @@ def test_get_azure_credential_dev_env(mock_managed_identity_credential, mock_def
     mock_managed_identity_credential.assert_not_called()
     assert credential == mock_default_credential
 
+
 @patch("helpers.azure_credential_utils.os.getenv")
 @patch("helpers.azure_credential_utils.DefaultAzureCredential")
 @patch("helpers.azure_credential_utils.ManagedIdentityCredential")
@@ -44,7 +48,9 @@ def test_get_azure_credential_non_dev_env(mock_managed_identity_credential, mock
     mock_default_azure_credential.assert_not_called()
     assert credential == mock_managed_credential
 
+
 # Asynchronous tests
+
 
 @pytest.mark.asyncio
 @patch("helpers.azure_credential_utils.os.getenv")
@@ -62,6 +68,7 @@ async def test_get_azure_credential_async_dev_env(mock_aio_managed_identity_cred
     mock_aio_default_azure_credential.assert_called_once()
     mock_aio_managed_identity_credential.assert_not_called()
     assert credential == mock_aio_default_credential
+
 
 @pytest.mark.asyncio
 @patch("helpers.azure_credential_utils.os.getenv")

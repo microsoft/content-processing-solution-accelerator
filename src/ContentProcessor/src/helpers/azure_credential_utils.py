@@ -9,13 +9,13 @@ from azure.identity.aio import ManagedIdentityCredential as AioManagedIdentityCr
 async def get_azure_credential_async(client_id=None):
     """
     Returns an Azure credential asynchronously based on the application environment.
-    
+
     If the environment is 'dev', it uses AioDefaultAzureCredential.
     Otherwise, it uses AioManagedIdentityCredential.
-    
+
     Args:
         client_id (str, optional): The client ID for the Managed Identity Credential.
-    
+
     Returns:
         Credential object: Either AioDefaultAzureCredential or AioManagedIdentityCredential.
     """
@@ -28,13 +28,13 @@ async def get_azure_credential_async(client_id=None):
 def get_azure_credential(client_id=None):
     """
     Returns an Azure credential based on the application environment.
-    
+
     If the environment is 'dev', it uses DefaultAzureCredential.
     Otherwise, it uses ManagedIdentityCredential.
-    
+
     Args:
         client_id (str, optional): The client ID for the Managed Identity Credential.
-    
+
     Returns:
         Credential object: Either DefaultAzureCredential or ManagedIdentityCredential.
     """
