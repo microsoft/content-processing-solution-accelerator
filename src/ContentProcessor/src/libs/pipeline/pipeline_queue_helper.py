@@ -4,7 +4,7 @@
 import logging
 
 from azure.core.exceptions import ResourceNotFoundError
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.queue import QueueClient, QueueMessage
 
 from libs.pipeline import pipeline_step_helper
@@ -28,7 +28,7 @@ def invalidate_queue(queue_client: QueueClient):
 
 
 def create_or_get_queue_client(
-    queue_name: str, accouont_url: str, credential: DefaultAzureCredential
+    queue_name: str, accouont_url: str, credential: get_azure_credential
 ) -> QueueClient:
     queue_client = QueueClient(
         account_url=accouont_url, queue_name=queue_name, credential=credential
@@ -55,7 +55,7 @@ def has_messages(queue_client: QueueClient) -> bool:
 
 
 def pass_data_pipeline_to_next_step(
-    data_pipeline: DataPipeline, account_url: str, credential: DefaultAzureCredential
+    data_pipeline: DataPipeline, account_url: str, credential: get_azure_credential
 ):
     next_step_name = pipeline_step_helper.get_next_step_name(
         data_pipeline.pipeline_status, data_pipeline.pipeline_status.active_step
@@ -70,7 +70,7 @@ def pass_data_pipeline_to_next_step(
 
 
 def _create_queue_client(
-    account_url: str, queue_name: str, credential: DefaultAzureCredential
+    account_url: str, queue_name: str, credential: get_azure_credential
 ) -> QueueClient:
     queue_client = QueueClient(
         account_url=account_url, queue_name=queue_name, credential=credential

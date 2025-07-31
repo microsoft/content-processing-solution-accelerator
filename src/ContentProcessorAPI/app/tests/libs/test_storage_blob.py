@@ -1,7 +1,12 @@
 import pytest
 from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient
 from azure.core.exceptions import ResourceNotFoundError
-from app.libs.storage_blob.helper import StorageBlobHelper
+from unittest.mock import MagicMock, patch
+
+# Ensure Azure credentials are mocked before any imports
+with patch("helpers.azure_credential_utils.get_azure_credential") as mock_cred:
+    mock_cred.return_value = MagicMock()
+    from app.libs.storage_blob.helper import StorageBlobHelper
 
 
 @pytest.fixture

@@ -1,9 +1,13 @@
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+from azure.identity import get_bearer_token_provider
+from helpers.azure_credential_utils import get_azure_credential
 from openai import AzureOpenAI
 
 
 def get_openai_client(azure_openai_endpoint: str) -> AzureOpenAI:
-    credential = DefaultAzureCredential()
+    credential = get_azure_credential()
     token_provider = get_bearer_token_provider(
         credential, "https://cognitiveservices.azure.com/.default"
     )

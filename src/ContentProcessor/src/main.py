@@ -5,7 +5,7 @@ import asyncio
 import os
 import sys
 
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 
 from libs.base.application_main import AppMainBase
 from libs.process_host import handler_type_loader
@@ -29,7 +29,7 @@ class Application(AppMainBase):
 
     def _initialize_application(self):
         # Add Azure Credential
-        self.application_context.set_credential(DefaultAzureCredential())
+        self.application_context.set_credential(get_azure_credential())
 
     async def run(self, test_mode: bool = False):
         # Get Process lists from the configuration - ex. ["extract", "transform", "evaluate", "save", "custom1", "custom2"....]

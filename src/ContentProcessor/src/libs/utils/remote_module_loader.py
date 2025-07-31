@@ -4,7 +4,7 @@
 import importlib.util
 import sys
 
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.blob import BlobServiceClient
 
 
@@ -27,7 +27,7 @@ def load_schema_from_blob(
 
 def _download_blob_content(container_name, blob_name, account_url):
     # Create the BlobServiceClient object which will be used to create a container client
-    credential = DefaultAzureCredential()
+    credential = get_azure_credential()
     blob_service_client = BlobServiceClient(
         account_url=account_url, credential=credential
     )
