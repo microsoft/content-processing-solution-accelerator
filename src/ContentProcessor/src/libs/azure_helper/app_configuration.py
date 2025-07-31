@@ -8,7 +8,6 @@ from helpers.azure_credential_utils import get_azure_credential
 
 
 class AppConfigurationHelper:
-    credential: get_azure_credential = None
     app_config_endpoint: str = None
     app_config_client: AzureAppConfigurationClient = None
 

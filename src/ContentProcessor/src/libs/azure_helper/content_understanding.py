@@ -14,7 +14,6 @@ COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 
 
 class AzureContentUnderstandingHelper:
-    credential: get_azure_credential = None
 
     def __init__(
         self,

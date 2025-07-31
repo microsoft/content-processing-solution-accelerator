@@ -8,7 +8,6 @@ from azure.storage.blob import BlobServiceClient
 
 
 class StorageBlobHelper:
-    credential: get_azure_credential = None
     blob_service_client: BlobServiceClient = None
 
     @staticmethod

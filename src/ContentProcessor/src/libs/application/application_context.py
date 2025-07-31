@@ -13,7 +13,6 @@ class AppContext(AppModelBase):
     """
 
     configuration: AppConfiguration = None
-    credential: get_azure_credential = None
 
     def set_configuration(self, configuration: AppConfiguration):
         self.configuration = configuration
