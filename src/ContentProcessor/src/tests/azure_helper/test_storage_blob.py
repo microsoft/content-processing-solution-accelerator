@@ -1,24 +1,20 @@
+pytest_plugins = ["pytest_mock"]
+
 import pytest
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import MagicMock
 from libs.azure_helper.storage_blob import StorageBlobHelper
-
-
-@pytest.fixture(autouse=True)
-def mock_azure_credentials(mocker):
-    """Mock Azure credentials to prevent real authentication attempts during tests."""
-    mocker.patch("azure.identity.DefaultAzureCredential")
-    mocker.patch("azure.identity.ManagedIdentityCredential")
-    mocker.patch("helpers.azure_credential_utils.get_azure_credential", return_value="mock_credential")
 
 
 @pytest.fixture
 def mock_blob_service_client(mocker):
+    """Mock BlobServiceClient to prevent any network calls."""
     return mocker.patch("azure.storage.blob.BlobServiceClient")
 
 
 @pytest.fixture
-def storage_blob_helper(mock_blob_service_client, mock_azure_credentials):
+def storage_blob_helper(mock_blob_service_client):
+    """Create StorageBlobHelper with all Azure services mocked via conftest.py."""
     return StorageBlobHelper(
         account_url="https://testaccount.blob.core.windows.net",
         container_name="testcontainer",

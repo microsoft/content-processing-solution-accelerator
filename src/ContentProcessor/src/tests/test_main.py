@@ -1,3 +1,5 @@
+pytest_plugins = ["pytest_mock"]
+
 import pytest
 from main import Application
 
@@ -36,10 +38,7 @@ async def test_application_run(mocker):
         "libs.process_host.handler_process_host.HandlerHostManager"
     ).return_value
 
-    # Mock Azure credentials to prevent real authentication attempts
-    mocker.patch("azure.identity.DefaultAzureCredential")
-    mocker.patch("azure.identity.ManagedIdentityCredential")
-    mocker.patch("helpers.azure_credential_utils.get_azure_credential", return_value="mock_credential")
+    # Note: Azure credentials are mocked globally via conftest.py
 
     # Mock the read_configuration method to return a complete configuration
     mocker.patch(
