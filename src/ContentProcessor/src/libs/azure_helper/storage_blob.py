@@ -3,12 +3,12 @@
 
 from typing import IO, Union
 
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.blob import BlobServiceClient
 
 
 class StorageBlobHelper:
-    credential: DefaultAzureCredential = None
+    credential: get_azure_credential = None
     blob_service_client: BlobServiceClient = None
 
     @staticmethod
@@ -16,7 +16,7 @@ class StorageBlobHelper:
         return StorageBlobHelper(account_url=account_url, container_name=container_name)
 
     def __init__(self, account_url: str, container_name=None):
-        self.credential = DefaultAzureCredential()
+        self.credential = get_azure_credential()
         self.blob_service_client = BlobServiceClient(
             account_url=account_url, credential=self.credential
         )
