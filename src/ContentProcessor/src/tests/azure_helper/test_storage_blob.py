@@ -1,6 +1,15 @@
 import pytest
 from io import BytesIO
+from unittest.mock import patch
 from libs.azure_helper.storage_blob import StorageBlobHelper
+
+
+@pytest.fixture(autouse=True)
+def mock_azure_credentials(mocker):
+    """Mock Azure credentials to prevent real authentication attempts during tests."""
+    mocker.patch("azure.identity.DefaultAzureCredential")
+    mocker.patch("azure.identity.ManagedIdentityCredential")
+    mocker.patch("helpers.azure_credential_utils.get_azure_credential", return_value="mock_credential")
 
 
 @pytest.fixture
@@ -9,12 +18,7 @@ def mock_blob_service_client(mocker):
 
 
 @pytest.fixture
-def mock_default_azure_credential(mocker):
-    return mocker.patch("azure.storage.blob.BlobServiceClient")
-
-
-@pytest.fixture
-def storage_blob_helper(mock_blob_service_client, mock_default_azure_credential):
+def storage_blob_helper(mock_blob_service_client, mock_azure_credentials):
     return StorageBlobHelper(
         account_url="https://testaccount.blob.core.windows.net",
         container_name="testcontainer",
