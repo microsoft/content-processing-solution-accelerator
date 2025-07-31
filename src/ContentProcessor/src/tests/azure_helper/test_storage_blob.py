@@ -1,5 +1,3 @@
-pytest_plugins = ["pytest_mock"]
-
 import pytest
 from io import BytesIO
 from unittest.mock import MagicMock

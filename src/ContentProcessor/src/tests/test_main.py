@@ -1,5 +1,3 @@
-pytest_plugins = ["pytest_mock"]
-
 import pytest
 from main import Application
 
