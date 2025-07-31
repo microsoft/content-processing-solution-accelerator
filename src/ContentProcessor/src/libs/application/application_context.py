@@ -1,5 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+from typing import Any
+
 from helpers.azure_credential_utils import get_azure_credential
 
 from libs.application.application_configuration import AppConfiguration
@@ -13,9 +15,10 @@ class AppContext(AppModelBase):
     """
 
     configuration: AppConfiguration = None
+    credential: Any = None  # Azure credential object
 
     def set_configuration(self, configuration: AppConfiguration):
         self.configuration = configuration
 
-    def set_credential(self, credential: get_azure_credential):
+    def set_credential(self, credential: Any):
         self.credential = credential
