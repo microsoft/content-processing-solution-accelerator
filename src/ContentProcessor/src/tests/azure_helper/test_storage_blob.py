@@ -5,12 +5,12 @@ from libs.azure_helper.storage_blob import StorageBlobHelper
 
 @pytest.fixture
 def mock_blob_service_client(mocker):
-    return mocker.patch("libs.azure_helper.storage_blob.BlobServiceClient")
+    return mocker.patch("azure.storage.blob.BlobServiceClient")
 
 
 @pytest.fixture
 def mock_default_azure_credential(mocker):
-    return mocker.patch("libs.azure_helper.storage_blob.DefaultAzureCredential")
+    return mocker.patch("azure.storage.blob.BlobServiceClient")
 
 
 @pytest.fixture
