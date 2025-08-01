@@ -446,6 +446,7 @@ module avmKeyVault './modules/key-vault.bicep' = {
       {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: 'Key Vault Administrator'
+        principalType: 'ServicePrincipal'
       }
     ]
     enablePurgeProtection: false
@@ -502,6 +503,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
       {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        principalType: 'ServicePrincipal'
       }
       {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
@@ -597,6 +599,7 @@ module avmAiServices 'modules/account/main.bicep' = {
       {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' // Owner role
+        principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
@@ -1096,14 +1099,17 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       {
         principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'App Configuration Data Reader'
+        principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'App Configuration Data Reader'
+        principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'App Configuration Data Reader'
+        principalType: 'ServicePrincipal'
       }
     ]
     keyValues: [
