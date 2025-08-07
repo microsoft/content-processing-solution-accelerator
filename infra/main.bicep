@@ -91,6 +91,8 @@ var solutionPrefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id,
 // Resources      //
 // ============== //
 
+var existingProjectResourceId = trim(existingFoundryProjectResourceId)
+
 // ========== AVM Telemetry ========== //
 #disable-next-line no-deployments-resources
 resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
@@ -579,7 +581,7 @@ module avmAiServices 'modules/account/main.bicep' = {
     name: 'aisa-${solutionPrefix}'
     projectName: 'aifp-${solutionPrefix}'
     projectDescription: 'aifp-${solutionPrefix}'
-    existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    existingFoundryProjectResourceId: existingProjectResourceId
     location: aiDeploymentsLocation
     sku: 'S0'
     allowProjectManagement: true
@@ -632,7 +634,7 @@ module avmAiServices 'modules/account/main.bicep' = {
     // WAF related parameters
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
     //publicNetworkAccess: 'Enabled' // Always enabled for AI Services
-    privateEndpoints: (enablePrivateNetworking)
+    privateEndpoints: (enablePrivateNetworking && empty(existingProjectResourceId))
       ? [
           {
             name: 'ai-services-private-endpoint-${solutionPrefix}'
