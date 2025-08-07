@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.177.2456",
-      "templateHash": "5192359171136519746"
+      "templateHash": "17580921797975596025"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -166,7 +166,7 @@
     }
   },
   "variables": {
-    "solutionPrefix": "[format('cps-{0}', padLeft(take(toLower(uniqueString(subscription().id, parameters('environmentName'), resourceGroup().location)), 12), 12, '0'))]",
+    "solutionPrefix": "[format('cps-{0}', padLeft(take(toLower(uniqueString(subscription().id, parameters('environmentName'), resourceGroup().location, resourceGroup().name)), 12), 12, '0'))]",
     "privateDnsZones": [
       "privatelink.cognitiveservices.azure.com",
       "privatelink.openai.azure.com",
@@ -255,7 +255,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -935,7 +935,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -1680,7 +1680,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -2360,7 +2360,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -3045,7 +3045,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -11024,15 +11024,15 @@
           "outputs": {
             "resourceId": {
               "type": "string",
-              "value": "[if(variables('useExistingWorkspace'), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingLawSubscription'), variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_new_log_analytics_workspace'), '2022-09-01').resourceId)]"
+              "value": "[if(variables('useExistingWorkspace'), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingLawSubscription'), variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), reference('logAnalyticsWorkspace').outputs.resourceId.value)]"
             },
             "logAnalyticsWorkspaceId": {
               "type": "string",
-              "value": "[if(variables('useExistingWorkspace'), reference('existingLogAnalyticsWorkspace').customerId, listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_new_log_analytics_workspace'), '2022-09-01').logAnalyticsWorkspaceId)]"
+              "value": "[if(variables('useExistingWorkspace'), reference('existingLogAnalyticsWorkspace').customerId, reference('logAnalyticsWorkspace').outputs.logAnalyticsWorkspaceId.value)]"
             },
             "primarySharedKey": {
               "type": "securestring",
-              "value": "[if(variables('useExistingWorkspace'), if(variables('useExistingWorkspace'), listKeys(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingLawSubscription'), variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), '2020-08-01'), listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_new_log_analytics_workspace'), '2022-09-01').primarySharedKey).primarySharedKey, listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_new_log_analytics_workspace'), '2022-09-01').primarySharedKey)]"
+              "value": "[if(variables('useExistingWorkspace'), if(variables('useExistingWorkspace'), listKeys(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingLawSubscription'), variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), '2020-08-01'), listOutputsWithSecureValues('logAnalyticsWorkspace', '2022-09-01').primarySharedKey).primarySharedKey, listOutputsWithSecureValues('logAnalyticsWorkspace', '2022-09-01').primarySharedKey)]"
             }
           }
         }
@@ -11055,12 +11055,12 @@
             "value": "[parameters('location')]"
           },
           "workspaceResourceId": {
-            "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+            "value": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
           },
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -12369,7 +12369,7 @@
           },
           "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "logAnalyticsWorkspaceResourceId": {
-            "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+            "value": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
           },
           "networkAcls": {
             "value": {
@@ -24954,7 +24954,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -26262,7 +26262,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.36.177.2456",
-                      "templateHash": "4128376395637895528"
+                      "templateHash": "11270933172961789567"
                     }
                   },
                   "definitions": {
@@ -28071,7 +28071,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.36.177.2456",
-                              "templateHash": "1200612323329026557"
+                              "templateHash": "9150529619101779014"
                             }
                           },
                           "definitions": {
@@ -30646,10 +30646,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "avmVirtualNetwork",
         "logAnalyticsWorkspace"
       ]
@@ -32987,8 +32987,8 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "avmVirtualNetwork"
       ]
     },
@@ -33023,8 +33023,8 @@
             "value": {
               "destination": "log-analytics",
               "logAnalyticsConfiguration": {
-                "customerId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').logAnalyticsWorkspaceId]",
-                "sharedKey": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').primarySharedKey]"
+                "customerId": "[reference('logAnalyticsWorkspace').outputs.logAnalyticsWorkspaceId.value]",
+                "sharedKey": "[listOutputsWithSecureValues('logAnalyticsWorkspace', '2022-09-01').primarySharedKey]"
               }
             }
           },
@@ -34458,6 +34458,10 @@
                   {
                     "name": "APP_CONFIG_ENDPOINT",
                     "value": ""
+                  },
+                  {
+                    "name": "APP_ENV",
+                    "value": "prod"
                   }
                 ]
               }
@@ -35970,6 +35974,10 @@
                   {
                     "name": "APP_CONFIG_ENDPOINT",
                     "value": ""
+                  },
+                  {
+                    "name": "APP_ENV",
+                    "value": "prod"
                   }
                 ],
                 "probes": [
@@ -42904,7 +42912,7 @@
           "diagnosticSettings": {
             "value": [
               {
-                "workspaceResourceId": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', 'deploy_log_analytics_workspace'), '2022-09-01').resourceId]",
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]",
                 "logCategoriesAndGroups": [
                   {
                     "categoryGroup": "allLogs",
@@ -43005,11 +43013,11 @@
               },
               {
                 "name": "APP_STORAGE_BLOB_URL",
-                "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', format(parameters('resourceNameFormatString'), 'st')), '2022-09-01').serviceEndpoints.blob]"
+                "value": "[reference('avmStorageAccount').outputs.serviceEndpoints.value.blob]"
               },
               {
                 "name": "APP_STORAGE_QUEUE_URL",
-                "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', format(parameters('resourceNameFormatString'), 'st')), '2022-09-01').serviceEndpoints.queue]"
+                "value": "[reference('avmStorageAccount').outputs.serviceEndpoints.value.queue]"
               },
               {
                 "name": "APP_AI_PROJECT_ENDPOINT",
@@ -43017,7 +43025,7 @@
               },
               {
                 "name": "APP_COSMOS_CONNSTR",
-                "value": "[listOutputsWithSecureValues(resourceId('Microsoft.Resources/deployments', format(parameters('resourceNameFormatString'), 'cosmos-')), '2022-09-01').primaryReadWriteConnectionString]"
+                "value": "[listOutputsWithSecureValues('avmCosmosDB', '2022-09-01').primaryReadWriteConnectionString]"
               }
             ]
           },
@@ -47083,6 +47091,10 @@
                   {
                     "name": "APP_CONFIG_ENDPOINT",
                     "value": "[reference('avmAppConfig').outputs.endpoint.value]"
+                  },
+                  {
+                    "name": "APP_ENV",
+                    "value": "prod"
                   }
                 ]
               }
@@ -48594,6 +48606,10 @@
                   {
                     "name": "APP_CONFIG_ENDPOINT",
                     "value": "[reference('avmAppConfig').outputs.endpoint.value]"
+                  },
+                  {
+                    "name": "APP_ENV",
+                    "value": "prod"
                   }
                 ],
                 "probes": [
