@@ -2,11 +2,11 @@
 
 ## Requirements
 
-• Python 3.11 or higher + PIP
-• Node.js 18+ and npm
-• Azure CLI, and an Azure Subscription
-• Docker Desktop (optional, for containerized development)
-• Visual Studio Code IDE (recommended)
+• **Python 3.11 or higher** + PIP
+• **Node.js 18+** and npm
+• **Azure CLI** and an Azure Subscription
+• **Docker Desktop** (optional, for containerized development)
+• **Visual Studio Code IDE** (recommended)
 
 ## Local Setup
 
@@ -89,6 +89,7 @@ The files for the dev container are located in `/.devcontainer/` folder.
    You can set the solution up to use a different database in Cosmos. For example, you can name it something like `contentprocess-dev`. To do this:
    
    i. Change the environment variable `AZURE_COSMOS_DATABASE` to the new database name.
+   
    ii. You will need to create the database in the Cosmos DB account. You can do this from the Data Explorer pane in the portal, click on the drop down labeled "+ New Container" and provide all the necessary details.
 
 5. **Create `.env` files:**
