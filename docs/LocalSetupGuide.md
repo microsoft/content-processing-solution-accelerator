@@ -1,307 +1,216 @@
-# Local Setup and Development Guide
+# Guide to Local Development
 
-This guide provides instructions for setting up the Content Processing Solution Accelerator locally for development and testing. The solution consists of three main components that work together to process multi-modal documents.
+## Requirements
 
-## Table of Contents
+• Python 3.11 or higher + PIP
+• Node.js 18+ and npm
+• Azure CLI, and an Azure Subscription
+• Docker Desktop (optional, for containerized development)
+• Visual Studio Code IDE (recommended)
 
-- [Local Setup: Quick Start](#local-setup-quick-start)
-- [Development Environment](#development-environment)
-- [Deploy with Azure Developer CLI](#deploy-with-azure-developer-cli)
-- [Troubleshooting](#troubleshooting)
+## Local Setup
 
-## Local Setup: Quick Start
+**Note for macOS Developers:** If you are using macOS on Apple Silicon (ARM64), you may experience compatibility issues with some Azure services. We recommend testing thoroughly and using alternative approaches if needed.
 
-Follow these steps to set up and run the application locally for development:
+The easiest way to run this accelerator is in a VS Code Dev Container, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
+
+1. Start Docker Desktop (install it if not already installed)
+2. Open the project: [Open in Dev Containers](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/content-processing-solution-accelerator)
+3. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window
+
+## Detailed Development Container Setup Instructions
+
+The solution contains a [development container](https://code.visualstudio.com/docs/remote/containers) with all the required tooling to develop and deploy the accelerator. To deploy the Content Processing Solution Accelerator using the provided development container you will also need:
+
+• [Visual Studio Code](https://code.visualstudio.com/)
+• [Remote containers extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+If you are running this on Windows, we recommend you clone this repository in [WSL](https://code.visualstudio.com/docs/remote/wsl):
+
+```bash
+git clone https://github.com/microsoft/content-processing-solution-accelerator
+```
+
+Open the cloned repository in Visual Studio Code and connect to the development container:
+
+```bash
+code .
+```
+
+!!! tip
+    Visual Studio Code should recognize the available development container and ask you to open the folder using it. For additional details on connecting to remote containers, please see the [Open an existing folder in a container](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container) quickstart.
+
+When you start the development container for the first time, the container will be built. This usually takes a few minutes. Please use the development container for all further steps.
+
+The files for the dev container are located in `/.devcontainer/` folder.
+
+## Local Deployment and Debugging
+
+1. **Clone the repository.**
+
+2. **Log into the Azure CLI:**
+   • Check your login status using: `az account show`
+   • If not logged in, use: `az login`
+   • To specify a tenant, use: `az login --tenant <tenant_id>`
+
+3. **Create a Resource Group:**
+   • You can create it either through the Azure Portal or the Azure CLI:
+   ```bash
+   az group create --name <resource-group-name> --location EastUS2
+   ```
+
+4. **Deploy the Bicep template:**
+   • You can use the Bicep extension for VSCode (Right-click the `.bicep` file, then select "Show deployment pane") or use the Azure CLI:
+   ```bash
+   az deployment group create -g <resource-group-name> -f infra/main.bicep --query 'properties.outputs'
+   ```
+   
+   **Note:** You will be prompted for a `principalId`, which is the ObjectID of your user in Entra ID. To find it, use the Azure Portal or run:
+   ```bash
+   az ad signed-in-user show --query id -o tsv
+   ```
+   
+   You will also be prompted for locations for Azure OpenAI and Azure AI Content Understanding services. This is to allow separate regions where there may be service quota restrictions.
+
+   **Additional Notes:**
+   
+   **Role Assignments in Bicep Deployment:**
+   
+   The main.bicep deployment includes the assignment of the appropriate roles to Azure OpenAI and Cosmos services. If you want to modify an existing implementation—for example, to use resources deployed as part of the simple deployment for local debugging—you will need to add your own credentials to access the Cosmos and Azure OpenAI services. You can add these permissions using the following commands:
+   
+   ```bash
+   az cosmosdb sql role assignment create --resource-group <solution-accelerator-rg> --account-name <cosmos-db-account-name> --role-definition-name "Cosmos DB Built-in Data Contributor" --principal-id <aad-user-object-id> --scope /subscriptions/<subscription-id>/resourceGroups/<solution-accelerator-rg>/providers/Microsoft.DocumentDB/databaseAccounts/<cosmos-db-account-name>
+   
+   az role assignment create --assignee <aad-user-upn> --role "Cognitive Services OpenAI User" --scope /subscriptions/<subscription-id>/resourceGroups/<solution-accelerator-rg>/providers/Microsoft.CognitiveServices/accounts/<azure-openai-name>
+   ```
+   
+   **Using a Different Database in Cosmos:**
+   
+   You can set the solution up to use a different database in Cosmos. For example, you can name it something like `contentprocess-dev`. To do this:
+   
+   i. Change the environment variable `AZURE_COSMOS_DATABASE` to the new database name.
+   ii. You will need to create the database in the Cosmos DB account. You can do this from the Data Explorer pane in the portal, click on the drop down labeled "+ New Container" and provide all the necessary details.
+
+5. **Create `.env` files:**
+   • Navigate to the root folder and each component folder (`src/ContentProcessor`, `src/ContentProcessorAPI`, `src/ContentProcessorWeb`) and create `.env` files based on the provided `.env.sample` files.
+
+6. **Fill in the `.env` files:**
+   • Use the output from the deployment or check the Azure Portal under "Deployments" in the resource group.
+
+7. **(Optional) Set up virtual environments:**
+   • If you are using `venv`, create and activate your virtual environment for both the backend components:
+   
+   **Content Processor API:**
+   ```bash
+   cd src/ContentProcessorAPI
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   ```
+   
+   **Content Processor:**
+   ```bash
+   cd src/ContentProcessor
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   ```
+
+8. **Install requirements - Backend components:**
+   • In each of the backend folders, open a terminal and run:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+9. **Install requirements - Frontend:**
+   • In the frontend folder:
+   ```bash
+   cd src/ContentProcessorWeb
+   npm install
+   ```
+
+10. **Run the application:**
+    • From the `src/ContentProcessorAPI` directory:
+    ```bash
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ```
+    
+    • In a new terminal from the `src/ContentProcessor` directory:
+    ```bash
+    python src/main.py
+    ```
+    
+    • In a new terminal from the `src/ContentProcessorWeb` directory:
+    ```bash
+    npm start
+    ```
+
+11. **Open a browser and navigate to `http://localhost:3000`**
+
+12. **To see Swagger API documentation, you can navigate to `http://localhost:8000/docs`**
+
+## Debugging the Solution Locally
+
+You can debug the API backend running locally with VSCode using the following launch.json entry:
+
+```json
+{
+  "name": "Python Debugger: Content Processor API",
+  "type": "debugpy",
+  "request": "launch",
+  "cwd": "${workspaceFolder}/src/ContentProcessorAPI",
+  "module": "uvicorn",
+  "args": ["app.main:app", "--reload"],
+  "jinja": true
+}
+```
+
+To debug the Content Processor service, add the following launch.json entry:
+
+```json
+{
+  "name": "Python Debugger: Content Processor",
+  "type": "debugpy",
+  "request": "launch",
+  "cwd": "${workspaceFolder}/src/ContentProcessor",
+  "program": "src/main.py",
+  "jinja": true
+}
+```
+
+For debugging the React frontend, you can use the browser's developer tools or set up debugging in VS Code with the appropriate extensions.
+
+## Alternative: Deploy with Azure Developer CLI
+
+If you prefer to use Azure Developer CLI for a more automated deployment:
 
 ### Prerequisites
-
-Ensure you have the following installed:
-
-• **Git** - [Download Git](https://git-scm.com/downloads)
-• **Docker Desktop** - [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
-• **Azure CLI** - [Install Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
-• **Azure Developer CLI (azd)** - [Install Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd)
-• **Python 3.11+** - [Download Python](https://www.python.org/downloads/)
-• **Node.js 18+** - [Download Node.js](https://nodejs.org/)
-
-### 1. Clone the Repository
-
-Navigate to your development folder and clone the repository:
-
-```bash
-git clone https://github.com/microsoft/content-processing-solution-accelerator.git
-cd content-processing-solution-accelerator
-```
-
-### 2. Azure Authentication
-
-Login to Azure and set your subscription:
-
-```bash
-# Login to Azure
-az login
-
-# Set your subscription
-az account set --subscription "your-subscription-id"
-
-# Login with Azure Developer CLI
-azd auth login
-```
-
-### 3. Configure Environment Variables
-
-Copy the environment sample files and update them with your Azure resource values:
-
-```bash
-# Copy environment files
-cp .env.sample .env
-cp src/ContentProcessor/.env.sample src/ContentProcessor/.env
-cp src/ContentProcessorAPI/.env.sample src/ContentProcessorAPI/.env
-cp src/ContentProcessorWeb/.env.sample src/ContentProcessorWeb/.env
-```
-
-Update the `.env` files with your Azure resource information:
-
-```bash
-# Root .env file
-AZURE_OPENAI_ENDPOINT=https://your-openai-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-openai-api-key
-AZURE_OPENAI_MODEL=gpt-4o
-AZURE_CONTENT_UNDERSTANDING_ENDPOINT=https://your-content-understanding-endpoint
-AZURE_STORAGE_CONNECTION_STRING=your-storage-connection-string
-AZURE_COSMOS_CONNECTION_STRING=your-cosmos-connection-string
-```
-
-### 4. Start the Application
-
-Run the startup script to install dependencies and start all components:
-
-**Windows:**
-```cmd
-start.cmd
-```
-
-**Linux/Mac:**
-```bash
-chmod +x start.sh
-./start.sh
-```
-
-Alternatively, you can start each component manually:
-
-**Backend API:**
-```bash
-cd src/ContentProcessorAPI
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Content Processor:**
-```bash
-cd src/ContentProcessor
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python src/main.py
-```
-
-**Web Frontend:**
-```bash
-cd src/ContentProcessorWeb
-npm install
-npm start
-```
-
-### 5. Access the Application
-
-Once all components are running, open your browser and navigate to:
-
-• **Web Interface:** [http://localhost:3000](http://localhost:3000)
-• **API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
-• **API Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
-
-## Development Environment
-
-For advanced development and customization, you can set up each component individually:
-
-### Content Processor API (Backend)
-
-The REST API provides endpoints for file upload, processing management, and schema operations.
-
-```bash
-cd src/ContentProcessorAPI
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the API server with hot reload
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### Content Processor (Background Service)
-
-The background processing engine handles document extraction and transformation.
-
-```bash
-cd src/ContentProcessor
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the processor
-python src/main.py
-```
-
-### Content Processor Web (Frontend)
-
-The React/TypeScript frontend provides the user interface.
-
-```bash
-cd src/ContentProcessorWeb
-
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-```
-
-### Using Docker for Development
-
-For containerized development, create a `docker-compose.dev.yml` file:
-
-```yaml
-version: '3.8'
-services:
-  content-processor-api:
-    build:
-      context: ./src/ContentProcessorAPI
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - APP_ENV=development
-    volumes:
-      - ./src/ContentProcessorAPI:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  content-processor-web:
-    build:
-      context: ./src/ContentProcessorWeb
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_BASE_URL=http://localhost:8000
-    volumes:
-      - ./src/ContentProcessorWeb:/app
-    command: npm start
-
-  content-processor:
-    build:
-      context: ./src/ContentProcessor
-      dockerfile: Dockerfile
-    environment:
-      - APP_ENV=development
-    volumes:
-      - ./src/ContentProcessor:/app
-```
-
-Run with Docker Compose:
-```bash
-docker-compose -f docker-compose.dev.yml up --build
-```
-
-## Deploy with Azure Developer CLI
-
-Follow these steps to deploy the application to Azure using Azure Developer CLI:
-
-### Prerequisites
-
 • Ensure you have the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) installed.
-• Ensure you have an Azure subscription with appropriate permissions.
 • Check [Azure OpenAI quota availability](./quota_check.md) before deployment.
 
-### 1. Initialize the Project
+### Deployment Steps
 
-Initialize the project for Azure deployment:
+1. **Initialize the project:**
+   ```bash
+   azd init
+   ```
 
-```bash
-# Initialize azd project
-azd init
+2. **Configure environment:**
+   ```bash
+   azd env set AZURE_ENV_NAME "your-environment-name"
+   azd env set AZURE_LOCATION "eastus"
+   azd env set AZURE_OPENAI_GPT_DEPLOYMENT_CAPACITY "10"
+   azd env set AZURE_OPENAI_GPT_MODEL_NAME "gpt-4o"
+   ```
 
-# Select the content-processing template when prompted
-```
+3. **Deploy infrastructure and applications:**
+   ```bash
+   azd up
+   ```
 
-### 2. Configure Environment
-
-Set up your environment variables:
-
-```bash
-# Set environment name
-azd env set AZURE_ENV_NAME "your-environment-name"
-
-# Set Azure location
-azd env set AZURE_LOCATION "eastus"
-
-# Set OpenAI deployment parameters
-azd env set AZURE_OPENAI_GPT_DEPLOYMENT_CAPACITY "10"
-azd env set AZURE_OPENAI_GPT_MODEL_NAME "gpt-4o"
-```
-
-### 3. Deploy Infrastructure and Applications
-
-Deploy both infrastructure and applications:
-
-```bash
-# Provision Azure resources and deploy applications
-azd up
-```
-
-This command will:
-• Create all required Azure resources
-• Build and deploy the container applications
-• Configure networking and security settings
-
-### 4. Verify Deployment
-
-Once deployment is complete, verify the application is running:
-
-```bash
-# Get deployment information
-azd show
-
-# Open the deployed web application
-azd browse
-```
-
-### 5. Redeploy Application Code
-
-To deploy code changes without reprovisioning infrastructure:
-
-```bash
-# Deploy only application code changes
-azd deploy
-```
-
-### 6. Clean Up Resources
-
-To remove all deployed resources:
-
-```bash
-# Delete all Azure resources
-azd down
-```
+4. **Verify deployment:**
+   ```bash
+   azd show
+   azd browse
+   ```
 
 ## Troubleshooting
 
@@ -327,8 +236,6 @@ npm install
 # Check what's using the port
 netstat -tulpn | grep :8000  # Linux/Mac
 netstat -ano | findstr :8000  # Windows
-
-# Kill the process or change the port
 ```
 
 **Azure Authentication Issues:**
@@ -336,12 +243,11 @@ netstat -ano | findstr :8000  # Windows
 # Re-authenticate
 az logout
 az login
-azd auth login
 ```
 
 **CORS Issues:**
 • Ensure API CORS settings include the web app URL
-• Check browser network tab for CORS errors  
+• Check browser network tab for CORS errors
 • Verify API is running on the expected port
 
 **Environment Variables Not Loading:**
@@ -351,7 +257,7 @@ azd auth login
 
 ### Debug Mode
 
-Enable detailed logging by setting these environment variables:
+Enable detailed logging by setting these environment variables in your `.env` files:
 
 ```bash
 APP_LOGGING_LEVEL=DEBUG
