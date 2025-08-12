@@ -2,11 +2,11 @@
 
 ## Requirements
 
-• **Python 3.11 or higher** + PIP
-• **Node.js 18+** and npm
-• **Azure CLI** and an Azure Subscription
-• **Docker Desktop** (optional, for containerized development)
-• **Visual Studio Code IDE** (recommended)
+- Python 3.11 or higher + PIP
+- Node.js 18+ and npm
+- Azure CLI and an Azure Subscription
+- Docker Desktop (optional, for containerized development)
+- Visual Studio Code IDE (recommended)
 
 ## Local Setup
 
