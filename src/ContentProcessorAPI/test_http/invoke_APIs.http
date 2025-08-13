@@ -4,36 +4,36 @@
 #######################
 # Variables
 #######################
-@service_url = "https://ca-cps-r5wu4ikx6y3c-api.kindbeach-8f3ce607.eastus2.azurecontainerapps.io"
+#@service_url = "https://cps-processorapi.gentleforest-27265674.eastus2.azurecontainerapps.io"
 
 ####################
 # Container App - Startup, liveness, health check probe api
 ####################
-GET https://ca-cps-r5wu4ikx6y3c-api.kindbeach-8f3ce607.eastus2.azurecontainerapps.io/startup
+GET http://localhost:8000/startup
 
 #############################
 # Get All Registered Schemas
 ##############################
-GET https://ca-cps-r5wu4ikx6y3c-api.kindbeach-8f3ce607.eastus2.azurecontainerapps.io/schemavault/ HTTP/1.1
+GET http://localhost:8000/schemavault/ HTTP/1.1
 
 #########################################
 # Register Schema file with information
 #########################################
-POST https://ca-cps-r5wu4ikx6y3c-api.kindbeach-8f3ce607.eastus2.azurecontainerapps.io/schemavault/ HTTP/1.1
+POST http://localhost:8000/schemavault/ HTTP/1.1
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="msa.py"
+Content-Disposition: form-data; name="file"; filename="realestatecontract.py"
 Content-Type: text/x-python
 
-< ../samples/msa.py
+< ../samples/realestatecontract.py
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
 Content-Disposition: form-data; name="data"
 Content-Type: application/json
 
 {
-  "ClassName": "MasterServiceAgreement",
-  "Description": "Master Service Agreement Schema"
+  "ClassName": "RealEstateContract",
+  "Description": "RealEstateContract Schema"
 }
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
