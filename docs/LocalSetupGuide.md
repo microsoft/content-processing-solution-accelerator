@@ -179,40 +179,6 @@ To debug the Content Processor service, add the following launch.json entry:
 
 For debugging the React frontend, you can use the browser's developer tools or set up debugging in VS Code with the appropriate extensions.
 
-## Alternative: Deploy with Azure Developer CLI
-
-If you prefer to use Azure Developer CLI for a more automated deployment:
-
-### Prerequisites
-• Ensure you have the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) installed.
-• Check [Azure OpenAI quota availability](./quota_check.md) before deployment.
-
-### Deployment Steps
-
-1. **Initialize the project:**
-   ```bash
-   azd init
-   ```
-
-2. **Configure environment:**
-   ```bash
-   azd env set AZURE_ENV_NAME "your-environment-name"
-   azd env set AZURE_LOCATION "eastus"
-   azd env set AZURE_OPENAI_GPT_DEPLOYMENT_CAPACITY "10"
-   azd env set AZURE_OPENAI_GPT_MODEL_NAME "gpt-4o"
-   ```
-
-3. **Deploy infrastructure and applications:**
-   ```bash
-   azd up
-   ```
-
-4. **Verify deployment:**
-   ```bash
-   azd show
-   azd browse
-   ```
-
 ## Troubleshooting
 
 ### Common Issues
