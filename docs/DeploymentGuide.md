@@ -296,17 +296,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 - Go to the **Environment Variables** tab.
 - Copy the necessary environment variable values and paste them into your local `.env` file.
   
-**Install Node Module** 
-- Open a terminal in the frontend folder (ContentProcessorWeb).
-- Run:
-   ```bash
-   npm install
-**Run the Application**
-- In the terminal, ensure you are in the frontend (ContentProcessorWeb) folder.
-- Run:
-   ```bash
-   npm start
-
 
 ## Next Steps
 
