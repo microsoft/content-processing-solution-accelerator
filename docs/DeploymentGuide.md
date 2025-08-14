@@ -282,6 +282,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
 
+## Environment configuration for local development & debugging
+**Creatign env file**
+
+> Navigate to the `src` folder of the project.
+
+1. Locate the `.env` file inside the `src` directory.
+2. To fill in the required values, follow these steps
+- Go to the Azure Portal.
+- Navigate to your **Resource Group**.
+- Open the **Web Container** resource.
+- In the left-hand menu, select **Containers**.
+- Go to the **Environment Variables** tab.
+- Copy the necessary environment variable values and paste them into your local `.env` file.
+  
+
 ## Next Steps
 
 Now that you've completed your deployment, you can start using the solution. Try out these things to start getting familiar with the capabilities:
