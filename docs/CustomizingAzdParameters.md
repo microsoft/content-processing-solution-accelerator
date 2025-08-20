@@ -18,7 +18,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_MODEL_CAPACITY`             | integer | `30`                        | Sets the model capacity (choose based on your subscription's available GPT capacity). |
 | `AZURE_ENV_IMAGETAG`                      | boolean | `latest`                     | Set the Image tag Like (allowed values: latest, dev, hotfix)                       |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
-
+| `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`    | string  | `<Existing AI Project resource Id>`            | Reuses an existing AIFoundry and AIFoundryProject instead of creating a new one.  |
 
 ## How to Set a Parameter
 
