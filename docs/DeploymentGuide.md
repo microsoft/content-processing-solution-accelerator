@@ -201,6 +201,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 7. If you are done trying out the application, you can delete the resources by running `azd down`.
 
+### 🛠️ Troubleshooting
+ If you encounter any issues during the deployment process, please refer  [troubleshooting](../docs/TroubleShootingSteps.md) document for detailed steps and solutions
+
 ## Post Deployment Steps
 1. Optional: Publishing Local Build Container to Azure Container Registry 
 
