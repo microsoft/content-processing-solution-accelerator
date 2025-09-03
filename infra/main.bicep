@@ -417,13 +417,14 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
     disableLocalAuth: true
   }
 }
-
+var deployerInfo = deployer()
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   name: 'default'
   properties: {
     tags: {
       TemplateName: 'Content Processing'
+      CreatedBy: split(deployerInfo.userPrincipalName, '@')[0] 
     }
   }
 }
