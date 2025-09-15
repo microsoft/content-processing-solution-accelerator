@@ -5,27 +5,27 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "azure-appconfiguration>=1.7.1",
-    "azure-identity>=1.20.0",
-    "azure-storage-blob>=12.24.1",
-    "azure-storage-queue>=12.12.0",
-    "certifi>=2024.12.14",
-    "fastapi[standard]>=0.115.7",
-    "poppler-utils>=0.1.0",
-    "pydantic>=2.10.6",
-    "pydantic-settings>=2.8.0",
-    "pygments>=2.19.1",
-    "pymongo>=4.11.1",
-    "python-dotenv>=1.0.1",
-    "uvicorn[standard]>=0.34.0",
+    "azure-appconfiguration==1.7.1",
+    "azure-identity==1.23.0",
+    "azure-storage-blob==12.25.1",
+    "azure-storage-queue==12.12.0",
+    "certifi==2025.6.15",
+    "fastapi[standard]==0.115.7",
+    "poppler-utils==0.1.0",
+    "pydantic==2.11.7",
+    "pydantic-settings==2.10.1",
+    "pygments==2.19.2",
+    "pymongo==4.13.2",
+    "python-dotenv==1.1.1",
+    "uvicorn[standard]==0.34.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.4",
-    "pytest-cov>=6.0.0",
-    "pytest-mock>=3.14.0",
-    "coverage>=7.6.10",
-    "pre-commit>=4.1.0",
-    "ruff>=0.9.3",
+    "pytest==8.3.4",
+    "pytest-cov==6.0.0",
+    "pytest-mock==3.14.0",
+    "coverage==7.6.10",
+    "pre-commit==4.1.0",
+    "ruff==0.9.3",
 ]
