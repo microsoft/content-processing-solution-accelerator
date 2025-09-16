@@ -22,6 +22,9 @@ const ProcessSteps = () => {
   }), shallowEqual
   );
 
+  const hasValidSelection = !!store.selectedItem && !!store.selectedItem.process_id;
+  const hasProcessStepsData = Array.isArray(store.processStepsData) && store.processStepsData.length > 0;
+
   const renderProcessTimeInSeconds = (timeString: string) => {
     if (!timeString) {
       return timeString;
@@ -64,6 +67,14 @@ const ProcessSteps = () => {
       observers.forEach((observer) => observer.disconnect());
     };
   }, []);
+
+  if (!hasValidSelection || !hasProcessStepsData) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+        No data available.
+      </div>
+    );
+  }
 
   return (
     <Accordion collapsible>
