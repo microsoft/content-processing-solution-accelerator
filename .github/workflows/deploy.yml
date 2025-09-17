@@ -293,7 +293,7 @@ jobs:
       KEYVAULTS: ${{ needs.deploy.outputs.KEYVAULTS }}
       AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
       ENVIRONMENT_NAME: ${{ needs.deploy.outputs.ENVIRONMENT_NAME }}
-      CREATED_BY: ${{ github.actor }}
+      CREATED_BY: ${{ needs.deploy.outputs.CREATED_BY }}
     steps:
       - name: Setup Azure CLI
         run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
