@@ -22,6 +22,7 @@ jobs:
       KEYVAULTS: ${{ steps.list_keyvaults.outputs.KEYVAULTS }}
       AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
       ENVIRONMENT_NAME: ${{ steps.generate_environment_name.outputs.ENVIRONMENT_NAME }}
+      CREATED_BY: ${{ steps.set_created_by.outputs.CREATED_BY }}   # ✅ NEW
 
     steps:
       - name: Checkout Code
@@ -31,6 +32,11 @@ jobs:
         run: |
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az --version  # Verify installation
+      - name: Set Created By
+        id: set_created_by
+        run: |
+          echo "CREATED_BY=${{ github.actor }}" >> $GITHUB_ENV
+          echo "CREATED_BY=${{ github.actor }}" >> $GITHUB_OUTPUT
 
       - name: Login to Azure
         run: |
@@ -151,7 +157,7 @@ jobs:
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
               aiDeploymentsLocation="${{ env.AZURE_LOCATION }}" \
-              createdBy="${{ env.CREATED_BY }}" \
+              createdBy="${{ env.CREATED_BY }}" \   # ✅ updated from Pipeline → actor
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
               exit 1
@@ -293,7 +299,6 @@ jobs:
       KEYVAULTS: ${{ needs.deploy.outputs.KEYVAULTS }}
       AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
       ENVIRONMENT_NAME: ${{ needs.deploy.outputs.ENVIRONMENT_NAME }}
-      CREATED_BY: ${{ needs.deploy.outputs.createdBy }}
     steps:
       - name: Setup Azure CLI
         run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
