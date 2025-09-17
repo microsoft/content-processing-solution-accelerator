@@ -17,7 +17,8 @@ dependencies = [
     "pygments>=2.19.1",
     "pymongo>=4.11.1",
     "python-dotenv>=1.0.1",
-    "uvicorn[standard]>=0.34.0",
+    "uvicorn[standard]>=0.34.0", 
+    "h11==0.16.0",
 ]
 
 [dependency-groups]
