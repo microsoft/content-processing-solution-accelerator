@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - my-pipeline-validation
   schedule:
     - cron: "0 9,21 * * *" # Runs at 9:00 AM and 9:00 PM GMT
   workflow_dispatch:
