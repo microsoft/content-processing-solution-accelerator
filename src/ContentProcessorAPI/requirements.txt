@@ -178,9 +178,9 @@ h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
     --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
     # via httpcore
-httpcore==1.0.8 \
-    --hash=sha256:5254cf149bcb5f75e9d1b2b9f729ea4a4b883d1ad7379fc632b727cec23674be \
-    --hash=sha256:86e94505ed24ea06514883fd44d2bc02d90e77e7979c8eb71b90f41d364a1bad
+httpcore==0.17.3 \
+    --hash=sha256:a6f44c410a69d017aa5a3f7339a0b28b71e1b1c8b0c9c45345c87c1da41aec2b \
+    --hash=sha256:6f3c3b26d95c8a2a6b725ad9547176c0b8e10b0b6c236992ab6c51b4d0d0d16c
     # via httpx
 httptools==0.6.4 \
     --hash=sha256:16e603a3bff50db08cd578d54f07032ca1631450ceb972c2f834c2b860c28ea2 \
