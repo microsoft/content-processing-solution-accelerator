@@ -175,12 +175,13 @@ filelock==3.17.0 \
     --hash=sha256:ee4e77401ef576ebb38cd7f13b9b28893194acc20a8e68e18730ba9c0e54660e
     # via virtualenv
 h11==0.16.0 \
-    --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
     --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
-    # via httpcore
-httpcore==0.17.3 \
-    --hash=sha256:a6f44c410a69d017aa5a3f7339a0b28b71e1b1c8b0c9c45345c87c1da41aec2b \
-    --hash=sha256:70588bd71fdf4725275d908fa3ebf9f10015a90c0c015d82faa4664dc4403a0
+    # via
+    #   httpcore
+    #   uvicorn
+httpcore==1.0.7 \
+    --hash=sha256:8551cb62a169ec7162ac7be8d4817d561f60e08eaa485234898414bb5a8a0b4c \
+    --hash=sha256:a3fff8f43dc260d5bd363d9f9cf1830fa3a458b332856f34282de498ed420edd
     # via httpx
 httptools==0.6.4 \
     --hash=sha256:16e603a3bff50db08cd578d54f07032ca1631450ceb972c2f834c2b860c28ea2 \
