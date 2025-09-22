@@ -1,6 +1,22 @@
 name: PyLint
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - psl-pipline-cp
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+    branches:
+      - main
+      - dev
+      - psl-pipline-cp
+  workflow_dispatch:
 
 jobs:
   build:
