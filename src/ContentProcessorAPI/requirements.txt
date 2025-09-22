@@ -174,12 +174,13 @@ filelock==3.17.0 \
     --hash=sha256:533dc2f7ba78dc2f0f531fc6c4940addf7b70a481e269a5a3b93be94ffbe8338 \
     --hash=sha256:ee4e77401ef576ebb38cd7f13b9b28893194acc20a8e68e18730ba9c0e54660e
     # via virtualenv
-h11>=0.13,<0.15 \
-    # pinned to satisfy httpcore's requirement (httpcore 1.0.7 requires h11<0.15 and >=0.13)
-    # changed from h11==0.16.0 to avoid dependency conflict with httpcore
-httpcore==1.0.7 \
-    --hash=sha256:8551cb62a169ec7162ac7be8d4817d561f60e08eaa485234898414bb5a8a0b4c \
-    --hash=sha256:a3fff8f43dc260d5bd363d9f9cf1830fa3a458b332856f34282de498ed420edd
+h11>=0.16.0 \
+    --hash=sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d \
+    --hash=sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761
+    # via httpcore
+httpcore==1.0.8 \
+    --hash=sha256:34a38e2f9291467ee3b44e89dd52615370e152954ba21721378a87b2960f7a61 \
+    --hash=sha256:9fc092e4799b26174648e54b74ed5f683132a464e95643b226e00c2ed2fa6535
     # via httpx
 httptools==0.6.4 \
     --hash=sha256:16e603a3bff50db08cd578d54f07032ca1631450ceb972c2f834c2b860c28ea2 \
