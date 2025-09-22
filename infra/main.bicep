@@ -425,7 +425,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   name: 'default'
   properties: {
     tags: {
-      TemplateName: 'Content Processing'
+      TemplateName: enablePrivateNetworking ? 'Content Processing-WAF' : 'Content Processing'
       CreatedBy: createdBy
     }
   }
