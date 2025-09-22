@@ -180,7 +180,7 @@ h11==0.16.0 \
     # via httpcore
 httpcore==0.17.3 \
     --hash=sha256:a6f44c410a69d017aa5a3f7339a0b28b71e1b1c8b0c9c45345c87c1da41aec2b \
-    --hash=sha256:6f3c3b26d95c8a2a6b725ad9547176c0b8e10b0b6c236992ab6c51b4d0d0d16c
+    --hash=sha256:70588bd71fdf4725275d908fa3ebf9f10015a90c0c015d82faa4664dc4403a0
     # via httpx
 httptools==0.6.4 \
     --hash=sha256:16e603a3bff50db08cd578d54f07032ca1631450ceb972c2f834c2b860c28ea2 \
