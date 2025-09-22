@@ -70,7 +70,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2021-10-01' = {
   properties: {
     customSubDomainName: aiServicesName
     apiProperties: {
-      statisticsEnabled: false
+      //statisticsEnabled: false
     }
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: true
@@ -90,7 +90,7 @@ resource aiServices_CU 'Microsoft.CognitiveServices/accounts@2021-10-01' = {
   properties: {
     customSubDomainName: aiServicesName_cu
     apiProperties: {
-      statisticsEnabled: false
+      //statisticsEnabled: false
     }
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: true
