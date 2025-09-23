@@ -418,6 +418,7 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
   }
 }
 
+@description('Tag, Created by user name')
 param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
 
 // ========== Resource Group Tag ========== //
