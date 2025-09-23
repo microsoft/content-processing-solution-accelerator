@@ -136,6 +136,9 @@ jobs:
           # Install azd (Azure Developer CLI)
           curl -fsSL https://aka.ms/install-azd.sh | bash
 
+          # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
+            current_date=$(date -u +"%Y-%m-%dT%H:%M:%S.%7NZ")
+
           echo "Running az deployment group create..."
           if ! DEPLOY_OUTPUT=$(az deployment group create \
             --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
@@ -150,7 +153,7 @@ jobs:
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
               aiDeploymentsLocation="${{ env.AZURE_LOCATION }}" \
-              tags='{"CreatedBy":"Pipeline"}' \
+              tags="{'CreatedBy':'Pipeline', 'SecurityControl':'Ignore','Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
               exit 1
