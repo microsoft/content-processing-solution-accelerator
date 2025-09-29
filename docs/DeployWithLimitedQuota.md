@@ -81,7 +81,7 @@ For more detailed information, refer to:
 - [Deployment Guide](DeploymentGuide.md) - Complete deployment instructions
 - [Customizing azd Parameters](CustomizingAzdParameters.md) - Advanced configuration options
 - [Check or update Quota](AzureGPTQuotaSettings.md) - Check or update quota from Azure Portal
-- [Quota Check](Quota_Check.md) - Script for checking Azure OpenAI quota limits
+- [Quota Check](quota_check.md) - Script for checking Azure OpenAI quota limits
 
 ## Why we need to do this?
 - The solution uses built-in Azure Developer CLI (azd) quota validation to prevent deployment failures. Specifically, azd performs pre-deployment checks to ensure sufficient quota is available i.e. 100k TPM for gpt model.
