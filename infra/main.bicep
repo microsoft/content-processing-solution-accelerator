@@ -674,6 +674,60 @@ module avmAiServices 'modules/account/main.bicep' = {
   }
 }
 
+// ========== Private Endpoint for Existing AI Services ========== //
+var useExistingService = !empty(existingProjectResourceId)
+var existingCognitiveServiceDetails = split(existingProjectResourceId, '/')
+
+resource existingAiFoundryAiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if(useExistingService) {
+  name: existingCognitiveServiceDetails[8]
+  scope: resourceGroup(existingCognitiveServiceDetails[2], existingCognitiveServiceDetails[4])
+}
+
+var shouldCreatePrivateEndpoint = useExistingService && enablePrivateNetworking
+module existingAiServicesPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' = if (shouldCreatePrivateEndpoint) {
+  name: take('module.private-endpoint.${existingAiFoundryAiServices.name}', 64)
+  params: {
+    name: 'pep-${existingAiFoundryAiServices.name}'
+    subnetResourceId: avmVirtualNetwork!.outputs.subnetResourceIds[0]
+    customNetworkInterfaceName: 'nic-${existingAiFoundryAiServices.name}'
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'ai-services-dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices].outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-openai'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI].outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-aiservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices].outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-contentunderstanding'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding].outputs.resourceId
+        }
+      ]
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-${existingAiFoundryAiServices.name}'
+        properties: {
+          groupIds: ['account']
+          privateLinkServiceId: existingAiFoundryAiServices.id
+        }
+      }
+    ]
+    tags: tags
+  }
+  dependsOn: [
+    existingAiFoundryAiServices
+    avmPrivateDnsZones
+    avmVirtualNetwork
+  ]
+}
+
 module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.11.0' = {
   name: format(resourceNameFormatString, 'aicu-')
 
