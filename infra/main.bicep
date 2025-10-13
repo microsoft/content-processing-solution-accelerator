@@ -85,6 +85,18 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Use this parameter to use an existing AI project resource ID')
 param existingFoundryProjectResourceId string = ''
 
+@description('Optional. Size of the Jumpbox Virtual Machine when created. Set to custom value if enablePrivateNetworking is true.')
+param vmSize string? 
+
+@description('Optional. Admin username for the Jumpbox Virtual Machine. Set to custom value if enablePrivateNetworking is true.')
+@secure()
+param vmAdminUsername string?
+
+@description('Optional. Admin password for the Jumpbox Virtual Machine. Set to custom value if enablePrivateNetworking is true.')
+@secure()
+param vmAdminPassword string?
+
+
 // ========== Variables ========== //
 var solutionPrefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id, environmentName, resourceGroup().location, resourceGroup().name)), 12), 12, '0')}'
 // ============== //
@@ -353,6 +365,94 @@ module virtualNetwork './modules/virtualNetwork.bicep' = if (enablePrivateNetwor
   }
 }
 
+// Azure Bastion Host
+var bastionHostName = 'bas-${solutionPrefix}'
+module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.bastion-host.${bastionHostName}', 64)
+  params: {
+    name: bastionHostName
+    skuName: 'Standard'
+    location: resourceGroupLocation
+    virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+    diagnosticSettings: [
+      {
+        name: 'bastionDiagnostics'
+        workspaceResourceId: existingLogAnalyticsWorkspaceId
+        logCategoriesAndGroups: [
+          {
+            categoryGroup: 'allLogs'
+            enabled: true
+          }
+        ]
+      }
+    ]
+    tags: tags
+    enableTelemetry: enableTelemetry
+    publicIPAddressObject: {
+      name: 'pip-${bastionHostName}'
+      zones: []
+    }
+  }
+}
+// Jumpbox Virtual Machine
+var jumpboxVmName = take('vm-jumpbox-${solutionPrefix}', 15)
+module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enablePrivateNetworking) {
+  name: take('avm.res.compute.virtual-machine.${jumpboxVmName}', 64)
+  params: {
+    name: take(jumpboxVmName, 15) // Shorten VM name to 15 characters to avoid Azure limits
+    vmSize: vmSize ?? 'Standard_DS2_v2'
+    location: resourceGroupLocation
+    adminUsername: vmAdminUsername ?? 'JumpboxAdminUser'
+    adminPassword: vmAdminPassword ?? 'JumpboxAdminP@ssw0rd1234!'
+    tags: tags
+    zone: 0
+    imageReference: {
+      offer: 'WindowsServer'
+      publisher: 'MicrosoftWindowsServer'
+      sku: '2019-datacenter'
+      version: 'latest'
+    }
+    osType: 'Windows'
+    osDisk: {
+      name: 'osdisk-${jumpboxVmName}'
+      managedDisk: {
+        storageAccountType: 'Standard_LRS'
+      }
+    }
+    encryptionAtHost: false // Some Azure subscriptions do not support encryption at host
+    nicConfigurations: [
+      {
+        name: 'nic-${jumpboxVmName}'
+        ipConfigurations: [
+          {
+            name: 'ipconfig1'
+            subnetResourceId: virtualNetwork!.outputs.jumpboxSubnetResourceId
+          }
+        ]
+        diagnosticSettings: [
+          {
+            name: 'jumpboxDiagnostics'
+            workspaceResourceId: existingLogAnalyticsWorkspaceId
+            logCategoriesAndGroups: [
+              {
+                categoryGroup: 'allLogs'
+                enabled: true
+              }
+            ]
+            metricCategories: [
+              {
+                category: 'AllMetrics'
+                enabled: true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+    enableTelemetry: enableTelemetry
+  }
+}
+
 // ========== Private DNS Zones ========== //
 var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
@@ -568,7 +668,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
                 }
               ]
             }
-            subnetResourceId: virtualNetwork.outputs.containersSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork.outputs.backendSubnetResourceId // Use the backend subnet
             service: 'blob'
           }
           {
@@ -582,7 +682,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
                 }
               ]
             }
-            subnetResourceId: virtualNetwork.outputs.containersSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork.outputs.backendSubnetResourceId // Use the backend subnet
             service: 'queue'
           }
         ]
@@ -679,7 +779,7 @@ module avmAiServices 'modules/account/main.bicep' = {
                 }
               ]
             }
-            subnetResourceId: virtualNetwork.outputs.containersSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork.outputs.backendSubnetResourceId // Use the backend subnet
           }
         ]
       : []
@@ -740,7 +840,7 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.11.0' = 
                 }
               ]
             }
-            subnetResourceId: virtualNetwork.outputs.containersSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork.outputs.backendSubnetResourceId // Use the backend subnet
           }
         ]
       : []
@@ -1080,7 +1180,7 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
               ]
             }
             service: 'MongoDB'
-            subnetResourceId: virtualNetwork.outputs.containersSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork.outputs.backendSubnetResourceId // Use the backend subnet
           }
         ]
       : []
@@ -1257,7 +1357,7 @@ module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-st
             }
           ]
         }
-        subnetResourceId: virtualNetwork.outputs.containersSubnetResourceId // Use the backend subnet
+        subnetResourceId: virtualNetwork.outputs.backendSubnetResourceId // Use the backend subnet
       }
     ]
   }
