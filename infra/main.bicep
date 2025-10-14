@@ -165,10 +165,10 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePr
     skuName: 'Standard'
     location: resourceGroupLocation
     virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
-    diagnosticSettings: [
+    diagnosticSettings: enableMonitoring ? [
       {
         name: 'bastionDiagnostics'
-        workspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
+        workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
         logCategoriesAndGroups: [
           {
             categoryGroup: 'allLogs'
@@ -176,7 +176,7 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePr
           }
         ]
       }
-    ]
+    ] : null
     tags: tags
     enableTelemetry: enableTelemetry
     publicIPAddressObject: {
@@ -220,10 +220,10 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
             subnetResourceId: virtualNetwork!.outputs.jumpboxSubnetResourceId
           }
         ]
-        diagnosticSettings: [
+        diagnosticSettings: enableMonitoring ? [
           {
             name: 'jumpboxDiagnostics'
-            workspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
+            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
             logCategoriesAndGroups: [
               {
                 categoryGroup: 'allLogs'
@@ -237,7 +237,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
               }
             ]
           }
-        ]
+        ] : null
       }
     ]
     enableTelemetry: enableTelemetry
@@ -645,13 +645,13 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.2' = {
       location: resourceGroupLocation
     }
     managedIdentities: { systemAssigned: true }
-    appLogsConfiguration: {
+    appLogsConfiguration: enableMonitoring ? {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: enableMonitoring ? logAnalyticsWorkspace!.outputs.logAnalyticsWorkspaceId : ''
-        sharedKey: enableMonitoring ? logAnalyticsWorkspace.outputs.primarySharedKey : ''
+        customerId: logAnalyticsWorkspace!.outputs.logAnalyticsWorkspaceId
+        sharedKey: logAnalyticsWorkspace.outputs.primarySharedKey
       }
-    }
+    } : null
     workloadProfiles: [
       {
         name: 'Consumption'
@@ -986,7 +986,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
     enableTelemetry: enableTelemetry
     managedIdentities: { systemAssigned: true }
     sku: 'Standard'
-    diagnosticSettings: [
+    diagnosticSettings: enableMonitoring ? [
       {
         workspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
         logCategoriesAndGroups: [
@@ -996,7 +996,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
           }
         ]
       }
-    ]
+    ] : null
     disableLocalAuth: false
     replicaLocations: (resourceGroupLocation != secondaryLocation) ? [secondaryLocation] : []
     roleAssignments: [
