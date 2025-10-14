@@ -1081,6 +1081,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
   params: {
     name: 'appcs-${solutionPrefix}'
     location: resourceGroupLocation
+    enablePurgeProtection: false
     tags: {
       app: solutionPrefix
       location: resourceGroupLocation
