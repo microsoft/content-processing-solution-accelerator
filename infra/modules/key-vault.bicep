@@ -73,7 +73,7 @@ param networkAcls object = {
 param logAnalyticsWorkspaceResourceId string = ''
 
 module avmKeyVault 'br/public:avm/res/key-vault/vault:0.13.0' = {
-  name: 'deploy_keyvault'
+  name: take('avm.res.key-vault.vault-${keyvaultName}', 64)
   params: {
     name: keyvaultName
     location: location
