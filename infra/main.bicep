@@ -150,7 +150,7 @@ module virtualNetwork './modules/virtualNetwork.bicep' = if (enablePrivateNetwor
     addressPrefixes: ['10.0.0.0/20']
     location: resourceGroupLocation
     tags: tags
-    logAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
     resourceSuffix: solutionSuffix
     enableTelemetry: enableTelemetry
   }
@@ -168,7 +168,7 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePr
     diagnosticSettings: [
       {
         name: 'bastionDiagnostics'
-        workspaceResourceId: existingLogAnalyticsWorkspaceId
+        workspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
         logCategoriesAndGroups: [
           {
             categoryGroup: 'allLogs'
@@ -223,7 +223,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
         diagnosticSettings: [
           {
             name: 'jumpboxDiagnostics'
-            workspaceResourceId: existingLogAnalyticsWorkspaceId
+            workspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
             logCategoriesAndGroups: [
               {
                 categoryGroup: 'allLogs'
@@ -346,7 +346,6 @@ module avmManagedIdentity './modules/managed-identity.bicep' = {
 }
 
 // ========== Key Vault Module ========== //
-
 module avmKeyVault './modules/key-vault.bicep' = {
   name: take('module.key-vault.${solutionSuffix}', 64)
   params: {

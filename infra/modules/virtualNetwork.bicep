@@ -13,11 +13,11 @@ param addressPrefixes array
 @description('An array of subnets to be created within the virtual network. Each subnet can have its own configuration and associated Network Security Group (NSG).')
 param subnets subnetType[] = [
   {
-    name: 'Containers'
+    name: 'containers'
     addressPrefixes: ['10.0.2.0/24'] // /24 (10.0.2.0 - 10.0.2.255), 256 addresses
     delegation: 'Microsoft.App/environments'
     networkSecurityGroup: {
-      name: 'nsg-Containers'
+      name: 'nsg-containers'
       securityRules: [
         //Inbound Rules
         {
