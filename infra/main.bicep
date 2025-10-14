@@ -28,7 +28,7 @@ param contentUnderstandingLocation string = 'WestUS'
     ]
   }
 })
-param aiDeploymentsLocation string
+param aiServiceLocation string
 
 @description('Optional. Type of GPT deployment to use: Standard | GlobalStandard.')
 @minLength(1)
@@ -489,14 +489,14 @@ module avmAiServices 'modules/account/main.bicep' = {
     projectName: 'proj-${solutionSuffix}'
     projectDescription: 'proj-${solutionSuffix}'
     existingFoundryProjectResourceId: existingProjectResourceId
-    location: aiDeploymentsLocation
+    location: aiServiceLocation
     sku: 'S0'
     allowProjectManagement: true
     managedIdentities: { systemAssigned: true }
     kind: 'AIServices'
     tags: {
       app: solutionSuffix
-      location: aiDeploymentsLocation
+      location: aiServiceLocation
     }
     customSubDomainName: 'aif-${solutionSuffix}'
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }] : null

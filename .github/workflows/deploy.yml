@@ -144,7 +144,7 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
             --template-file infra/main.json \
             --parameters \
-              environmentName="${{ env.ENVIRONMENT_NAME }}" \
+              solutionName="${{ env.ENVIRONMENT_NAME }}" \
               enablePrivateNetworking="false" \
               secondaryLocation="eastus2" \
               contentUnderstandingLocation="WestUS" \
@@ -152,7 +152,7 @@ jobs:
               gptModelName="gpt-4o" \
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
-              aiDeploymentsLocation="${{ env.AZURE_LOCATION }}" \
+              aiServiceLocation="${{ env.AZURE_LOCATION }}" \
               tags="{'CreatedBy':'Pipeline', 'SecurityControl':'Ignore','Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."

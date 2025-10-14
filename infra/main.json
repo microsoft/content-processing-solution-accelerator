@@ -41,7 +41,7 @@
       },
       "minLength": 1
     },
-    "aiDeploymentsLocation": {
+    "aiServiceLocation": {
       "type": "string",
       "metadata": {
         "azd": {
@@ -24927,7 +24927,7 @@
             "value": "[variables('existingProjectResourceId')]"
           },
           "location": {
-            "value": "[parameters('aiDeploymentsLocation')]"
+            "value": "[parameters('aiServiceLocation')]"
           },
           "sku": {
             "value": "S0"
@@ -24946,7 +24946,7 @@
           "tags": {
             "value": {
               "app": "[variables('solutionPrefix')]",
-              "location": "[parameters('aiDeploymentsLocation')]"
+              "location": "[parameters('aiServiceLocation')]"
             }
           },
           "customSubDomainName": {
