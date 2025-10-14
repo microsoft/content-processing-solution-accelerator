@@ -4,14 +4,14 @@
 import logging
 
 from azure.core.exceptions import ResourceNotFoundError
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.queue import QueueClient
 from pydantic import BaseModel
 
 
 class StorageQueueHelper:
     def __init__(self, account_url, queue_name):
-        credential = DefaultAzureCredential()
+        credential = get_azure_credential()
         self.queue_client = self.create_or_get_queue_client(
             queue_name=queue_name, accouont_url=account_url, credential=credential
         )
@@ -27,7 +27,7 @@ class StorageQueueHelper:
             queue_client.create_queue()
 
     def create_or_get_queue_client(
-        self, queue_name: str, accouont_url: str, credential: DefaultAzureCredential
+        self, queue_name: str, accouont_url: str, credential: get_azure_credential
     ) -> QueueClient:
         queue_client = QueueClient(
             account_url=accouont_url, queue_name=queue_name, credential=credential

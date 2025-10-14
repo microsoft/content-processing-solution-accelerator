@@ -16,7 +16,6 @@ jobs:
       propertydamageclaimform_schema_id: ${{ steps.register.outputs.propertylossdamageclaimform_schema_id }}
       RESOURCE_GROUP_NAME: ${{ steps.generate_rg_name.outputs.RESOURCE_GROUP_NAME }}
       CONTAINER_WEB_APPURL: ${{ steps.get_output.outputs.CONTAINER_WEB_APPURL }}
-      SOLUTION_NAME: ${{ steps.get_output.outputs.SOLUTION_NAME }}
       DEPLOYMENT_SUCCESS: ${{ steps.deployment_status.outputs.SUCCESS }}
       AI_SERVICES_NAME: ${{ steps.get_ai_services_name.outputs.AI_SERVICES_NAME }}
       KEYVAULTS: ${{ steps.list_keyvaults.outputs.KEYVAULTS }}
@@ -137,25 +136,24 @@ jobs:
           # Install azd (Azure Developer CLI)
           curl -fsSL https://aka.ms/install-azd.sh | bash
 
+          # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
+            current_date=$(date -u +"%Y-%m-%dT%H:%M:%S.%7NZ")
+
           echo "Running az deployment group create..."
           if ! DEPLOY_OUTPUT=$(az deployment group create \
             --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
             --template-file infra/main.json \
             --parameters \
               environmentName="${{ env.ENVIRONMENT_NAME }}" \
-              secondaryLocation="EastUs2" \
+              enablePrivateNetworking="false" \
+              secondaryLocation="eastus2" \
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-4o" \
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
-              minReplicaContainerApp="1" \
-              maxReplicaContainerApp="1" \
-              minReplicaContainerApi="1" \
-              maxReplicaContainerApi="1" \
-              minReplicaContainerWeb="1" \
-              maxReplicaContainerWeb="1" \
               aiDeploymentsLocation="${{ env.AZURE_LOCATION }}" \
+              tags="{'CreatedBy':'Pipeline', 'SecurityControl':'Ignore','Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
               exit 1
@@ -171,17 +169,12 @@ jobs:
           export CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_API_APP_NAME.value')
           echo "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" >> $GITHUB_ENV
 
-          export CONTAINER_WEB_APPURL=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_FQDN.value')
+          export CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_FQDN.value')"
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_ENV
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_OUTPUT
 
           export CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_NAME.value')
           echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
-
-          export SOLUTION_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.solutioN_NAME.value')
-          echo "SOLUTION_NAME=$SOLUTION_NAME" >> $GITHUB_ENV
-          echo "SOLUTION_NAME=$SOLUTION_NAME" >> $GITHUB_OUTPUT
-
 
       - name: Register schemas
         id: register
@@ -290,7 +283,6 @@ jobs:
     with:
       CP_WEB_URL: ${{ needs.deploy.outputs.CONTAINER_WEB_APPURL }}
       CP_RG: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
-      CP_CONTAINERAPP_PREFIX: ${{ format('ca-{0}', needs.deploy.outputs.SOLUTION_NAME ) }}
     secrets: inherit
 
   cleanup:

@@ -87,7 +87,7 @@ If you're not using one of the above options for opening the project, then you'l
 
 1. Make sure the following tools are installed:
     - [PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.5) <small>(v7.0+)</small> - available for Windows, macOS, and Linux.
-    - [Azure Developer CLI (azd)](https://aka.ms/install-azd) <small>(v1.15.0+)</small> - version
+    - [Azure Developer CLI (azd)](https://aka.ms/install-azd) <small>(v1.18.0+)</small> - version
     - [Python 3.9+](https://www.python.org/downloads/)
     - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
     - [Git](https://git-scm.com/downloads)
@@ -124,6 +124,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
 | **Image Tag**                               | Image version for deployment (allowed values: `latest`, `dev`, `hotfix`).                   | latest            |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID instead of creating a new one.              | *(none)*          |
+| **Existing Azure AI Foundry Project**        | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.              | *(none)*          |
 
 
 </details>
@@ -145,6 +146,14 @@ To adjust quota settings, follow these [steps](./AzureGPTQuotaSettings.md).
   <summary><b>Reusing an Existing Log Analytics Workspace</b></summary>
 
   Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md)
+
+</details>
+
+<details>
+
+  <summary><b>Reusing an Existing Azure AI Foundry Project</b></summary>
+
+  Guide to get your [Existing Project ID](/docs/re-use-foundry-project.md)
 
 </details>
 
@@ -175,6 +184,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```shell
     azd up
     ```
+    > **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 
 3. Provide an `azd` environment name (e.g., "cpsapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources. 
@@ -191,6 +201,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     > #### Important Note : Before accessing the application, ensure that all **[Post Deployment Steps](#post-deployment-steps)** are fully completed, as they are critical for the proper configuration of **Data Ingestion** and **Authentication** functionalities.
 
 7. If you are done trying out the application, you can delete the resources by running `azd down`.
+
+### 🛠️ Troubleshooting
+ If you encounter any issues during the deployment process, please refer  [troubleshooting](../docs/TroubleShootingSteps.md) document for detailed steps and solutions
 
 ## Post Deployment Steps
 1. Optional: Publishing Local Build Container to Azure Container Registry 
@@ -272,6 +285,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 4. **Deleting Resources After a Failed Deployment**  
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
+
+## Environment configuration for local development & debugging
+**Creatign env file**
+
+> Navigate to the `src` folder of the project.
+
+1. Locate the `.env` file inside the `src` directory.
+2. To fill in the required values, follow these steps
+- Go to the Azure Portal.
+- Navigate to your **Resource Group**.
+- Open the **Web Container** resource.
+- In the left-hand menu, select **Containers**.
+- Go to the **Environment Variables** tab.
+- Copy the necessary environment variable values and paste them into your local `.env` file.
+  
 
 ## Next Steps
 

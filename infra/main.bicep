@@ -86,11 +86,12 @@ param existingLogAnalyticsWorkspaceId string = ''
 param existingFoundryProjectResourceId string = ''
 
 // ========== Variables ========== //
-var solutionPrefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id, environmentName, resourceGroup().location)), 12), 12, '0')}'
-
+var solutionPrefix = 'cps-${padLeft(take(toLower(uniqueString(subscription().id, environmentName, resourceGroup().location, resourceGroup().name)), 12), 12, '0')}'
 // ============== //
 // Resources      //
 // ============== //
+
+var existingProjectResourceId = trim(existingFoundryProjectResourceId)
 
 // ========== AVM Telemetry ========== //
 #disable-next-line no-deployments-resources
@@ -416,6 +417,8 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
     disableLocalAuth: true
   }
 }
+@description('Tag, Created by user name')
+param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
 
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
@@ -423,6 +426,8 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   properties: {
     tags: {
       TemplateName: 'Content Processing'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+      CreatedBy: createdBy
     }
   }
 }
@@ -447,6 +452,7 @@ module avmKeyVault './modules/key-vault.bicep' = {
       {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: 'Key Vault Administrator'
+        principalType: 'ServicePrincipal'
       }
     ]
     enablePurgeProtection: false
@@ -503,6 +509,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
       {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        principalType: 'ServicePrincipal'
       }
       {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
@@ -578,7 +585,7 @@ module avmAiServices 'modules/account/main.bicep' = {
     name: 'aisa-${solutionPrefix}'
     projectName: 'aifp-${solutionPrefix}'
     projectDescription: 'aifp-${solutionPrefix}'
-    existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    existingFoundryProjectResourceId: existingProjectResourceId
     location: aiDeploymentsLocation
     sku: 'S0'
     allowProjectManagement: true
@@ -598,6 +605,7 @@ module avmAiServices 'modules/account/main.bicep' = {
       {
         principalId: avmManagedIdentity.outputs.principalId
         roleDefinitionIdOrName: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' // Owner role
+        principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
@@ -630,7 +638,7 @@ module avmAiServices 'modules/account/main.bicep' = {
     // WAF related parameters
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
     //publicNetworkAccess: 'Enabled' // Always enabled for AI Services
-    privateEndpoints: (enablePrivateNetworking)
+    privateEndpoints: (enablePrivateNetworking && empty(existingProjectResourceId))
       ? [
           {
             name: 'ai-services-private-endpoint-${solutionPrefix}'
@@ -808,6 +816,10 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.17.0' = {
             name: 'APP_CONFIG_ENDPOINT'
             value: ''
           }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
         ]
       }
     ]
@@ -851,6 +863,10 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.17.0' = {
           {
             name: 'APP_CONFIG_ENDPOINT'
             value: ''
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
           }
         ]
         probes: [
@@ -1089,14 +1105,17 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       {
         principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'App Configuration Data Reader'
+        principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'App Configuration Data Reader'
+        principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'App Configuration Data Reader'
+        principalType: 'ServicePrincipal'
       }
     ]
     keyValues: [
@@ -1267,6 +1286,10 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.17.0' = {
             name: 'APP_CONFIG_ENDPOINT'
             value: avmAppConfig.outputs.endpoint
           }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
         ]
       }
     ]
@@ -1321,6 +1344,10 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.17.0' =
           {
             name: 'APP_CONFIG_ENDPOINT'
             value: avmAppConfig.outputs.endpoint
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
           }
         ]
         probes: [

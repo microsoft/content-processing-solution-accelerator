@@ -7,14 +7,13 @@ import time
 from pathlib import Path
 
 import requests
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 from requests.models import Response
 
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 
 
 class AzureContentUnderstandingHelper:
-    credential: DefaultAzureCredential = None
 
     def __init__(
         self,
@@ -22,7 +21,7 @@ class AzureContentUnderstandingHelper:
         api_version: str = "2024-12-01-preview",
         x_ms_useragent: str = "cps-contentunderstanding/client",
     ):
-        self.credential = DefaultAzureCredential()
+        self.credential = get_azure_credential()
 
         if not api_version:
             raise ValueError("API version must be provided.")

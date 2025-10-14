@@ -9,14 +9,10 @@ on:
       CP_RG:
         required: true
         type: string
-      CP_CONTAINERAPP_PREFIX:
-        required: true
-        type: string
 
 env:
     url: ${{ inputs.CP_WEB_URL }}
     CP_RG: ${{ inputs.CP_RG }}
-    CP_CONTAINERAPP_PREFIX: ${{ inputs.CP_CONTAINERAPP_PREFIX }}
     accelerator_name: "Content Processing"
 
 
@@ -37,16 +33,6 @@ jobs:
         run: |
           az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
           az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
-
-      - name: Start Container App
-        id: start-container-app
-        uses: azure/cli@v2
-        with:
-          azcliversion: 'latest'
-          inlineScript: |
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-app/start?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-api/start?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-web/start?api-version=2025-01-01"
 
       - name: Install dependencies
         run: |
@@ -160,14 +146,3 @@ jobs:
           curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
             -H "Content-Type: application/json" \
             -d "$EMAIL_BODY" || echo "Failed to send notification"
-
-      - name: Stop Container App
-        if: always()
-        uses: azure/cli@v2
-        with:
-          azcliversion: 'latest'
-          inlineScript: |
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-app/stop?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-api/stop?api-version=2025-01-01"
-            az rest -m post -u "/subscriptions/${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.CP_RG }}/providers/Microsoft.App/containerApps/${{ env.CP_CONTAINERAPP_PREFIX }}-web/stop?api-version=2025-01-01"
-            az logout
