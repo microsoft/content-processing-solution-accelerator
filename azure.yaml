@@ -14,7 +14,10 @@ hooks:
   postprovision:
     posix:
       shell: sh
-      run: sed -i 's/\r$//' ./infra/scripts/post_deployment.sh; ./infra/scripts/post_deployment.sh
+      run: |  
+        sudo chmod u+r+x ./infra/scripts/post_deployment.sh
+        sed -i 's/\r$//' ./infra/scripts/post_deployment.sh
+        ./infra/scripts/post_deployment.sh
       interactive: true
     windows:
       shell: pwsh

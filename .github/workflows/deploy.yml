@@ -33,16 +33,16 @@ jobs:
 
       - name: Login to Azure
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Run Quota Check
         id: quota-check
         run: |
-          export AZURE_MAINTENANCE_CLIENT_ID=${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }}
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
           export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_MAINTENANCE_CLIENT_SECRET=${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }}
-          export AZURE_MAINTENANCE_SUBSCRIPTION_ID="${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}"
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           export GPT_MIN_CAPACITY="100"
           export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
 
@@ -301,8 +301,8 @@ jobs:
 
       - name: Login to Azure
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Delete Bicep Deployment
         if: always()
@@ -459,7 +459,7 @@ jobs:
             
             echo "Processing KeyVault: $keyvault_name"
             # Check if the KeyVault is soft-deleted
-            deleted_vaults=$(az keyvault list-deleted --query "[?name=='$keyvault_name']" -o json --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }})
+            deleted_vaults=$(az keyvault list-deleted --query "[?name=='$keyvault_name']" -o json --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }})
 
             # If the KeyVault is found in the soft-deleted state, purge it
             if [ "$(echo "$deleted_vaults" | jq length)" -gt 0 ]; then

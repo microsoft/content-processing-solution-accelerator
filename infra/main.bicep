@@ -61,7 +61,10 @@ param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
 @description('Optional. The resource group location.')
 param resourceGroupLocation string = resourceGroup().location
 
-@description('Optional. Enable WAF for the deployment.')
+@description('Optional. The resource name format string.')
+param resourceNameFormatString string = '{0}avm-cps'
+
+@description('Optional. Enable private networking for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
 param enablePrivateNetworking bool = false
 
 @description('Optional. Enable/Disable usage telemetry for module.')
@@ -979,6 +982,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
   params: {
     name: 'appcs-${solutionSuffix}'
     location: resourceGroupLocation
+    enablePurgeProtection: false
     tags: {
       app: solutionSuffix
       location: resourceGroupLocation
