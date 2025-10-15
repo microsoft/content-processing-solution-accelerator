@@ -5,6 +5,8 @@ set -e
 
 echo "🔍 Fetching container app info from azd environment..."
 
+echo "Started at: $(date)"
+
 # Load values from azd env
 CONTAINER_WEB_APP_NAME=$(azd env get-value CONTAINER_WEB_APP_NAME)
 CONTAINER_WEB_APP_FQDN=$(azd env get-value CONTAINER_WEB_APP_FQDN)
@@ -19,6 +21,14 @@ RESOURCE_GROUP=$(azd env get-value AZURE_RESOURCE_GROUP)
 # Construct Azure Portal URLs
 WEB_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
 API_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
+
+echo "✅ Fetched container app info."
+echo "Values are as follows:"
+echo "  🕒 Started at: $(date)"
+echo "  🌍 Web App FQDN: $CONTAINER_WEB_APP_FQDN"
+echo "  🌍 API App FQDN: $CONTAINER_API_APP_FQDN"
+echo "  🔗 Web App Portal URL: $WEB_APP_PORTAL_URL"
+echo "  🔗 API App Portal URL: $API_APP_PORTAL_URL"
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
