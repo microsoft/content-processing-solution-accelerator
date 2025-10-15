@@ -15,15 +15,15 @@ hooks:
     posix:
       shell: sh
       run: |  
-        Write-Host "🧭 Web App Details:"
-        Write-Host "✅ Name: $CONTAINER_WEB_APP_NAME"
-        Write-Host "🌐 Endpoint: https://$CONTAINER_WEB_APP_FQDN"
-        Write-Host "🔗 Portal URL: https://portal.azure.com/#resource/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME" -ForegroundColor Cyan
+        echo "🧭 Web App Details:"
+        echo "✅ Name: $CONTAINER_WEB_APP_NAME"
+        echo "🌐 Endpoint: https://$CONTAINER_WEB_APP_FQDN"
+        echo "🔗 Portal URL: https://portal.azure.com/#resource/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
 
-        Write-Host "🧭 API App Details:"
-        Write-Host "✅ Name: $CONTAINER_API_APP_NAME"
-        Write-Host "🌐 Endpoint: https://$CONTAINER_API_APP_FQDN"
-        Write-Host "🔗 Portal URL: https://portal.azure.com/#resource/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME" -ForegroundColor Cyan
+        echo "🧭 API App Details:"
+        echo "✅ Name: $CONTAINER_API_APP_NAME"
+        echo "🌐 Endpoint: https://$CONTAINER_API_APP_FQDN"
+        echo "🔗 Portal URL: https://portal.azure.com/#resource/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
       interactive: true
     windows:
       shell: pwsh
