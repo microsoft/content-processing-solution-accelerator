@@ -24,7 +24,7 @@ param roleAssignments roleAssignmentType[]?
 param tags object = {}
 
 module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.9.1' = {
-  name: acrName
+  name: take('avm.res.container-registry.registry-${acrName}', 64)
   params: {
     name: acrName
     location: location

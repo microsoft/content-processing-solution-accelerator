@@ -2,7 +2,7 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "environmentName": {
+    "solutionName": {
       "value": "${AZURE_ENV_NAME}"
     },
     "secondaryLocation": {
@@ -11,7 +11,7 @@
     "contentUnderstandingLocation": {
       "value": "${AZURE_ENV_CU_LOCATION}"
     },
-    "aiDeploymentsLocation": {
+    "aiServiceLocation": {
       "value": "${AZURE_ENV_AI_DEPLOYMENTS_LOCATION}"
     },
     "deploymentType": {
@@ -29,8 +29,23 @@
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
     },
+    "existingFoundryProjectResourceId": {
+      "value": "${AZURE_ENV_FOUNDRY_PROJECT_ID}"
+    },
+    "enableMonitoring": {
+      "value": true
+    },
     "enablePrivateNetworking": {
-      "value": "true"
+      "value": true
+    },
+    "enableScalability": {
+      "value": true
+    },
+    "virtualMachineAdminUsername": {
+      "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
+    },
+    "virtualMachineAdminPassword": {
+      "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     }
   }
 }
