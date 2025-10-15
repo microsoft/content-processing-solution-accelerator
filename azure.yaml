@@ -11,7 +11,7 @@ metadata:
   name: content-processinge@1.0
 
 hooks:
-  postprovision:
+  postdeploy:
     posix:
       shell: sh
       run: |  
