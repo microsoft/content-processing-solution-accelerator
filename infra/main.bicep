@@ -579,6 +579,37 @@ module avmAiServices 'modules/account/main.bicep' = {
   }
 }
 
+// ========== Private Endpoint for Existing AI Services ========== //
+var useExistingService = !empty(existingProjectResourceId)
+var existingCognitiveServiceDetails = split(existingProjectResourceId, '/')
+
+resource existingAiFoundryAiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if(useExistingService) {
+  name: existingCognitiveServiceDetails[8]
+  scope: resourceGroup(existingCognitiveServiceDetails[2], existingCognitiveServiceDetails[4])
+}
+
+// ========== Private Endpoint for Existing AI Services ========== //
+var shouldCreatePrivateEndpoint = useExistingService && enablePrivateNetworking
+var isProjectPrivate = existingAiFoundryAiServices!.properties.publicNetworkAccess == 'Enabled' ? false : true
+module existingAiServicesPrivateEndpoint './modules/existing-aif-private-endpoint.bicep' = if (shouldCreatePrivateEndpoint){
+  name: take('module.proj-private-endpoint.${existingAiFoundryAiServices.name}', 64)
+  params: {
+    isPrivate: isProjectPrivate
+    aiServicesName: existingAiFoundryAiServices.name
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+    aiServicesId: existingAiFoundryAiServices.id
+    location: location
+    cognitiveServicesDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+    openAiDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
+    aiServicesDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
+    contentUnderstandingDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
+    tags: tags
+  }
+  dependsOn: [
+    avmPrivateDnsZones
+  ]
+}
+
 module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.11.0' = {
   name: take('avm.res.cognitive-services.account.content-understanding.${solutionSuffix}', 64)
 
