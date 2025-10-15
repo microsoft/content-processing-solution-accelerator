@@ -588,48 +588,25 @@ resource existingAiFoundryAiServices 'Microsoft.CognitiveServices/accounts@2025-
   scope: resourceGroup(existingCognitiveServiceDetails[2], existingCognitiveServiceDetails[4])
 }
 
+// ========== Private Endpoint for Existing AI Services ========== //
 var shouldCreatePrivateEndpoint = useExistingService && enablePrivateNetworking
-module existingAiServicesPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' = if (shouldCreatePrivateEndpoint) {
-  name: take('module.private-endpoint.${existingAiFoundryAiServices.name}', 64)
+var isProjectPrivate = existingAiFoundryAiServices!.properties.publicNetworkAccess == 'Enabled' ? false : true
+module existingAiServicesPrivateEndpoint './modules/existing-aif-private-endpoint.bicep' = if (shouldCreatePrivateEndpoint){
+  name: take('module.proj-private-endpoint.${existingAiFoundryAiServices.name}', 64)
   params: {
-    name: 'pep-${existingAiFoundryAiServices.name}'
-    subnetResourceId: avmVirtualNetwork!.outputs.subnetResourceIds[0]
-    customNetworkInterfaceName: 'nic-${existingAiFoundryAiServices.name}'
-    privateDnsZoneGroup: {
-      privateDnsZoneGroupConfigs: [
-        {
-          name: 'ai-services-dns-zone-cognitiveservices'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices].outputs.resourceId
-        }
-        {
-          name: 'ai-services-dns-zone-openai'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI].outputs.resourceId
-        }
-        {
-          name: 'ai-services-dns-zone-aiservices'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices].outputs.resourceId
-        }
-        {
-          name: 'ai-services-dns-zone-contentunderstanding'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding].outputs.resourceId
-        }
-      ]
-    }
-    privateLinkServiceConnections: [
-      {
-        name: 'pep-${existingAiFoundryAiServices.name}'
-        properties: {
-          groupIds: ['account']
-          privateLinkServiceId: existingAiFoundryAiServices.id
-        }
-      }
-    ]
+    isPrivate: isProjectPrivate
+    aiServicesName: existingAiFoundryAiServices.name
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+    aiServicesId: existingAiFoundryAiServices.id
+    location: location
+    cognitiveServicesDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+    openAiDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
+    aiServicesDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
+    contentUnderstandingDnsZoneId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
     tags: tags
   }
   dependsOn: [
-    existingAiFoundryAiServices
     avmPrivateDnsZones
-    avmVirtualNetwork
   ]
 }
 
