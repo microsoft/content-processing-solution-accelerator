@@ -13,7 +13,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 1. Add Authentication Provider in Web Application
 
-   - Go to deployed Container App and select `ca-cps-<randomname>-web` and click **Add Identity Provider** button in Authentication.  
+   - Go to deployed Container App and select `ca-<randomname>-web` and click **Add Identity Provider** button in Authentication.  
      ![add_auth_provider_web_1](./images/add_auth_provider_web_1.png)
 
    - Select **Microsoft** and set **Client secret expiration**, then click **Add** button.  
@@ -29,7 +29,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 1. Add Authentication Provider in API Service
 
-   - Go to deployed Container App and select `ca-cps-<randomname>-api` and click **Add Identity Provider** button in Authentication.  
+   - Go to deployed Container App and select `ca-<randomname>-api` and click **Add Identity Provider** button in Authentication.  
      ![add_auth_provider_api_1](./images/add_auth_provider_api_1.png)
 
    - Select **Microsoft** and set **Client secret expiration**.  
@@ -42,7 +42,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 1. Set Redirect URI in Single Page Application Platform
 
-   - Go to deployed Container App `ca-cps-<randomname>-web` and select **Authentication** menu, then select created Application Registration.  
+   - Go to deployed Container App `ca-<randomname>-web` and select **Authentication** menu, then select created Application Registration.  
      ![configure_app_registration_web_1](./images/configure_app_registration_web_1.png)
 
    - Select **Authentication**, then select **+ Add a platform** menu.  
@@ -51,7 +51,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
    - Select **Single-page application**.  
      ![configure_app_registration_web_3](./images/configure_app_registration_web_3.png)
 
-   - Add Container App `ca-cps-<randomname>-web`'s URL.  
+   - Add Container App `ca-<randomname>-web`'s URL.  
      ![configure_app_registration_web_4](./images/configure_app_registration_web_4.png)
 
    - You may get this URL from here in your Container App.  
@@ -59,7 +59,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 2. Add Permission and Grant Permission
 
-   - Add Permission for API application. Select **+ Add a permission** button, then search API application with name `ca-cps-<randomname>-api`.  
+   - Add Permission for API application. Select **+ Add a permission** button, then search API application with name `ca-<randomname>-api`.  
      ![configure_app_registration_web_6](./images/configure_app_registration_web_6.png)  
      ![configure_app_registration_web_7](./images/configure_app_registration_web_7.png)
 
@@ -86,7 +86,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 1. Grab Scope Name for Impersonation
 
-   - Go to deployed Container App `ca-cps-<randomname>-api` and select **Authentication** menu, then select created Application Registration.  
+   - Go to deployed Container App `ca-<randomname>-api` and select **Authentication** menu, then select created Application Registration.  
      ![configure_app_registration_api_1](./images/configure_app_registration_api_1.png)
 
    - Select **Expose an API** in the left menu. Copy the Scope name, then paste it in some temporary place.  
@@ -95,7 +95,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
 ## Step 4: Add Web Application's Client Id to Allowed Client Applications List in API Application Registration
 
-1. Go to the deployed Container App `ca-cps-<randomname>-api`, select **Authentication**, and then click **Edit**.  
+1. Go to the deployed Container App `ca-<randomname>-api`, select **Authentication**, and then click **Edit**.  
    ![add_client_id_to_api_1](./images/add_client_id_to_api_1.png)
 
 2. Select **Allow requests from specific client applications**, then click the **pencil** icon to add the Client Id.  

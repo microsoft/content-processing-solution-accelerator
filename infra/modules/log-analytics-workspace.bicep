@@ -23,7 +23,7 @@ var existingLawResourceGroup = useExistingWorkspace ? split(existingLogAnalytics
 var existingLawName = useExistingWorkspace ? split(existingLogAnalyticsWorkspaceId, '/')[8] : ''
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.2' = if(!useExistingWorkspace) {
-  name: 'deploy_new_log_analytics_workspace'
+  name: take('avm.res.operational-insights.workspace-${name}', 24)
   params: {
     name: name
     location: location
