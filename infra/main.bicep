@@ -150,7 +150,7 @@ module virtualNetwork './modules/virtualNetwork.bicep' = if (enablePrivateNetwor
   name: take('module.virtual-network.${solutionSuffix}', 64)
   params: {
     name: 'vnet-${solutionSuffix}'
-    addressPrefixes: ['10.0.0.0/20']
+    addressPrefixes: ['10.0.0.0/8']
     location: resourceGroupLocation
     tags: tags
     logAnalyticsWorkspaceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
@@ -220,7 +220,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
         ipConfigurations: [
           {
             name: 'ipconfig1'
-            subnetResourceId: virtualNetwork!.outputs.jumpboxSubnetResourceId
+            subnetResourceId: virtualNetwork!.outputs.adminSubnetResourceId
           }
         ]
         diagnosticSettings: enableMonitoring ? [
@@ -453,7 +453,8 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
     privateEndpoints: (enablePrivateNetworking)
       ? [
           {
-            name: 'storage-private-endpoint-blob-${solutionSuffix}'
+            name: 'pep-blob-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-blob-${solutionSuffix}'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
                 {
@@ -466,7 +467,8 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
             service: 'blob'
           }
           {
-            name: 'storage-private-endpoint-queue-${solutionSuffix}'
+            name: 'pep-queue-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-queue-${solutionSuffix}'
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
                 {
@@ -543,7 +545,8 @@ module avmAiServices 'modules/account/main.bicep' = {
     privateEndpoints: (enablePrivateNetworking && empty(existingProjectResourceId))
       ? [
           {
-            name: 'ai-services-private-endpoint-${solutionSuffix}'
+            name: 'pep-aiservices-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-aiservices-${solutionSuffix}'
             privateEndpointResourceId: virtualNetwork.outputs.resourceId
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
@@ -614,7 +617,8 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.11.0' = 
     privateEndpoints: (enablePrivateNetworking)
       ? [
           {
-            name: 'aicu-private-endpoint-${solutionSuffix}'
+            name: 'pep-aicu-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-aicu-${solutionSuffix}'
             privateEndpointResourceId: virtualNetwork.outputs.resourceId
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
@@ -679,7 +683,7 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.2' = {
 module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
   name: take('avm.res.managed-identity.user-assigned-identity.${solutionSuffix}', 64)
   params: {
-    name: 'acr-reader-mid${solutionSuffix}'
+    name: 'id-acr-${solutionSuffix}'
     location: resourceGroupLocation
     tags: tags
     enableTelemetry: enableTelemetry
@@ -957,7 +961,8 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
     privateEndpoints: (enablePrivateNetworking)
       ? [
           {
-            name: 'cosmosdb-private-endpoint-${solutionSuffix}'
+            name: 'pep-cosmosdb-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-cosmosdb-${solutionSuffix}'
             privateEndpointResourceId: virtualNetwork.outputs.resourceId
             privateDnsZoneGroup: {
               privateDnsZoneGroupConfigs: [
@@ -1137,7 +1142,8 @@ module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-st
     publicNetworkAccess: 'Disabled'
     privateEndpoints: [
       {
-        name: 'appconfig-private-endpoint-${solutionSuffix}'
+        name: 'pep-appconfig-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-appconfig-${solutionSuffix}'
         privateDnsZoneGroup: {
           privateDnsZoneGroupConfigs: [
             {
