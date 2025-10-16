@@ -1367,4 +1367,4 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
 
 @description('The resource group the resources were deployed into.')
-output resourceGroupName string = resourceGroup().name
+output AZURE_RESOURCE_GROUP string = resourceGroup().name
