@@ -490,7 +490,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.20.0' = {
 }
 
 // // ========== AI Foundry and related resources ========== //
-module avmAiServices 'modules/account/main.bicep' = {
+module avmAiServices 'modules/account/aiservice.bicep' = {
   name: take('module.ai-services.${solutionSuffix}', 64)
   params: {
     name: 'aif-${solutionSuffix}'
