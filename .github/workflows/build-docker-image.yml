@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -28,7 +28,7 @@ jobs:
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Log in to Azure Container Registry
-        if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
+        if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
         uses: azure/docker-login@v2
         with:
           login-server: ${{ env.ACR_LOGIN_SERVER }}
@@ -54,6 +54,9 @@ jobs:
             BASE_TAG="demo"
           elif [[ "$BRANCH" == "hotfix" ]]; then
             BASE_TAG="hotfix"
+          elif [[ "$BRANCH" == "dependabotchanges" ]]; then
+            BASE_TAG="dependabotchanges"
+            
           else
             BASE_TAG="pullrequest-ignore"
           fi
@@ -67,7 +70,7 @@ jobs:
         with:
           context: ./src/ContentProcessor
           file: ./src/ContentProcessor/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.DATE_TAG }}
@@ -77,7 +80,7 @@ jobs:
         with:
           context: ./src/ContentProcessorAPI
           file: ./src/ContentProcessorAPI/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.DATE_TAG }}
@@ -87,7 +90,7 @@ jobs:
         with:
           context: ./src/ContentProcessorWeb
           file: ./src/ContentProcessorWeb/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}
