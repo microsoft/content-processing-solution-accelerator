@@ -1103,7 +1103,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_AI_PROJECT_ENDPOINT'
-        value: avmAiServices.outputs.aiProjectInfo.apiEndpoint
+        value: avmAiServices.outputs.aiProjectInfo.?apiEndpoint ?? ''
       }
       {
         name: 'APP_COSMOS_CONNSTR'

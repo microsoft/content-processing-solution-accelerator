@@ -269,6 +269,7 @@ module cognitive_service_dependencies './modules/dependencies.bicep' = if(!useEx
     sku: sku
     tags: tags
   }
+  scope: resourceGroup()
 }
 
 module existing_cognitive_service_dependencies './modules/dependencies.bicep' = if(useExistingService) {

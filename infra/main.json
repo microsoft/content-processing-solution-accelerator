@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "5583509537249625128"
+      "templateHash": "10090938439711679479"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -38710,10 +38710,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
       ]
@@ -51067,7 +51067,7 @@
               },
               {
                 "name": "APP_AI_PROJECT_ENDPOINT",
-                "value": "[reference('avmAiServices').outputs.aiProjectInfo.value.apiEndpoint]"
+                "value": "[coalesce(tryGet(reference('avmAiServices').outputs.aiProjectInfo.value, 'apiEndpoint'), '')]"
               },
               {
                 "name": "APP_COSMOS_CONNSTR",
