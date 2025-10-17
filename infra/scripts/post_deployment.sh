@@ -5,8 +5,6 @@ set -e
 
 echo "🔍 Fetching container app info from azd environment..."
 
-echo "Started at: $(date)"
-
 # Load values from azd env
 CONTAINER_WEB_APP_NAME=$(azd env get-value CONTAINER_WEB_APP_NAME)
 CONTAINER_WEB_APP_FQDN=$(azd env get-value CONTAINER_WEB_APP_FQDN)
