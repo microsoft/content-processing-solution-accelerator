@@ -31,8 +31,8 @@ jobs:
       
       - name: Login to Azure
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install dependencies
         run: |
