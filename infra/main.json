@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "14259315155038248870"
+      "templateHash": "6682056177373814634"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -20454,7 +20454,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "16080670397776921948"
+              "templateHash": "251116960322750261"
             },
             "name": "Key Vault Module"
           },
@@ -20625,13 +20625,7 @@
                   "enableTelemetry": {
                     "value": "[parameters('enableTelemetry')]"
                   },
-                  "diagnosticSettings": {
-                    "value": [
-                      {
-                        "workspaceResourceId": "[parameters('logAnalyticsWorkspaceResourceId')]"
-                      }
-                    ]
-                  },
+                  "diagnosticSettings": "[if(empty(parameters('logAnalyticsWorkspaceResourceId')), createObject('value', null()), createObject('value', createArray(createObject('workspaceResourceId', parameters('logAnalyticsWorkspaceResourceId')))))]",
                   "networkAcls": {
                     "value": "[parameters('networkAcls')]"
                   }
@@ -38709,10 +38703,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
       ]
