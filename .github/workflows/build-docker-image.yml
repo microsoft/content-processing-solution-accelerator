@@ -70,7 +70,7 @@ jobs:
         with:
           context: ./src/ContentProcessor
           file: ./src/ContentProcessor/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.DATE_TAG }}
@@ -80,7 +80,7 @@ jobs:
         with:
           context: ./src/ContentProcessorAPI
           file: ./src/ContentProcessorAPI/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.DATE_TAG }}
@@ -90,7 +90,7 @@ jobs:
         with:
           context: ./src/ContentProcessorWeb
           file: ./src/ContentProcessorWeb/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}
