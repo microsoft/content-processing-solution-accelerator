@@ -79,6 +79,9 @@ param enableRedundancy bool = false
 @description('Optional. Enable scalability for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
 param enableScalability bool = false
 
+@description('Optional. Enable purge protection. Defaults to false.')
+param enablePurgeProtection bool = false
+
 @description('Optional. Tags to be applied to the resources.')
 param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {
   app: 'Content Processing Solution Accelerator'
@@ -987,7 +990,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
   params: {
     name: 'appcs-${solutionSuffix}'
     location: resourceGroupLocation
-    enablePurgeProtection: false
+    enablePurgeProtection: enablePurgeProtection
     tags: {
       app: solutionSuffix
       location: resourceGroupLocation
@@ -1100,7 +1103,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.6
       }
       {
         name: 'APP_AI_PROJECT_ENDPOINT'
-        value: avmAiServices.outputs.aiProjectInfo.apiEndpoint
+        value: avmAiServices.outputs.aiProjectInfo.?apiEndpoint ?? ''
       }
       {
         name: 'APP_COSMOS_CONNSTR'
@@ -1367,4 +1370,4 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
 
 @description('The resource group the resources were deployed into.')
-output resourceGroupName string = resourceGroup().name
+output AZURE_RESOURCE_GROUP string = resourceGroup().name
