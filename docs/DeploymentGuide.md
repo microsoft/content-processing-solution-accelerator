@@ -285,6 +285,10 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 4. **Deleting Resources After a Failed Deployment**  
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
+  
+## Running the application
+
+To help you get started, here's the [Sample Workflow](./SampleWorkflow.md) you can follow to try it out.
 
 ## Environment configuration for local development & debugging
 **Creatign env file**
