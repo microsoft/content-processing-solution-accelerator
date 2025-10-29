@@ -32,16 +32,18 @@ _Sample Qperation:_
 
 - Task: Open Processed File - Once the file status is marked as Completed, click on the file. 
 Once the batch Processing is done for any file the file will be available to review.
--Task: Review Extracted Data - 
+- Task: Review Extracted Data - 
 The extracted data will be displayed in the "Output Review" pane.
 The corresponding file will be shown in the "Source Document" pane.
--Task: Modify and Submit
+- Task: Modify and Submit
 Edit any incorrect data in the JSON which is shown in the "Output Review" pane under "Exrtracted Results" tab.
 Add notes under the "Comments" multi line textbox.
 Save the changes by clickin on the "Save" button
--Task: Review Process Steps -
+- Task: Review Process Steps -
 You can view the process steps in the "Output Review" pane under the "Process Steps" tab.
 Expand the Extract, Map, and Evaluate sections to see the outputs from each process step.
+
+ ![Application](images/sampleworkflow1.png)
   
 ### **Delete**
 The Draft section ensures accuracy and completeness of the generated promissory notes. Key tasks include:
@@ -49,7 +51,5 @@ The Draft section ensures accuracy and completeness of the generated promissory 
 _Sample operation:_
 
 - Task: Delete - Click the three-dot menu at the end of the row to expand options, then select 'Delete' to remove the item.
-
-  ![Application](images/sampleworkflow.png)
   
 This structured approach ensures that users can efficiently browse, create, and refine promissory notes while maintaining legal compliance and document accuracy.
