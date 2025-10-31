@@ -28,7 +28,7 @@ _Sample Qperation:_
 
 - Task: Once the file status is marked as completed and click on the file.
 - Task: Once the batch Processing is done, file is ready to review and the extracted data is displayed in the **Output Review** pane and corresponding file is visible in the **Source Document** pane.
-- Task: Edit any incorrect data in the JSON which is shown in the **Output Review** pane under **Exrtracted Results** tab.
+- Task: Edit any incorrect data in the JSON which is shown in the **Output Review** pane under **Extracted Results** tab.
 - Task: Add notes under the **Comments** and save the changes by clicking on the **Save** button
 - Task: You can view the process steps in the **Output Review** pane under the **Process Steps** tab and expand the extract, Map, and evaluate sections to see the outputs from each process step.
 
