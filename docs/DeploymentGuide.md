@@ -62,7 +62,7 @@ You can run this solution using [GitHub Codespaces](https://docs.github.com/en/c
 </details>
 
 <details>
-  <summary><b>Deploy in VS Code</b></summary>
+  <summary><b>Deploy in VS Code Dev Containers</b></summary>
 
 ### VS Code Dev Containers
 
@@ -110,22 +110,7 @@ Consider the following settings during your deployment to modify specific settin
 <details>
   <summary><b>Configurable Deployment Settings</b></summary>
 
-When you start the deployment, most parameters will have **default values**, but you can update the following settings by following the steps [here](../docs/CustomizingAzdParameters.md):
-
-| **Setting**                                 | **Description**                                                                             | **Default Value** |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------- |
-| **Azure Region**                            | The region where resources will be created.                                                 | East US           |
-| **Azure AI Content Understanding Location** | Location for the **Content Understanding** service.                                         | Sweden Central    |
-| **Secondary Location**                      | A **less busy** region for **Azure Cosmos DB**, useful in case of availability constraints. | eastus2           |
-| **Deployment Type**                         | Select from a drop-down list.                                                               | GlobalStandard    |
-| **GPT Model**                               | Choose from **gpt-4o**.                                                                     | gpt-4o            |
-| **GPT Model Version**                       | GPT model version used in the deployment.                                                   | 2024-08-06        |
-| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models**.                                                      | 30k               |
-| **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
-| **Image Tag**                               | Image version for deployment (allowed values: `latest`, `dev`, `hotfix`).                   | latest            |
-| **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID instead of creating a new one.              | *(none)*          |
-| **Existing Azure AI Foundry Project**        | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.              | *(none)*          |
-
+When you start the deployment, most parameters will have **default values**, but you can update the following settings by following the steps [here](../docs/CustomizingAzdParameters.md)
 
 </details>
 
@@ -213,12 +198,14 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    - **Linux/macOS**:
      ```bash
      cd ./infra/scripts/
+
      ./docker-build.sh
      ```
 
    - **Windows (PowerShell)**:
      ```powershell
      cd .\infra\scripts\
+
      .\docker-build.ps1
      ```
 
@@ -239,19 +226,35 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     - **Execute Script to registering Schemas**
         - Move the folder to samples/schemas in ContentProcessorApi - [/src/ContentProcessorApi/samples/schemas](/src/ContentProcessorApi/samples/schemas)  
 
-          Bash
+        
+          Git Bash
+
+          ```bash
+          cd src/ContentProcessorAPI/samples/schemas
+          ```  
+
+          Powershell
+
+          ```Powershell
+          cd .\src\ContentProcessorAPI\samples\schemas\
+          ```  
+
+        - Then use below command
+
+          Git Bash
 
           ```bash
           ./register_schema.sh https://<< API Service Endpoint>>/schemavault/ schema_info_sh.json
           ```  
 
-          Windows
+          Powershell
 
           ```Powershell
           ./register_schema.ps1 https://<< API Service Endpoint>>/schemavault/ .\schema_info_ps1.json
           ```  
 
     - **Verify Results**
+    
         ![schema file registration](./images/SchemaFileRegistration.png)  
 
 3. **Import Sample Data**  
