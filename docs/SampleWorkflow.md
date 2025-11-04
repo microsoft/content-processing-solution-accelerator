@@ -13,7 +13,7 @@ To help you get started, here’s a **sample process** you can follow in the app
 
 ### **Upload**
 
-_Sample Qperations:_
+_Sample Operations:_
 
 - Select the **Schema** under the Processing Queue pane.
 - Click on the **Import Content** button.
@@ -22,7 +22,7 @@ _Sample Qperations:_
 
 ### **Review and Process**
 
-_Sample Qperation:_
+_Sample Operation:_
 
 - Once the file status is marked as completed and click on the file.
 - Once the batch Processing is done, file is ready to review and the extracted data is displayed in the **Output Review** pane and corresponding file is visible in the **Source Document** pane.
