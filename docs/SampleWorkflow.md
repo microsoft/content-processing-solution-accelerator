@@ -24,7 +24,7 @@ _Sample Operations:_
 
 _Sample Operation:_
 
-- Once the file status is marked as completed and click on the file.
+- Once the file status is marked as completed, click on the file.
 - Once the batch Processing is done, file is ready to review and the extracted data is displayed in the **Output Review** pane and corresponding file is visible in the **Source Document** pane.
 - Edit any incorrect data in the JSON which is shown in the **Output Review** pane under **Extracted Results** tab.
 - Add notes under the **Comments** and save the changes by clicking on the **Save** button
