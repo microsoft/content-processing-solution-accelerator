@@ -290,7 +290,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
 
 ## Environment configuration for local development & debugging
-**Creatign env file**
+**Creating env file**
 
 > Navigate to the `src` folder of the project.
 
