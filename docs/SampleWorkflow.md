@@ -13,6 +13,8 @@ To help you get started, here’s a **sample process** you can follow in the app
 
 ### **Upload**
 
+  > Note: Average response time is 01 minute.
+
 _Sample Operations:_
 
 - Select the **Schema** under the Processing Queue pane.
