@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "14310770063360835011"
+      "templateHash": "11985360537269850534"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -15,8 +15,10 @@
     "solutionName": {
       "type": "string",
       "defaultValue": "cps",
+      "minLength": 3,
+      "maxLength": 20,
       "metadata": {
-        "description": "Required. Name of the solution to deploy."
+        "description": "Required. Name of the solution to deploy. This should be 3-20 characters long:"
       }
     },
     "location": {
@@ -32964,8 +32966,8 @@
         "avmContainerApp",
         "avmContainerApp_API",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "virtualNetwork"
       ]
     },
@@ -38706,10 +38708,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
       ]
@@ -41048,6 +41050,7 @@
         "avmContainerApp",
         "avmManagedIdentity",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "virtualNetwork"
       ]
