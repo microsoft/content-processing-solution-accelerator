@@ -7,7 +7,7 @@ metadata description = 'Bicep template to deploy the Content Processing Solution
 // ========== Parameters ========== //
 @minLength(3)
 @maxLength(20)
-@description('Required. Name of the solution to deploy. This should be 3-20 characters long:')
+@description('Required. Name of the solution to deploy. This should be 3-20 characters long.')
 param solutionName string = 'cps'
 @description('Optional. Location for all Resources.')
 param location string = resourceGroup().location
