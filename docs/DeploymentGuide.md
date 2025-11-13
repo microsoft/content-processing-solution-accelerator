@@ -2,7 +2,27 @@
 
 ## **Pre-requisites**
 
-To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups, resources, app registrations, and assign roles at the resource group level**. This should include Contributor role at the subscription level and Role Based Access Control role on the subscription and/or resource group level. Follow the steps in [Azure Account Set Up](./AzureAccountSetup.md).
+### Required Permissions & Access
+
+To deploy this solution accelerator, you need **Azure subscription access** with the following permissions:
+
+**✅ Recommended Permissions (Simplest Setup):**
+- **Owner** role at the subscription or resource group level
+- **User Access Administrator** role at the subscription or resource group level
+
+> **Note:** These elevated permissions are required because the deployment creates Managed Identities and assigns roles to them automatically.
+
+**⚠️ Alternative Least-Privilege Setup:**
+If you cannot use Owner + User Access Administrator roles, you'll need the following minimum permissions:
+
+| Permission | Required For | Scope |
+|------------|-------------|-------|
+| **Contributor** | Creating and managing Azure resources | Subscription or Resource Group |
+| **User Access Administrator** | Assigning roles to Managed Identities | Resource Group |
+| **Application Administrator** (Azure AD) | Creating app registrations for authentication | Tenant |
+| **Role Based Access Control Administrator** | Managing role assignments | Resource Group |
+
+> **Important:** With least-privilege setup, you may need to perform some manual steps during deployment. Follow the steps in [Azure Account Set Up](./AzureAccountSetup.md) for detailed guidance.
 
 Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/?products=all&regions=all) page and select a **region** where the following services are available:
 
@@ -33,6 +53,20 @@ This will allow the scripts to run for the current session without permanently c
 ### **Important: Check Azure OpenAI Quota Availability**
 
 ⚠️ To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./quota_check.md) before you deploy the solution.
+
+### **🛠️ Troubleshooting & Common Issues**
+
+**Before you start deployment**, be aware of these common issues and solutions:
+
+| **Common Issue** | **Quick Solution** | **Full Guide Link** |
+|-----------------|-------------------|---------------------|
+| **ReadOnlyDisabledSubscription** | Check if you have an active subscription | [Troubleshooting Guide](./TroubleShootingSteps.md#readonlydisabledsubscription) |
+| **InsufficientQuota** | Verify quota availability | [Quota Check Guide](./quota_check.md) |
+| **ResourceGroupNotFound** | Create new environment with `azd env new` | [Troubleshooting Guide](./TroubleShootingSteps.md#resourcegroupnotfound) |
+| **InvalidParameter (Workspace Name)** | Use compliant names (3-33 chars, alphanumeric) | [Troubleshooting Guide](./TroubleShootingSteps.md#workspace-name---invalidparameter) |
+| **ResourceNameInvalid** | Follow Azure naming conventions | [Troubleshooting Guide](./TroubleShootingSteps.md#resourcenameinvalid) |
+
+> **🚨 If you encounter deployment errors:** Check the [complete troubleshooting guide](./TroubleShootingSteps.md) with 25+ common error solutions.
 
 <br/>   
 
@@ -146,6 +180,60 @@ To adjust quota settings, follow these [steps](./AzureGPTQuotaSettings.md).
 
 Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), or [locally](#local-environment), you can deploy it to Azure by following these steps:
 
+#### **🔄 Important: Environment Management for Redeployments**
+
+> **⚠️ CRITICAL:** If you're redeploying or have deployed this solution before, you **MUST** create a fresh environment to avoid conflicts and deployment failures.
+
+**Choose one of the following before deployment:**
+
+**Option A: Create a completely new environment (Recommended)**
+```shell
+azd env new <new-environment-name>
+```
+
+**Option B: Reinitialize in a new directory**
+```shell
+# Navigate to a new directory
+cd ../my-new-deployment
+azd init -t microsoft/content-processing-solution-accelerator
+```
+
+> **💡 Why is this needed?** Azure resources maintain state information tied to your environment. Reusing an old environment can cause naming conflicts, permission issues, and deployment failures.
+
+#### **📝 Environment Naming Requirements**
+
+When creating your environment name, follow these rules:
+- **Maximum 14 characters** (will be expanded to meet Azure resource naming requirements)
+- **Only lowercase letters and numbers** (a-z, 0-9)
+- **No special characters** (-, _, spaces, etc.)
+- **Must start with a letter**
+- **Examples:** `cpsapp01`, `mycontentapp`, `devtest123`
+
+❌ **Invalid names:** `cps-app`, `CPS_App`, `content-processing`, `my app`  
+✅ **Valid names:** `cpsapp01`, `mycontentapp`, `devtest123`
+
+> **🛠️ Need help generating a compliant name?** Use our name generator script:
+> ```powershell
+> .\infra\scripts\generate-environment-name.ps1
+> ```
+> Or run interactively: `.\infra\scripts\generate-environment-name.ps1 -Interactive`
+
+#### **🧹 Environment Cleanup**
+
+> **💡 Tip:** If you have old environments that failed deployment or are no longer needed, use our cleanup script:
+> ```powershell
+> # List all environments
+> .\infra\scripts\cleanup-environments.ps1 -ListOnly
+> 
+> # Clean up a specific environment
+> .\infra\scripts\cleanup-environments.ps1 -EnvironmentName "oldenvname"
+> 
+> # Clean up environment AND Azure resource group
+> .\infra\scripts\cleanup-environments.ps1 -EnvironmentName "oldenvname" -DeleteResourceGroup
+> ```
+
+#### **🚀 Deployment Steps**
+
 1. Login to Azure:
 
     ```shell
@@ -171,7 +259,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```
     > **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 
-3. Provide an `azd` environment name (e.g., "cpsapp").
+3. **Provide an `azd` environment name** - Use the naming requirements above (e.g., "cpsapp01").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources. 
     - This deployment will take *4-6 minutes* to provision the resources in your account and set up the solution with sample data.
     - If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
@@ -308,9 +396,118 @@ To help you get started, here's the [Sample Workflow](./SampleWorkflow.md) you c
 - Copy the necessary environment variable values and paste them into your local `.env` file.
   
 
+## 🎯 Deployment Success Validation
+
+After deployment completes, use this checklist to verify everything is working correctly:
+
+### **✅ Deployment Validation Checklist**
+
+**1. Basic Deployment Verification**
+- [ ] `azd up` completed successfully without errors
+- [ ] All Azure resources are created in the resource group
+- [ ] Both Web and API container apps are running
+
+**2. Container Apps Health Check**
+```powershell
+# Test Web App (replace <your-web-app-url> with actual URL from deployment output)
+curl -I https://<your-web-app-url>/
+
+# Test API App (replace <your-api-app-url> with actual URL)
+curl -I https://<your-api-app-url>/health
+```
+**Expected Result:** Both should return HTTP 200 status
+
+**3. Authentication Configuration**
+- [ ] App authentication is configured (see [App Authentication Guide](./ConfigureAppAuthentication.md))
+- [ ] You can access the web application without errors
+- [ ] Login flow works correctly
+
+**4. Sample Data Processing Test**
+```powershell
+# Navigate to API samples directory
+cd src/ContentProcessorAPI/samples/schemas
+
+# Register sample schemas (use your API endpoint)
+./register_schema.ps1 https://<your-api-endpoint>/schemavault/ .\schema_info_ps1.json
+
+# Upload sample documents (use returned schema IDs)
+cd ../
+./upload_files.ps1 https://<your-api-endpoint>/contentprocessor/submit .\invoices <Invoice-Schema-ID>
+```
+**Expected Result:** Files upload successfully and appear in the web interface
+
+**5. End-to-End Workflow Test**
+- [ ] Can select a schema in the web interface
+- [ ] Can upload a document successfully
+- [ ] Document processes to "Completed" status
+- [ ] Can view extracted data in the web interface
+- [ ] Can modify and save extracted data
+- [ ] Can view process steps and logs
+
+### **🧪 Sample Test Commands**
+
+**API Health Check:**
+```bash
+curl https://<your-api-endpoint>/health
+```
+
+**Web App Accessibility:**
+```bash
+curl -I https://<your-web-endpoint>/
+```
+
+**Schema Registration Verification:**
+```bash
+curl https://<your-api-endpoint>/schemavault/schemas
+```
+
+### **📊 Success Indicators**
+
+**Deployment is successful when:**
+- ✅ Web app loads without errors
+- ✅ API health endpoint returns `{"status": "healthy"}`
+- ✅ Sample schemas register successfully
+- ✅ Sample documents upload and process completely
+- ✅ Authentication works (after configuration)
+- ✅ All container apps show "Running" status in Azure Portal
+
+### **🔍 Troubleshooting Failed Validation**
+
+**If any checks fail:**
+1. Check Azure Portal → Resource Group → Container Apps for error logs
+2. Review deployment logs: `azd show`
+3. Verify all post-deployment steps are completed
+4. Check [Troubleshooting Guide](./TroubleShootingSteps.md) for specific error solutions
+
 ## Next Steps
 
-Now that you've completed your deployment, you can start using the solution. Try out these things to start getting familiar with the capabilities:
-* Open the web container app URL in your browser and explore the web user interface and upload your own invoices.
-* [Create your own schema definition](./CustomizeSchemaData.md), so you can upload and process your own types of documents.
-* [Ingest the API](API.md) for processing documents programmatically.
+Now that you've validated your deployment, you can start using the solution:
+
+### **🚀 Getting Started**
+* **Try the Sample Workflow:** Follow our [Sample Workflow Guide](./SampleWorkflow.md) for a step-by-step walkthrough
+* **Upload Your Own Documents:** Open the web container app URL and explore the user interface
+* **Create Custom Schemas:** [Learn how to add your own document schemas](./CustomizeSchemaData.md)
+* **API Integration:** [Explore programmatic document processing](API.md)
+
+### **🎯 Golden Path Workflows**
+
+For the best experience, follow our **[Golden Path Workflows Guide](./GoldenPathWorkflows.md)** which includes:
+
+1. **Invoice Processing Golden Path:**
+   - Complete step-by-step invoice processing workflow
+   - Learn confidence scoring and validation features
+   - Practice data modification and approval processes
+
+2. **Property Claims Golden Path:**
+   - Advanced form processing with complex data structures
+   - Multi-modal content extraction (text, images, tables)
+   - Validation rule application and quality assurance
+
+3. **Custom Document Processing:**
+   - Create and test your own document schemas
+   - Optimize extraction quality through iterative refinement
+   - Scale to production volumes with best practices
+
+> **📖 [Complete Golden Path Workflows Guide](./GoldenPathWorkflows.md)** - Detailed step-by-step instructions, expected outcomes, and best practices.
+
+> **💡 Pro Tip:** The solution includes confidence scoring and human-in-the-loop validation. Use the confidence thresholds to determine which documents need manual review. The golden path workflows will teach you how to interpret and act on these scores effectively.

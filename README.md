@@ -1,5 +1,18 @@
 # Content processing solution accelerator
-Extract data and apply schemas across your multi-modal content, with confidence scoring and user validation enabling greater speed of data ingestion. Process claims, invoices, contracts and other documents quickly and accurately by extracting information from unstructured content and mapping it to a structured format. This template supports text, images, tables and graphs.
+Extract data and apply sche### How to install or deploy
+Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription.
+
+> **⚠️ Prerequisites Check:** Ensure you have **Owner + User Access Administrator** roles in your Azure subscription for smooth deployment. See [Prerequisites](#prerequisites-and-costs) below for details.
+
+> **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher**. Please ensure you have the latest version installed before proceeding with deployment. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
+
+**🚀 Quick Start:**
+1. **Check Prerequisites** - Verify your Azure permissions and quota availability
+2. **Create Environment** - Use `azd env new <environment-name>` (max 14 chars, alphanumeric only)
+3. **Deploy** - Run `azd up` and follow the prompts
+4. **Validate** - Use our deployment validation checklist to ensure success
+
+[📖 **Click here for the complete deployment guide**](./docs/DeploymentGuide.md)ross your multi-modal content, with confidence scoring and user validation enabling greater speed of data ingestion. Process claims, invoices, contracts and other documents quickly and accurately by extracting information from unstructured content and mapping it to a structured format. This template supports text, images, tables and graphs.
 
 These capabilities can be applied to numerous use cases including: contract processing, claims processing, invoice processing, ID verification, and clinician-patient visit record summarization. 
 
@@ -84,10 +97,32 @@ Follow the quick deploy steps on the deployment guide to deploy this solution 
 > ⚠️ **Important: Check Azure OpenAI Quota Availability**
  <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/quota_check.md) before you deploy the solution.
 
+> 🛠️ **Need Help?** Check our [Troubleshooting Guide](./docs/TroubleShootingSteps.md) for solutions to 25+ common deployment issues.
+
 <br/>
 
 ### Prerequisites and costs
-To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups, resources, app registrations, and assign roles at the resource group level**. This should include Contributor role at the subscription level and Role Based Access Control role on the subscription and/or resource group level. Follow the steps in [Azure Account Set Up](./docs/AzureAccountSetup.md).
+
+#### Required Permissions
+To deploy this solution accelerator, you need **Azure subscription access** with the following permissions:
+
+**✅ Recommended Permissions (Simplest Setup):**
+- **Owner** role at the subscription or resource group level
+- **User Access Administrator** role at the subscription or resource group level
+
+> **Note:** These elevated permissions are required because the deployment creates Managed Identities and assigns roles to them automatically.
+
+**⚠️ Alternative Least-Privilege Setup:**
+If you cannot use Owner + User Access Administrator roles, you'll need the following minimum permissions:
+
+| Permission | Required For | Scope |
+|------------|-------------|-------|
+| **Contributor** | Creating and managing Azure resources | Subscription or Resource Group |
+| **User Access Administrator** | Assigning roles to Managed Identities | Resource Group |
+| **Application Administrator** (Azure AD) | Creating app registrations for authentication | Tenant |
+| **Role Based Access Control Administrator** | Managing role assignments | Resource Group |
+
+> **Important:** With least-privilege setup, you may need to perform some manual steps during deployment. Follow the steps in [Azure Account Set Up](./docs/AzureAccountSetup.md) for detailed guidance.
 
 Here are some example regions where the services are available: East US, East US2, Australia East, UK South, France Central, Africa.
 
