@@ -1,5 +1,20 @@
 # Deployment Guide
 
+## **🚀 Quick Start**
+
+Ready to deploy? Follow these essential steps:
+
+1. **Check Prerequisites** - Verify your Azure permissions (Owner + User Access Administrator) and quota availability
+2. **Create Environment** - Use `azd env new <environment-name>` (max 14 chars, alphanumeric only)
+3. **Deploy** - Run `azd up` and follow the prompts
+4. **Validate** - Use our [deployment validation checklist](#-deployment-success-validation) to ensure success
+
+> **⚠️ Prerequisites Check:** Ensure you have **Owner + User Access Administrator** roles in your Azure subscription for smooth deployment. See [Prerequisites](#pre-requisites) below for details.
+
+> **🛠️ Need Help?** Check our [Troubleshooting Guide](./TroubleShootingSteps.md) for solutions to 25+ common deployment issues.
+
+---
+
 ## **Pre-requisites**
 
 ### Required Permissions & Access
@@ -37,6 +52,26 @@ Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/g
 - [GPT Model Capacity](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models)
 
 Here are some example regions where the services are available: East US, East US2, Australia East, UK South, France Central.
+
+### **Cost Estimation**
+
+Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers. However, Azure Container Registry has a fixed cost per registry per day.
+
+Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to calculate the cost of this solution in your subscription. [Review a sample pricing sheet for the architecture](https://azure.com/e/0a9a1459d1a2440ca3fd274ed5b53397).
+
+| Product | Description | Cost |
+|---|---|---|
+| [Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/) | Build generative AI applications on an enterprise-grade platform | [Pricing](https://azure.microsoft.com/pricing/details/ai-studio/) |
+| [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/) | Provides REST API access to OpenAI's powerful language models including o3-mini, o1, o1-mini, GPT-4o, GPT-4o mini | [Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/) |
+| [Azure AI Content Understanding Service](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/) | Analyzes various media content—such as audio, video, text, and images—transforming it into structured, searchable data | [Pricing](https://azure.microsoft.com/en-us/pricing/details/content-understanding/) |
+| [Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/) | Microsoft's object storage solution for the cloud. Blob storage is optimized for storing massive amounts of unstructured data | [Pricing](https://azure.microsoft.com/pricing/details/storage/blobs/) |
+| [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/) | Allows you to run containerized applications without worrying about orchestration or infrastructure. | [Pricing](https://azure.microsoft.com/pricing/details/container-apps/) |
+| [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/) | Build, store, and manage container images and artifacts in a private registry for all types of container deployments | [Pricing](https://azure.microsoft.com/pricing/details/container-registry/) |
+| [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/) | Fully managed, distributed NoSQL, relational, and vector database for modern app development | [Pricing](https://azure.microsoft.com/en-us/pricing/details/cosmos-db/autoscale-provisioned/) |
+| [Azure Queue Storage](https://learn.microsoft.com/en-us/azure/storage/queues/) | Store large numbers of messages and access messages from anywhere in the world via HTTP or HTTPS. | [Pricing](https://azure.microsoft.com/pricing/details/storage/queues/) |
+| [GPT Model Capacity](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) | The latest most capable Azure OpenAI models with multimodal versions, accepting both text and images as input | [Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/) |
+
+>⚠️ **Important:** To avoid unnecessary costs, remember to take down your app if it's no longer in use, either by deleting the resource group in the Portal or running `azd down`.
 
 ### **Important: Note for PowerShell Users**
 
