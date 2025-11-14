@@ -89,11 +89,36 @@ Follow the quick deploy steps on the deployment guide to deploy this solution 
 <br/>
 
 ### Prerequisites and costs
-To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups, resources, app registrations, and assign roles at the resource group level**. This should include **Owner** and **User Access Administrator** roles at the subscription level. For detailed requirements, see the [Deployment Guide](./docs/DeploymentGuide.md).
+To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups, resources, app registrations, and assign roles at the resource group level**. This should include Contributor role at the subscription level and Role Based Access Control role on the subscription and/or resource group level. Follow the steps in [Azure Account Set Up](./docs/AzureAccountSetup.md).
 
-Here are some example regions where the services are available: East US, East US2, Australia East, UK South, France Central.
+Here are some example regions where the services are available: East US, East US2, Australia East, UK South, France Central, Africa.
 
 Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/?products=all&regions=all) page and select a **region** where the following services are available.
+
+Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers. However, Azure Container Registry has a fixed cost per registry per day.
+
+Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to calculate the cost of this solution in your subscription. [Review a sample pricing sheet for the achitecture](https://azure.com/e/0a9a1459d1a2440ca3fd274ed5b53397).
+
+
+<br/>
+
+
+| Product | Description | Cost |
+|---|---|---|
+| [Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/) | Build generative AI applications on an enterprise-grade platform | [Pricing](https://azure.microsoft.com/pricing/details/ai-studio/) |
+| [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/) | Provides REST API access to OpenAI's powerful language models including o3-mini, o1, o1-mini, GPT-4o, GPT-4o mini | [Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/) |
+| [Azure AI Content Understanding Service](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/) | Analyzes various media content—such as audio, video, text, and images—transforming it into structured, searchable data | [Pricing](https://azure.microsoft.com/en-us/pricing/details/content-understanding/) |
+| [Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/) | Microsoft's object storage solution for the cloud. Blob storage is optimized for storing massive amounts of unstructured data | [Pricing](https://azure.microsoft.com/pricing/details/storage/blobs/) |
+| [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/) | Allows you to run containerized applications without worrying about orchestration or infrastructure. | [Pricing](https://azure.microsoft.com/pricing/details/container-apps/) |
+| [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/) | Build, store, and manage container images and artifacts in a private registry for all types of container deployments | [Pricing](https://azure.microsoft.com/pricing/details/container-registry/) |
+| [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/) | Fully managed, distributed NoSQL, relational, and vector database for modern app development | [Pricing](https://azure.microsoft.com/en-us/pricing/details/cosmos-db/autoscale-provisioned/) |
+| [Azure Queue Storage](https://learn.microsoft.com/en-us/azure/storage/queues/) | Store large numbers of messages and access messages from anywhere in the world via HTTP or HTTPS. | [Pricing]() |
+| [GPT Model Capacity](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) | The latest most capable Azure OpenAI models with multimodal versions, accepting both text and images as input | [Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/) |
+
+<br/>
+
+>⚠️ **Important:** To avoid unnecessary costs, remember to take down your app if it's no longer in use,
+either by deleting the resource group in the Portal or running `azd down`.
 
 For detailed cost estimation and pricing information, see the [Deployment Guide](./docs/DeploymentGuide.md).
 
