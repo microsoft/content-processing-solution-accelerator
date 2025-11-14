@@ -247,24 +247,33 @@ When creating your environment name, follow these rules:
 ❌ **Invalid names:** `cps-app`, `CPS_App`, `content-processing`, `my app`  
 ✅ **Valid names:** `cpsapp01`, `mycontentapp`, `devtest123`
 
-> **🛠️ Need help generating a compliant name?** Use our name generator script:
-> ```powershell
-> .\infra\scripts\generate-environment-name.ps1
-> ```
-> Or run interactively: `.\infra\scripts\generate-environment-name.ps1 -Interactive`
+> **� Tips for generating compliant names:**
+> - Start with a descriptive prefix like `cps`, `content`, `docproc`, `myapp`
+> - Add a suffix like `dev`, `test`, `prod`, or numbers `01`, `02`
+> - Keep it memorable and relevant to your use case
+> - Examples: `cpsdev01`, `contentprod`, `myapptest`, `docproc123`
 
 #### **🧹 Environment Cleanup**
 
-> **💡 Tip:** If you have old environments that failed deployment or are no longer needed, use our cleanup script:
+> **💡 Tip:** If you have old environments that failed deployment or are no longer needed:
+> 
+> **To clean up azd environments:**
 > ```powershell
 > # List all environments
-> .\infra\scripts\cleanup-environments.ps1 -ListOnly
+> azd env list
 > 
 > # Clean up a specific environment
-> .\infra\scripts\cleanup-environments.ps1 -EnvironmentName "oldenvname"
+> azd env select <old-environment-name>
+> azd down --force --purge
+> ```
 > 
-> # Clean up environment AND Azure resource group
-> .\infra\scripts\cleanup-environments.ps1 -EnvironmentName "oldenvname" -DeleteResourceGroup
+> **To clean up Azure resource groups (if needed):**
+> ```powershell
+> # List resource groups
+> az group list --output table
+> 
+> # Delete a specific resource group
+> az group delete --name <resource-group-name> --yes --no-wait
 > ```
 
 #### **🚀 Deployment Steps**
