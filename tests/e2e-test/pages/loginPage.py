@@ -1,7 +1,12 @@
+"""
+Login page module for authentication functionality.
+"""
+
 from base.base import BasePage
 
 
 class LoginPage(BasePage):
+    """Login page object with authentication methods."""
 
     EMAIL_TEXT_BOX = "//input[@type='email']"
     NEXT_BUTTON = "//input[@type='submit']"
@@ -11,9 +16,23 @@ class LoginPage(BasePage):
     PERMISSION_ACCEPT_BUTTON = "//input[@type='submit']"
 
     def __init__(self, page):
+        """
+        Initialize the LoginPage.
+
+        Args:
+            page: Playwright page object
+        """
+        super().__init__(page)
         self.page = page
 
     def authenticate(self, username, password):
+        """
+        Authenticate user with username and password.
+
+        Args:
+            username: User email address
+            password: User password
+        """
         # login with username and password in web url
         self.page.locator(self.EMAIL_TEXT_BOX).fill(username)
         self.page.locator(self.NEXT_BUTTON).click()
