@@ -60,6 +60,9 @@ param secondaryLocation string = (location == 'eastus2') ? 'westus2' : 'eastus2'
 @description('Optional. The public container image endpoint.')
 param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
 
+@description('Optional. The image tag for the container images.')
+param imageTag string = 'latest'
+
 @description('Optional. The resource group location.')
 param resourceGroupLocation string = resourceGroup().location
 
@@ -717,7 +720,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.17.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/contentprocessor:latest'
+        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: '4'
@@ -766,7 +769,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.17.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/contentprocessorapi:latest'
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -896,7 +899,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.17.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: '${publicContainerImageEndpoint}/contentprocessorweb:latest'
+        image: '${publicContainerImageEndpoint}/contentprocessorweb:${imageTag}'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
@@ -1190,7 +1193,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.17.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/contentprocessor:latest'
+        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: '4'
@@ -1250,7 +1253,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.17.0' =
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/contentprocessorapi:latest'
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: '4'
           memory: '8.0Gi'
