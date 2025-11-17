@@ -1,6 +1,6 @@
 name: Deploy-Test-Cleanup (v2)
 on:
-  pull_request:
+  push:
     branches:
       - main
   workflow_dispatch:
