@@ -546,7 +546,7 @@ module logAnalyticsWorkspace 'modules/log-analytics-workspace.bicep' = if (enabl
   }
 }
 
-module applicationInsights 'br/public:avm/res/insights/component:0.6.1' = if (enableMonitoring) {
+module applicationInsights 'br/public:avm/res/insights/component:0.7.0' = if (enableMonitoring) {
   name: take('avm.res.insights.component.${solutionSuffix}', 64)
   params: {
     name: 'appi-${solutionSuffix}'

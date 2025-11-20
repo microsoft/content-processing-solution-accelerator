@@ -27,7 +27,7 @@ resource cogServiceReference 'Microsoft.CognitiveServices/accounts@2024-10-01' e
 }
 
 // Create new AI project only if not reusing existing one
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = if(!useExistingProject) {
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-07-01-preview' = if(!useExistingProject) {
   parent: cogServiceReference
   name: name
   tags: tags
