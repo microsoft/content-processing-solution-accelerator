@@ -15,7 +15,7 @@
       "value": "${AZURE_ENV_AI_DEPLOYMENTS_LOCATION}"
     },
     "containerImageTag": {
-      "value": "${AZURE_ENV_IMAGETAG}"
+      "value": "${AZURE_ENV_IMAGETAG=latest}"
     },
     "deploymentType": {
       "value": "${AZURE_ENV_MODEL_DEPLOYMENT_TYPE}"
