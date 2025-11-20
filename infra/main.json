@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "12815126820516898428"
+      "templateHash": "12020835849064853237"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -264,7 +264,7 @@
     },
     "replicaLocation": "[tryGet(variables('replicaRegionPairs'), parameters('location'))]",
     "bastionHostName": "[format('bas-{0}', variables('solutionSuffix'))]",
-    "jumpboxVmName": "[take(format('vm-jumpbox-{0}', variables('solutionSuffix')), 15)]",
+    "jumpboxVmName": "[take(format('vm-{0}', variables('solutionSuffix')), 15)]",
     "dataCollectionRulesResourceName": "[format('dcr-{0}', variables('solutionSuffix'))]",
     "proximityPlacementGroupResourceName": "[format('ppg-{0}', variables('solutionSuffix'))]",
     "privateDnsZones": [
@@ -13835,7 +13835,7 @@
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('{0}-jumpbox-maintenance-config', variables('jumpboxVmName')), 64)]",
+      "name": "[take(format('avm.res.maintenance-configuration.{0}', variables('jumpboxVmName')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -40908,10 +40908,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
       ]
@@ -43513,8 +43513,8 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "virtualNetwork"
       ]
     },

@@ -228,7 +228,7 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.8.0' = if (enablePr
 // ========== VM Maintenance Configuration Mapping ========== //
 
 // Jumpbox Virtual Machine
-var jumpboxVmName = take('vm-jumpbox-${solutionSuffix}', 15)
+var jumpboxVmName = take('vm-${solutionSuffix}', 15)
 module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enablePrivateNetworking) {
   name: take('avm.res.compute.virtual-machine.${jumpboxVmName}', 64)
   params: {
@@ -246,10 +246,10 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
     }
     patchMode: 'AutomaticByPlatform'
     bypassPlatformSafetyChecksOnUserSchedule: true
-    maintenanceConfigurationResourceId: maintenanceConfiguration.outputs.resourceId
+    maintenanceConfigurationResourceId: maintenanceConfiguration!.outputs.resourceId
     enableAutomaticUpdates: true
     encryptionAtHost: false
-    proximityPlacementGroupResourceId: proximityPlacementGroup.outputs.resourceId
+    proximityPlacementGroupResourceId: proximityPlacementGroup!.outputs.resourceId
     availabilityZone: enableRedundancy ? 1 : -1
     imageReference: {
       publisher: 'microsoft-dsvm'
@@ -331,7 +331,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
 }
 
 module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.2' = if (enablePrivateNetworking) {
-  name: take('${jumpboxVmName}-jumpbox-maintenance-config', 64)
+  name: take('avm.res.maintenance-configuration.${jumpboxVmName}', 64)
   params: {
     name: 'mc-${jumpboxVmName}'
     location: location
