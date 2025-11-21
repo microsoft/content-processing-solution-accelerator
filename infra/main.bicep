@@ -71,7 +71,7 @@ param gptDeploymentCapacity int = 100
 param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
-param imageTag string = 'latest'
+param imageTag string = 'latest_2025-11-04_458'
 
 @description('Optional. Enable WAF for the deployment.')
 param enablePrivateNetworking bool = false

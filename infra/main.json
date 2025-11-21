@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "6402394764328053517"
+      "templateHash": "13371003400994981566"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -113,32 +113,11 @@
         "description": "Optional. The public container image endpoint."
       }
     },
-    "appContainerImageName": {
-      "type": "string",
-      "defaultValue": "contentprocessor",
-      "metadata": {
-        "description": "Optional. The Container Image Name to deploy on the App Container App."
-      }
-    },
-    "apiContainerImageName": {
-      "type": "string",
-      "defaultValue": "contentprocessorapi",
-      "metadata": {
-        "description": "Optional. The Container Image Name to deploy on the API Container App."
-      }
-    },
-    "webContainerImageName": {
-      "type": "string",
-      "defaultValue": "contentprocessorweb",
-      "metadata": {
-        "description": "Optional. The Container Image Name to deploy on the Web Container App."
-      }
-    },
-    "containerImageTag": {
+    "imageTag": {
       "type": "string",
       "defaultValue": "latest_2025-11-04_458",
       "metadata": {
-        "description": "Optional. The container image tag to use for all container apps."
+        "description": "Optional. The image tag for the container images."
       }
     },
     "enablePrivateNetworking": {
@@ -40929,10 +40908,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
       ]
@@ -45007,7 +44986,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/{1}:{2}', parameters('publicContainerImageEndpoint'), parameters('appContainerImageName'), parameters('containerImageTag'))]",
+                "image": "[format('{0}/contentprocessor:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -46607,7 +46586,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "[format('{0}/{1}:{2}', parameters('publicContainerImageEndpoint'), parameters('apiContainerImageName'), parameters('containerImageTag'))]",
+                "image": "[format('{0}/contentprocessorapi:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -48293,7 +48272,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-web', variables('solutionSuffix'))]",
-                "image": "[format('{0}/{1}:{2}', parameters('publicContainerImageEndpoint'), parameters('webContainerImageName'), parameters('containerImageTag'))]",
+                "image": "[format('{0}/contentprocessorweb:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -60408,7 +60387,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/{1}:{2}', parameters('publicContainerImageEndpoint'), parameters('appContainerImageName'), parameters('containerImageTag'))]",
+                "image": "[format('{0}/contentprocessor:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -62007,7 +61986,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "[format('{0}/{1}:{2}', parameters('publicContainerImageEndpoint'), parameters('apiContainerImageName'), parameters('containerImageTag'))]",
+                "image": "[format('{0}/contentprocessorapi:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
