@@ -20,8 +20,9 @@ class AppConfiguration(ModelBaseSettings):
         app_message_queue_interval (int): The interval for the message queue.
         app_message_queue_visibility_timeout (int): The visibility timeout for the message queue.
         app_message_queue_process_timeout (int): The process timeout for the message queue.
-        app_logging_enable (bool): Flag to enable or disable logging.
         app_logging_level (str): The logging level to be used.
+        azure_package_logging_level (str): The logging level for Azure packages.
+        azure_logging_packages (str): The list of Azure logging packages.
         app_cps_processes (str): Folder name CPS processes name in Blob Container.
         app_cps_configuration (str): Folder CPS configuration name Blob Container.
         app_content_understanding_endpoint (str): The endpoint for content understanding Service.
@@ -39,8 +40,9 @@ class AppConfiguration(ModelBaseSettings):
     app_message_queue_interval: int
     app_message_queue_visibility_timeout: int
     app_message_queue_process_timeout: int
-    app_logging_enable: bool
     app_logging_level: str
+    azure_package_logging_level: str
+    azure_logging_packages: str
     app_cps_processes: str
     app_cps_configuration: str
     app_content_understanding_endpoint: str
