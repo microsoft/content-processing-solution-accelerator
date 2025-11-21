@@ -6,7 +6,6 @@ import io
 import atexit
 import logging
 from pathlib import Path
-from venv import logger
 
 import pytest
 from bs4 import BeautifulSoup
@@ -16,6 +15,9 @@ from config.constants import URL
 
 # Global dictionary to store log streams for each test
 LOG_STREAMS = {}
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -40,6 +42,12 @@ def login_logout():
         yield page
 
         browser.close()
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_html_report_title(report):
+    """Customize HTML report title."""
+    report.title = "Test Automation Content Processing"
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -109,9 +117,10 @@ def rename_duration_column():
     for th in headers:
         if th.text.strip() == "Duration":
             th.string = "Execution Time"
+            logger.info("Renamed 'Duration' column to 'Execution Time'")
             break
     else:
-        print("'Duration' column not found in report.")
+        logger.info("'Duration' column not found in report.")
 
     with report_path.open("w", encoding="utf-8") as file:
         file.write(str(soup))
