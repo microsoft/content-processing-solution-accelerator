@@ -86,6 +86,13 @@ foreach ($entry in $schemaEntries) {
             $id = $responseJson.Id
             $desc = $responseJson.Description
             Write-Output "$desc's Schema Id - $id"
+            
+            # Set GitHub Actions output if GITHUB_OUTPUT environment variable exists
+            if ($env:GITHUB_OUTPUT) {
+                # Create a safe variable name from the class name (lowercase, alphanumeric and underscores only)
+                $safeName = $className.ToLower() -replace '[^a-z0-9_]', ''
+                "${safeName}_schema_id=$id" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            }
         }
         else {
             Write-Error "Failed to upload '$schemaFile'. HTTP Status: $httpStatusCode"
