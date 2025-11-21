@@ -37,12 +37,11 @@ class AppMainBase(ABC, AppModelBase):
         self.application_context = AppContext()
         self.application_context.set_configuration(AppConfiguration())
 
-        if self.application_context.configuration.app_logging_enable:
-            # Read Configuration for Logging Level as a Text then retrive the logging level
-            logging_level = getattr(
-                logging, self.application_context.configuration.app_logging_level
-            )
-            logging.basicConfig(level=logging_level)
+        # Read Configuration for Logging Level as a Text then retrive the logging level
+        logging_level = getattr(
+            logging, self.application_context.configuration.app_logging_level, logging.INFO
+        )
+        logging.basicConfig(level=logging_level)
 
     def _load_env(self, env_file_path: str | None = None):
         # if .env file path is provided, load it

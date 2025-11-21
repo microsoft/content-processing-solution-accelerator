@@ -1275,12 +1275,16 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         value: 'cps-processes'
       }
       {
-        name: 'APP_LOGGING_ENABLE'
-        value: 'False'
-      }
-      {
         name: 'APP_LOGGING_LEVEL'
         value: 'INFO'
+      }
+      {
+        name: 'AZURE_PACKAGE_LOGGING_ENABLE'
+        value: 'WARNING'
+      }
+      {
+        name: 'AZURE_LOGGING_PACKAGES'
+        value: ''
       }
       {
         name: 'APP_MESSAGE_QUEUE_EXTRACT'
