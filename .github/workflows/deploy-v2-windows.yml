@@ -1,0 +1,867 @@
+name: Deploy-Test-Cleanup (v2) Windows
+on:
+  workflow_dispatch:
+    inputs:
+      azure_location:
+        description: 'Azure Location For Deployment'
+        required: false
+        default: 'australiaeast'
+        type: choice
+        options:
+          - 'australiaeast'
+          - 'centralus'
+          - 'eastasia'
+          - 'eastus2'
+          - 'japaneast'
+          - 'northeurope'
+          - 'southeastasia'
+          - 'uksouth'
+          - 'eastus'
+      resource_group_name:
+        description: 'Resource Group Name (Optional)'
+        required: false
+        default: ''
+        type: string
+
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+      build_docker_image:
+        description: 'Build And Push Docker Image (Optional)'
+        required: false
+        default: false
+        type: boolean
+      
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+
+      run_e2e_tests:
+        description: 'Run End-to-End Tests'
+        required: false
+        default: 'GoldenPath-Testing'
+        type: choice
+        options:
+          - 'GoldenPath-Testing'
+          - 'Smoke-Testing'
+          - 'None'
+      
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        description: 'Log Analytics Workspace ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
+        description: 'AI Project Resource ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+env:
+  GPT_MIN_CAPACITY: 100
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+  # For automatic triggers (pull_request, workflow_run, schedule): force Non-WAF + Non-EXP
+  # For manual dispatch: use input values or defaults
+  WAF_ENABLED: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.waf_enabled || false) || false }}
+  EXP: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.EXP || false) || false }}
+  CLEANUP_RESOURCES: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.cleanup_resources || true) || true }}
+  RUN_E2E_TESTS: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+  BUILD_DOCKER_IMAGE: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build_docker_image || false) || false }}
+  AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
+
+jobs:
+  docker-build:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_docker_image == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      IMAGE_TAG: ${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Generate Unique Docker Image Tag
+        id: generate_docker_tag
+        shell: bash
+        run: |
+          echo "🔨 Building new Docker image - generating unique tag..."
+          # Generate unique tag for manual deployment runs
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          RUN_ID="${{ github.run_id }}"
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          # Sanitize branch name for Docker tag (replace invalid characters with hyphens)
+          CLEAN_BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+          UNIQUE_TAG="${CLEAN_BRANCH_NAME}-${TIMESTAMP}-${RUN_ID}"
+          echo "IMAGE_TAG=$UNIQUE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$UNIQUE_TAG" >> $GITHUB_OUTPUT
+          echo "Generated unique Docker tag: $UNIQUE_TAG"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.ACR_TEST_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_TEST_USERNAME }}
+          password: ${{ secrets.ACR_TEST_PASSWORD }}
+
+      - name: Build and Push ContentProcessor Docker image
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_SUMMARY: false
+        with:
+          context: ./src/ContentProcessor
+          file: ./src/ContentProcessor/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+
+      - name: Build and Push ContentProcessorAPI Docker image
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_SUMMARY: false
+        with:
+          context: ./src/ContentProcessorAPI
+          file: ./src/ContentProcessorAPI/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+
+      - name: Build and Push ContentProcessorWeb Docker image
+        uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_SUMMARY: false
+        with:
+          context: ./src/ContentProcessorWeb
+          file: ./src/ContentProcessorWeb/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+
+      - name: Verify Docker Image Build
+        shell: bash
+        run: |
+          echo "✅ Docker image successfully built and pushed"
+          echo "Image tag: ${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}"
+      
+      - name: Generate Docker Build Summary
+        if: always()
+        shell: bash
+        run: |
+          # Extract ACR name from the secret
+          ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}")
+          echo "## 🐳 Docker Build Job Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image Tag** | \`${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Trigger** | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | ${{ env.BRANCH_NAME }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ Build Details" >> $GITHUB_STEP_SUMMARY
+            echo "Successfully built and pushed three Docker images to ACR:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Built Images:**" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${ACR_NAME}.azurecr.io/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${ACR_NAME}.azurecr.io/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${ACR_NAME}.azurecr.io/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Docker build process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the docker-build job for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy:
+    if: always() && (github.event_name != 'workflow_dispatch' || github.event.inputs.existing_webapp_url == '' || github.event.inputs.existing_webapp_url == null)
+    needs: [docker-build]
+    runs-on: windows-latest
+    outputs:
+      invoice_schema_id: ${{ steps.register.outputs.invoice_schema_id }}
+      propertydamageclaimform_schema_id: ${{ steps.register.outputs.propertylossdamageclaimform_schema_id }}
+      RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      CONTAINER_WEB_APPURL: ${{ steps.get_output.outputs.CONTAINER_WEB_APPURL }}      
+      ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
+      AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}
+      QUOTA_FAILED: ${{ steps.quota_failure_output.outputs.QUOTA_FAILED }}
+    env:
+      # For automatic triggers: force Non-WAF + Non-EXP, for manual dispatch: use inputs
+      WAF_ENABLED: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.waf_enabled || false) || false }}
+      EXP: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.EXP || false) || false }}
+      CLEANUP_RESOURCES: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.cleanup_resources || true) || true }}
+      
+    steps:
+      - name: Display Workflow Configuration
+        shell: bash
+        run: |
+          echo "🚀 ==================================="
+          echo "📋 WORKFLOW CONFIGURATION SUMMARY"
+          echo "🚀 ==================================="
+          echo "Trigger Type: ${{ github.event_name }}"
+          echo "Branch: ${{ env.BRANCH_NAME }}"
+          echo ""
+          echo "Configuration Settings:"
+          echo "  • WAF Enabled: ${{ env.WAF_ENABLED }}"
+          echo "  • EXP Enabled: ${{ env.EXP }}"
+          echo "  • Run E2E Tests: ${{ env.RUN_E2E_TESTS }}"
+          echo "  • Cleanup Resources: ${{ env.CLEANUP_RESOURCES }}"
+          echo "  • Build Docker Image: ${{ env.BUILD_DOCKER_IMAGE }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.azure_location }}" ]]; then
+            echo "  • Selected Azure Location: ${{ github.event.inputs.azure_location }}"
+          else
+            echo "  • Azure Location: Will be determined by quota check"
+          fi
+          if [[ "${{ github.event.inputs.existing_webapp_url }}" != "" ]]; then
+            echo "  • Using Existing Webapp URL: ${{ github.event.inputs.existing_webapp_url }}"
+            echo "  • Skip Deployment: Yes"
+          else
+            echo "  • Skip Deployment: No"
+          fi
+          echo ""
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "ℹ️  Automatic Trigger: Using Non-WAF + Non-EXP configuration"
+          else
+            echo "ℹ️  Manual Trigger: Using user-specified configuration"
+            # Check if EXP was auto-enabled after user input validation
+            if [[ "${{ env.EXP }}" == "true" && "${{ github.event.inputs.EXP }}" != "true" ]]; then
+              echo "🔧 Note: EXP was automatically enabled due to provided parameter values"
+            fi
+          fi
+          echo "🚀 ==================================="
+
+      - name: Validate and Auto-Configure EXP
+        shell: bash
+        run: |
+          echo "🔍 Validating EXP configuration..."
+          
+          # Check if EXP values were provided but EXP is disabled
+          if [[ "${{ github.event.inputs.EXP }}" != "true" ]]; then
+            if [[ -n "${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] || [[ -n "${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]]; then
+              echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
+              echo ""
+              echo "You provided values for:"
+              [[ -n "${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] && echo "  - Azure Log Analytics Workspace ID: '${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}'"
+              [[ -n "${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]] && echo "  - Azure AI Project Resource ID: '${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}'"
+              echo ""
+              echo "✅ Automatically enabling EXP to use these values."
+              echo "EXP=true" >> $GITHUB_ENV
+              echo "📌 EXP has been automatically enabled for this deployment."
+            fi
+          fi
+          
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        shell: bash
+        run: |
+          # Azure CLI is pre-installed on Windows GitHub runners
+          az --version  # Verify installation
+
+      - name: Setup Azure Developer CLI
+        uses: Azure/setup-azd@v2
+
+      - name: Login to Azure
+        id: login-azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Run Quota Check
+        id: quota-check
+        shell: bash
+        run: |
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          export GPT_MIN_CAPACITY=${{ env.GPT_MIN_CAPACITY }}
+          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+
+          chmod +x infra/scripts/checkquota.sh
+          if ! infra/scripts/checkquota.sh; then
+            # If quota check fails due to insufficient quota, set the flag
+            if grep -q "No region with sufficient quota found" infra/scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
+            exit 1  # Fail the pipeline if any other failure occurs
+          fi
+
+      - name: Set Quota Failure Output
+        id: quota_failure_output
+        if: env.QUOTA_FAILED == 'true'
+        shell: bash
+        run: |
+          echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
+          echo "Quota check failed - will notify via separate notification job"
+      
+      - name: Fail Pipeline if Quota Check Fails
+        if: env.QUOTA_FAILED == 'true'
+        shell: bash
+        run: exit 1
+      
+      - name: Set Deployment Region
+        id: set_region
+        shell: bash
+        run: |
+          # Set AZURE_ENV_OPENAI_LOCATION from quota check result
+          echo "Selected Region from Quota Check: $VALID_REGION"
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+          
+          # Set AZURE_LOCATION from user input (for manual dispatch) or default to quota check result (for automatic triggers)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.azure_location }}" ]]; then
+            USER_SELECTED_LOCATION="${{ github.event.inputs.azure_location }}"
+            echo "Using user-selected Azure location: $USER_SELECTED_LOCATION"
+            echo "AZURE_LOCATION=$USER_SELECTED_LOCATION" >> $GITHUB_ENV
+            echo "AZURE_LOCATION=$USER_SELECTED_LOCATION" >> $GITHUB_OUTPUT
+          else
+            echo "Using location from quota check for automatic triggers: $VALID_REGION"
+            echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+            echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Resource Group Name
+        id: generate_rg_name
+        shell: powershell
+        run: |
+          # Check if a resource group name was provided as input
+          if ("${{ github.event.inputs.resource_group_name }}" -ne "") {
+            Write-Host "Using provided Resource Group name: ${{ github.event.inputs.resource_group_name }}"
+            "RESOURCE_GROUP_NAME=${{ github.event.inputs.resource_group_name }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Host "Generating a unique resource group name..."
+            $ACCL_NAME = "cp"  # Account name as specified
+            $SHORT_UUID = ([guid]::NewGuid().ToString().Split('-')[0])
+            $UNIQUE_RG_NAME = "arg-${ACCL_NAME}-${SHORT_UUID}"
+            "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          }
+      - name: Install Bicep CLI
+        shell: bash
+        run: az bicep install
+
+      - name: Check and Create Resource Group
+        id: check_create_rg
+        shell: bash
+        run: |
+          set -e  
+          echo "🔍 Checking if resource group '$RESOURCE_GROUP_NAME' exists..."
+          rg_exists=$(az group exists --name $RESOURCE_GROUP_NAME)
+          if [ "$rg_exists" = "false" ]; then
+            echo "📦 Resource group does not exist. Creating new resource group '$RESOURCE_GROUP_NAME' in location '$AZURE_LOCATION'..."
+            az group create --name $RESOURCE_GROUP_NAME --location $AZURE_LOCATION || { echo "❌ Error creating resource group"; exit 1; }
+            echo "✅ Resource group '$RESOURCE_GROUP_NAME' created successfully."
+          else
+            echo "✅ Resource group '$RESOURCE_GROUP_NAME' already exists. Deploying to existing resource group."
+          fi
+          echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
+          echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $$GITHUB_ENV
+
+      - name: Generate Unique Solution Prefix
+        id: generate_solution_prefix
+        shell: bash
+        run: |
+          set -e
+          COMMON_PART="psldg"
+          TIMESTAMP=$(date +%s)  
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6) 
+          UNIQUE_SOLUTION_PREFIX="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "SOLUTION_PREFIX=${UNIQUE_SOLUTION_PREFIX}" >> $GITHUB_ENV
+          echo "Generated SOLUTION_PREFIX: ${UNIQUE_SOLUTION_PREFIX}" 
+
+      - name: Determine Docker Image Tag
+        id: determine_image_tag
+        shell: bash
+        run: |
+          if [[ "${{ env.BUILD_DOCKER_IMAGE }}" == "true" ]]; then
+            # Use the tag from docker-build job if it was built
+            if [[ "${{ needs.docker-build.result }}" == "success" ]]; then
+              IMAGE_TAG="${{ needs.docker-build.outputs.IMAGE_TAG }}"
+              echo "🔗 Using Docker image tag from build job: $IMAGE_TAG"
+            else
+              echo "❌ Docker build job failed or was skipped, but BUILD_DOCKER_IMAGE is true"
+              exit 1
+            fi
+          else
+            echo "🏷️ Using existing Docker image based on branch..."
+            BRANCH_NAME="${{ env.BRANCH_NAME }}"
+            echo "Current branch: $BRANCH_NAME"
+            
+            # Determine image tag based on branch
+            if [[ "$BRANCH_NAME" == "main" ]]; then
+              IMAGE_TAG="latest"
+              echo "Using main branch - image tag: latest"
+            elif [[ "$BRANCH_NAME" == "dev" ]]; then
+              IMAGE_TAG="dev"
+              echo "Using dev branch - image tag: dev"
+            elif [[ "$BRANCH_NAME" == "demo" ]]; then
+              IMAGE_TAG="demo"
+              echo "Using demo branch - image tag: demo"
+            elif [[ "$BRANCH_NAME" == "hotfix" ]]; then
+            BASE_TAG="hotfix"
+            elif [[ "$BRANCH_NAME" == "dependabotchanges" ]]; then
+            BASE_TAG="dependabotchanges"
+            else
+              IMAGE_TAG="latest"
+              echo "Using default for branch '$BRANCH_NAME' - image tag: latest"
+            fi
+            
+            echo "Using existing Docker image tag: $IMAGE_TAG"
+          fi
+          
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate Unique Environment Name
+        id: generate_env_name
+        shell: bash
+        run: |
+          COMMON_PART="pslc"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_ENV_NAME="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_ENV
+          echo "Generated Environment Name: ${UNIQUE_ENV_NAME}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Configure Parameters Based on WAF Setting
+        shell: bash
+        run: |
+          if [[ "${{ env.WAF_ENABLED }}" == "true" ]]; then
+            echo "🔧 Configuring WAF deployment - copying main.waf.parameters.json to main.parameters.json..."
+            cp infra/main.waf.parameters.json infra/main.parameters.json
+            echo "✅ Successfully copied WAF parameters to main parameters file"
+          else
+            echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
+            # Ensure we have the original parameters file if it was overwritten
+            if [[ -f infra/main.waf.parameters.json ]] && [[ ! -f infra/main.parameters.json.backup ]]; then
+              echo "Backing up original parameters file..."
+              git checkout HEAD -- infra/main.parameters.json || echo "Using existing main.parameters.json"
+            fi
+          fi
+
+      - name: Deploy using azd up and extract values (${{ github.event.inputs.waf_enabled == 'true' && 'WAF' || 'Non-WAF' }}+${{ (github.event.inputs.EXP == 'true' || github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID != '' || github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID != '') && 'EXP' || 'Non-EXP' }})
+        id: get_output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Write-Host "Starting azd deployment..."
+          Write-Host "WAF Enabled: ${{ env.WAF_ENABLED }}"
+          Write-Host "EXP: ${{ env.EXP }}"
+          Write-Host "Using Docker Image Tag: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
+          
+          # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
+          $current_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.0000000Z")
+
+          Write-Host "Creating environment..."
+          azd env new $env:ENV_NAME --no-prompt
+          Write-Host "Environment created: $env:ENV_NAME"
+
+          Write-Host "Setting default subscription..."
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
+          # Set additional parameters
+          azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$env:AZURE_ENV_OPENAI_LOCATION"
+          azd env set AZURE_LOCATION="$env:AZURE_LOCATION"
+          azd env set AZURE_RESOURCE_GROUP="$env:RESOURCE_GROUP_NAME"
+          azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
+          # Set ACR name only when building Docker image
+          if ("${{ env.BUILD_DOCKER_IMAGE }}" -eq "true") {
+            # Extract ACR name from login server and set as environment variable
+            $ACR_NAME = "${{ secrets.ACR_TEST_LOGIN_SERVER }}"
+            azd env set AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT="$ACR_NAME"
+            Write-Host "Set ACR name to: $ACR_NAME"
+          } else {
+            Write-Host "Skipping ACR name configuration (using existing image)"
+          }
+
+          if ("${{ env.EXP }}" -eq "true") {
+            Write-Host "✅ EXP ENABLED - Setting EXP parameters..."
+            
+            # Set EXP variables dynamically
+            if ("${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" -ne "") {
+              $EXP_LOG_ANALYTICS_ID = "${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            } else {
+              $EXP_LOG_ANALYTICS_ID = "${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            }
+            
+            if ("${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" -ne "") {
+              $EXP_AI_PROJECT_ID = "${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}"
+            } else {
+              $EXP_AI_PROJECT_ID = "${{ secrets.AZURE_ENV_FOUNDRY_PROJECT_ID }}"
+            }
+            
+            Write-Host "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: $EXP_LOG_ANALYTICS_ID"
+            Write-Host "AZURE_ENV_FOUNDRY_PROJECT_ID: $EXP_AI_PROJECT_ID"
+            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID="$EXP_LOG_ANALYTICS_ID"
+            azd env set AZURE_ENV_FOUNDRY_PROJECT_ID="$EXP_AI_PROJECT_ID"
+          } else {
+            Write-Host "❌ EXP DISABLED - Skipping EXP parameters"
+          }
+
+          # Deploy using azd up
+          azd up --no-prompt
+          
+          Write-Host "✅ Deployment succeeded."
+
+          # Get deployment outputs using azd
+          Write-Host "Extracting deployment outputs..."
+          $DEPLOY_OUTPUT = azd env get-values --output json | ConvertFrom-Json
+          Write-Host "Deployment output: $($DEPLOY_OUTPUT | ConvertTo-Json -Depth 10)"
+          
+          if (-not $DEPLOY_OUTPUT) {
+            Write-Host "Error: Deployment output is empty. Please check the deployment logs."
+            exit 1
+          }
+
+          # Export variables only after successful deploy
+          $CONTAINER_API_APPURL = "https://$($DEPLOY_OUTPUT.CONTAINER_API_APP_FQDN)"
+          "CONTAINER_API_APPURL=$CONTAINER_API_APPURL" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $CONTAINER_API_APPNAME = $DEPLOY_OUTPUT.CONTAINER_API_APP_NAME
+          "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $CONTAINER_WEB_APPURL = "https://$($DEPLOY_OUTPUT.CONTAINER_WEB_APP_FQDN)"
+          "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          $CONTAINER_WEB_APPNAME = $DEPLOY_OUTPUT.CONTAINER_WEB_APP_NAME
+          "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Register schemas
+        id: register
+        shell: pwsh
+        run: |
+          Write-Host "Registering schemas..."
+          Start-Sleep -Seconds 40  # Wait for the API to be ready
+
+          Set-Location src/ContentProcessorAPI/samples/schemas
+          & .\register_schema.ps1 "${{ env.CONTAINER_API_APPURL }}/schemavault/" "schema_info_sh.json"
+
+      - name: Upload sample invoice and claim data
+        shell: pwsh
+        run: |
+          Write-Host "Uploading sample data..."
+          Set-Location src/ContentProcessorAPI/samples
+          & .\upload_files.ps1 "${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit" ".\invoices" "${{ steps.register.outputs.invoice_schema_id }}"
+          & .\upload_files.ps1 "${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit" ".\propertyclaims" "${{ steps.register.outputs.propertylossdamageclaimform_schema_id }}"
+
+
+      - name: Disable Auth in Web App
+        shell: bash
+        run: |
+          az containerapp update --name ${{ env.CONTAINER_WEB_APPNAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+            --set-env-vars APP_AUTH_ENABLED=false
+
+      - name: Disable Auth in API App
+        shell: bash
+        run: |
+          sleep 30
+          az containerapp update --name ${{ env.CONTAINER_API_APPNAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+            --set-env-vars APP_AUTH_ENABLED=false
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout
+          echo "Logged out from Azure."
+
+      - name: Generate Deploy Job Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🚀 Deploy Job Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Region (Infrastructure)** | \`${{ steps.set_region.outputs.AZURE_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure OpenAI Region** | \`${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Docker Image Tag** | \`${{ steps.determine_image_tag.outputs.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **WAF Enabled** | ${{ env.WAF_ENABLED == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **EXP Enabled** | ${{ env.EXP == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Trigger** | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | ${{ env.BRANCH_NAME }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ Deployment Details" >> $GITHUB_STEP_SUMMARY
+            echo "- **Container Web App URL**: [${{ steps.get_output.outputs.CONTAINER_WEB_APPURL }}](${{ steps.get_output.outputs.CONTAINER_WEB_APPURL }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Container API App URL**: [${{ env.CONTAINER_API_APPURL }}](${{ env.CONTAINER_API_APPURL }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Configuration**: ${{ env.WAF_ENABLED == 'true' && 'WAF' || 'Non-WAF' }}+${{ env.EXP == 'true' && 'EXP' || 'Non-EXP' }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully deployed to Azure with all resources configured" >> $GITHUB_STEP_SUMMARY
+            echo "- Schemas registered and sample data uploaded successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Deployment process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the deploy job for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  e2e-test:
+    if: always() && ((needs.deploy.result == 'success' && needs.deploy.outputs.CONTAINER_WEB_APPURL != '') || (github.event.inputs.existing_webapp_url != '' && github.event.inputs.existing_webapp_url != null)) && (github.event_name != 'workflow_dispatch' || (github.event.inputs.run_e2e_tests != 'None' && github.event.inputs.run_e2e_tests != '' && github.event.inputs.run_e2e_tests != null))
+    needs: [docker-build, deploy]
+    uses: ./.github/workflows/test-automation-v2.yml
+    with:
+      CP_WEB_URL: ${{ needs.deploy.outputs.CONTAINER_WEB_APPURL || github.event.inputs.existing_webapp_url }}
+      TEST_SUITE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e_tests || 'GoldenPath-Testing' }}
+    secrets: inherit
+
+  send-notification:
+    if: always()
+    needs: [docker-build, deploy, e2e-test]
+    runs-on: ubuntu-latest
+    env:
+        accelerator_name: "Content Processing"
+    steps:
+      - name: Determine Test Suite Display Name
+        id: test_suite
+        shell: bash
+        run: |
+          # Determine test suite display name based on RUN_E2E_TESTS value
+          if [ "${{ env.RUN_E2E_TESTS }}" = "GoldenPath-Testing" ]; then
+            TEST_SUITE_NAME="Golden Path Testing"
+          elif [ "${{ env.RUN_E2E_TESTS }}" = "Smoke-Testing" ]; then
+            TEST_SUITE_NAME="Smoke Testing"
+          elif [ "${{ env.RUN_E2E_TESTS }}" = "None" ]; then
+            TEST_SUITE_NAME="None"
+          else
+            TEST_SUITE_NAME="${{ env.RUN_E2E_TESTS }}"
+          fi
+          echo "TEST_SUITE_NAME=$TEST_SUITE_NAME" >> $GITHUB_OUTPUT
+          echo "Test Suite: $TEST_SUITE_NAME"
+
+      - name: Send Quota Failure Notification
+        if: needs.deploy.result == 'failure' && needs.deploy.outputs.QUOTA_FAILED == 'true'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment has failed due to insufficient quota in the requested regions.</p><p><strong>Issue Details:</strong><br>• Quota check failed for GPT model<br>• Required GPT Capacity: ${{ env.GPT_MIN_CAPACITY }}<br>• Checked Regions: ${{ vars.AZURE_REGIONS }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please resolve the quota issue and retry the deployment.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Failed (Insufficient Quota)"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send quota failure notification"
+
+      - name: Send Deployment Failure Notification
+        if: needs.deploy.result == 'failure' && needs.deploy.outputs.QUOTA_FAILED != 'true'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RESOURCE_GROUP="${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}"
+          
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment process has encountered an issue and has failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Failed"
+          }
+          EOF
+          )
+          
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send deployment failure notification"
+
+      - name: Send Success Notification
+        if: needs.deploy.result == 'success' && (needs.e2e-test.result == 'skipped' || needs.e2e-test.outputs.TEST_SUCCESS == 'true')
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          WEBAPP_URL="${{ needs.deploy.outputs.CONTAINER_WEB_APPURL || github.event.inputs.existing_webapp_url }}"
+          RESOURCE_GROUP="${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}"
+          TEST_REPORT_URL="${{ needs.e2e-test.outputs.TEST_REPORT_URL }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          
+          # Create email body based on test result
+          if [ "${{ needs.e2e-test.result }}" = "skipped" ]; then
+            EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Skipped (as configured)</p><p><strong>Configuration:</strong><br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Deployment Success"
+          }
+          EOF
+            )
+          else
+            EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment and testing process has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Passed ✅<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong><br>• WAF Enabled: ${{ env.WAF_ENABLED }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation - Success"
+          }
+          EOF
+            )
+          fi
+          
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send success notification"
+
+      - name: Send Test Failure Notification
+        if: needs.deploy.result == 'success' && needs.e2e-test.result != 'skipped' && needs.e2e-test.outputs.TEST_SUCCESS != 'true'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEST_REPORT_URL="${{ needs.e2e-test.outputs.TEST_REPORT_URL }}"
+          WEBAPP_URL="${{ needs.deploy.outputs.CONTAINER_WEB_APPURL || github.event.inputs.existing_webapp_url }}"
+          RESOURCE_GROUP="${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that ${{ env.accelerator_name }} accelerator test automation process has encountered issues and failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Deployment Status: ✅ Success<br>• E2E Tests: ❌ Failed<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Test Details:</strong><br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation - Failed"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send test failure notification"
+
+      - name: Send Existing URL Success Notification
+        # Scenario: Deployment skipped (existing URL provided) AND e2e tests passed
+        if: needs.deploy.result == 'skipped' && github.event.inputs.existing_webapp_url != '' && needs.e2e-test.result == 'success' && (needs.e2e-test.outputs.TEST_SUCCESS == 'true' || needs.e2e-test.outputs.TEST_SUCCESS == '')
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXISTING_URL="${{ github.event.inputs.existing_webapp_url }}"
+          TEST_REPORT_URL="${{ needs.e2e-test.outputs.TEST_REPORT_URL }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>existing WebApp URL</strong> and testing process has completed successfully.</p><p><strong>Test Results:</strong><br>• Status: ✅ Passed<br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Deployment:</strong> Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation Passed (Existing URL)"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send existing URL success notification"
+
+      - name: Send Existing URL Test Failure Notification
+        # Scenario: Deployment skipped (existing URL provided) AND e2e tests failed
+        if: needs.deploy.result == 'skipped' && github.event.inputs.existing_webapp_url != '' && needs.e2e-test.result == 'failure'
+        shell: bash
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXISTING_URL="${{ github.event.inputs.existing_webapp_url }}"
+          TEST_REPORT_URL="${{ needs.e2e-test.outputs.TEST_REPORT_URL }}"
+          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>existing WebApp URL</strong> and the test automation has encountered issues and failed to complete successfully.</p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Deployment: Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation Failed (Existing URL)"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send existing URL test failure notification"
+
+  cleanup-deployment:
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && github.event.inputs.existing_webapp_url == '' && (github.event_name != 'workflow_dispatch' || github.event.inputs.cleanup_resources == 'true' || github.event.inputs.cleanup_resources == null)
+    needs: [docker-build, deploy, e2e-test]
+    runs-on: windows-latest
+    continue-on-error: true
+    env:
+      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
+      AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ needs.deploy.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      ENV_NAME: ${{ needs.deploy.outputs.ENV_NAME }}
+      IMAGE_TAG: ${{ needs.deploy.outputs.IMAGE_TAG }}
+      AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
+    steps:
+      - name: Setup Azure CLI
+        shell: bash
+        run: |
+          # Azure CLI is pre-installed on Windows GitHub runners
+          az --version  # Verify installation
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Delete Resource Group Directly (Optimized Cleanup)
+        shell: bash
+        id: delete_rg
+        run: |
+          set -e
+          echo "🗑️ Starting optimized resource cleanup..."
+          
+          # Direct resource group deletion is much faster than azd down
+          # This approach deletes all resources in parallel
+          echo "Deleting resource group: ${{ env.RESOURCE_GROUP_NAME }}"
+          
+          # Use --no-wait for async deletion (faster) or remove it for synchronous
+          az group delete \
+            --name "${{ env.RESOURCE_GROUP_NAME }}" \
+            --yes \
+            --no-wait
+          
+          echo "✅ Resource group deletion initiated"
+          echo "Note: Resources will be cleaned up in the background"
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout
+          echo "Logged out from Azure."
+      
+      - name: Generate Cleanup Job Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🧹 Cleanup Job Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resouce Group deletion Status** | ${{ steps.delete_rg.outcome == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Region (Infrastructure)** | \`${{ env.AZURE_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure OpenAI Region** | \`${{ env.AZURE_ENV_OPENAI_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
+            echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully initiated deletion for Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Manual cleanup may be required for:" >> $GITHUB_STEP_SUMMARY
+            echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
