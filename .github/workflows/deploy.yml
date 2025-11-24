@@ -146,13 +146,13 @@ jobs:
             --parameters \
               solutionName="${{ env.ENVIRONMENT_NAME }}" \
               enablePrivateNetworking="false" \
-              secondaryLocation="eastus2" \
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-4o" \
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
               aiServiceLocation="${{ env.AZURE_LOCATION }}" \
+              imageTag="latest" \
               tags="{'CreatedBy':'Pipeline', 'SecurityControl':'Ignore','Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
