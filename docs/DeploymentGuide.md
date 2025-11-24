@@ -462,6 +462,8 @@ azd down --force --purge
 
 > **Tip:** If you have old environments that failed deployment or are no longer needed, use the commands above to clean them up before creating new ones.
 
+> **Note:** If you deployed with `enableRedundancy=true` and Log Analytics workspace replication is enabled, you must first disable replication before running `azd down` else resource group delete will fail. Follow the steps in [Handling Log Analytics Workspace Deletion with Replication Enabled](./LogAnalyticsReplicationDisable.md), wait until replication returns `false`, then run `azd down`.
+
 ### 🗑️ Azure Resource Group Cleanup
 
 **To clean up Azure resource groups (if needed):**
