@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       runner_os:
-        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        description: 'Runner OS (ubuntu-latest, windows-latest, or devcontainer)'
         required: true
         type: string
       azure_location:
@@ -272,12 +272,13 @@ jobs:
     name: deploy
     if: always() && (inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null)
     needs: [ display-configuration, docker-build]
-    runs-on: ${{ inputs.runner_os }}
+    runs-on: ${{ inputs.runner_os == 'devcontainer' && 'ubuntu-latest' || inputs.runner_os }}
+    container: ${{ inputs.runner_os == 'devcontainer' && 'mcr.microsoft.com/devcontainers/base:debian' || null }}
     outputs:
-      invoice_schema_id: ${{ inputs.runner_os == 'windows-latest' && steps.register_windows.outputs.invoice_schema_id || steps.register_linux.outputs.invoice_schema_id }}
-      propertydamageclaimform_schema_id: ${{ inputs.runner_os == 'windows-latest' && steps.register_windows.outputs.propertylossdamageclaimform_schema_id || steps.register_linux.outputs.propertylossdamageclaimform_schema_id }}
+      invoice_schema_id: ${{ (inputs.runner_os == 'windows-latest') && steps.register_windows.outputs.invoice_schema_id || steps.register_linux.outputs.invoice_schema_id }}
+      propertydamageclaimform_schema_id: ${{ (inputs.runner_os == 'windows-latest') && steps.register_windows.outputs.propertylossdamageclaimform_schema_id || steps.register_linux.outputs.propertylossdamageclaimform_schema_id }}
       RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
-      CONTAINER_WEB_APPURL: ${{ inputs.runner_os == 'windows-latest' && steps.get_output_windows.outputs.CONTAINER_WEB_APPURL || steps.get_output_linux.outputs.CONTAINER_WEB_APPURL }}      
+      CONTAINER_WEB_APPURL: ${{ (inputs.runner_os == 'windows-latest') && steps.get_output_windows.outputs.CONTAINER_WEB_APPURL || steps.get_output_linux.outputs.CONTAINER_WEB_APPURL }}      
       ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
       AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
       AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
@@ -290,6 +291,32 @@ jobs:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
       
     steps:
+      - name: Setup DevContainer Environment
+        if: inputs.runner_os == 'devcontainer'
+        shell: bash
+        run: |
+          echo "🔧 Setting up DevContainer environment..."
+          
+          # Update package lists
+          apt-get update
+          
+          # Install basic tools if not present
+          apt-get install -y curl git jq sudo
+          
+          # Install Node.js if not present
+          if ! command -v node &> /dev/null; then
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+          fi
+          
+          # Install UV if not present
+          if ! command -v uv &> /dev/null; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+          
+          echo "✅ DevContainer environment setup complete"
+          
       - name: Validate and Auto-Configure EXP
         shell: bash
         run: |
@@ -966,7 +993,7 @@ jobs:
   cleanup-deployment:
     if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources == true || inputs.cleanup_resources == null)
     needs: [docker-build, deploy, e2e-test]
-    runs-on: ${{ inputs.runner_os }}
+    runs-on: ${{ inputs.runner_os == 'devcontainer' && 'ubuntu-latest' || inputs.runner_os }}
     continue-on-error: true
     env:
       RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
