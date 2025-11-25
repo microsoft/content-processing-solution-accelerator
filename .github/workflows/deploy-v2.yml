@@ -19,7 +19,6 @@ on:
           - 'northeurope'
           - 'southeastasia'
           - 'uksouth'
-          - 'eastus'
       resource_group_name:
         description: 'Resource Group Name (Optional)'
         required: false
