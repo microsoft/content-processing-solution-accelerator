@@ -98,6 +98,7 @@ env:
   CLEANUP_RESOURCES: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.cleanup_resources || true) || true }}
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
   BUILD_DOCKER_IMAGE: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.build_docker_image || false) || false }}
+  AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
 
 jobs:
   display-configuration:
@@ -147,14 +148,10 @@ jobs:
             
             if [[ "${{ inputs.trigger_type }}" == "workflow_dispatch" && -n "${{ inputs.azure_location }}" ]]; then
               echo "| **Azure Location** | \`${{ inputs.azure_location }}\` (User Selected) |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| **Azure Location** | Will be determined by quota check |" >> $GITHUB_STEP_SUMMARY
             fi
             
             if [[ -n "${{ inputs.resource_group_name }}" ]]; then
               echo "| **Resource Group** | \`${{ inputs.resource_group_name }}\` (Pre-specified) |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| **Resource Group** | Will be auto-generated |" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
@@ -290,6 +287,7 @@ jobs:
       WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
       EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
       CLEANUP_RESOURCES: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.cleanup_resources || true) || true }}
+      AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
       
     steps:
       - name: Validate and Auto-Configure EXP
@@ -563,7 +561,6 @@ jobs:
           azd env set AZURE_LOCATION="$AZURE_LOCATION"
           azd env set AZURE_RESOURCE_GROUP="$RESOURCE_GROUP_NAME"
           azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
-          azd env set AZURE_DEV_COLLECT_TELEMETRY="${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}"          
           
           if [[ "${{ env.BUILD_DOCKER_IMAGE }}" == "true" ]]; then
             ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}" )
@@ -647,7 +644,6 @@ jobs:
           azd env set AZURE_LOCATION="$env:AZURE_LOCATION"
           azd env set AZURE_RESOURCE_GROUP="$env:RESOURCE_GROUP_NAME"
           azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
-          azd env set AZURE_DEV_COLLECT_TELEMETRY="${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}"          
           # Set ACR name only when building Docker image
           if ("${{ env.BUILD_DOCKER_IMAGE }}" -eq "true") {
             # Extract ACR name from login server and set as environment variable
