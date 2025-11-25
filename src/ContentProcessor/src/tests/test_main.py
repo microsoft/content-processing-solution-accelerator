@@ -55,6 +55,7 @@ async def test_application_run(mocker):
             ConfigItem(
                 "app_content_understanding_endpoint", "https://example.com/content"
             ),
+            ConfigItem("app_ai_project_endpoint", "https://example.ai.azure.com"),
             ConfigItem("app_azure_openai_endpoint", "https://example.com/openai"),
             ConfigItem("app_azure_openai_model", "model-name"),
             ConfigItem(

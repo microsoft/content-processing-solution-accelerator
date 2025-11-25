@@ -8,7 +8,7 @@ import json
 from pdf2image import convert_from_bytes
 
 from libs.application.application_context import AppContext
-from libs.azure_helper.azure_openai import get_openai_client
+from libs.azure_helper.azure_openai import get_foundry_client
 from libs.azure_helper.model.content_understanding import AnalyzedResult
 from libs.pipeline.entities.mime_types import MimeTypes
 from libs.pipeline.entities.pipeline_file import ArtifactType, PipelineLogEntry
@@ -82,8 +82,8 @@ class MapHandler(HandlerBase):
         )
 
         # Invoke GPT with the prompt
-        gpt_response = get_openai_client(
-            self.application_context.configuration.app_azure_openai_endpoint
+        gpt_response = get_foundry_client(
+            self.application_context.configuration.app_ai_project_endpoint
         ).beta.chat.completions.parse(
             model=self.application_context.configuration.app_azure_openai_model,
             messages=[
