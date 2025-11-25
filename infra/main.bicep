@@ -1279,7 +1279,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         value: 'INFO'
       }
       {
-        name: 'AZURE_PACKAGE_LOGGING_ENABLE'
+        name: 'AZURE_PACKAGE_LOGGING_LEVEL'
         value: 'WARNING'
       }
       {

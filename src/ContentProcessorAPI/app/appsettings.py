@@ -50,7 +50,7 @@ app_config = AppConfiguration()
 # Basic application logging (default: INFO level)
 AZURE_BASIC_LOGGING_LEVEL = app_config.app_logging_level.upper()
 # Azure package logging (default: WARNING level to suppress INFO)
-AZURE_PACKAGE_LOGGING_LEVEL = app_config.package_logging_level.upper()
+AZURE_PACKAGE_LOGGING_LEVEL = app_config.azure_package_logging_level.upper()
 AZURE_LOGGING_PACKAGES = (
     app_config.azure_logging_packages.split(",") if app_config.azure_logging_packages else []
 )
