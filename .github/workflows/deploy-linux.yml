@@ -1,8 +1,8 @@
-name: Deploy-Test-Cleanup (v2) Windows
+name: Deploy-Test-Cleanup (v2) Linux
 on:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       azure_location:
@@ -73,14 +73,14 @@ on:
         default: ''
         type: string
         
-  # schedule:
-  #   - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
+  schedule:
+    - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
 
 jobs:
   Run:
-    uses: ./.github/workflows/reusable-deployment-workflow.yml
+    uses: ./.github/workflows/deployment-orchestrator.yml
     with:
-      runner_os: windows-latest
+      runner_os: ubuntu-latest
       azure_location: ${{ github.event.inputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ github.event.inputs.resource_group_name || '' }}
       waf_enabled: ${{ github.event.inputs.waf_enabled == 'true' }}
