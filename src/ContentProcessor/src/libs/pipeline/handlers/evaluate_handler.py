@@ -3,8 +3,6 @@
 
 import json
 
-from openai.types.chat.parsed_chat_completion import ParsedChatCompletion
-
 from libs.application.application_context import AppContext
 from libs.azure_helper.model.content_understanding import AnalyzedResult
 from libs.pipeline.entities.pipeline_file import ArtifactType, PipelineLogEntry
@@ -44,19 +42,17 @@ class EvaluateHandler(HandlerBase):
             **json.loads(output_file_json_string_from_extract)
         )
 
-        # Get the result from Map step handler - OpenAI
+        # Get the result from Map step handler - Azure AI Foundry
         output_file_json_string_from_map = self.download_output_file_to_json_string(
             processed_by="map",
             artifact_type=ArtifactType.SchemaMappedData,
         )
 
-        # Deserialize the result to ParsedChatCompletion (Azure OpenAI)
-        gpt_result = ParsedChatCompletion(
-            **json.loads(output_file_json_string_from_map)
-        )
+        # Deserialize the result from Azure AI Foundry SDK response
+        gpt_result = json.loads(output_file_json_string_from_map)
 
-        # Mapped Result by GPT
-        parsed_message_from_gpt = gpt_result.choices[0].message.parsed
+        # Mapped Result from Azure AI Foundry
+        parsed_message_from_gpt = gpt_result["choices"][0]["message"]["parsed"]
 
         # Convert the parsed message to a dictionary
         gpt_evaluate_confidence_dict = parsed_message_from_gpt
@@ -69,7 +65,7 @@ class EvaluateHandler(HandlerBase):
 
         # Evaluate Confidence Score - GPT
         gpt_confidence_score = gpt_confidence(
-            gpt_evaluate_confidence_dict, gpt_result.choices[0]
+            gpt_evaluate_confidence_dict, gpt_result["choices"][0]
         )
 
         # Merge the confidence scores - Content Understanding and GPT results.
@@ -89,8 +85,8 @@ class EvaluateHandler(HandlerBase):
             extracted_result=gpt_evaluate_confidence_dict,
             confidence=merged_confidence_score,
             comparison_result=result_data,
-            prompt_tokens=gpt_result.usage.prompt_tokens,
-            completion_tokens=gpt_result.usage.completion_tokens,
+            prompt_tokens=gpt_result["usage"]["prompt_tokens"],
+            completion_tokens=gpt_result["usage"]["completion_tokens"],
             execution_time=0,
         )
 
