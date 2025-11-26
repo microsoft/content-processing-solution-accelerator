@@ -1,0 +1,136 @@
+name: Display Configuration Job
+
+on:
+  workflow_call:
+    inputs:
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      runner_os:
+        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        required: true
+        type: string
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+      build_docker_image:
+        description: 'Build And Push Docker Image (Optional)'
+        required: false
+        default: false
+        type: boolean
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+      run_e2e_tests:
+        description: 'Run End-to-End Tests'
+        required: false
+        default: 'GoldenPath-Testing'
+        type: string
+      azure_location:
+        description: 'Azure Location For Deployment'
+        required: false
+        default: 'australiaeast'
+        type: string
+      resource_group_name:
+        description: 'Resource Group Name (Optional)'
+        required: false
+        default: ''
+        type: string
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        description: 'Log Analytics Workspace ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
+        description: 'AI Project Resource ID (Optional)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+  WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
+  EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
+  CLEANUP_RESOURCES: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.cleanup_resources || true) || true }}
+  RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
+  BUILD_DOCKER_IMAGE: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.build_docker_image || false) || false }}
+
+jobs:
+  display-configuration:
+    name: Display Configuration
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Validate and Auto-Configure EXP
+        shell: bash
+        run: |
+          echo "🔍 Validating EXP configuration..."
+          
+          if [[ "${{ inputs.EXP }}" != "true" ]]; then
+            if [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] || [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]]; then
+              echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
+              echo ""
+              echo "You provided values for:"
+              [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] && echo "  - Azure Log Analytics Workspace ID: '${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}'"
+              [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]] && echo "  - Azure AI Project Resource ID: '${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}'"
+              echo ""
+              echo "✅ Automatically enabling EXP to use these values."
+              echo "EXP=true" >> $GITHUB_ENV
+              echo "📌 EXP has been automatically enabled for this deployment."
+            fi
+          fi
+
+      - name: Display Workflow Configuration to GitHub Summary
+        shell: bash
+        run: |
+          echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ inputs.existing_webapp_url }}" != "" ]]; then
+            echo "| **Existing WebApp URL (Skips Deployment)** | [${{ inputs.existing_webapp_url }}](${{ inputs.existing_webapp_url }}) |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Trigger Type** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Branch** | \`${{ env.BRANCH_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Runner OS** | \`${{ inputs.runner_os }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **WAF Enabled** | ${{ env.WAF_ENABLED == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| **EXP Enabled** | ${{ env.EXP == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Cleanup Resources** | ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Build Docker Image** | ${{ env.BUILD_DOCKER_IMAGE == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ "${{ inputs.trigger_type }}" == "workflow_dispatch" && -n "${{ inputs.azure_location }}" ]]; then
+              echo "| **Azure Location** | \`${{ inputs.azure_location }}\` (User Selected) |" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            if [[ -n "${{ inputs.resource_group_name }}" ]]; then
+              echo "| **Resource Group** | \`${{ inputs.resource_group_name }}\` (Pre-specified) |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ inputs.existing_webapp_url }}" == "" ]]; then
+            if [[ "${{ inputs.trigger_type }}" != "workflow_dispatch" ]]; then
+              echo "ℹ️ **Note:** Automatic Trigger - Using Non-WAF + Non-EXP configuration" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "ℹ️ **Note:** Manual Trigger - Using user-specified configuration" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi

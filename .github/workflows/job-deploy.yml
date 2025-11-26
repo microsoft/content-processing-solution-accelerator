@@ -1,0 +1,633 @@
+name: Deploy Job
+
+on:
+  workflow_call:
+    inputs:
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      runner_os:
+        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        required: true
+        type: string
+      azure_location:
+        description: 'Azure Location For Deployment'
+        required: false
+        default: 'australiaeast'
+        type: string
+      resource_group_name:
+        description: 'Resource Group Name (Optional)'
+        required: false
+        default: ''
+        type: string
+      waf_enabled:
+        description: 'Enable WAF'
+        required: false
+        default: false
+        type: boolean
+      EXP:
+        description: 'Enable EXP'
+        required: false
+        default: false
+        type: boolean
+      build_docker_image:
+        description: 'Build And Push Docker Image (Optional)'
+        required: false
+        default: false
+        type: boolean
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        description: 'Log Analytics Workspace ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
+        description: 'AI Project Resource ID (Optional)'
+        required: false
+        default: ''
+        type: string
+      docker_image_tag:
+        description: 'Docker Image Tag from build job'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_CLIENT_SECRET:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      ACR_TEST_LOGIN_SERVER:
+        required: true
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+        required: false
+      AZURE_ENV_FOUNDRY_PROJECT_ID:
+        required: false
+    outputs:
+      invoice_schema_id:
+        description: "Invoice Schema ID"
+        value: ${{ jobs.deploy.outputs.invoice_schema_id }}
+      propertydamageclaimform_schema_id:
+        description: "Property Damage Claim Form Schema ID"
+        value: ${{ jobs.deploy.outputs.propertydamageclaimform_schema_id }}
+      RESOURCE_GROUP_NAME:
+        description: "Resource Group Name"
+        value: ${{ jobs.deploy.outputs.RESOURCE_GROUP_NAME }}
+      CONTAINER_WEB_APPURL:
+        description: "Container Web App URL"
+        value: ${{ jobs.deploy.outputs.CONTAINER_WEB_APPURL }}
+      ENV_NAME:
+        description: "Environment Name"
+        value: ${{ jobs.deploy.outputs.ENV_NAME }}
+      AZURE_LOCATION:
+        description: "Azure Location"
+        value: ${{ jobs.deploy.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION:
+        description: "Azure OpenAI Location"
+        value: ${{ jobs.deploy.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG:
+        description: "Docker Image Tag Used"
+        value: ${{ jobs.deploy.outputs.IMAGE_TAG }}
+      QUOTA_FAILED:
+        description: "Quota Check Failed Flag"
+        value: ${{ jobs.deploy.outputs.QUOTA_FAILED }}
+
+env:
+  GPT_MIN_CAPACITY: 100
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+  WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
+  EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
+  BUILD_DOCKER_IMAGE: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.build_docker_image || false) || false }}
+
+jobs:
+  deploy:
+    name: deploy
+    if: inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null
+    runs-on: ${{ inputs.runner_os }}
+    outputs:
+      invoice_schema_id: ${{ inputs.runner_os == 'windows-latest' && steps.register_windows.outputs.invoice_schema_id || steps.register_linux.outputs.invoice_schema_id }}
+      propertydamageclaimform_schema_id: ${{ inputs.runner_os == 'windows-latest' && steps.register_windows.outputs.propertylossdamageclaimform_schema_id || steps.register_linux.outputs.propertylossdamageclaimform_schema_id }}
+      RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      CONTAINER_WEB_APPURL: ${{ inputs.runner_os == 'windows-latest' && steps.get_output_windows.outputs.CONTAINER_WEB_APPURL || steps.get_output_linux.outputs.CONTAINER_WEB_APPURL }}      
+      ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
+      AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
+      IMAGE_TAG: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}
+      QUOTA_FAILED: ${{ steps.quota_failure_output.outputs.QUOTA_FAILED }}
+      
+    steps:
+      - name: Validate and Auto-Configure EXP
+        shell: bash
+        run: |
+          echo "🔍 Validating EXP configuration..."
+          
+          if [[ "${{ inputs.EXP }}" != "true" ]]; then
+            if [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] || [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]]; then
+              echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
+              echo ""
+              echo "You provided values for:"
+              [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] && echo "  - Azure Log Analytics Workspace ID: '${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}'"
+              [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]] && echo "  - Azure AI Project Resource ID: '${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}'"
+              echo ""
+              echo "✅ Automatically enabling EXP to use these values."
+              echo "EXP=true" >> $GITHUB_ENV
+              echo "📌 EXP has been automatically enabled for this deployment."
+            fi
+          fi
+          
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+          az --version
+
+      - name: Setup Azure Developer CLI (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
+          azd version
+
+      - name: Setup Azure Developer CLI (Windows)
+        if: runner.os == 'Windows'
+        uses: Azure/setup-azd@v2
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Run Quota Check
+        id: quota-check
+        shell: bash
+        run: |
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          export GPT_MIN_CAPACITY=${{ env.GPT_MIN_CAPACITY }}
+          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+
+          chmod +x infra/scripts/checkquota.sh
+          if ! infra/scripts/checkquota.sh; then
+            if grep -q "No region with sufficient quota found" infra/scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
+            exit 1
+          fi
+
+      - name: Set Quota Failure Output
+        id: quota_failure_output
+        if: env.QUOTA_FAILED == 'true'
+        shell: bash
+        run: |
+          echo "QUOTA_FAILED=true" >> $GITHUB_OUTPUT
+          echo "Quota check failed - will notify via separate notification job"
+      
+      - name: Fail Pipeline if Quota Check Fails
+        if: env.QUOTA_FAILED == 'true'
+        shell: bash
+        run: exit 1
+      
+      - name: Set Deployment Region
+        id: set_region
+        shell: bash
+        run: |
+          echo "Selected Region from Quota Check: $VALID_REGION"
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+          
+          if [[ "${{ inputs.trigger_type }}" == "workflow_dispatch" && -n "${{ inputs.azure_location }}" ]]; then
+            USER_SELECTED_LOCATION="${{ inputs.azure_location }}"
+            echo "Using user-selected Azure location: $USER_SELECTED_LOCATION"
+            echo "AZURE_LOCATION=$USER_SELECTED_LOCATION" >> $GITHUB_ENV
+            echo "AZURE_LOCATION=$USER_SELECTED_LOCATION" >> $GITHUB_OUTPUT
+          else
+            echo "Using location from quota check for automatic triggers: $VALID_REGION"
+            echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+            echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Resource Group Name (Linux)
+        if: runner.os == 'Linux'
+        id: generate_rg_name_linux
+        shell: bash
+        run: |
+          # Check if a resource group name was provided as input
+          if [[ -n "${{ inputs.resource_group_name }}" ]]; then
+            echo "Using provided Resource Group name: ${{ inputs.resource_group_name }}"
+            echo "RESOURCE_GROUP_NAME=${{ inputs.resource_group_name }}" >> $GITHUB_ENV
+          else
+            echo "Generating a unique resource group name..."
+            ACCL_NAME="cp"  # Account name as specified
+              SHORT_UUID=$(uuidgen | cut -d'-' -f1)
+            UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
+            echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
+            echo "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          fi
+      - name: Generate Resource Group Name (Windows)
+        if: runner.os == 'Windows'
+        id: generate_rg_name_windows
+        shell: powershell
+        run: |
+          # Check if a resource group name was provided as input
+          if ("${{ inputs.resource_group_name }}" -ne "") {
+            Write-Host "Using provided Resource Group name: ${{ inputs.resource_group_name }}"
+            "RESOURCE_GROUP_NAME=${{ inputs.resource_group_name }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Host "Generating a unique resource group name..."
+            $ACCL_NAME = "cp"  # Account name as specified
+            $SHORT_UUID = ([guid]::NewGuid().ToString().Split('-')[0])
+            $UNIQUE_RG_NAME = "arg-${ACCL_NAME}-${SHORT_UUID}"
+            "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Generated RESOURCE_GROUP_NAME: ${UNIQUE_RG_NAME}"
+          }
+
+      - name: Install Bicep CLI
+        shell: bash
+        run: az bicep install
+
+      - name: Check and Create Resource Group
+        id: check_create_rg
+        shell: bash
+        run: |
+          set -e  
+          echo "🔍 Checking if resource group '$RESOURCE_GROUP_NAME' exists..."
+          rg_exists=$(az group exists --name $RESOURCE_GROUP_NAME)
+          if [ "$rg_exists" = "false" ]; then
+            echo "📦 Resource group does not exist. Creating new resource group '$RESOURCE_GROUP_NAME' in location '$AZURE_LOCATION'..."
+            az group create --name $RESOURCE_GROUP_NAME --location $AZURE_LOCATION || { echo "❌ Error creating resource group"; exit 1; }
+            echo "✅ Resource group '$RESOURCE_GROUP_NAME' created successfully."
+          else
+            echo "✅ Resource group '$RESOURCE_GROUP_NAME' already exists. Deploying to existing resource group."
+          fi
+          echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
+          echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_ENV
+
+      - name: Generate Unique Solution Prefix
+        id: generate_solution_prefix
+        shell: bash
+        run: |
+          set -e
+          COMMON_PART="psldg"
+          TIMESTAMP=$(date +%s)  
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6) 
+          UNIQUE_SOLUTION_PREFIX="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "SOLUTION_PREFIX=${UNIQUE_SOLUTION_PREFIX}" >> $GITHUB_ENV
+          echo "Generated SOLUTION_PREFIX: ${UNIQUE_SOLUTION_PREFIX}" 
+
+      - name: Determine Docker Image Tag
+        id: determine_image_tag
+        shell: bash
+        run: |
+          if [[ "${{ env.BUILD_DOCKER_IMAGE }}" == "true" ]]; then
+            if [[ -n "${{ inputs.docker_image_tag }}" ]]; then
+              IMAGE_TAG="${{ inputs.docker_image_tag }}"
+              echo "🔗 Using Docker image tag from build job: $IMAGE_TAG"
+            else
+              echo "❌ Docker build job failed or was skipped, but BUILD_DOCKER_IMAGE is true"
+              exit 1
+            fi
+          else
+            echo "🏷️ Using existing Docker image based on branch..."
+            BRANCH_NAME="${{ env.BRANCH_NAME }}"
+            echo "Current branch: $BRANCH_NAME"
+            
+            if [[ "$BRANCH_NAME" == "main" ]]; then
+              IMAGE_TAG="latest"
+              echo "Using main branch - image tag: latest"
+            elif [[ "$BRANCH_NAME" == "dev" ]]; then
+              IMAGE_TAG="dev"
+              echo "Using dev branch - image tag: dev"
+            elif [[ "$BRANCH_NAME" == "demo" ]]; then
+              IMAGE_TAG="demo"
+              echo "Using demo branch - image tag: demo"
+            elif [[ "$BRANCH_NAME" == "hotfix" ]]; then
+              BASE_TAG="hotfix"
+            elif [[ "$BRANCH_NAME" == "dependabotchanges" ]]; then
+              BASE_TAG="dependabotchanges"
+            else
+              IMAGE_TAG="latest"
+              echo "Using default for branch '$BRANCH_NAME' - image tag: latest"
+            fi
+            
+            echo "Using existing Docker image tag: $IMAGE_TAG"
+          fi
+          
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate Unique Environment Name
+        id: generate_env_name
+        shell: bash
+        run: |
+          COMMON_PART="pslc"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_ENV_NAME="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_ENV
+          echo "Generated Environment Name: ${UNIQUE_ENV_NAME}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Configure Parameters Based on WAF Setting
+        shell: bash
+        run: |
+          if [[ "${{ env.WAF_ENABLED }}" == "true" ]]; then
+            echo "🔧 Configuring WAF deployment - copying main.waf.parameters.json to main.parameters.json..."
+            cp infra/main.waf.parameters.json infra/main.parameters.json
+            echo "✅ Successfully copied WAF parameters to main parameters file"
+          else
+            echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
+            if [[ -f infra/main.waf.parameters.json ]] && [[ ! -f infra/main.parameters.json.backup ]]; then
+              echo "Backing up original parameters file..."
+              git checkout HEAD -- infra/main.parameters.json || echo "Using existing main.parameters.json"
+            fi
+          fi
+
+      - name: Login to AZD
+        id: login-azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Deploy using azd up and extract values (${{ env.WAF_ENABLED == 'true' && 'WAF' || 'Non-WAF' }}+${{ env.EXP == 'true' && 'EXP' || 'Non-EXP' }}) (Linux)
+        id: get_output_linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -e
+          echo "Starting azd deployment..."
+          echo "WAF Enabled: ${{ env.WAF_ENABLED }}"
+          echo "EXP: ${{ env.EXP }}"
+          echo "Using Docker Image Tag: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
+          
+          # Install azd (Azure Developer CLI)
+          curl -fsSL https://aka.ms/install-azd.sh | bash
+
+          # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
+          current_date=$(date -u +"%Y-%m-%dT%H:%M:%S.%7NZ")
+
+          echo "Creating environment..."
+          azd env new $ENV_NAME --no-prompt
+          echo "Environment created: $ENV_NAME"
+
+          echo "Setting default subscription..."
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
+          # Set additional parameters
+          azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$AZURE_ENV_OPENAI_LOCATION"
+          azd env set AZURE_LOCATION="$AZURE_LOCATION"
+          azd env set AZURE_RESOURCE_GROUP="$RESOURCE_GROUP_NAME"
+          azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
+          
+          if [[ "${{ env.BUILD_DOCKER_IMAGE }}" == "true" ]]; then
+            ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}")
+            azd env set AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT="$ACR_NAME"
+            echo "Set ACR name to: $ACR_NAME"
+          else
+            echo "Skipping ACR name configuration (using existing image)"
+          fi
+
+          if [[ "${{ env.EXP }}" == "true" ]]; then
+            echo "✅ EXP ENABLED - Setting EXP parameters..."
+            
+            if [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]]; then
+              EXP_LOG_ANALYTICS_ID="${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            else
+              EXP_LOG_ANALYTICS_ID="${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            fi
+            
+            if [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]]; then
+              EXP_AI_PROJECT_ID="${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}"
+            else
+              EXP_AI_PROJECT_ID="${{ secrets.AZURE_ENV_FOUNDRY_PROJECT_ID }}"
+            fi
+            
+            echo "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: $EXP_LOG_ANALYTICS_ID"
+            echo "AZURE_ENV_FOUNDRY_PROJECT_ID: $EXP_AI_PROJECT_ID"
+            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID="$EXP_LOG_ANALYTICS_ID"
+            azd env set AZURE_ENV_FOUNDRY_PROJECT_ID="$EXP_AI_PROJECT_ID"
+          else
+            echo "❌ EXP DISABLED - Skipping EXP parameters"
+          fi
+
+          azd up --no-prompt
+          
+          echo "✅ Deployment succeeded."
+          echo "$DEPLOY_OUTPUT"
+
+          echo "Extracting deployment outputs..."
+          DEPLOY_OUTPUT=$(azd env get-values --output json)
+          echo "Deployment output: $DEPLOY_OUTPUT"
+          
+          if [[ -z "$DEPLOY_OUTPUT" ]]; then
+            echo "Error: Deployment output is empty. Please check the deployment logs."
+            exit 1
+          fi
+
+          export CONTAINER_API_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_API_APP_FQDN // empty')"
+          echo "CONTAINER_API_APPURL=$CONTAINER_API_APPURL" >> $GITHUB_ENV
+
+          export CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_API_APP_NAME // empty')
+          echo "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" >> $GITHUB_ENV
+
+          export CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_FQDN // empty')"
+          echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_ENV
+          echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_OUTPUT
+
+          export CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_NAME // empty')
+          echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
+
+      - name: Deploy using azd up and extract values (${{ env.WAF_ENABLED == 'true' && 'WAF' || 'Non-WAF' }}+${{ env.EXP == 'true' && 'EXP' || 'Non-EXP' }}) (Windows)
+        id: get_output_windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Write-Host "Starting azd deployment..."
+          Write-Host "WAF Enabled: ${{ env.WAF_ENABLED }}"
+          Write-Host "EXP: ${{ env.EXP }}"
+          Write-Host "Using Docker Image Tag: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
+
+          Write-Host "Creating environment..."
+          azd env new $env:ENV_NAME --no-prompt
+          Write-Host "Environment created: $env:ENV_NAME"
+
+          Write-Host "Setting default subscription..."
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
+          # Set additional parameters
+          azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$env:AZURE_ENV_OPENAI_LOCATION"
+          azd env set AZURE_LOCATION="$env:AZURE_LOCATION"
+          azd env set AZURE_RESOURCE_GROUP="$env:RESOURCE_GROUP_NAME"
+          azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="${{ steps.determine_image_tag.outputs.IMAGE_TAG }}"
+          # Set ACR name only when building Docker image
+          if ("${{ env.BUILD_DOCKER_IMAGE }}" -eq "true") {
+            # Extract ACR name from login server and set as environment variable
+            $ACR_NAME = "${{ secrets.ACR_TEST_LOGIN_SERVER }}"
+            azd env set AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT="$ACR_NAME"
+            Write-Host "Set ACR name to: $ACR_NAME"
+          } else {
+            Write-Host "Skipping ACR name configuration (using existing image)"
+          }
+
+          if ("${{ env.EXP }}" -eq "true") {
+            Write-Host "✅ EXP ENABLED - Setting EXP parameters..."
+            
+            # Set EXP variables dynamically
+            if ("${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" -ne "") {
+              $EXP_LOG_ANALYTICS_ID = "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            } else {
+              $EXP_LOG_ANALYTICS_ID = "${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            }
+            
+            if ("${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" -ne "") {
+              $EXP_AI_PROJECT_ID = "${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}"
+            } else {
+              $EXP_AI_PROJECT_ID = "${{ secrets.AZURE_ENV_FOUNDRY_PROJECT_ID }}"
+            }
+            
+            Write-Host "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: $EXP_LOG_ANALYTICS_ID"
+            Write-Host "AZURE_ENV_FOUNDRY_PROJECT_ID: $EXP_AI_PROJECT_ID"
+            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID="$EXP_LOG_ANALYTICS_ID"
+            azd env set AZURE_ENV_FOUNDRY_PROJECT_ID="$EXP_AI_PROJECT_ID"
+          } else {
+            Write-Host "❌ EXP DISABLED - Skipping EXP parameters"
+          }
+
+          # Deploy using azd up
+          azd up --no-prompt
+          
+          Write-Host "✅ Deployment succeeded."
+
+          # Get deployment outputs using azd
+          Write-Host "Extracting deployment outputs..."
+          $DEPLOY_OUTPUT = azd env get-values --output json | ConvertFrom-Json
+          Write-Host "Deployment output: $($DEPLOY_OUTPUT | ConvertTo-Json -Depth 10)"
+          
+          if (-not $DEPLOY_OUTPUT) {
+            Write-Host "Error: Deployment output is empty. Please check the deployment logs."
+            exit 1
+          }
+
+          # Export variables only after successful deploy
+          $CONTAINER_API_APPURL = "https://$($DEPLOY_OUTPUT.CONTAINER_API_APP_FQDN)"
+          "CONTAINER_API_APPURL=$CONTAINER_API_APPURL" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $CONTAINER_API_APPNAME = $DEPLOY_OUTPUT.CONTAINER_API_APP_NAME
+          "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $CONTAINER_WEB_APPURL = "https://$($DEPLOY_OUTPUT.CONTAINER_WEB_APP_FQDN)"
+          "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          $CONTAINER_WEB_APPNAME = $DEPLOY_OUTPUT.CONTAINER_WEB_APP_NAME
+          "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Register schemas (Linux)
+        id: register_linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "Registering schemas..."
+          sleep 40
+
+          cd src/ContentProcessorAPI/samples/schemas
+          chmod +x ./register_schema.sh
+          ./register_schema.sh ${{ env.CONTAINER_API_APPURL }}/schemavault/ schema_info_sh.json
+
+      - name: Register schemas (Windows)
+        id: register_windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Registering schemas..."
+          Start-Sleep -Seconds 40  # Wait for the API to be ready
+
+          Set-Location src/ContentProcessorAPI/samples/schemas
+          & .\register_schema.ps1 "${{ env.CONTAINER_API_APPURL }}/schemavault/" "schema_info_sh.json"
+
+      - name: Upload sample invoice and claim data
+        if : runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "Uploading sample data..."
+          cd src/ContentProcessorAPI/samples
+          chmod +x ./upload_files.sh
+          ./upload_files.sh ${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit ./invoices '${{ steps.register_linux.outputs.invoice_schema_id }}'
+          ./upload_files.sh ${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit ./propertyclaims '${{ steps.register_linux.outputs.propertylossdamageclaimform_schema_id }}'
+
+      - name: Upload sample invoice and claim data
+        if : runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Uploading sample data..."
+          Set-Location src/ContentProcessorAPI/samples
+          & .\upload_files.ps1 "${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit" ".\invoices" "${{ steps.register_windows.outputs.invoice_schema_id }}"
+          & .\upload_files.ps1 "${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit" ".\propertyclaims" "${{ steps.register_windows.outputs.propertylossdamageclaimform_schema_id }}"
+
+      - name: Disable Auth in Web App
+        shell: bash
+        run: |
+          az containerapp update --name ${{ env.CONTAINER_WEB_APPNAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+            --set-env-vars APP_AUTH_ENABLED=false
+
+      - name: Disable Auth in API App
+        shell: bash
+        run: |
+          sleep 30
+          az containerapp update --name ${{ env.CONTAINER_API_APPNAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+            --set-env-vars APP_AUTH_ENABLED=false
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          az logout
+          echo "Logged out from Azure."
+
+      - name: Generate Deploy Job Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🚀 Deploy Job Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Configuration** | ${{ env.WAF_ENABLED == 'true' && 'WAF' || 'Non-WAF' }}+${{ env.EXP == 'true' && 'EXP' || 'Non-EXP' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure Region (Infrastructure)** | \`${{ steps.set_region.outputs.AZURE_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Azure OpenAI Region** | \`${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Docker Image Tag** | \`${{ steps.determine_image_tag.outputs.IMAGE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "### ✅ Deployment Details" >> $GITHUB_STEP_SUMMARY
+            echo "- **Container Web App URL**: [${{ env.CONTAINER_WEB_APPURL }}](${{ env.CONTAINER_WEB_APPURL }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Container API App URL**: [${{ env.CONTAINER_API_APPURL }}](${{ env.CONTAINER_API_APPURL }})" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully deployed to Azure with all resources configured" >> $GITHUB_STEP_SUMMARY
+            echo "- Schemas registered and sample data uploaded successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Deployment process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the deploy job for detailed error information" >> $GITHUB_STEP_SUMMARY
+          fi
