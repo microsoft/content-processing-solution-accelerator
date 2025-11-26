@@ -365,7 +365,7 @@ jobs:
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
           azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
-      - name: Deploy using azd up and extract values (${{ env.WAF_ENABLED == 'true' && 'WAF' || 'Non-WAF' }}+${{ env.EXP == 'true' && 'EXP' || 'Non-EXP' }}) (Linux)
+      - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
         if: runner.os == 'Linux'
         shell: bash
@@ -454,7 +454,7 @@ jobs:
           export CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_NAME // empty')
           echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
 
-      - name: Deploy using azd up and extract values (${{ env.WAF_ENABLED == 'true' && 'WAF' || 'Non-WAF' }}+${{ env.EXP == 'true' && 'EXP' || 'Non-EXP' }}) (Windows)
+      - name: Deploy using azd up and extract values (Windows)
         id: get_output_windows
         if: runner.os == 'Windows'
         shell: pwsh
