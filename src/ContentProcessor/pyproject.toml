@@ -5,6 +5,8 @@ description = "Content Process Gold Standard Solution Accelerator - Content Proc
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "azure-ai-inference>=1.0.0b4",
+    "azure-ai-projects>=1.0.0b5",
     "azure-appconfiguration>=1.7.1",
     "azure-identity>=1.19.0",
     "azure-storage-blob>=12.24.1",

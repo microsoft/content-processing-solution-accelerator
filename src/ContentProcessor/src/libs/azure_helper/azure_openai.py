@@ -1,32 +1,32 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from azure.ai.projects import AIProjectClient
+import logging
+from urllib.parse import urlparse
+
 from helpers.azure_credential_utils import get_azure_credential
+from azure.ai.inference import ChatCompletionsClient
+
+logger = logging.getLogger(__name__)
 
 
-def get_foundry_client(ai_project_endpoint: str):
+def get_foundry_client(ai_services_endpoint: str) -> ChatCompletionsClient:
     """
-    Create an OpenAI-compatible client via Azure AI Foundry (Projects SDK).
-
-    This function uses the Azure AI Foundry approach:
-    1. Create an AIProjectClient with the AI project endpoint
-    2. Call .get_openai_client() to get an OpenAI-compatible client
-
-    Args:
-        ai_project_endpoint: The AI Foundry project endpoint URL (e.g., https://aif-xyz.services.ai.azure.com)
-
-    Returns:
-        An OpenAI-compatible client from the AI Foundry project
+    Return an Azure AI Inference ChatCompletionsClient using the
+    Azure AI Foundry / AI Services endpoint (project / hub endpoint).
+    Matches implementation from Conversation-Knowledge-Mining-Solution-Accelerator PR #632.
     """
+    # Extract hostname and construct /models endpoint
+    # ai_services_endpoint format: "https://<your-hub>.services.ai.azure.com/api/projects/<project-name>"
+    parsed = urlparse(ai_services_endpoint)
+    inference_endpoint = f"https://{parsed.netloc}/models"
+    
     credential = get_azure_credential()
     
-    # Create the AI Foundry Project client
-    project_client = AIProjectClient(
-        endpoint=ai_project_endpoint,
-        credential=credential
+    # Create client without api_version parameter (as per KM PR #632)
+    # The /models endpoint handles API versioning automatically
+    return ChatCompletionsClient(
+        endpoint=inference_endpoint,
+        credential=credential,
+        credential_scopes=["https://ai.azure.com/.default"],
     )
-    
-    # Get the OpenAI-compatible client from the project
-    # This client supports .beta.chat.completions.parse() and other OpenAI methods
-    return project_client.get_openai_client()
