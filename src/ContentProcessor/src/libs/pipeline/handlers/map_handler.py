@@ -116,7 +116,10 @@ class MapHandler(HandlerBase):
             max_tokens=4096,
             temperature=0.1,
             top_p=0.1,
-            logprobs=True,
+            model_extras={
+                "logprobs": True,
+                "top_logprobs": 5
+            }
         )
 
         # Parse JSON response (strip markdown fences if present)
@@ -133,7 +136,7 @@ class MapHandler(HandlerBase):
                 },
                 "logprobs": {
                     "content": [{"token": t.token, "logprob": t.logprob} for t in gpt_response.choices[0].logprobs.content]
-                } if gpt_response.choices[0].logprobs else None
+                } if hasattr(gpt_response.choices[0], 'logprobs') and gpt_response.choices[0].logprobs else None
             }],
             "usage": {
                 "prompt_tokens": gpt_response.usage.prompt_tokens,
