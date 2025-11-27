@@ -289,9 +289,9 @@ jobs:
               IMAGE_TAG="demo"
               echo "Using demo branch - image tag: demo"
             elif [[ "$BRANCH_NAME" == "hotfix" ]]; then
-              BASE_TAG="hotfix"
+              IMAGE_TAG="hotfix"
             elif [[ "$BRANCH_NAME" == "dependabotchanges" ]]; then
-              BASE_TAG="dependabotchanges"
+              IMAGE_TAG="dependabotchanges"
             else
               IMAGE_TAG="latest"
               echo "Using default for branch '$BRANCH_NAME' - image tag: latest"
@@ -385,8 +385,8 @@ jobs:
       AZURE_LOCATION: ${{ needs.azure-setup.outputs.AZURE_LOCATION }}
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
-      BUILD_DOCKER_IMAGE: ${{ github.event.inputs.build_docker_image || 'false' }}
-      EXP: ${{ github.event.inputs.EXP || 'false' }}
+      BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
+      EXP: ${{ inputs.EXP || 'false' }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
