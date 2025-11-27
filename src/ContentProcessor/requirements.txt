@@ -4,7 +4,7 @@ azure-storage-blob>=12.24.1
 azure-storage-queue>=12.12.0
 certifi>=2024.12.14
 charset-normalizer>=3.4.1
-openai==2.0.0
+azure-ai-inference>=1.0.0b4
 pandas>=2.2.3
 pdf2image>=1.17.0
 poppler-utils>=0.1.0
