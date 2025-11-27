@@ -90,6 +90,7 @@ Select one of the following options to deploy the Accelerator:
 |------------|--------------|-------------------|----------------|
 | **GitHub Codespaces** | Quick deployment, no local setup required | GitHub account with Codespace enabled | ~3-5 minutes |
 | **VS Code Dev Containers** | Fast deployment with local tools | Docker Desktop, VS Code | ~5-10 minutes |
+| **Visual Studio Code (WEB)** | Quick deployment, no local setup required | Azure account | ~2-4 minutes |
 | **Local Environment** | Enterprise environments, full control | All tools individually | ~15-30 minutes |
 
 **💡 Recommendation:** For fastest deployment, start with **GitHub Codespaces** - no local installation required.
@@ -131,7 +132,40 @@ You can run this solution in [VS Code Dev Containers](https://code.visualstudio.
 </details>
 
 <details>
-  <summary><b>Option 3: Deploy in your local Environment</b></summary>
+  <summary><b>Option 3:Deploy in Visual Studio Code (WEB)</b></summary>
+
+### Visual Studio Code (WEB)
+
+You can run this solution in VS Code Web. The button will open a web-based VS Code instance in your browser:
+
+1. Open the solution accelerator (this may take several minutes):
+
+    [![Open in Visual Studio Code Web](https://img.shields.io/static/v1?style=for-the-badge&label=Visual%20Studio%20Code%20(Web)&message=Open&color=blue&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/azure/?vscode-azure-exp=foundry&agentPayload=eyJiYXNlVXJsIjogImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9taWNyb3NvZnQvY29udGVudC1wcm9jZXNzaW5nLXNvbHV0aW9uLWFjY2VsZXJhdG9yL3JlZnMvaGVhZHMvbWFpbi9pbmZyYS92c2NvZGVfd2ViIiwgImluZGV4VXJsIjogIi9pbmRleC5qc29uIiwgInZhcmlhYmxlcyI6IHsiYWdlbnRJZCI6ICIiLCAiY29ubmVjdGlvblN0cmluZyI6ICIiLCAidGhyZWFkSWQiOiAiIiwgInVzZXJNZXNzYWdlIjogIiIsICJwbGF5Z3JvdW5kTmFtZSI6ICIiLCAibG9jYXRpb24iOiAiIiwgInN1YnNjcmlwdGlvbklkIjogIiIsICJyZXNvdXJjZUlkIjogIiIsICJwcm9qZWN0UmVzb3VyY2VJZCI6ICIiLCAiZW5kcG9pbnQiOiAiIn0sICJjb2RlUm91dGUiOiBbImFpLXByb2plY3RzLXNkayIsICJweXRob24iLCAiZGVmYXVsdC1henVyZS1hdXRoIiwgImVuZHBvaW50Il19)
+
+2. When prompted, sign in using your Microsoft account linked to your Azure subscription.
+    
+    Select the appropriate subscription to continue.
+
+3. Once the solution opens, the **AI Foundry terminal** will automatically start running the following command to install the required dependencies:
+
+    ```shell
+    sh install.sh
+    ```
+    During this process, you’ll be prompted with the message:
+    ```
+    What would you like to do with these files?
+    - Overwrite with versions from template
+    - Keep my existing files unchanged
+    ```
+    Choose “**Overwrite with versions from template**” and provide a unique environment name when prompted.
+ 
+4. Continue with the [deploying steps](#deploying-with-azd).
+
+
+</details>
+
+<details>
+  <summary><b>Option 4: Deploy in your local Environment</b></summary>
 
 ### Local Environment
 
@@ -249,7 +283,7 @@ To adjust quota settings, follow these [steps](./AzureGPTQuotaSettings.md).
 
 ### Deploying with AZD
 
-Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), or [locally](#local-environment), you can deploy it to Azure by following these steps:
+Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
 
 #### Important: Environment Management for Redeployments
 
