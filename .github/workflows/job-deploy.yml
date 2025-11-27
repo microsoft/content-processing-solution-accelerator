@@ -82,12 +82,6 @@ on:
       AZURE_ENV_FOUNDRY_PROJECT_ID:
         required: false
     outputs:
-      invoice_schema_id:
-        description: "Invoice Schema ID"
-        value: ${{ jobs.deploy-linux.outputs.invoice_schema_id || jobs.deploy-windows.outputs.invoice_schema_id }}
-      propertydamageclaimform_schema_id:
-        description: "Property Damage Claim Form Schema ID"
-        value: ${{ jobs.deploy-linux.outputs.propertydamageclaimform_schema_id || jobs.deploy-windows.outputs.propertydamageclaimform_schema_id }}
       RESOURCE_GROUP_NAME:
         description: "Resource Group Name"
         value: ${{ jobs.azure-setup.outputs.RESOURCE_GROUP_NAME }}

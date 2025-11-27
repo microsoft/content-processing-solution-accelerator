@@ -53,12 +53,6 @@ on:
       CONTAINER_WEB_APPURL:
         description: "Container Web App URL"
         value: ${{ jobs.deploy-windows.outputs.CONTAINER_WEB_APPURL }}
-      invoice_schema_id:
-        description: "Invoice Schema ID"
-        value: ${{ jobs.deploy-windows.outputs.invoice_schema_id }}
-      propertydamageclaimform_schema_id:
-        description: "Property Damage Claim Form Schema ID"
-        value: ${{ jobs.deploy-windows.outputs.propertydamageclaimform_schema_id }}
 
 jobs:
   deploy-windows:
@@ -67,8 +61,6 @@ jobs:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       CONTAINER_WEB_APPURL: ${{ steps.get_output_windows.outputs.CONTAINER_WEB_APPURL }}
-      invoice_schema_id: ${{ steps.register_windows.outputs.invoice_schema_id }}
-      propertydamageclaimform_schema_id: ${{ steps.register_windows.outputs.propertylossdamageclaimform_schema_id }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
