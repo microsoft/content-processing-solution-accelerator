@@ -4684,7 +4684,7 @@ content-type@~1.0.4, content-type@~1.0.5:
     "@reduxjs/toolkit" "^2.9.0"
     axios "^1.12.2"
     babel-preset-react-app "^10.1.0"
-    contentprocessor_web "file:../../../../../../../AppData/Local/Yarn/Cache/v6/npm-contentprocessor-web-0.1.0-45ce36e6-46ee-46bf-9e5e-a76064976d90-1762864903466/node_modules/contentprocessor_web"
+    contentprocessor_web "file:."
     cra-template-typescript "1.3.0"
     json-edit-react "^1.27.2"
     nth-check "2.1.1"
@@ -8161,9 +8161,9 @@ node-addon-api@^7.0.0:
   integrity sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==
 
 node-forge@^1:
-  version "1.3.1"
-  resolved "https://registry.npmjs.org/node-forge/-/node-forge-1.3.1.tgz"
-  integrity sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-1.3.2.tgz#d0d2659a26eef778bf84d73e7f55c08144ee7750"
+  integrity sha512-6xKiQ+cph9KImrRh0VsjH2d8/GXA4FIMlgU4B757iI1ApvcyA9VlouP0yZJha01V+huImO+kKMU7ih+2+E14fw==
 
 node-int64@^0.4.0:
   version "0.4.0"
