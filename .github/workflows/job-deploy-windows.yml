@@ -63,6 +63,8 @@ on:
 jobs:
   deploy-windows:
     runs-on: windows-latest
+    env:
+      AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       CONTAINER_WEB_APPURL: ${{ steps.get_output_windows.outputs.CONTAINER_WEB_APPURL }}
       invoice_schema_id: ${{ steps.register_windows.outputs.invoice_schema_id }}

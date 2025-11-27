@@ -63,6 +63,8 @@ on:
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
+    env:
+      AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
       CONTAINER_WEB_APPURL: ${{ steps.get_output_linux.outputs.CONTAINER_WEB_APPURL }}
       invoice_schema_id: ${{ steps.register_linux.outputs.invoice_schema_id }}
