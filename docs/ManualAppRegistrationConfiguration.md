@@ -14,7 +14,7 @@ This guide provides detailed steps to manually register both front-end and backe
 - Under **Redirect URI**, choose **Web** and enter:
 
   ```
-  https://<web-app-url>azurecontainerapps.io/auth/login/aad/callback
+  https://<web-app-url>azurecontainerapps.io/.auth/login/aad/callback
   ```
 
   To find your Web App URL:
@@ -51,13 +51,13 @@ This guide provides detailed steps to manually register both front-end and backe
 - Click **Add** and remember to copy and store the secret value securely as it will not be shown again
 ![manual_register_app_web_3](./images/manual_register_app_web_3.png)
 
-### 3. Get Tenant ID
+### 4. Get Tenant ID
 - Go to **Tenant Properties** in [Azure Portal](https://portal.azure.com)
 - Copy the Tenant ID (will be used in next step)
 
 ![manual_register_app_web_6](./images/manual_register_app_web_6.png)
 
-### 4. Set Up Authentication in Web Container App
+### 5. Set Up Authentication in Web Container App
 
 - Go to your Web Container App
 - Go to **Authentication**
@@ -72,6 +72,12 @@ This guide provides detailed steps to manually register both front-end and backe
   
 ![manual_register_app_web_4](./images/manual_register_app_web_4.png)
 
+### 6. Enable ID Token for the Application
+
+- Go to **App registrations** and select your application
+- Click **Authentication** , select **Settings** , check **ID tokens** and click **Save**
+
+![manual_register_app_web_7](./images/manual_register_app_web_7.png)
 
 ## Step 2: Register API Application
 

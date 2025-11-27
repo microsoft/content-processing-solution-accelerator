@@ -45,7 +45,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
    - Go to deployed Container App `ca-<randomname>-web` and select **Authentication** menu, then select created Application Registration.  
      ![configure_app_registration_web_1](./images/configure_app_registration_web_1.png)
 
-   - Select **Authentication**, then select **+ Add a platform** menu.  
+   - Select **Authentication**, then select **+ Add Redirect URI** menu.  
      ![configure_app_registration_web_2](./images/configure_app_registration_web_2.png)
 
    - Select **Single-page application**.  
@@ -63,7 +63,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
      ![configure_app_registration_web_6](./images/configure_app_registration_web_6.png)  
      ![configure_app_registration_web_7](./images/configure_app_registration_web_7.png)
 
-   - Grant admin consent to permissions.  
+   - Click **Grant admin consent** to grant permissions. Then verify the permissions status should show as marked in **Green**
      ![configure_app_registration_web_8](./images/configure_app_registration_web_8.png)
 
      > ⚠️ **Granting Admin Consent:** If you don't have permission or aren't able to grant admin consent for the API permissions, please follow one of the steps below:<br/><br/>_Option 1 - Reach out to your Tenant Administrator:_ Contact your administrator to let them know your Application Registration ID and what permissions you woud like to have them consent and approve.<br/><br/>_Option 2 - Internal Microsoft Employees Only:_ Please refer to these detailed instructions on the admin consent granting process: [https://aka.ms/AzAdminConsentWiki](https://aka.ms/AzAdminConsentWiki)
