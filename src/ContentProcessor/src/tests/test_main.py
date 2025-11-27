@@ -57,6 +57,7 @@ async def test_application_run(mocker):
             ),
             ConfigItem("app_azure_openai_endpoint", "https://example.com/openai"),
             ConfigItem("app_azure_openai_model", "model-name"),
+            ConfigItem("app_ai_project_endpoint", "https://example.com/ai-project"),
             ConfigItem(
                 "app_cosmos_connstr",
                 "AccountEndpoint=https://example.com;AccountKey=key;",
