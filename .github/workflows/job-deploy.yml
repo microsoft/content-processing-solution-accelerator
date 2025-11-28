@@ -94,7 +94,7 @@ env:
   BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
   WAF_ENABLED: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.waf_enabled || false) || false }}
   EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
-  CLEANUP_RESOURCES: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.cleanup_resources || true) || true }}
+  CLEANUP_RESOURCES: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.cleanup_resources || false) || true }}
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
   BUILD_DOCKER_IMAGE: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.build_docker_image || false) || false }}
 
