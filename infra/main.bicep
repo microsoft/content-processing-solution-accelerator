@@ -70,17 +70,8 @@ param gptDeploymentCapacity int = 100
 @description('Optional. The public container image endpoint.')
 param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
 
-@description('Optional. The Container Image Name to deploy on the App Container App.')
-param appContainerImageName string = 'contentprocessor'
-
-@description('Optional. The Container Image Name to deploy on the API Container App.')
-param apiContainerImageName string = 'contentprocessorapi'
-
-@description('Optional. The Container Image Name to deploy on the Web Container App.')
-param webContainerImageName string = 'contentprocessorweb'
-
-@description('Optional. The container image tag to use for all container apps.')
-param containerImageTag string = 'latest_2025-11-04_458'
+@description('Optional. The image tag for the container images.')
+param imageTag string = 'latest_2025-11-21_506'
 
 @description('Optional. Enable WAF for the deployment.')
 param enablePrivateNetworking bool = false
@@ -923,7 +914,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/${appContainerImageName}:${containerImageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: 4
@@ -972,7 +963,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/${apiContainerImageName}:${containerImageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1100,7 +1091,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: '${publicContainerImageEndpoint}/${webContainerImageName}:${containerImageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessorweb:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1379,7 +1370,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/${appContainerImageName}:${containerImageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: 4
@@ -1439,7 +1430,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/${apiContainerImageName}:${containerImageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
