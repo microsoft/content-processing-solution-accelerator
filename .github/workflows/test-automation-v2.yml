@@ -12,10 +12,6 @@ on:
             type: string
             default: "GoldenPath-Testing"
             description: "Test suite to run: 'Smoke-Testing', 'GoldenPath-Testing' "
-        secrets:
-          EMAILNOTIFICATION_LOGICAPP_URL_TA:
-            required: false
-            description: "Logic App URL for email notifications"
         outputs:
           TEST_SUCCESS:
             description: "Whether tests passed"
