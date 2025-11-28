@@ -82,13 +82,6 @@ on:
         required: false
       EMAILNOTIFICATION_LOGICAPP_URL_TA:
         required: false
-    outputs:
-      CONTAINER_WEB_APPURL:
-        description: "Container Web App URL"
-        value: ${{ jobs.deploy.outputs.CONTAINER_WEB_APPURL }}
-      RESOURCE_GROUP_NAME:
-        description: "Resource Group Name"
-        value: ${{ jobs.deploy.outputs.RESOURCE_GROUP_NAME }}
 
 env:
   AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
