@@ -44,7 +44,6 @@ on:
 
 jobs:
   cleanup-deployment:
-    if: inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources == true || inputs.cleanup_resources == null)
     runs-on: ${{ inputs.runner_os }}
     continue-on-error: true
     env:

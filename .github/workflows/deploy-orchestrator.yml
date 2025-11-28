@@ -90,6 +90,7 @@ jobs:
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
       docker_image_tag: ${{ needs.docker-build.outputs.IMAGE_TAG }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
+      cleanup_resources: ${{ inputs.cleanup_resources }}
     secrets: inherit
 
   e2e-test:
@@ -121,7 +122,7 @@ jobs:
     secrets: inherit
 
   cleanup-deployment:
-    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources == true || inputs.cleanup_resources == null)
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources)
     needs: [docker-build, deploy, e2e-test]
     uses: ./.github/workflows/job-cleanup-deployment.yml
     with:
