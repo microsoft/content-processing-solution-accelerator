@@ -4,20 +4,19 @@
 import math
 
 import tiktoken
-from openai.types.chat.chat_completion import Choice
 
 from libs.pipeline.handlers.logics.evaluate_handler.confidence import (
     get_confidence_values,
 )
 
 
-def evaluate_confidence(extract_result: dict, choice: Choice, model: str = "gpt-4o"):
+def evaluate_confidence(extract_result: dict, choice: dict, model: str = "gpt-4o"):
     """
-    Evaluate confidence for each field value in the extracted result based on the logprobs of the response from Azure OpenAI.
+    Evaluate confidence for each field value in the extracted result based on the logprobs of the response from Azure AI Foundry.
 
     Args:
         extract_result: The extraction result.
-        choice: The choice object from the OpenAI response.
+        choice: The choice dictionary from the Azure AI Foundry response.
         model: The model used for the response.
 
     Returns:
@@ -30,16 +29,16 @@ def evaluate_confidence(extract_result: dict, choice: Choice, model: str = "gpt-
     encoding = tiktoken.encoding_for_model(model)
 
     # To perform the confidence evaluation, we need the original text from the response, not just the object result.
-    generated_text = choice.message.content
+    generated_text = choice["message"]["content"]
 
-    if choice.logprobs is None:
+    if choice.get("logprobs") is None:
         confidence["_overall"] = 0.0
         return confidence
 
-    logprobs = choice.logprobs.content
+    logprobs = choice["logprobs"]["content"]
 
-    tokens = [token_logprob.token for token_logprob in logprobs]
-    token_logprobs = [token_logprob.logprob for token_logprob in logprobs]
+    tokens = [token_logprob["token"] for token_logprob in logprobs]
+    token_logprobs = [token_logprob["logprob"] for token_logprob in logprobs]
 
     # Encode the entire generated text to map tokens to character positions
     token_offsets = []
