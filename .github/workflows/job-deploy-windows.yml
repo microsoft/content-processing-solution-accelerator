@@ -34,21 +34,6 @@ on:
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
         required: false
         type: string
-    secrets:
-      AZURE_CLIENT_ID:
-        required: true
-      AZURE_CLIENT_SECRET:
-        required: true
-      AZURE_TENANT_ID:
-        required: true
-      AZURE_SUBSCRIPTION_ID:
-        required: true
-      ACR_TEST_LOGIN_SERVER:
-        required: true
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
-        required: false
-      AZURE_ENV_FOUNDRY_PROJECT_ID:
-        required: false
     outputs:
       CONTAINER_WEB_APPURL:
         description: "Container Web App URL"

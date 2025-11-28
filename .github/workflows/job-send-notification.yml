@@ -60,9 +60,6 @@ on:
         required: false
         default: ''
         type: string
-    secrets:
-      EMAILNOTIFICATION_LOGICAPP_URL_TA:
-        required: false
 
 env:
   GPT_MIN_CAPACITY: 100

@@ -66,21 +66,6 @@ on:
         required: false
         default: ''
         type: string
-    secrets:
-      AZURE_CLIENT_ID:
-        required: true
-      AZURE_CLIENT_SECRET:
-        required: true
-      AZURE_TENANT_ID:
-        required: true
-      AZURE_SUBSCRIPTION_ID:
-        required: true
-      ACR_TEST_LOGIN_SERVER:
-        required: true
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
-        required: false
-      AZURE_ENV_FOUNDRY_PROJECT_ID:
-        required: false
     outputs:
       RESOURCE_GROUP_NAME:
         description: "Resource Group Name"
@@ -359,14 +344,7 @@ jobs:
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ACR_TEST_LOGIN_SERVER: ${{ secrets.ACR_TEST_LOGIN_SERVER }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-      AZURE_ENV_FOUNDRY_PROJECT_ID: ${{ secrets.AZURE_ENV_FOUNDRY_PROJECT_ID }}
+    secrets: inherit
 
   deploy-windows:
     name: Deploy on Windows
@@ -384,11 +362,4 @@ jobs:
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ACR_TEST_LOGIN_SERVER: ${{ secrets.ACR_TEST_LOGIN_SERVER }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-      AZURE_ENV_FOUNDRY_PROJECT_ID: ${{ secrets.AZURE_ENV_FOUNDRY_PROJECT_ID }}
+    secrets: inherit
