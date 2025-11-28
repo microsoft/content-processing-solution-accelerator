@@ -912,7 +912,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.17.0' = {
           }
           {
             name: 'APP_WEB_AUTHORITY'
-            value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
+            value: '${environment().authentication.loginEndpoint}${tenant().tenantId}'
           }
           {
             name: 'APP_WEB_SCOPE'
@@ -931,6 +931,10 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.17.0' = {
     ]
   }
 }
+
+// ========== Authentication Configuration ========== //
+// Note: Auth config creation moved to post-deployment script because isAutoProvisioned doesn't work as expected
+// The script will create app registrations and auth configs programmatically for both Web and API apps
 
 // ========== Cosmos Database for Mongo DB ========== //
 module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.15.0' = {
@@ -1372,6 +1376,12 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 
 @description('The login server of the Azure Container Registry.')
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
+
+@description('The name of the Azure Key Vault.')
+output AZURE_KEY_VAULT_NAME string = 'kv-${solutionSuffix}'
+
+@description('The Azure AD Tenant ID.')
+output AZURE_TENANT_ID string = tenant().tenantId
 
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name

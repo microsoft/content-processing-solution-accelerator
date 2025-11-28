@@ -3,6 +3,12 @@
 # Stop script on any error
 set -e
 
+echo ""
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║   Post-Deployment Configuration                           ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo ""
+
 echo "🔍 Fetching container app info from azd environment..."
 
 # Load values from azd env
@@ -21,18 +27,13 @@ WEB_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTI
 API_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
 
 echo "✅ Fetched container app info."
-echo "Values are as follows:"
-echo "  🕒 Started at: $(date)"
-echo "  🌍 Web App FQDN: $CONTAINER_WEB_APP_FQDN"
-echo "  🌍 API App FQDN: $CONTAINER_API_APP_FQDN"
-echo "  🔗 Web App Portal URL: $WEB_APP_PORTAL_URL"
-echo "  🔗 API App Portal URL: $API_APP_PORTAL_URL"
+echo ""
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Go from infra/scripts → root → src
-DATA_SCRIPT_PATH="$SCRIPT_DIR/../../src/ContentProcessorAPI/samples/schemas"
+DATA_SCRIPT_PATH="$SCRIPT_DIR/../../src/ContentProcessorAPI/samples"
 
 # Normalize the path (optional, in case of ../..)
 DATA_SCRIPT_PATH="$(realpath "$DATA_SCRIPT_PATH")"
@@ -41,19 +42,82 @@ DATA_SCRIPT_PATH="$(realpath "$DATA_SCRIPT_PATH")"
 echo ""
 echo "🧭 Web App Details:"
 echo "  ✅ Name: $CONTAINER_WEB_APP_NAME"
-echo "  🌐 Endpoint: $CONTAINER_WEB_APP_FQDN"
+echo "  🌐 Endpoint: https://$CONTAINER_WEB_APP_FQDN"
 echo "  🔗 Portal URL: $WEB_APP_PORTAL_URL"
 
 echo ""
 echo "🧭 API App Details:"
 echo "  ✅ Name: $CONTAINER_API_APP_NAME"
-echo "  🌐 Endpoint: $CONTAINER_API_APP_FQDN"
+echo "  🌐 Endpoint: https://$CONTAINER_API_APP_FQDN"
 echo "  🔗 Portal URL: $API_APP_PORTAL_URL"
 
-# echo ""
-# echo "📦 Follow Next steps to import Schemas:"
-# echo "👉 Run the following commands in your terminal:"
-# echo ""
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 
-# echo "   cd \"$DATA_SCRIPT_PATH\""
-# echo "   ./register_schema.sh https://$CONTAINER_API_APP_FQDN/schemavault/ schema_info_sh.json"
+# ═══════════════════════════════════════════════════════
+# STEP 1: Configure Authentication (Manual for Bash)
+# ═══════════════════════════════════════════════════════
+echo "🔐 STEP 1: Authentication Configuration"
+echo ""
+echo "⚠️  Note: For automated authentication setup, please use PowerShell:"
+echo "    ./infra/scripts/configure_auth_automated.ps1"
+echo ""
+echo "Or configure manually via Azure Portal:"
+echo "  1. Web App Authentication: $WEB_APP_PORTAL_URL/authV2"
+echo "  2. API App Authentication: $API_APP_PORTAL_URL/authV2"
+echo ""
+
+read -p "Press Enter to continue to schema registration..."
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# ═══════════════════════════════════════════════════════
+# STEP 2: Register Schemas and Upload Sample Data
+# ═══════════════════════════════════════════════════════
+echo "📦 STEP 2: Schema Registration & Sample Data Upload"
+echo ""
+
+read -p "Would you like to register schemas and upload sample data now? (yes/no): " upload_data
+
+if [ "$upload_data" = "yes" ]; then
+    echo ""
+    echo "Starting schema registration and data upload..."
+    
+    REGISTER_SCRIPT_PATH="$DATA_SCRIPT_PATH/register_and_upload.sh"
+    
+    if [ -f "$REGISTER_SCRIPT_PATH" ]; then
+        cd "$DATA_SCRIPT_PATH"
+        
+        echo "Executing: bash register_and_upload.sh https://$CONTAINER_API_APP_FQDN"
+        bash register_and_upload.sh "https://$CONTAINER_API_APP_FQDN"
+        
+        echo ""
+        echo "✅ Schema registration and data upload completed!"
+    else
+        echo "⚠️  Registration script not found at: $REGISTER_SCRIPT_PATH"
+    fi
+else
+    echo ""
+    echo "⏭  Skipping schema registration and data upload."
+    echo "To register schemas later, run:"
+    echo "  cd $DATA_SCRIPT_PATH"
+    echo "  bash register_and_upload.sh https://$CONTAINER_API_APP_FQDN"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🎉 Post-deployment configuration completed!"
+echo ""
+echo "📋 Summary:"
+echo "  • Web App: https://$CONTAINER_WEB_APP_FQDN"
+echo "  • API App: https://$CONTAINER_API_APP_FQDN"
+echo ""
+echo "Next steps:"
+echo "  1. Test your web application"
+echo "  2. Verify authentication is working"
+echo "  3. Check schema processing functionality"
+echo ""

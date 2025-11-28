@@ -6,9 +6,9 @@ name: content-processing
 requiredVersions:
   azd: '>= 1.18.0'
 
-metadata:
-  template: content-processing@1.0
-  name: content-processinge@1.0
+## metadata:
+##  template: content-processing@1.0
+##  name: content-processinge@1.0
 
 hooks:
   postprovision:
