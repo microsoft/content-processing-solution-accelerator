@@ -5,7 +5,7 @@ Files that are to be processed can be passed to the API to queue them for proces
 
 The schema file should represent what fields are in the document and should be thought of as a "standardized output" for any type of document this schema is applied to. For example, the Content Processing solution accelerator includes an "invoice" schema that includes a number of fields like "invoice date" or "line items". 
 
-Using AI, the processing pipeline will extract what is preceived as is the "invoice date" and use that extraction to output into the "invoice date" field.
+Using AI, the processing pipeline will extract what is perceived as the "invoice date" and use that extraction to output into the "invoice date" field.
 
 With this concept in mind, schemas need to be created specific to your business and domain requirements. A lot of times schemas may be generally common across industries, but this allows for variations specific to your use case.
 

@@ -589,4 +589,4 @@ Once your request is approved, redeploy your resource.
 </details>
 
 💡 Note: If you encounter any other issues, you can refer to the [Common Deployment Errors](https://learn.microsoft.com/en-us/azure/azure-resource-manager/troubleshooting/common-deployment-errors) documentation.
-If the problem persists, you can also raise an bug in our [MACAE Github Issues](https://github.com/microsoft/Multi-Agent-Custom-Automation-Engine-Solution-Accelerator/issues) for further support.
+If the problem persists, you can also raise a bug in our [Content Processing Github Issues](https://github.com/microsoft/content-processing-solution-accelerator/issues) for further support.

@@ -725,6 +725,11 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
         roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
         principalType: 'ServicePrincipal'
       }
+      {
+        principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
+        roleDefinitionIdOrName: 'Azure AI Developer'
+        principalType: 'ServicePrincipal'
+      }
     ]
     networkAcls: {
       bypass: 'AzureServices'
@@ -1266,12 +1271,16 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         value: 'cps-processes'
       }
       {
-        name: 'APP_LOGGING_ENABLE'
-        value: 'False'
-      }
-      {
         name: 'APP_LOGGING_LEVEL'
         value: 'INFO'
+      }
+      {
+        name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+        value: 'WARNING'
+      }
+      {
+        name: 'AZURE_LOGGING_PACKAGES'
+        value: ''
       }
       {
         name: 'APP_MESSAGE_QUEUE_EXTRACT'

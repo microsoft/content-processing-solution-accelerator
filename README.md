@@ -61,7 +61,7 @@ If you'd like to customize the solution accelerator, here are some common areas 
   - **Review, validate, update** <br/>
   Transparency in reviewing processing steps and final output - allowing for review, comparison to source asset, ability to modify output results, and annotation for historical reference
 
-  - **API driven processing pipelinese** <br/>
+  - **API driven processing pipelines** <br/>
   API end-points are available for external source systems to integrate event-driven processing workflows
          
 </details>
@@ -100,7 +100,7 @@ Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/g
 
 Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers. However, Azure Container Registry has a fixed cost per registry per day.
 
-Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to calculate the cost of this solution in your subscription. [Review a sample pricing sheet for the achitecture](https://azure.com/e/0a9a1459d1a2440ca3fd274ed5b53397).
+Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to calculate the cost of this solution in your subscription. [Review a sample pricing sheet for the architecture](https://azure.com/e/0a9a1459d1a2440ca3fd274ed5b53397).
 
 
 <br/>

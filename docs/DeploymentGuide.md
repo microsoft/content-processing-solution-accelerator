@@ -433,7 +433,7 @@ When creating your environment name, follow these rules:
         ```
 
 2. **Add Authentication Provider**  
-    - Follow steps in [App Authentication](./ConfigureAppAuthentication.md) to configure authenitcation in app service. Note that Authentication changes can take up to 10 minutes.  
+    - Follow steps in [App Authentication](./ConfigureAppAuthentication.md) to configure authentication in app service. Note that Authentication changes can take up to 10 minutes.  
 
 ## Deployment Success Validation
 
@@ -495,6 +495,8 @@ azd down --force --purge
 ```
 
 > **Tip:** If you have old environments that failed deployment or are no longer needed, use the commands above to clean them up before creating new ones.
+
+> **Note:** If you deployed with `enableRedundancy=true` and Log Analytics workspace replication is enabled, you must first disable replication before running `azd down` else resource group delete will fail. Follow the steps in [Handling Log Analytics Workspace Deletion with Replication Enabled](./LogAnalyticsReplicationDisable.md), wait until replication returns `false`, then run `azd down`.
 
 ### 🗑️ Azure Resource Group Cleanup
 
