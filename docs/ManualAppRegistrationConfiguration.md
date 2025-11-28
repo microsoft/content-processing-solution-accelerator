@@ -82,7 +82,7 @@ This guide provides detailed steps to manually register both front-end and backe
 - Under **Redirect URI**, choose **Web** and enter:
 
   ```
-  https://<api-app-url>azurecontainerapps.io/auth/login/aad/callback
+  https://<api-app-url>azurecontainerapps.io/.auth/login/aad/callback
   ```
 
   To find your Web App URL:
