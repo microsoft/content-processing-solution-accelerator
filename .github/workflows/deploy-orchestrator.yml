@@ -89,6 +89,7 @@ jobs:
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
       docker_image_tag: ${{ needs.docker-build.outputs.IMAGE_TAG }}
+      run_e2e_tests: ${{ inputs.run_e2e_tests }}
     secrets: inherit
 
   e2e-test:
