@@ -58,7 +58,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
      (if using **old environment**)
 
-   - Select **Authentication**, then select **+ Add a platform** menu.  
+     Select **Authentication**, then select **+ Add a platform** menu.  
 
      ![configure_app_registration_web_2_without_preview](./images/configure_app_registration_web_2_without_preview.png)
 
@@ -68,7 +68,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
      (if using **old environment**)
 
-   - Select **Single-page application**.  
+     Select **Single-page application**.  
 
      ![configure_app_registration_web_3_without_preview](./images/configure_app_registration_web_3_without_preview.png)
 
@@ -78,7 +78,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
      (if using **old environment**)
 
-   - Add Container App `ca-<randomname>-web`'s URL.  
+     Add Container App `ca-<randomname>-web`'s URL.  
 
      ![configure_app_registration_web_4_without_preview](./images/configure_app_registration_web_4_without_preview.png)
 
