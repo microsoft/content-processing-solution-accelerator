@@ -433,7 +433,7 @@ When creating your environment name, follow these rules:
         ```
 
 2. **Add Authentication Provider**  
-    - Follow steps in [App Authentication](./ConfigureAppAuthentication.md) to configure authenitcation in app service. Note that Authentication changes can take up to 10 minutes.  
+    - Follow steps in [App Authentication](./ConfigureAppAuthentication.md) to configure authentication in app service. Note that Authentication changes can take up to 10 minutes.  
 
 ## Deployment Success Validation
 
