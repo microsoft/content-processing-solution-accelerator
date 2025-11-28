@@ -17,7 +17,7 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
      ![add_auth_provider_web_1](./images/add_auth_provider_web_1.png)
 
-      > **Note:** If you encounter the following error message indicating that your organization's policy prohibits the automatic use of secrets, please refer to our [Manual App Registration Configuration](./ManualAppRegistrationConfiguration.md) for detailed manual setup instructions.
+      > ⚠️ **Note:** If you encounter the following error message indicating that your organization's policy prohibits the automatic use of secrets, please refer to our [Manual App Registration Configuration](./ManualAppRegistrationConfiguration.md) for detailed manual setup instructions.
       > ![add_auth_provider_web_3](./images/add_auth_provider_web_3.png)
 
    - Select **Microsoft** and set **Client secret expiration**, then click **Add** button. 
