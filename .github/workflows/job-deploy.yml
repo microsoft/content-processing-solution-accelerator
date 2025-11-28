@@ -1,4 +1,4 @@
-name: Deploy Job v2
+name: Deploy Job 
 
 on:
   workflow_call:
