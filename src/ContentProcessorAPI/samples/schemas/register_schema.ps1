@@ -12,6 +12,41 @@ if (-not (Test-Path -Path $SchemaInfoJson)) {
     exit 1
 }
 
+# Ensure API endpoint URL is properly formatted
+if ($ApiEndpointUrl -match '/schemavault/?$') {
+    $baseUrl = $ApiEndpointUrl.TrimEnd('/')
+    $getUrl = "$baseUrl/"
+}
+else {
+    $getUrl = "$($ApiEndpointUrl.TrimEnd('/'))/schemavault/"
+}
+
+# Fetch existing schemas
+Write-Output "Fetching existing schemas from: $getUrl"
+try {
+    $httpClient = New-Object System.Net.Http.HttpClient
+    $getResponse = $httpClient.GetAsync($getUrl).Result
+    
+    if ($getResponse.IsSuccessStatusCode) {
+        $existingSchemasJson = $getResponse.Content.ReadAsStringAsync().Result
+        $existingSchemas = $existingSchemasJson | ConvertFrom-Json
+        Write-Output "Successfully fetched $($existingSchemas.Count) existing schema(s)."
+    }
+    else {
+        Write-Warning "Could not fetch existing schemas. HTTP Status: $($getResponse.StatusCode)"
+        $existingSchemas = @()
+    }
+}
+catch {
+    Write-Warning "Error fetching existing schemas: $_. Proceeding with registration..."
+    $existingSchemas = @()
+}
+finally {
+    if ($httpClient) {
+        $httpClient.Dispose()
+    }
+}
+
 # Parse the JSON file and process each schema entry
 $schemaEntries = Get-Content -Path $SchemaInfoJson | ConvertFrom-Json
 
@@ -24,6 +59,9 @@ foreach ($entry in $schemaEntries) {
     $className = $entry.ClassName
     $description = $entry.Description
 
+    Write-Output ""
+    Write-Output "Processing schema: $className"
+
     # Resolve the full path of the schema file
     if (-not [System.IO.Path]::IsPathRooted($schemaFile)) {
         $schemaFile = Join-Path -Path $schemaInfoDirectory -ChildPath $schemaFile
@@ -34,6 +72,23 @@ foreach ($entry in $schemaEntries) {
         Write-Warning "Error: Schema file '$schemaFile' does not exist. Skipping..."
         continue
     }
+
+    # Check if schema with same ClassName already exists
+    $existingSchema = $existingSchemas | Where-Object { $_.ClassName -eq $className } | Select-Object -First 1
+    
+    if ($existingSchema) {
+        Write-Output "✓ Schema '$className' already exists with ID: $($existingSchema.Id)"
+        Write-Output "  Description: $($existingSchema.Description)"
+        
+        # Output to environment variable if running in GitHub Actions or similar
+        if ($env:GITHUB_OUTPUT) {
+            $safeName = $className.ToLower() -replace '[^a-z0-9_]', ''
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "${safeName}_schema_id=$($existingSchema.Id)"
+        }
+        continue
+    }
+
+    Write-Output "Registering new schema '$className'..."
 
     # Extract the filename from the file path
     $filename = [System.IO.Path]::GetFileName($schemaFile)
@@ -85,17 +140,16 @@ foreach ($entry in $schemaEntries) {
             $responseJson = $responseContent | ConvertFrom-Json
             $id = $responseJson.Id
             $desc = $responseJson.Description
-            Write-Output "$desc's Schema Id - $id"
+            Write-Output "✓ Successfully registered: $desc's Schema Id - $id"
             
-            # Set GitHub Actions output if GITHUB_OUTPUT environment variable exists
+            # Output to environment variable if running in GitHub Actions or similar
             if ($env:GITHUB_OUTPUT) {
-                # Create a safe variable name from the class name (lowercase, alphanumeric and underscores only)
                 $safeName = $className.ToLower() -replace '[^a-z0-9_]', ''
-                "${safeName}_schema_id=$id" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                Add-Content -Path $env:GITHUB_OUTPUT -Value "${safeName}_schema_id=$id"
             }
         }
         else {
-            Write-Error "Failed to upload '$schemaFile'. HTTP Status: $httpStatusCode"
+            Write-Error "✗ Failed to upload '$schemaFile'. HTTP Status: $httpStatusCode"
             Write-Error "Error Response: $responseContent"
         }
     }
@@ -103,12 +157,22 @@ foreach ($entry in $schemaEntries) {
         Write-Error "An error occurred while processing '$schemaFile': $_"
     }
     finally {
-        # Ensure the file stream is closed
+        # Ensure resources are disposed
         if ($fileStream) {
             $fileStream.Close()
+            $fileStream.Dispose()
+        }
+        if ($multipartContent) {
+            $multipartContent.Dispose()
+        }
+        if ($httpClient) {
+            $httpClient.Dispose()
         }
     }
 
     # Clean up the temporary JSON file
     Remove-Item -Path $tempJson -Force
 }
+
+Write-Output ""
+Write-Output "Schema registration process completed."

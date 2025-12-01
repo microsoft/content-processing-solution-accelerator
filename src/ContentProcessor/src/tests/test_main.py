@@ -48,8 +48,9 @@ async def test_application_run(mocker):
             ConfigItem("app_message_queue_interval", "2"),
             ConfigItem("app_message_queue_visibility_timeout", "1"),
             ConfigItem("app_message_queue_process_timeout", "2"),
-            ConfigItem("app_logging_enable", "True"),
             ConfigItem("app_logging_level", "DEBUG"),
+            ConfigItem("azure_package_logging_level", "DEBUG"),
+            ConfigItem("azure_logging_packages", "test_package"),
             ConfigItem("app_cps_processes", "4"),
             ConfigItem("app_cps_configuration", "value"),
             ConfigItem(
@@ -57,6 +58,7 @@ async def test_application_run(mocker):
             ),
             ConfigItem("app_azure_openai_endpoint", "https://example.com/openai"),
             ConfigItem("app_azure_openai_model", "model-name"),
+            ConfigItem("app_ai_project_endpoint", "https://example.com/ai-project"),
             ConfigItem(
                 "app_cosmos_connstr",
                 "AccountEndpoint=https://example.com;AccountKey=key;",
