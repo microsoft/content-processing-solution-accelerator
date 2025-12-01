@@ -17,6 +17,30 @@ if [ ! -f "$SCHEMA_INFO_JSON" ]; then
     exit 1
 fi
 
+# Ensure API_ENDPOINT_URL ends with /schemavault or /schemavault/
+# Extract base URL and construct proper GET endpoint
+if [[ "$API_ENDPOINT_URL" =~ /schemavault/?$ ]]; then
+    # Remove trailing slash if present, then add it back
+    BASE_URL="${API_ENDPOINT_URL%/}"
+    GET_URL="$BASE_URL/"
+else
+    # Assume it's just the base URL
+    GET_URL="${API_ENDPOINT_URL%/}/schemavault/"
+fi
+
+# Get all existing schemas
+echo "Fetching existing schemas from: $GET_URL"
+EXISTING_SCHEMAS=$(curl -s -X GET "$GET_URL")
+
+# Check if curl succeeded and returned valid JSON
+if [ $? -ne 0 ] || ! echo "$EXISTING_SCHEMAS" | jq empty 2>/dev/null; then
+    echo "Warning: Could not fetch existing schemas or invalid JSON response. Proceeding with registration..."
+    EXISTING_SCHEMAS="[]"
+else
+    SCHEMA_COUNT=$(echo "$EXISTING_SCHEMAS" | jq 'length')
+    echo "Successfully fetched $SCHEMA_COUNT existing schema(s)."
+fi
+
 # Parse the JSON file and process each schema entry
 jq -c '.[]' "$SCHEMA_INFO_JSON" | while read -r schema_entry; do
     # Extract file, class name, and description from the JSON entry
@@ -24,11 +48,30 @@ jq -c '.[]' "$SCHEMA_INFO_JSON" | while read -r schema_entry; do
     CLASS_NAME=$(echo "$schema_entry" | jq -r '.ClassName')
     DESCRIPTION=$(echo "$schema_entry" | jq -r '.Description')
 
+    echo ""
+    echo "Processing schema: $CLASS_NAME"
+
     # Validate if the schema file exists
     if [ ! -f "$SCHEMA_FILE" ]; then
         echo "Error: Schema file '$SCHEMA_FILE' does not exist. Skipping..."
         continue
     fi
+
+    # Check if schema with same ClassName already exists
+    EXISTING_ID=$(echo "$EXISTING_SCHEMAS" | jq -r --arg className "$CLASS_NAME" '.[] | select(.ClassName == $className) | .Id' 2>/dev/null | head -n 1)
+    
+    if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+        EXISTING_DESC=$(echo "$EXISTING_SCHEMAS" | jq -r --arg className "$CLASS_NAME" '.[] | select(.ClassName == $className) | .Description' 2>/dev/null | head -n 1)
+        echo "✓ Schema '$CLASS_NAME' already exists with ID: $EXISTING_ID"
+        echo "  Description: $EXISTING_DESC"
+        
+        # Still output to GitHub output file
+        SAFE_NAME=$(echo "$CLASS_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_')
+        echo "${SAFE_NAME}_schema_id=$EXISTING_ID" >> "$GITHUB_OUTPUT_FILE"
+        continue
+    fi
+
+    echo "Registering new schema '$CLASS_NAME'..."
 
     # Extract the filename from the file path
     FILENAME=$(basename "$SCHEMA_FILE")
@@ -53,10 +96,13 @@ jq -c '.[]' "$SCHEMA_INFO_JSON" | while read -r schema_entry; do
         SAFE_NAME=$(echo "$CLASS_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_')
         ID=$(echo "$RESPONSE_BODY" | jq -r '.Id')
         DESC=$(echo "$RESPONSE_BODY" | jq -r '.Description')
-        echo "$DESC's Schema Id - $ID"
+        echo "✓ Successfully registered: $DESC's Schema Id - $ID"
         echo "${SAFE_NAME}_schema_id=$ID" >> "$GITHUB_OUTPUT_FILE"
     else
-        echo "Failed to upload '$SCHEMA_FILE'. HTTP Status: $HTTP_STATUS"
+        echo "✗ Failed to upload '$SCHEMA_FILE'. HTTP Status: $HTTP_STATUS"
         echo "Error Response: $RESPONSE_BODY"
     fi
 done
+
+echo ""
+echo "Schema registration process completed."
