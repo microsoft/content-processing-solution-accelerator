@@ -372,8 +372,6 @@ The below steps will add two sample schemas to the solution: _Invoice_ and _Prop
 
 ### 5.4 Verify Deployment
 
-**Deployment Validation Checklist:**
-
 1. Access your application using the URL from [Step 4.3](#43-get-application-url).
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
@@ -480,6 +478,11 @@ azd env list
 **Switch to Different Environment:**
 ```shell
 azd env select <environment-name>
+```
+
+**View Current Environment Variables:**
+```shell
+azd env get-values
 ```
 
 </details>
