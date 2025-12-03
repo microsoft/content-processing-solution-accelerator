@@ -495,6 +495,7 @@ azd env select <environment-name>
 
 Now that your deployment is complete and tested, explore these resources:
 
+- [Technical Architecture](./TechnicalArchitecture.md) - Understand the system design and components
 - [Create Custom Schemas](./CustomizeSchemaData.md) - Learn how to add your own document schemas
 - [API Integration](API.md) - Explore programmatic document processing
 - [Local Development Setup](./LocalDevelopmentSetup.md) - Set up your local development environment
