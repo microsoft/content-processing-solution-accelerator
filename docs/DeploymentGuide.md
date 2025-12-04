@@ -462,7 +462,7 @@ azd up
 > - **Length:** 3-20 characters
 > - **Characters:** Lowercase alphanumeric only (a-z, 0-9)
 > - **No special characters** (-, _, spaces, etc.)
-> - **Valid examples:** `conmig`, `test123`, `myappdev`, `prod2024`
+> - **Valid examples:** `conpro`, `test123`, `myappdev`, `prod2024`
 > - **Invalid examples:** `co` (too short), `my-very-long-environment-name` (too long), `test_env` (underscore not allowed), `myapp-dev` (hyphen not allowed)
 
 </details>
