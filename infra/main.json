@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "7117786631402623900"
+      "templateHash": "11428630106677040832"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -40913,10 +40913,10 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
       ]
@@ -43518,8 +43518,8 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "virtualNetwork"
       ]
     },
@@ -45004,6 +45004,18 @@
                   {
                     "name": "APP_ENV",
                     "value": "prod"
+                  },
+                  {
+                    "name": "APP_LOGGING_LEVEL",
+                    "value": "INFO"
+                  },
+                  {
+                    "name": "AZURE_PACKAGE_LOGGING_LEVEL",
+                    "value": "WARNING"
+                  },
+                  {
+                    "name": "AZURE_LOGGING_PACKAGES",
+                    "value": ""
                   }
                 ]
               }
@@ -46604,6 +46616,18 @@
                   {
                     "name": "APP_ENV",
                     "value": "prod"
+                  },
+                  {
+                    "name": "APP_LOGGING_LEVEL",
+                    "value": "INFO"
+                  },
+                  {
+                    "name": "AZURE_PACKAGE_LOGGING_LEVEL",
+                    "value": "WARNING"
+                  },
+                  {
+                    "name": "AZURE_LOGGING_PACKAGES",
+                    "value": ""
                   }
                 ],
                 "probes": [
