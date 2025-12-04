@@ -41,7 +41,22 @@ class AppMainBase(ABC, AppModelBase):
         logging_level = getattr(
             logging, self.application_context.configuration.app_logging_level, logging.INFO
         )
-        logging.basicConfig(level=logging_level)
+        # Configure basic logging with format
+        logging.basicConfig(
+            level=logging_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            force=True  # This ensures the configuration is applied
+        )
+        
+        package_level_str = self.application_context.configuration.azure_package_logging_level
+        package_level = getattr(logging, package_level_str, logging.WARNING)
+        packages = self.application_context.configuration.azure_logging_packages
+        azure_logging_packages = packages.split(",") if packages else []
+
+        # Package config: Azure loggers set to WARNING to suppress INFO
+        for logger_name in azure_logging_packages:
+            logging.getLogger(logger_name).setLevel(package_level)
+        logging.info(f"Logging configured - Basic: {self.application_context.configuration.app_logging_level}, Azure packages: {package_level_str}, Packages: {azure_logging_packages}")
 
     def _load_env(self, env_file_path: str | None = None):
         # if .env file path is provided, load it
