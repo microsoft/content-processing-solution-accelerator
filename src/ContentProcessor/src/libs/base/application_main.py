@@ -47,7 +47,7 @@ class AppMainBase(ABC, AppModelBase):
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             force=True  # This ensures the configuration is applied
         )
-        
+
         package_level_str = self.application_context.configuration.azure_package_logging_level
         package_level = getattr(logging, package_level_str, logging.WARNING)
         packages = self.application_context.configuration.azure_logging_packages
