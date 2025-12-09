@@ -202,6 +202,16 @@ Check out similar solution accelerators
 
 <br/>   
 
+> _Want to learn and get familiar with Microsoft's AI best practices?_ [Check out the AI playbook](https://learn.microsoft.com/en-us/ai/playbook/).
+
+<br/> 
+
+| Want to learn and get familiar with Microsoft's AI best practices? |
+|---|
+| [Check out the AI playbook](https://learn.microsoft.com/en-us/ai/playbook/) |
+
+
+<br/>   
 
 ## Provide feedback
 Have questions, find a bug, or want to request a feature? [Submit a new issue](https://github.com/microsoft/content-processing-solution-accelerator/issues) on this repo and we'll connect.
