@@ -691,10 +691,11 @@ typing-inspection==0.4.1 \
     # via
     #   pydantic
     #   pydantic-settings
-urllib3==2.3.0 \
-    --hash=sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df \
-    --hash=sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d
+urllib3==2.6.1 \
+    --hash=sha256:5379eb6e1aba4088bae84f8242960017ec8d8e3decf30480b3a1abdaa9671a3f \
+    --hash=sha256:e67d06fe947c36a7ca39f4994b08d73922d40e6cca949907be05efa6fd75110b
     # via
+    #   contentprocessorapi
     #   requests
     #   sentry-sdk
 uvicorn==0.34.0 \
