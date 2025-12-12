@@ -437,7 +437,7 @@ When creating your environment name, follow these rules:
 
 ## Known Issues
 
-**Unable to update/add environment variables in Azure Container App**
+**Unable to update/add environment variables in Azure Container Apps**
 
 You may encounter issues when attempting to modify environment variables or container configuration in Azure Container Apps:
 
