@@ -102,51 +102,300 @@ The files for the dev container are located in `/.devcontainer/` folder.
    • If you are using `venv`, create and activate your virtual environment for both the backend components:
    
    **Content Processor API:**
+   
+   PowerShell:
+   ```powershell
+   cd src\ContentProcessorAPI
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1
+   ```
+   
+   Command Prompt:
+   ```cmd
+   cd src\ContentProcessorAPI
+   python -m venv .venv
+   .venv\Scripts\activate.bat
+   ```
+   
+   Git Bash / Linux / macOS:
    ```bash
    cd src/ContentProcessorAPI
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate
    ```
    
    **Content Processor:**
+   
+   PowerShell:
+   ```powershell
+   cd src\ContentProcessor
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1
+   ```
+   
+   Command Prompt:
+   ```cmd
+   cd src\ContentProcessor
+   python -m venv .venv
+   .venv\Scripts\activate.bat
+   ```
+   
+   Git Bash / Linux / macOS:
    ```bash
    cd src/ContentProcessor
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+   
+   **Note for PowerShell Users:** If you get an error about scripts being disabled, run:
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
 
 8. **Install requirements - Backend components:**
-   • In each of the backend folders, open a terminal and run:
+   
+   **ContentProcessorAPI:**
+   
+   Navigate to `src/ContentProcessorAPI` and install dependencies:
    ```bash
+   cd src\ContentProcessorAPI
    pip install -r requirements.txt
    ```
-
-9. **Install requirements - Frontend:**
-   • In the frontend folder:
-   ```bash
-   cd src/ContentProcessorWeb
-   npm install
+   
+   **If you encounter compilation errors** on Windows (cffi, pydantic-core, or cryptography):
+   
+   These packages often fail to build from source on Windows. Use this workaround to install precompiled wheels:
+   
+   ```powershell
+   # Create temporary requirements without problematic packages
+   Get-Content requirements.txt | Where-Object { $_ -notmatch "cffi==1.17.1|pydantic==2.11.7|pydantic-core==2.33.2" } | Out-File temp_requirements.txt -Encoding utf8
+   
+   # Install other dependencies first
+   pip install -r temp_requirements.txt
+   
+   # Install problematic packages with newer precompiled versions
+   pip install cffi==2.0.0 pydantic==2.12.5 pydantic-core==2.41.5
+   
+   # Upgrade typing-extensions if needed
+   pip install --upgrade "typing-extensions>=4.14.1" "typing-inspection>=0.4.2"
+   
+   # Clean up temporary file
+   Remove-Item temp_requirements.txt
    ```
+   
+   **ContentProcessor:**
+   
+   Navigate to `src/ContentProcessor` and install dependencies:
+   ```bash
+   cd src\ContentProcessor
+   pip install -r requirements.txt
+   ```
+   
+   **If you encounter errors**, upgrade problematic packages:
+   ```powershell
+   pip install --upgrade cffi cryptography pydantic pydantic-core numpy pandas
+   ```
+   
+   **Note:** Python 3.11+ has better precompiled wheel support. Avoid Python 3.12 as some packages may not be compatible yet.
 
-10. **Run the application:**
-    • From the `src/ContentProcessorAPI` directory:
+9. **Configure environment variables:**
+   
+   **ContentProcessorAPI:**
+   
+   Create a `.env` file in `src/ContentProcessorAPI/app/` directory with the following content:
+   ```bash
+   # App Configuration endpoint from your Azure deployment
+   APP_CONFIG_ENDPOINT=https://<your-appconfig-name>.azconfig.io
+   
+   # Cosmos DB endpoint from your Azure deployment
+   AZURE_COSMOS_ENDPOINT=https://<your-cosmos-name>.documents.azure.com:443/
+   AZURE_COSMOS_DATABASE=contentprocess
+   
+   # Local development settings - CRITICAL for local authentication
+   APP_ENV=dev
+   APP_AUTH_ENABLED=False
+   AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
+   ```
+   
+   **ContentProcessor:**
+   
+   Create a `.env.dev` file (note the `.dev` suffix) in `src/ContentProcessor/src/` directory:
+   ```bash
+   # App Configuration endpoint
+   APP_CONFIG_ENDPOINT=https://<your-appconfig-name>.azconfig.io
+   
+   # Cosmos DB endpoint
+   AZURE_COSMOS_ENDPOINT=https://<your-cosmos-name>.documents.azure.com:443/
+   AZURE_COSMOS_DATABASE=contentprocess
+   
+   # Local development settings
+   APP_ENV=dev
+   APP_AUTH_ENABLED=False
+   AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
+   
+   # Logging settings
+   APP_LOGGING_LEVEL=INFO
+   APP_LOGGING_ENABLE=True
+   ```
+   
+   **ContentProcessorWeb:**
+   
+   Update the `.env` file in `src/ContentProcessorWeb/` directory:
+   ```bash
+   REACT_APP_API_BASE_URL=http://localhost:8000
+   REACT_APP_AUTH_ENABLED=false
+   REACT_APP_CONSOLE_LOG_ENABLED=true
+   ```
+   
+   **Important Notes:**
+   - Replace `<your-appconfig-name>` and `<your-cosmos-name>` with your actual Azure resource names from deployment
+   - `APP_ENV=dev` is **REQUIRED** for local development - it enables Azure CLI credential usage instead of Managed Identity
+   - ContentProcessor requires `.env.dev` (not `.env`) in the `src/` subdirectory
+   - Get your resource names from Azure Portal or by running: `az resource list -g <your-resource-group-name>`
+
+10. **Assign Azure RBAC roles:**
+    Before running the application locally, you need proper Azure permissions:
+    
     ```bash
-    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Get your Azure principal ID (user object ID)
+    az ad signed-in-user show --query id -o tsv
+    
+    # Get your subscription ID
+    az account show --query id -o tsv
+    
+    # Assign App Configuration Data Reader role
+    az role assignment create --role "App Configuration Data Reader" \
+      --assignee <your-principal-id> \
+      --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.AppConfiguration/configurationStores/<appconfig-name>
+    
+    # Assign Cosmos DB Data Contributor role
+    az role assignment create --role "Cosmos DB Built-in Data Contributor" \
+      --assignee <your-principal-id> \
+      --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.DocumentDB/databaseAccounts/<cosmos-name>
+    
+    # Assign Storage Queue Data Contributor role (for full file processing)
+    az role assignment create --role "Storage Queue Data Contributor" \
+      --assignee <your-principal-id> \
+      --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.Storage/storageAccounts/<storage-account-name>
+    
+    # Assign Cognitive Services User role (for Content Understanding)
+    az role assignment create --role "Cognitive Services User" \
+      --assignee <your-principal-id> \
+      --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.CognitiveServices/accounts/<content-understanding-name>
     ```
     
-    • In a new terminal from the `src/ContentProcessor` directory:
+    **Note:** Azure role assignments can take 5-10 minutes to propagate. If you get "Forbidden" errors when starting the API, wait a few minutes and try again.
+
+11. **Install requirements - Frontend:**
+   • Navigate to the frontend folder:
+   ```bash
+   cd src\ContentProcessorWeb
+   ```
+   
+   • Install dependencies with `--legacy-peer-deps` flag (required for @azure/msal-react compatibility):
+   ```powershell
+   npm install --legacy-peer-deps
+   ```
+   
+   • Install additional required FluentUI packages:
+   ```powershell
+   npm install @fluentui/react-dialog @fluentui/react-button --legacy-peer-deps
+   ```
+   
+   **Note:** Always use the `--legacy-peer-deps` flag for npm commands in this project to avoid dependency conflicts.
+
+12. **Configure CORS for local development:**
+    
+    The FastAPI backend needs CORS configuration to allow requests from the React frontend during local development.
+    
+    Edit `src/ContentProcessorAPI/app/main.py` and add the CORS middleware configuration:
+    
+    ```python
+    from fastapi.middleware.cors import CORSMiddleware
+    ```
+    
+    Then after the line `app = FastAPI(redirect_slashes=False)`, add:
+    
+    ```python
+    # Configure CORS for local development
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],  # Frontend URL
+        allow_credentials=True,
+        allow_methods=["*"],  # Allow all HTTP methods
+        allow_headers=["*"],  # Allow all headers
+    )
+    ```
+    
+    **Note:** This CORS configuration is only needed for local development. Azure deployment handles CORS at the infrastructure level.
+
+13. **Run the application:**
+13. **Run the application:**
+    
+    Open three separate terminal windows and run each component:
+    
+    **Terminal 1 - API (ContentProcessorAPI):**
+    
+    PowerShell:
+    ```powershell
+    cd src\ContentProcessorAPI
+    .venv\Scripts\Activate.ps1
+    python -m uvicorn app.main:app --reload --port 8000
+    ```
+    
+    Command Prompt:
+    ```cmd
+    cd src\ContentProcessorAPI
+    .venv\Scripts\activate.bat
+    python -m uvicorn app.main:app --reload --port 8000
+    ```
+    
+    Git Bash / Linux / macOS:
     ```bash
+    cd src/ContentProcessorAPI
+    source .venv/bin/activate
+    python -m uvicorn app.main:app --reload --port 8000
+    ```
+    
+    **Terminal 2 - Background Processor (ContentProcessor):**
+    
+    PowerShell:
+    ```powershell
+    cd src\ContentProcessor
+    .venv\Scripts\Activate.ps1
     python src/main.py
     ```
     
-    • In a new terminal from the `src/ContentProcessorWeb` directory:
+    Command Prompt:
+    ```cmd
+    cd src\ContentProcessor
+    .venv\Scripts\activate.bat
+    python src/main.py
+    ```
+    
+    Git Bash / Linux / macOS:
     ```bash
+    cd src/ContentProcessor
+    source .venv/bin/activate
+    python src/main.py
+    ```
+    
+    **Terminal 3 - Frontend (ContentProcessorWeb):**
+    ```bash
+    cd src\ContentProcessorWeb
     npm start
     ```
+    
+    **Troubleshooting startup:**
+    - If you get "Forbidden" errors from App Configuration or Cosmos DB, ensure your Azure role assignments have propagated (wait 5-10 minutes after creating them)
+    - If you see "ManagedIdentityCredential" errors, verify `.env` files have `APP_ENV=dev` set
+    - If frontend shows "Unable to connect to the server", verify you added CORS configuration in `main.py` (step 12) and restart the API
+    - Storage Queue errors in ContentProcessor are expected if you haven't assigned the Storage Queue Data Contributor role - the processor will keep retrying
+    - Content Understanding 401 errors are expected if you haven't assigned the Cognitive Services User role
 
-11. **Open a browser and navigate to `http://localhost:3000`**
+14. **Open a browser and navigate to `http://localhost:3000`**
 
-12. **To see Swagger API documentation, you can navigate to `http://localhost:8000/docs`**
+15. **To see Swagger API documentation, you can navigate to `http://localhost:8000/docs`**
 
 ## Debugging the Solution Locally
 
@@ -184,19 +433,97 @@ For debugging the React frontend, you can use the browser's developer tools or s
 ### Common Issues
 
 **Python Module Not Found:**
-```bash
+
+PowerShell:
+```powershell
 # Ensure virtual environment is activated
-source venv/bin/activate  # Windows: venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-**Node.js Dependencies Issues:**
+Command Prompt:
+```cmd
+# Ensure virtual environment is activated
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+Git Bash / Linux / macOS:
 ```bash
-# Clear npm cache and reinstall
+# Ensure virtual environment is activated
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Python Dependency Compilation Errors (Windows):**
+
+If you see errors like "Microsoft Visual C++ 14.0 is required" or "error: metadata-generation-failed" when installing cffi, pydantic-core, or cryptography:
+
+```powershell
+# Create temporary requirements excluding problematic packages
+Get-Content requirements.txt | Where-Object { $_ -notmatch "cffi==1.17.1|pydantic==2.11.7|pydantic-core==2.33.2" } | Out-File temp_requirements.txt -Encoding utf8
+
+# Install other dependencies first
+pip install -r temp_requirements.txt
+
+# Install problematic packages with newer precompiled versions
+pip install cffi==2.0.0 pydantic==2.12.5 pydantic-core==2.41.5
+
+# Upgrade typing-extensions if needed
+pip install --upgrade "typing-extensions>=4.14.1" "typing-inspection>=0.4.2"
+
+# Clean up
+Remove-Item temp_requirements.txt
+```
+
+**Explanation:** Older versions of cffi (1.17.1) and pydantic-core (2.33.2) require compilation from source, which fails on Windows without Visual Studio build tools. Newer versions have precompiled wheels that install without compilation.
+
+**pydantic_core ImportError:**
+
+If you see "PyO3 modules compiled for CPython 3.8 or older may only be initialized once" or "ImportError: pydantic_core._pydantic_core":
+```powershell
+# Uninstall and reinstall with compatible versions
+pip uninstall -y pydantic pydantic-core
+pip install pydantic==2.12.5 pydantic-core==2.41.5
+pip install --upgrade "typing-extensions>=4.14.1"
+```
+
+**Explanation:** Version mismatch between pydantic and pydantic-core causes runtime errors. The compatible versions above work reliably together.
+
+**pandas/numpy Import Errors:**
+
+If you see "Error importing numpy from its source directory":
+```powershell
+# Force reinstall all requirements to resolve conflicts
+pip install --upgrade --force-reinstall -r requirements.txt
+```
+
+**Node.js Dependencies Issues:**
+
+PowerShell:
+```powershell
+# Clear npm cache and reinstall with legacy peer deps
+npm cache clean --force
+Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+npm install --legacy-peer-deps
+
+# Install missing FluentUI packages if needed
+npm install @fluentui/react-dialog @fluentui/react-button --legacy-peer-deps
+```
+
+Bash / Linux / macOS:
+```bash
+# Clear npm cache and reinstall with legacy peer deps
 npm cache clean --force
 rm -rf node_modules package-lock.json
-npm install
+npm install --legacy-peer-deps
+
+# Install missing FluentUI packages if needed
+npm install @fluentui/react-dialog @fluentui/react-button --legacy-peer-deps
 ```
+
+**Explanation:** The `--legacy-peer-deps` flag is required due to peer dependency conflicts with @azure/msal-react. Some FluentUI packages may not be included in the initial install and need to be added separately.
 
 **Port Conflicts:**
 ```bash
@@ -206,21 +533,118 @@ netstat -ano | findstr :8000  # Windows
 ```
 
 **Azure Authentication Issues:**
+
+If you get "Forbidden" errors when accessing App Configuration or Cosmos DB:
 ```bash
-# Re-authenticate
+# Check your current Azure account
+az account show
+
+# Get your principal ID for role assignments
+az ad signed-in-user show --query id -o tsv
+
+# Verify you have the correct role assignments
+az role assignment list --assignee $(az ad signed-in-user show --query id -o tsv) --resource-group <resource-group-name>
+
+# Refresh your access token
+az account get-access-token --resource https://azconfig.io
+
+# If roles are missing, assign them (replace <principal-id> with your ID from above)
+az role assignment create --role "App Configuration Data Reader" \
+  --assignee <principal-id> \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg-name>/providers/Microsoft.AppConfiguration/configurationStores/<appconfig-name>
+
+az role assignment create --role "Cosmos DB Built-in Data Contributor" \
+  --assignee <principal-id> \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg-name>/providers/Microsoft.DocumentDB/databaseAccounts/<cosmos-name>
+
+az role assignment create --role "Storage Queue Data Contributor" \
+  --assignee <principal-id> \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg-name>/providers/Microsoft.Storage/storageAccounts/<storage-name>
+
+az role assignment create --role "Cognitive Services User" \
+  --assignee <principal-id> \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg-name>/providers/Microsoft.CognitiveServices/accounts/<content-understanding-name>
+```
+
+**Note:** Role assignments can take 5-10 minutes to propagate through Azure AD. If you just assigned roles, wait a few minutes before retrying.
+
+**Cognitive Services Permission Errors:**
+
+If you see "401 Client Error: PermissionDenied" for Content Understanding service:
+```bash
+# Assign Cognitive Services User role
+az role assignment create --role "Cognitive Services User" \
+  --assignee <principal-id> \
+  --scope /subscriptions/<sub-id>/resourceGroups/<rg-name>/providers/Microsoft.CognitiveServices/accounts/<content-understanding-name>
+```
+
+This error occurs when processing documents. Wait 5-10 minutes after assigning the role, then restart the ContentProcessor service.
+
+**ManagedIdentityCredential Errors:**
+
+If you see "ManagedIdentityCredential authentication unavailable" or "No managed identity endpoint found":
+```bash
+# Ensure your .env files have these settings:
+APP_ENV=dev
+AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
+
+# This tells the app to use Azure CLI credentials instead of Managed Identity
+```
+
+**Locations to check:**
+- `src/ContentProcessorAPI/app/.env`
+- `src/ContentProcessor/src/.env.dev` (note: must be `.env.dev` in the `src/` subdirectory, not `.env` in root)
+
+**Explanation:** Managed Identity is used in Azure deployments but doesn't work locally. Setting `APP_ENV=dev` switches to Azure CLI credential authentication.
+
+**General authentication reset:**
+```bash
+# Re-authenticate with Azure CLI
 az logout
 az login
 ```
 
 **CORS Issues:**
-• Ensure API CORS settings include the web app URL
-• Check browser network tab for CORS errors
-• Verify API is running on the expected port
+
+If the frontend loads but shows "Unable to connect to the server" error:
+
+1. Verify CORS is configured in `src/ContentProcessorAPI/app/main.py`:
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(redirect_slashes=False)
+
+# Configure CORS for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+2. Restart the API service after adding CORS configuration
+3. Check browser console (F12) for CORS errors
+4. Verify API is running on port 8000 and frontend on port 3000
+
+**Explanation:** CORS (Cross-Origin Resource Sharing) blocks requests between different origins by default. The frontend (localhost:3000) needs explicit permission to call the API (localhost:8000).
+
+**PowerShell Script Execution Policy Error:**
+
+If you get "cannot be loaded because running scripts is disabled" when activating venv:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
 
 **Environment Variables Not Loading:**
-• Verify `.env` file is in the correct directory
+• Verify `.env` file is in the correct directory:
+  - ContentProcessorAPI: `src/ContentProcessorAPI/app/.env`
+  - ContentProcessor: `src/ContentProcessor/src/.env.dev` (must be `.env.dev`, not `.env`)
+  - ContentProcessorWeb: `src/ContentProcessorWeb/.env`
 • Check file permissions (especially on Linux/macOS)
 • Ensure no extra spaces in variable assignments
+• Restart the service after changing `.env` files
 
 ### Debug Mode
 
