@@ -330,7 +330,6 @@ The files for the dev container are located in `/.devcontainer/` folder.
     **Note:** This CORS configuration is only needed for local development. Azure deployment handles CORS at the infrastructure level.
 
 13. **Run the application:**
-13. **Run the application:**
     
     Open three separate terminal windows and run each component:
     
