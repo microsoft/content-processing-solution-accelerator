@@ -39,7 +39,7 @@ content-processing-solution-accelerator/    ← Repository root (start here)
 │   │   ├── .venv/                          ← Virtual environment
 │   │   └── src/
 │   │       ├── main.py                     ← Processor entry point
-│   │       └── .env.dev                    ← Processor config file
+│   │       └── .env                        ← Processor config file
 │   └── ContentProcessorWeb/
 │       ├── node_modules/
 │       └── .env                            ← Frontend config file
@@ -61,8 +61,8 @@ cd path/to/content-processing-solution-accelerator
 
 This project uses separate `.env` files in each service directory with different configuration requirements:
 
-- **ContentProcessorAPI**: `src/ContentProcessorAPI/app/.env` - Azure App Configuration URL, Cosmos DB endpoint
-- **ContentProcessor**: `src/ContentProcessor/src/.env.dev` - Azure App Configuration URL, Cosmos DB endpoint (note `.dev` suffix)
+- **ContentProcessorAPI**: `src/ContentProcessorAPI/app/.env` - Azure App Configuration URL and local dev settings
+- **ContentProcessor**: `src/ContentProcessor/src/.env` - Azure App Configuration URL and local dev settings
 - **ContentProcessorWeb**: `src/ContentProcessorWeb/.env` - API base URL, authentication settings
 
 When copying `.env` samples, always navigate to the specific service directory first.
@@ -185,13 +185,19 @@ az role assignment create \
   --assignee $PRINCIPAL_ID \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/<resource-group>/providers/Microsoft.DocumentDB/databaseAccounts/<cosmos-name>"
 
-# 3. Storage Queue Data Contributor
+# 3. Storage Blob Data Contributor (for document upload/download)
+az role assignment create \
+  --role "Storage Blob Data Contributor" \
+  --assignee $PRINCIPAL_ID \
+  --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/<resource-group>/providers/Microsoft.Storage/storageAccounts/<storage-account-name>"
+
+# 4. Storage Queue Data Contributor (for message processing)
 az role assignment create \
   --role "Storage Queue Data Contributor" \
   --assignee $PRINCIPAL_ID \
   --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/<resource-group>/providers/Microsoft.Storage/storageAccounts/<storage-account-name>"
 
-# 4. Cognitive Services User
+# 5. Cognitive Services User
 az role assignment create \
   --role "Cognitive Services User" \
   --assignee $PRINCIPAL_ID \
@@ -233,29 +239,14 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ### 3.3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# Install uv package manager if not already installed
+pip install uv
+
+# Install all dependencies using uv
+uv sync --python 3.11
 ```
 
-**If you encounter compilation errors** on Windows (cffi, pydantic-core, or cryptography):
-
-These packages often fail to build from source on Windows. Use this workaround to install precompiled wheels:
-
-```powershell
-# Create temporary requirements without problematic packages
-Get-Content requirements.txt | Where-Object { $_ -notmatch "cffi==1.17.1|pydantic==2.11.7|pydantic-core==2.33.2" } | Out-File temp_requirements.txt -Encoding utf8
-
-# Install other dependencies first
-pip install -r temp_requirements.txt
-
-# Install problematic packages with newer precompiled versions
-pip install cffi==2.0.0 pydantic==2.12.5 pydantic-core==2.41.5
-
-# Upgrade typing-extensions if needed
-pip install --upgrade "typing-extensions>=4.14.1" "typing-inspection>=0.4.2"
-
-# Clean up temporary file
-Remove-Item temp_requirements.txt
-```
+**Note:** This project uses `uv` as the package manager with `pyproject.toml`. The `uv sync` command automatically installs all dependencies with proper version resolution.
 
 ### 3.4. Configure Environment Variables
 
@@ -273,12 +264,8 @@ touch .env  # Linux/macOS
 Add the following to the `.env` file:
 
 ```bash
-# App Configuration endpoint from your Azure deployment
+# App Configuration endpoint - ALL other settings are read from App Configuration
 APP_CONFIG_ENDPOINT=https://<your-appconfig-name>.azconfig.io
-
-# Cosmos DB endpoint from your Azure deployment
-AZURE_COSMOS_ENDPOINT=https://<your-cosmos-name>.documents.azure.com:443/
-AZURE_COSMOS_DATABASE=contentprocess
 
 # Local development settings - CRITICAL for local authentication
 APP_ENV=dev
@@ -287,8 +274,9 @@ AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
 ```
 
 > ⚠️ **Important**:
-> - Replace `<your-appconfig-name>` and `<your-cosmos-name>` with your actual Azure resource names
+> - Replace `<your-appconfig-name>` with your actual App Configuration resource name
 > - `APP_ENV=dev` is **REQUIRED** for local development - it enables Azure CLI credential usage instead of Managed Identity
+> - All other settings (Cosmos DB, Storage, AI endpoints) are automatically loaded from Azure App Configuration
 > - Get your resource names from the Azure Portal or by running: `az resource list -g <resource-group-name>`
 
 ### 3.5. Configure CORS for Local Development
@@ -360,49 +348,63 @@ source .venv/bin/activate  # Linux/macOS
 ### 4.3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+# Install uv package manager if not already installed
+pip install uv
+
+# Install all dependencies using uv
+uv sync --python 3.11
 ```
 
-**If you encounter errors**, upgrade problematic packages:
-
-```powershell
-pip install --upgrade cffi cryptography pydantic pydantic-core numpy pandas
-```
+**Note:** This project uses `uv` as the package manager with `pyproject.toml`. The `uv sync` command automatically installs all dependencies with proper version resolution.
 
 ### 4.4. Configure Environment Variables
 
-Create a `.env.dev` file (note the `.dev` suffix) in the `src/ContentProcessor/src/` directory:
+Create a `.env` file in the `src/ContentProcessor/src/` directory:
 
 ```bash
 cd src
 
-# Create .env.dev file
-New-Item .env.dev  # Windows PowerShell
+# Create .env file
+New-Item .env  # Windows PowerShell
 # or
-touch .env.dev  # Linux/macOS
+touch .env  # Linux/macOS
 ```
 
-Add the following to the `.env.dev` file:
+Add the following to the `.env` file:
 
 ```bash
-# App Configuration endpoint
+# App Configuration endpoint - ALL other settings are read from App Configuration
 APP_CONFIG_ENDPOINT=https://<your-appconfig-name>.azconfig.io
-
-# Cosmos DB endpoint
-AZURE_COSMOS_ENDPOINT=https://<your-cosmos-name>.documents.azure.com:443/
-AZURE_COSMOS_DATABASE=contentprocess
 
 # Local development settings
 APP_ENV=dev
 APP_AUTH_ENABLED=False
 AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
 
-# Logging settings
+# Logging settings (optional)
 APP_LOGGING_LEVEL=INFO
 APP_LOGGING_ENABLE=True
 ```
 
-> ⚠️ **Important**: The `.env.dev` file must be located in `src/ContentProcessor/src/` directory, not in `src/ContentProcessor/` root. The application looks for the `.env.dev` file in the same directory as `main.py`.
+### 4.5. Update main.py to Use .env File
+
+The code currently uses `.env.dev` by default. Update it to use the standard `.env` file:
+
+1. Open `src/ContentProcessor/src/main.py`
+2. Find line 25 (inside the `__init__` method)
+3. Change:
+   ```python
+   env_file_path=os.path.join(os.path.dirname(__file__), ".env.dev"),
+   ```
+   to:
+   ```python
+   env_file_path=os.path.join(os.path.dirname(__file__), ".env"),
+   ```
+
+> ⚠️ **Important**: 
+> - The `.env` file must be located in `src/ContentProcessor/src/` directory, not in `src/ContentProcessor/` root
+> - After making this change, the application will look for `.env` file in the same directory as `main.py`
+> - All Azure resource settings (Cosmos DB, Storage, AI endpoints) are automatically loaded from Azure App Configuration
 
 ### 4.5. Run the Processor
 
@@ -511,26 +513,17 @@ Once all services are running (as confirmed in Step 6), you can:
 
 #### Python Compilation Errors (Windows)
 
-If you see errors like "Microsoft Visual C++ 14.0 is required" or "error: metadata-generation-failed" when installing cffi, pydantic-core, or cryptography:
+If you see errors when installing dependencies, ensure you're using `uv sync` instead of `pip install`:
 
 ```powershell
-# Create temporary requirements excluding problematic packages
-Get-Content requirements.txt | Where-Object { $_ -notmatch "cffi==1.17.1|pydantic==2.11.7|pydantic-core==2.33.2" } | Out-File temp_requirements.txt -Encoding utf8
+# Install uv if not already installed
+pip install uv
 
-# Install other dependencies first
-pip install -r temp_requirements.txt
-
-# Install problematic packages with newer precompiled versions
-pip install cffi==2.0.0 pydantic==2.12.5 pydantic-core==2.41.5
-
-# Upgrade typing-extensions if needed
-pip install --upgrade "typing-extensions>=4.14.1" "typing-inspection>=0.4.2"
-
-# Clean up
-Remove-Item temp_requirements.txt
+# Use uv sync which handles dependencies better
+uv sync --python 3.11
 ```
 
-**Explanation:** Older versions of cffi (1.17.1) and pydantic-core (2.33.2) require compilation from source, which fails on Windows without Visual Studio build tools. Newer versions have precompiled wheels that install without compilation.
+**Explanation:** This project uses `uv` as the package manager with `pyproject.toml`. The `uv` tool provides better dependency resolution and automatically uses precompiled wheels when available, avoiding compilation issues on Windows.
 
 #### pydantic_core ImportError
 
@@ -607,7 +600,7 @@ AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
 
 **Locations to check:**
 - `src/ContentProcessorAPI/app/.env`
-- `src/ContentProcessor/src/.env.dev` (note: must be `.env.dev` in the `src/` subdirectory, not `.env` in root)
+- `src/ContentProcessor/src/.env` (note: must be in the `src/` subdirectory)
 
 **Explanation:** Managed Identity is used in Azure deployments but doesn't work locally. Setting `APP_ENV=dev` switches to Azure CLI credential authentication.
 
@@ -641,7 +634,7 @@ If the frontend loads but shows "Unable to connect to the server" error:
 
 - Verify `.env` file is in the correct directory:
   - ContentProcessorAPI: `src/ContentProcessorAPI/app/.env`
-  - ContentProcessor: `src/ContentProcessor/src/.env.dev` (must be `.env.dev`, not `.env`)
+  - ContentProcessor: `src/ContentProcessor/src/.env` (must be in `src/` subdirectory)
   - ContentProcessorWeb: `src/ContentProcessorWeb/.env`
 - Check file permissions (especially on Linux/macOS)
 - Ensure no extra spaces in variable assignments
