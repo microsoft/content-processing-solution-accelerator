@@ -8,6 +8,17 @@
 - Docker Desktop (optional, for containerized development)
 - Visual Studio Code IDE (recommended)
 
+## Azure Prerequisites
+
+To run this solution locally, you need the following Azure roles assigned to your user account on the resource group or individual resources:
+
+- **App Configuration Data Reader** - To read configuration from Azure App Configuration
+- **Cosmos DB Built-in Data Contributor** - To read/write data in Cosmos DB
+- **Storage Queue Data Contributor** - To process messages from Azure Storage Queue
+- **Cognitive Services User** - To use Azure Content Understanding service
+
+These roles will be assigned in step 10 of the setup process below.
+
 ## Local Setup
 
 **Note for macOS Developers:** If you are using macOS on Apple Silicon (ARM64), you may experience compatibility issues with some Azure services. We recommend testing thoroughly and using alternative approaches if needed.
