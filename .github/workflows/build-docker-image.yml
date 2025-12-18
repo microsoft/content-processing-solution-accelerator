@@ -3,9 +3,46 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [main, dev, demo, hotfix]
+    paths:
+      - 'src/ContentProcessor/src/**'
+      - 'src/**/Dockerfile'
+      - 'src/**/requirements.txt'
+      - 'src/**/pyproject.toml'
+      - 'src/ContentProcessorAPI/app/**'
+      - 'src/ContentProcessorAPI/helpers/**'
+      - 'src/ContentProcessorWeb/src/**'
+      - 'src/ContentProcessorWeb/public/**'
+      - 'src/ContentProcessorWeb/package.json'
+      - 'src/ContentProcessorWeb/package-lock.json'
+      - 'src/ContentProcessorWeb/yarn.lock'
+      - 'src/ContentProcessorWeb/tsconfig.json'
+      - 'src/ContentProcessorWeb/config-overrides.js'
+      - 'src/ContentProcessorWeb/nginx-custom.conf'
+      - 'src/ContentProcessorWeb/env.sh'
+      - '.github/workflows/build-docker-image.yml'
   pull_request:
     branches: [main, dev, demo, hotfix]
     types: [opened, ready_for_review, reopened, synchronize]
+    paths:
+      - 'src/ContentProcessor/src/**'
+      - 'src/**/Dockerfile'
+      - 'src/**/requirements.txt'
+      - 'src/**/pyproject.toml'
+      - 'src/ContentProcessorAPI/app/**'
+      - 'src/ContentProcessorAPI/helpers/**'
+      - 'src/ContentProcessorWeb/src/**'
+      - 'src/ContentProcessorWeb/public/**'
+      - 'src/ContentProcessorWeb/package.json'
+      - 'src/ContentProcessorWeb/package-lock.json'
+      - 'src/ContentProcessorWeb/yarn.lock'
+      - 'src/ContentProcessorWeb/tsconfig.json'
+      - 'src/ContentProcessorWeb/config-overrides.js'
+      - 'src/ContentProcessorWeb/nginx-custom.conf'
+      - 'src/ContentProcessorWeb/env.sh'
+      - 'infra/**/*.bicep'
+      - 'infra/**/*.json'
+      - 'azure.yaml'
+      - '.github/workflows/build-docker-image.yml'
   workflow_dispatch:
 
 jobs:
