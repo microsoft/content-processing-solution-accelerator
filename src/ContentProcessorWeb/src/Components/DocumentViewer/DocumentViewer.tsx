@@ -22,9 +22,6 @@ const DocumentViewer = ({ className, metadata, urlWithSasToken, iframeKey }: IIF
         setImageError(false)
     }, [urlWithSasToken])
 
-    // Ref for the container div where the Dialog will be rendered
-    const containerRef = React.useRef<HTMLDivElement | null>(null);
-
     const getContentComponent = () => {
         if (!metadata || !urlWithSasToken) {
             return <div className={"noDataDocContainer"}><p>{t("components.document.none", "No document available")}</p></div>;

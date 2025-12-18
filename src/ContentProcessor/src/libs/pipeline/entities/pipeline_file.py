@@ -81,7 +81,7 @@ class FileDetails(FileDetailBase):
         StorageBlobHelper(
             account_url=account_url, container_name=container_name
         ).download_file(
-            container_name=self.process_id, blob_name=self.name, file_path=file_path
+            container_name=self.process_id, blob_name=self.name, download_path=file_path
         )
 
     def upload_stream(self, account_url: str, container_name: str, stream: bytes):

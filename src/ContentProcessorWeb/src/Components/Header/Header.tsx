@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Header, useHeaderHooks } from "../../Hooks/useHeaderHooks.tsx";
+import { useHeaderHooks } from "../../Hooks/useHeaderHooks.tsx";
 import {
   TabList,
   Tab,
@@ -15,18 +15,10 @@ import {
   Avatar,
   Button,
 } from "@fluentui/react-components";
-import {
-  Flow,
-  WeatherSunny,
-  WeatherMoon,
-  Person,
-  ArrowExit,
-  Share,
-  Cube,
-} from "../../Imports/bundleIcons.tsx";
+import { ArrowExit } from "../../Imports/bundleIcons.tsx";
 import MainLogo from "../../Imports/MainLogo.svg";
 import "./Header.css";
-import { DocumentBulletListCubeRegular, InfoRegular, DocumentData16Regular } from "@fluentui/react-icons"
+import { DocumentBulletListCubeRegular, InfoRegular } from "@fluentui/react-icons"
 
 import useAuth from "../../msal-auth/useAuth.ts";
 import { useSelector, shallowEqual } from 'react-redux';
@@ -54,8 +46,7 @@ const tabConfigs = [
 ];
 
 const HeaderPage: React.FC<HeaderPageProps> = ({ toggleTheme, isDarkMode }) => {
-  const { shortcutLabel } = useHeaderHooks({ toggleTheme, isDarkMode });
-  const { user, logout, getToken } = useAuth();
+  const { user, logout } = useAuth();
 
   const authEnabled = process.env.REACT_APP_AUTH_ENABLED?.toLowerCase() !== 'false'; // Defaults to true if not set
 
