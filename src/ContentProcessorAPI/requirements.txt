@@ -251,9 +251,9 @@ fastapi-cloud-cli==0.3.1 \
     --hash=sha256:7d1a98a77791a9d0757886b2ffbf11bcc6b3be93210dd15064be10b216bf7e00 \
     --hash=sha256:8c7226c36e92e92d0c89827e8f56dbf164ab2de4444bd33aa26b6c3f7675db69
     # via fastapi-cli
-filelock==3.17.0 \
-    --hash=sha256:533dc2f7ba78dc2f0f531fc6c4940addf7b70a481e269a5a3b93be94ffbe8338 \
-    --hash=sha256:ee4e77401ef576ebb38cd7f13b9b28893194acc20a8e68e18730ba9c0e54660e
+filelock==3.20.1 \
+    --hash=sha256:15d9e9a67306188a44baa72f569d2bfd803076269365fdea0934385da4dc361a \
+    --hash=sha256:b8360948b351b80f420878d8516519a2204b07aefcdcfd24912a5d33127f188c
     # via virtualenv
 h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
