@@ -190,16 +190,6 @@ class HandlerBase(AppModelBase, ABC):
                         else:
                             return ArtifactType.Undefined
 
-                    # def _find_process_result(step_name: str):
-                    #     return next(
-                    #         (
-                    #             result
-                    #             for result in self._current_message_context.data_pipeline.pipeline_status.process_results
-                    #             if result.step_name == step_name
-                    #         ),
-                    #         None,
-                    #     )
-
                     # Save the exception to the status object
                     if self._current_message_context is not None:
                         # Add Exception Information
