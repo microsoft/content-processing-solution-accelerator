@@ -72,15 +72,15 @@ When copying `.env` samples, always navigate to the specific service directory f
 ### Windows Development
 
 ```powershell
-# Install Python 3.11+ and Git
-winget install Python.Python.3.11
+# Install Python 3.12+ and Git
+winget install Python.Python.3.12
 winget install Git.Git
 
 # Install Node.js for frontend
 winget install OpenJS.NodeJS.LTS
 
 # Verify installations
-python --version  # Should show Python 3.11.x
+python --version  # Should show Python 3.12.x
 node --version    # Should show v18.x or higher
 npm --version
 ```
@@ -91,10 +91,10 @@ npm --version
 
 ```bash
 # Install prerequisites
-sudo apt update && sudo apt install python3.11 python3.11-venv python3-pip git curl nodejs npm -y
+sudo apt update && sudo apt install python3.12 python3.12-venv python3-pip git curl nodejs npm -y
 
 # Verify installations
-python3.11 --version
+python3.12 --version
 node --version
 npm --version
 ```
@@ -243,7 +243,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 pip install uv
 
 # Install all dependencies using uv
-uv sync --python 3.11
+uv sync --python 3.12
 ```
 
 **Note:** This project uses `uv` as the package manager with `pyproject.toml`. The `uv sync` command automatically installs all dependencies with proper version resolution.
@@ -352,7 +352,7 @@ source .venv/bin/activate  # Linux/macOS
 pip install uv
 
 # Install all dependencies using uv
-uv sync --python 3.11
+uv sync --python 3.12
 ```
 
 **Note:** This project uses `uv` as the package manager with `pyproject.toml`. The `uv sync` command automatically installs all dependencies with proper version resolution.
@@ -406,7 +406,7 @@ The code currently uses `.env.dev` by default. Update it to use the standard `.e
 > - After making this change, the application will look for `.env` file in the same directory as `main.py`
 > - All Azure resource settings (Cosmos DB, Storage, AI endpoints) are automatically loaded from Azure App Configuration
 
-### 4.5. Run the Processor
+### 4.6. Run the Processor
 
 ```bash
 # Make sure you're in the src directory
@@ -520,7 +520,7 @@ If you see errors when installing dependencies, ensure you're using `uv sync` in
 pip install uv
 
 # Use uv sync which handles dependencies better
-uv sync --python 3.11
+uv sync --python 3.12
 ```
 
 **Explanation:** This project uses `uv` as the package manager with `pyproject.toml`. The `uv` tool provides better dependency resolution and automatically uses precompiled wheels when available, avoiding compilation issues on Windows.
