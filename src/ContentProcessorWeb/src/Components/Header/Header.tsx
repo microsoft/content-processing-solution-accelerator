@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useHeaderHooks } from "../../Hooks/useHeaderHooks.tsx";
+import { useHeaderHooks, Header } from "../../Hooks/useHeaderHooks.tsx";
 import {
   TabList,
   Tab,
@@ -9,11 +9,9 @@ import {
   MenuTrigger,
   MenuPopover,
   MenuList,
-  MenuGroup,
   MenuItem,
   MenuDivider,
   Avatar,
-  Button,
 } from "@fluentui/react-components";
 import { ArrowExit } from "../../Imports/bundleIcons.tsx";
 import MainLogo from "../../Imports/MainLogo.svg";

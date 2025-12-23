@@ -19,7 +19,8 @@ class Word(BaseModel):
     polygon: Optional[List[float]] = None
 
     @field_validator("polygon", mode="after")
-    def parse_polygon(self, value, info: ValidationInfo):
+    @classmethod
+    def parse_polygon(cls, value, info: ValidationInfo):
         """
         Providing comparability with Azure Documenent Document Intelligence Service API result.
 
@@ -51,7 +52,8 @@ class Line(BaseModel):
     polygon: Optional[List[float]] = None
 
     @field_validator("polygon", mode="after")
-    def parse_polygon(self, value, info: ValidationInfo):
+    @classmethod
+    def parse_polygon(cls, value, info: ValidationInfo):
         source_str = info.data.get("source", "")
         if source_str.startswith("D(") and source_str.endswith(")"):
             inside = source_str[2:-1]  # remove "D(" and ")"
@@ -73,7 +75,8 @@ class Paragraph(BaseModel):
     polygon: Optional[List[float]] = None
 
     @field_validator("polygon", mode="after")
-    def parse_polygon(self, value, info: ValidationInfo):
+    @classmethod
+    def parse_polygon(cls, value, info: ValidationInfo):
         source_str = info.data.get("source", "")
         if source_str.startswith("D(") and source_str.endswith(")"):
             inside = source_str[2:-1]  # remove "D(" and ")"
