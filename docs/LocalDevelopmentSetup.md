@@ -271,6 +271,11 @@ APP_CONFIG_ENDPOINT=https://<your-appconfig-name>.azconfig.io
 APP_ENV=dev
 APP_AUTH_ENABLED=False
 AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
+
+# Logging settings (required)
+APP_LOGGING_LEVEL=INFO
+AZURE_PACKAGE_LOGGING_LEVEL=WARNING
+AZURE_LOGGING_PACKAGES=azure.core,azure.storage,azure.identity
 ```
 
 > ⚠️ **Important**:
@@ -381,9 +386,13 @@ APP_ENV=dev
 APP_AUTH_ENABLED=False
 AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
 
-# Logging settings (optional)
+# Logging settings
 APP_LOGGING_LEVEL=INFO
 APP_LOGGING_ENABLE=True
+
+# Azure package logging configuration (required)
+AZURE_PACKAGE_LOGGING_LEVEL=WARNING
+AZURE_LOGGING_PACKAGES=azure.core,azure.storage,azure.identity
 ```
 
 ### 4.5. Update main.py to Use .env File
