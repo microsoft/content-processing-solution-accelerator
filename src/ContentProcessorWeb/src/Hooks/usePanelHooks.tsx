@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Body1Strong } from "@fluentui/react-components";
+import { Body1Strong } from "@fluentui/react-components";
 
 interface PanelToolbarProps {
   icon: React.ReactNode;

@@ -90,7 +90,6 @@ class PipelineStatus(PipelineMessageBase):
         return self.get_step_result(previous_step)
 
     def save_to_persistent_storage(self, account_url: str, container_name: str):
-        pass
         # raise NotImplementedError
         """
         Save the current PipelineStatus to persistent storage.
@@ -131,7 +130,6 @@ class PipelineStatus(PipelineMessageBase):
             self.last_updated_time = datetime.datetime.now(
                 datetime.timezone.utc
             ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            pass
 
         self.completed_steps.append(step_name)
         # Remove current step from the remaining steps

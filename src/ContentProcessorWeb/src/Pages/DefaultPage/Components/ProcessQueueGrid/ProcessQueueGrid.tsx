@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { FixedSizeList as List, ListChildComponentProps } from "react-window";
+import { FixedSizeList as List } from "react-window";
 import { DocumentQueueAdd20Regular, DocumentPdfRegular, ImageRegular } from "@fluentui/react-icons";
-import { TableCellActions, Tooltip } from "@fluentui/react-components";
+import { Tooltip } from "@fluentui/react-components";
 import {
-    PresenceBadgeStatus, Avatar, useScrollbarWidth, useFluent, TableBody, TableCell, TableRow, Table,
-    TableHeader, TableHeaderCell, TableCellLayout, TableSelectionCell, createTableColumn, useTableFeatures,
-    useTableSelection, useTableSort, TableColumnId, useTableColumnSizing_unstable,
+     useScrollbarWidth, useFluent, TableBody, TableCell, TableRow, Table,
+    TableHeader, TableHeaderCell, TableCellLayout, createTableColumn, useTableFeatures,
+    useTableSelection, useTableSort, TableColumnId, 
     TableRowId
 } from "@fluentui/react-components";
 import './ProcessQueueGrid.styles.scss';
@@ -80,8 +80,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
     );
 
     const { targetDocument } = useFluent();
-    const scrollbarWidth = useScrollbarWidth({ targetDocument });
-
+    
     const [sortState, setSortState] = useState<{
         sortDirection: "ascending" | "descending";
         sortColumn: TableColumnId | undefined;
@@ -91,7 +90,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
     });
 
     const [items, setItems] = useState<Item[]>([]); // State to store fetched items
-    const { fileType, getMimeType } = useFileType(null);
+    const { getMimeType } = useFileType(null);
 
     const [selectedRows, setSelectedRows] = React.useState(
         () => new Set<TableRowId>([0])

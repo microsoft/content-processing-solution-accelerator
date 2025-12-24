@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   Dialog,
   DialogSurface,
@@ -7,9 +7,9 @@ import {
   DialogActions,
 } from "@fluentui/react-dialog";
 import { Button } from "@fluentui/react-button";
-import { Field, ProgressBar, makeStyles } from "@fluentui/react-components";
+import { ProgressBar, makeStyles } from "@fluentui/react-components";
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
-import { fetchContentTableData, setRefreshGrid, uploadFile } from "../../store/slices/leftPanelSlice";
+import { setRefreshGrid, uploadFile } from "../../store/slices/leftPanelSlice";
 import { AppDispatch, RootState } from "../../store";
 import "./UploadFilesModal.styles.scss";
 
@@ -20,7 +20,6 @@ import {
   MessageBarTitle,
   MessageBarBody,
   MessageBarIntent,
-  Link,
 } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
@@ -215,7 +214,7 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
   const onCloseHandler = () => {
     resetState();
     onClose();
-  }
+  };
   return (
     <Dialog open={open} modalType="alert" >
       <DialogSurface>
