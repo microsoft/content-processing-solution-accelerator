@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.blob import BlobServiceClient
 
 
 class StorageBlobHelper:
     def __init__(self, account_url, container_name=None):
-        credential = DefaultAzureCredential()
+        credential = get_azure_credential()
         self.blob_service_client = BlobServiceClient(
             account_url=account_url, credential=credential
         )

@@ -4,16 +4,15 @@
 import os
 
 from azure.appconfiguration import AzureAppConfigurationClient
-from azure.identity import DefaultAzureCredential
+from helpers.azure_credential_utils import get_azure_credential
 
 
 class AppConfigurationHelper:
-    credential: DefaultAzureCredential = None
     app_config_endpoint: str = None
     app_config_client: AzureAppConfigurationClient = None
 
     def __init__(self, app_config_endpoint: str):
-        self.credential = DefaultAzureCredential()
+        self.credential = get_azure_credential()
         self.app_config_endpoint = app_config_endpoint
         self._initialize_client()
 

@@ -3,15 +3,15 @@
 # List of Azure regions to check for quota (update as needed)
 IFS=', ' read -ra REGIONS <<< "$AZURE_REGIONS"
 
-SUBSCRIPTION_ID="${AZURE_MAINTENANCE_SUBSCRIPTION_ID}"
+SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
 GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY}"
-AZURE_MAINTENANCE_CLIENT_ID="${AZURE_MAINTENANCE_CLIENT_ID}"
+AZURE_CLIENT_ID="${AZURE_CLIENT_ID}"
 AZURE_TENANT_ID="${AZURE_TENANT_ID}"
-AZURE_MAINTENANCE_CLIENT_SECRET="${AZURE_MAINTENANCE_CLIENT_SECRET}"
+AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET}"
 
 # Authenticate using Managed Identity
 echo "Authentication using Managed Identity..."
-if ! az login --service-principal -u "$AZURE_MAINTENANCE_CLIENT_ID" -p "$AZURE_MAINTENANCE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"; then
+if ! az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"; then
    echo "❌ Error: Failed to login using Managed Identity."
    exit 1
 fi
@@ -31,7 +31,7 @@ echo "✅ Azure subscription set successfully."
 
 # Define models and their minimum required capacities
 declare -A MIN_CAPACITY=(
-    ["OpenAI.Standard.gpt-4o"]=$GPT_MIN_CAPACITY
+    ["OpenAI.GlobalStandard.gpt-4o"]=$GPT_MIN_CAPACITY
 )
 
 VALID_REGION=""
@@ -54,6 +54,7 @@ for REGION in "${REGIONS[@]}"; do
 
         if [ -z "$MODEL_INFO" ]; then
             echo "⚠️ WARNING: No quota information found for model: $MODEL in $REGION. Skipping."
+            INSUFFICIENT_QUOTA=true
             continue
         fi
 

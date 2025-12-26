@@ -2,7 +2,7 @@
 
 Additional details about the technical architecture of the Content Processing solution accelerator. This describes the purpose and additional context of each component in the solution.
 
-![image](./Images/ReadMe/solution-architecture.png)
+![image](./images/readme/solution-architecture.png)
 
 
 ### Ingress Controller

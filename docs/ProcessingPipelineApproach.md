@@ -1,7 +1,7 @@
 # Technical Approach
 
 ## Overview
-![image](./Images/ReadMe/approach.png)
+![image](./images/readme/approach.png)
 At the application level, when a file is processed a number of steps take place to ingest, extract, and transform the contents of the file into the selected schema. The diagram above shows a step-by-step overview of the approach for processing.
 
 1. Documents are passed with a specific schema. This request is sent to the API end point and _can include an optional set of metadata for external refencing_. This collection of data is sent to Azure AI Content Understanding Service for initial extraction of content. This utilizes a pre-built layout for extracting the data.
@@ -16,7 +16,7 @@ At the application level, when a file is processed a number of steps take place 
 
 ## Processing Pipeline
 
-![image](./Images/ReadMe/processing-pipeline.png)
+![image](./images/readme/processing-pipeline.png)
 
 
 1. **Extract Pipeline** – Text Extraction via Azure Content Understanding.

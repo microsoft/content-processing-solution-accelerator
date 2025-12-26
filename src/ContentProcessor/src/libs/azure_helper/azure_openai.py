@@ -1,14 +1,19 @@
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from openai import AzureOpenAI
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+from urllib.parse import urlparse
+from helpers.azure_credential_utils import get_azure_credential
+from azure.ai.inference import ChatCompletionsClient
 
 
-def get_openai_client(azure_openai_endpoint: str) -> AzureOpenAI:
-    credential = DefaultAzureCredential()
-    token_provider = get_bearer_token_provider(
-        credential, "https://cognitiveservices.azure.com/.default"
-    )
-    return AzureOpenAI(
-        azure_endpoint=azure_openai_endpoint,
-        azure_ad_token_provider=token_provider,
-        api_version="2024-10-01-preview",
+def get_foundry_client(ai_services_endpoint: str) -> ChatCompletionsClient:
+    parsed = urlparse(ai_services_endpoint)
+    inference_endpoint = f"https://{parsed.netloc}/models"
+
+    credential = get_azure_credential()
+
+    return ChatCompletionsClient(
+        endpoint=inference_endpoint,
+        credential=credential,
+        credential_scopes=["https://ai.azure.com/.default"],
     )

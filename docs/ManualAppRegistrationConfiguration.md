@@ -7,14 +7,14 @@ This guide provides detailed steps to manually register both front-end and backe
 - Necessary permissions to create and manage **App Registrations** in your Azure tenant
 
 ## Step 1: Register the Web Application
-### 1. Create App Registration
+### 1.1. Create App Registration
 - Go to **Azure Portal** > **Microsoft Entra ID** > **Manage** > **App registrations**
 - Click **+ New registration**
 - Name the app (e.g., `cps-app-web`)
 - Under **Redirect URI**, choose **Web** and enter:
 
   ```
-  https://<web-app-url>azurecontainerapps.io/auth/login/aad/callback
+  https://<web-app-url>azurecontainerapps.io/.auth/login/aad/callback
   ```
 
   To find your Web App URL:
@@ -23,10 +23,10 @@ This guide provides detailed steps to manually register both front-end and backe
   - Copy the Ingress URL from the Overview .
 
 - Click **Register**  
-  ![manual_register_app_web_1](./Images/manual_register_app_web_1.png)
+  ![manual_register_app_web_1](./images/manual_register_app_web_1.png)
 
 
-### 2. Expose an API
+### 1.2. Expose an API
 
 - Navigate to **Expose an API**
 - Click **+ Add a scope**
@@ -37,10 +37,10 @@ This guide provides detailed steps to manually register both front-end and backe
   - Admin consent display name: `Access Web App`
   - Admin consent description: `Allows the app to access the web application as the signed-in user`
 - Click **Add scope**  
-  ![manual_register_app_web_2](./Images/manual_register_app_web_2.png)
+  ![manual_register_app_web_2](./images/manual_register_app_web_2.png)
 
 
-### 3. Configure Certificates and Secrets
+### 1.3. Configure Certificates and Secrets
 
 - Go to **Certificates & secrets**
 - Click **+ New client secret**
@@ -49,15 +49,16 @@ This guide provides detailed steps to manually register both front-end and backe
 - Start (Optional for custom range): Set the starting date of the secret's validity
 - End (Optional for custom range): Set the ending date of the secret's validity
 - Click **Add** and remember to copy and store the secret value securely as it will not be shown again
-![manual_register_app_web_3](./Images/manual_register_app_web_3.png)
 
-### 3. Get Tenant ID
+  ![manual_register_app_web_3](./images/manual_register_app_web_3.png)
+
+### 1.4. Get Tenant ID
 - Go to **Tenant Properties** in [Azure Portal](https://portal.azure.com)
 - Copy the Tenant ID (will be used in next step)
 
-![manual_register_app_web_6](./Images/manual_register_app_web_6.png)
+  ![manual_register_app_web_6](./images/manual_register_app_web_6.png)
 
-### 4. Set Up Authentication in Web Container App
+### 1.5. Set Up Authentication in Web Container App
 
 - Go to your Web Container App
 - Go to **Authentication**
@@ -70,19 +71,25 @@ This guide provides detailed steps to manually register both front-end and backe
   - **Allowed Token Audiences**: Usually the Application ID URI or Client ID
 - Click **Add**  
   
-![manual_register_app_web_4](./Images/manual_register_app_web_4.png)
+![manual_register_app_web_4](./images/manual_register_app_web_4.png)
 
+### 1.6. Enable ID Token for the Application
+
+- Go to **App registrations** and select your application
+- Click **Authentication** , select **Settings** , check **ID tokens** and click **Save**
+
+![manual_register_app_web_7](./images/manual_register_app_web_7.png)
 
 ## Step 2: Register API Application
 
-### 1. Create App Registration
+### 2.1. Create App Registration
 - Go to **Azure Portal** > **Microsoft Entra ID** > **Manage** > **App registrations**
 - Click **+ New registration**
 - Name the app (e.g., `cps-app-api`)
 - Under **Redirect URI**, choose **Web** and enter:
 
   ```
-  https://<api-app-url>azurecontainerapps.io/auth/login/aad/callback
+  https://<api-app-url>azurecontainerapps.io/.auth/login/aad/callback
   ```
 
   To find your Web App URL:
@@ -91,9 +98,9 @@ This guide provides detailed steps to manually register both front-end and backe
   - Copy the Ingress URL from the Overview .
 
 - Click **Register**  
-  ![manual_register_app_api_1](./Images/manual_register_app_api_1.png)
+  ![manual_register_app_api_1](./images/manual_register_app_api_1.png)
 
-  ### 2. Expose an API
+  ### 2.2. Expose an API
 
 - Go to **Expose an API**
 - Click **+ Add a scope**
@@ -102,9 +109,9 @@ This guide provides detailed steps to manually register both front-end and backe
   - Scope name: `user_impersonation`
   - Admin consent details
 - Click **Add scope**  
-![manual_register_app_api_2](./Images/manual_register_app_api_2.png)
+![manual_register_app_api_2](./images/manual_register_app_api_2.png)
 
-### 3. Configure Certificates and Secrets
+### 2.3. Configure Certificates and Secrets
 
 - Go to **Certificates & secrets**
 - Click **+ New client secret**
@@ -113,9 +120,9 @@ This guide provides detailed steps to manually register both front-end and backe
 - Start (Optional for custom range): Set the starting date of the secret's validity
 - End (Optional for custom range): Set the ending date of the secret's validity
 - Click **Add** and remember to copy and store the secret value securely as it will not be shown again
-![manual_register_app_api_3](./Images/manual_register_app_api_3.png)
+![manual_register_app_api_3](./images/manual_register_app_api_3.png)
 
-### 4. Set Up Authentication in API Container App
+### 2.4. Set Up Authentication in API Container App
 
 - Navigate to your API Container App
 - Go to **Authentication**
@@ -127,8 +134,8 @@ This guide provides detailed steps to manually register both front-end and backe
     - **Issuer URL**: `https://sts.windows.net/<tenant_id>/v2.0`
     - **Allowed Token Audiences**: Usually the Application ID URI or Client ID
 - Click **Add**  
-![manual_register_app_api_4](./Images/manual_register_app_api_4.png)
-![manual_register_app_api_5](./Images/manual_register_app_api_5.png)
+![manual_register_app_api_4](./images/manual_register_app_web_4.png)
+![manual_register_app_api_5](./images/manual_register_app_api_5.png)
 
 ---
 

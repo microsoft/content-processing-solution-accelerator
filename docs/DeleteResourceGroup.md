@@ -14,9 +14,9 @@ If your deployment fails and you need to clean up the resources manually, follow
 1. In the search bar at the top, type **"Resource groups"** and select it.
 2. Locate the **resource group** associated with the failed deployment.
 
-![Resource Groups](Images/resourcegroup.png)
+![Resource Groups](./images/resourcegroup.png)
 
-![Resource Groups](Images/resource-groups.png)
+![Resource Groups](./images/resource-groups.png)
 
 ---
 
@@ -24,7 +24,7 @@ If your deployment fails and you need to clean up the resources manually, follow
 1. Click on the **resource group name** to open it.
 2. Click the **Delete resource group** button at the top.
 
-![Delete Resource Group](Images/DeleteRG.png)
+![Delete Resource Group](./images/DeleteRG.png)
 
 3. Type the resource group name in the confirmation box and click **Delete**.
 
@@ -40,7 +40,7 @@ If you don’t want to delete the entire resource group, follow these steps:
 3. Select the **resource** you want to delete (e.g., App Service, Storage Account).
 4. Click **Delete** at the top.
 
-![Delete Individual Resource](Images/deleteservices.png)
+![Delete Individual Resource](./images/deleteservices.png)
 
 ---
 

@@ -5,7 +5,7 @@ Files that are to be processed can be passed to the API to queue them for proces
 
 The schema file should represent what fields are in the document and should be thought of as a "standardized output" for any type of document this schema is applied to. For example, the Content Processing solution accelerator includes an "invoice" schema that includes a number of fields like "invoice date" or "line items". 
 
-Using AI, the processing pipeline will extract what is preceived as is the "invoice date" and use that extraction to output into the "invoice date" field.
+Using AI, the processing pipeline will extract what is perceived as the "invoice date" and use that extraction to output into the "invoice date" field.
 
 With this concept in mind, schemas need to be created specific to your business and domain requirements. A lot of times schemas may be generally common across industries, but this allows for variations specific to your use case.
 
@@ -65,7 +65,7 @@ A schema should be created that includes all fields you expect to extract and tr
     3. The name of the main schema class that will get instantiated.
     4. Friendly, readable description of the schema. this value will be show up in UI.
 
-    > ![Schema Registartion REST API call with payload](./Images/schema-register-api.png)
+    > ![Schema Registartion REST API call with payload](./images/schema-register-api.png)
 
     After running the request, you will see a response with an ID confirming the schema has been added. It will now show up in the web UI in the schema dropdown as well.
 

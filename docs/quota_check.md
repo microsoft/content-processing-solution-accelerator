@@ -1,7 +1,7 @@
 ## Check Quota Availability Before Deployment
 
 Before deploying the accelerator, **ensure sufficient quota availability** for the required model.
-> **For Global Standard | GPT-4o - the capacity to at least 30K tokens for optimal performance.**
+> **For Global Standard | GPT-4o - the capacity to at least 100K tokens for optimal performance.**
 
 ### Login if you have not done so already
 ```
@@ -11,7 +11,7 @@ azd auth login
 
 ### 📌 Default Models & Capacities:
 ```
-gpt-4o:30
+gpt-4o:100
 ```
 ### 📌 Default Regions:
 ```
@@ -37,7 +37,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check_params.sh --models gpt-4o:30
+  ./quota_check_params.sh --models gpt-4o:100
   ```
 ✔️ Check default models in specific region(s):
   ```
@@ -45,17 +45,17 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
   ```
 ✔️ Passing Both models and regions:  
   ```
-  ./quota_check_params.sh --models gpt-4o:30 --regions eastus,westus2
+  ./quota_check_params.sh --models gpt-4o:100 --regions eastus,westus2
   ```
 ✔️ All parameters combined:
   ```
- ./quota_check_params.sh --models gpt-4:30 --regions eastus,westus --verbose
+ ./quota_check_params.sh --models gpt-4:100 --regions eastus,westus --verbose
   ```
 
 ### **Sample Output**
 The final table lists regions with available quota. You can select any of these regions for deployment.
 
-![quota-check-ouput](Images/quota-check-output.png)
+![quota-check-ouput](./images/quota-check-output.png)
 
 ---
 ### **If using Azure Portal and Cloud Shell**
@@ -76,7 +76,7 @@ The final table lists regions with available quota. You can select any of these 
 ### **If using VS Code or Codespaces**
 1. Open the terminal in VS Code or Codespaces.
 2. If you're using VS Code, click the dropdown on the right side of the terminal window, and select `Git Bash`.
-   ![git_bash](Images/git_bash.png)
+   ![git_bash](images/git_bash.png)
 3. Navigate to the `scripts` folder where the script files are located and make the script as executable:
    ```sh
     cd infra/scripts

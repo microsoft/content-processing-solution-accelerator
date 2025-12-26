@@ -20,6 +20,14 @@ RESOURCE_GROUP=$(azd env get-value AZURE_RESOURCE_GROUP)
 WEB_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
 API_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
 
+echo "✅ Fetched container app info."
+echo "Values are as follows:"
+echo "  🕒 Started at: $(date)"
+echo "  🌍 Web App FQDN: $CONTAINER_WEB_APP_FQDN"
+echo "  🌍 API App FQDN: $CONTAINER_API_APP_FQDN"
+echo "  🔗 Web App Portal URL: $WEB_APP_PORTAL_URL"
+echo "  🔗 API App Portal URL: $API_APP_PORTAL_URL"
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
