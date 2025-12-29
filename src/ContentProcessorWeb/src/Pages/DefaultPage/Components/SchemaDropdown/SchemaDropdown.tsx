@@ -5,7 +5,7 @@ import './SchemaDropdown.styles.scss';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { RootState } from '../../../../store';
 import { setSchemaSelectedOption } from '../../../../store/slices/leftPanelSlice';
-import { OptionList, SchemaItem, StoreState } from './SchemaDropdownTypes';
+import { OptionList, SchemaItem } from './SchemaDropdownTypes';
 
 const useStyles = makeStyles({
   root: {

@@ -132,7 +132,7 @@ You can run this solution in [VS Code Dev Containers](https://code.visualstudio.
 </details>
 
 <details>
-  <summary><b>Option 3:Deploy in Visual Studio Code (WEB)</b></summary>
+  <summary><b>Option 3: Deploy in Visual Studio Code (WEB)</b></summary>
 
 ### Visual Studio Code (WEB)
 
@@ -313,7 +313,7 @@ When creating your environment name, follow these rules:
 - **No special characters** (-, _, spaces, etc.)
 - **Examples:** `cpsapp01`, `mycontentapp`, `devtest123`
 
-> **💡 Tip:** Use a descriptive prefix + environment + suffix to form a a unique string
+> **💡 Tip:** Use a descriptive prefix + environment + suffix to form a unique string
 
 #### Deployment Steps
 

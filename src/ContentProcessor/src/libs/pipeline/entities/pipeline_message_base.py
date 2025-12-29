@@ -69,7 +69,7 @@ class PipelineMessageBase(AppModelBase):
         )
 
     @abstractmethod
-    def save_to_persistent_storage(self):
+    def save_to_persistent_storage(self, account_url: str, container_name: str):
         raise NotImplementedError("Method not implemented")
 
     class Config:

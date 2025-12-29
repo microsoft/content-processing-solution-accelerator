@@ -18,7 +18,6 @@ def load_schema_from_blob(
     blob_content = _download_blob_content(container_name, blob_name, account_url)
 
     # Execute the script content
-    module_name = module_name
     module = _execute_script(blob_content, module_name)
 
     loaded_class = getattr(module, module_name)
