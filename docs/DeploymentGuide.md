@@ -212,7 +212,7 @@ azd env set AZURE_ENV_VM_ADMIN_PASSWORD <your-password>
 
 You can customize various deployment settings before running `azd up`, including Azure regions, AI model configurations (deployment type, version, capacity), container registry settings, and resource names.
 
-📖 **Complete Guide:** See [Parameter Customization Guide](../docs/CustomizingAzdParameters.md) for the full list of available parameters and their usage.
+📖 **Complete Guide:** See [Parameter Customization Guide](./CustomizingAzdParameters.md) for the full list of available parameters and their usage.
 
 </details>
 
@@ -243,6 +243,9 @@ To optimize costs and integrate with your existing Azure infrastructure, you can
 ## Step 4: Deploy the Solution
 
 💡 **Before You Start:** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for common solutions.
+
+> ⚠️ **Critical: Redeployment Warning**  
+> If you have previously run `azd up` in this folder (i.e., a `.azure` folder exists), you must [create a fresh environment](#creating-a-new-environment) to avoid conflicts and deployment failures.
 
 ### 4.1 Authenticate with Azure
 
@@ -305,10 +308,10 @@ The below steps will add two sample schemas to the solution: _Invoice_ and _Prop
     - Copy the URL
 
 2. **Execute Script to registering Schemas**
-    - Move the folder to samples/schemas in ContentProcessorApi - [/src/ContentProcessorApi/samples/schemas](/src/ContentProcessorApi/samples/schemas)  
+    - Move the folder to samples/schemas in ContentProcessorAPI - [/src/ContentProcessorAPI/samples/schemas](/src/ContentProcessorAPI/samples/schemas)  
 
     
-      Git Bash
+      Bash
 
       ```bash
       cd src/ContentProcessorAPI/samples/schemas
@@ -322,7 +325,7 @@ The below steps will add two sample schemas to the solution: _Invoice_ and _Prop
 
     - Then use below command
 
-      Git Bash
+      Bash
 
       ```bash
       ./register_schema.sh https://<< API Service Endpoint>>/schemavault/ schema_info_sh.json
@@ -340,7 +343,7 @@ The below steps will add two sample schemas to the solution: _Invoice_ and _Prop
 
 ### 5.2 Import Sample Data
 1. Grab the Schema IDs for Invoice and Property Damage Claim Form's Schema from first step
-2. Move to the folder location to samples in ContentProcessorApi - [/src/ContentProcessorApi/samples/](/src/ContentProcessorApi/samples/)
+2. Move to the folder location to samples in ContentProcessorAPI - [/src/ContentProcessorAPI/samples/](/src/ContentProcessorAPI/samples/)
 3. Execute the script with Schema IDs  
 
     Bash  
