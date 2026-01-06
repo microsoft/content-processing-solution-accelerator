@@ -90,11 +90,18 @@ def merge_confidence_values(confidence_a: dict, confidence_b: dict):
         CONFIDENT_SCORE_ROUNDING = 3
 
         if isinstance(field_a, dict) and "confidence" not in field_a:
-            return {
-                key: merge_field_confidence_value(field_a[key], field_b[key])
-                for key in field_a
-                if not key.startswith("_")
-            }
+            result = {}
+            all_keys = set(field_a.keys()) | set(field_b.keys())
+            for key in all_keys:
+                if key.startswith("_"):
+                    continue
+                if key in field_a and key in field_b:
+                    result[key] = merge_field_confidence_value(field_a[key], field_b[key])
+                elif key in field_a:
+                    result[key] = field_a[key]
+                elif key in field_b:
+                    result[key] = field_b[key]
+            return result
         elif isinstance(field_a, list):
             return [
                 merge_field_confidence_value(field_a[i], field_b[i])

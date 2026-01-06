@@ -29,8 +29,9 @@ class AppConfiguration(ModelBaseSettings):
     app_cps_processes: str
     app_message_queue_extract: str
     app_cps_max_filesize_mb: int
-    app_logging_enable: bool
     app_logging_level: str
+    azure_package_logging_level: str
+    azure_logging_packages: str
 
 
 # Read .env file
@@ -45,14 +46,26 @@ app_helper.read_and_set_environmental_variables()
 
 app_config = AppConfiguration()
 
-if app_config.app_logging_enable:
-    # Read Configuration for Logging Level as a Text then retrive the logging level
-    logging_level = getattr(
-        logging, app_config.app_logging_level
+# Configure logging
+# Basic application logging (default: INFO level)
+AZURE_BASIC_LOGGING_LEVEL = app_config.app_logging_level.upper()
+# Azure package logging (default: WARNING level to suppress INFO)
+AZURE_PACKAGE_LOGGING_LEVEL = app_config.azure_package_logging_level.upper()
+AZURE_LOGGING_PACKAGES = (
+    app_config.azure_logging_packages.split(",") if app_config.azure_logging_packages else []
+)
+
+# Basic config: logging.basicConfig with formatted output
+logging.basicConfig(
+    level=getattr(logging, AZURE_BASIC_LOGGING_LEVEL, logging.INFO),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+# Package config: Azure loggers set to WARNING to suppress INFO
+for logger_name in AZURE_LOGGING_PACKAGES:
+    logging.getLogger(logger_name).setLevel(
+        getattr(logging, AZURE_PACKAGE_LOGGING_LEVEL, logging.WARNING)
     )
-    logging.basicConfig(level=logging_level)
-else:
-    logging.disable(logging.CRITICAL)
 
 
 # Dependency Function

@@ -16,10 +16,6 @@ app.include_router(contentprocessor.router)
 app.include_router(schemavault.router)
 
 
-# class Hello(BaseModel):
-#     message: str
-
-
 @app.get("/health")
 async def ImAlive(response: Response):
     # Add Header Name is Custom-Header

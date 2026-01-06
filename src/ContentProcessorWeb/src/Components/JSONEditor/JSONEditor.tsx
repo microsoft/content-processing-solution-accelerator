@@ -4,7 +4,7 @@ import './JSONEditor.styles.scss'
 
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchContentJsonData, setModifiedResult } from '../../store/slices/centerPanelSlice';
+import { setModifiedResult } from '../../store/slices/centerPanelSlice';
 
 import { SearchBox } from "@fluentui/react-components";
 

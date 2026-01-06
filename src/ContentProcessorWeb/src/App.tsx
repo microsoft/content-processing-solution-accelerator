@@ -16,7 +16,7 @@ import {
 } from "react-router-dom";
 import Spinner from "./Components/Spinner/Spinner.tsx";
 
-import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
 import { RootState } from './store';
 
 

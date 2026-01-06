@@ -3,9 +3,46 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [main, dev, demo, hotfix]
+    paths:
+      - 'src/ContentProcessor/src/**'
+      - 'src/**/Dockerfile'
+      - 'src/**/requirements.txt'
+      - 'src/**/pyproject.toml'
+      - 'src/ContentProcessorAPI/app/**'
+      - 'src/ContentProcessorAPI/helpers/**'
+      - 'src/ContentProcessorWeb/src/**'
+      - 'src/ContentProcessorWeb/public/**'
+      - 'src/ContentProcessorWeb/package.json'
+      - 'src/ContentProcessorWeb/package-lock.json'
+      - 'src/ContentProcessorWeb/yarn.lock'
+      - 'src/ContentProcessorWeb/tsconfig.json'
+      - 'src/ContentProcessorWeb/config-overrides.js'
+      - 'src/ContentProcessorWeb/nginx-custom.conf'
+      - 'src/ContentProcessorWeb/env.sh'
+      - '.github/workflows/build-docker-image.yml'
   pull_request:
     branches: [main, dev, demo, hotfix]
     types: [opened, ready_for_review, reopened, synchronize]
+    paths:
+      - 'src/ContentProcessor/src/**'
+      - 'src/**/Dockerfile'
+      - 'src/**/requirements.txt'
+      - 'src/**/pyproject.toml'
+      - 'src/ContentProcessorAPI/app/**'
+      - 'src/ContentProcessorAPI/helpers/**'
+      - 'src/ContentProcessorWeb/src/**'
+      - 'src/ContentProcessorWeb/public/**'
+      - 'src/ContentProcessorWeb/package.json'
+      - 'src/ContentProcessorWeb/package-lock.json'
+      - 'src/ContentProcessorWeb/yarn.lock'
+      - 'src/ContentProcessorWeb/tsconfig.json'
+      - 'src/ContentProcessorWeb/config-overrides.js'
+      - 'src/ContentProcessorWeb/nginx-custom.conf'
+      - 'src/ContentProcessorWeb/env.sh'
+      - 'infra/**/*.bicep'
+      - 'infra/**/*.json'
+      - 'azure.yaml'
+      - '.github/workflows/build-docker-image.yml'
   workflow_dispatch:
 
 jobs:
@@ -70,7 +107,7 @@ jobs:
         with:
           context: ./src/ContentProcessor
           file: ./src/ContentProcessor/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.DATE_TAG }}
@@ -80,7 +117,7 @@ jobs:
         with:
           context: ./src/ContentProcessorAPI
           file: ./src/ContentProcessorAPI/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.DATE_TAG }}
@@ -90,7 +127,7 @@ jobs:
         with:
           context: ./src/ContentProcessorWeb
           file: ./src/ContentProcessorWeb/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix'|| github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}

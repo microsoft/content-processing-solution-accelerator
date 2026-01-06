@@ -17,6 +17,9 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_MODEL_VERSION`                 | string  | `2024-08-06`                  | Specifies the GPT model version (allowed values: `2024-08-06`).                       |
 | `AZURE_ENV_MODEL_CAPACITY`             | integer | `30`                        | Sets the model capacity (choose based on your subscription's available GPT capacity). |
 | `AZURE_ENV_IMAGETAG`                      | boolean | `latest`                     | Set the Image tag Like (allowed values: latest, dev, hotfix)                       |
+| `AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT` | string  | `cpscontainerreg.azurecr.io` | Sets the Azure Container Registry name (allowed value: `cpscontainerreg.azurecr.io`) |            |
+| `AZURE_ENV_CONTAINER_IMAGE_TAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).            |
+| `AZURE_LOCATION`                       | string  | `eastus`                    | Sets the primary Azure region for resource deployment.                                |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
 | `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`    | string  | `<Existing AI Project resource Id>`            | Reuses an existing AIFoundry and AIFoundryProject instead of creating a new one.  |
 

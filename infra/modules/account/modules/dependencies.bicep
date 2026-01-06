@@ -187,12 +187,12 @@ var formattedRoleAssignments = [
 
 var enableReferencedModulesTelemetry = false
 
-resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
+resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-07-01-preview' existing = {
   name: name
 }
 
 @batchSize(1)
-resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-04-01-preview' = [
+resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-07-01-preview' = [
   for (deployment, index) in (deployments ?? []): {
     parent: cognitiveService
     name: deployment.?name ?? '${name}-deployments'

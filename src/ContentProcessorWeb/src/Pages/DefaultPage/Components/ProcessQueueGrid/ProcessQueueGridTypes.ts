@@ -1,4 +1,4 @@
-import { TableRowId, TableRowData as RowStateBase, } from "@fluentui/react-components";
+import { TableRowData as RowStateBase, } from "@fluentui/react-components";
 import { ListChildComponentProps } from "react-window";
 
 export interface Item {

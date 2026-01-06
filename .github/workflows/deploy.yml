@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'infra/**'
+      - 'src/**'
+      - 'tests/e2e-test/**'
+      - 'azure.yaml'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/test-automation.yml'
   schedule:
     - cron: "0 9,21 * * *" # Runs at 9:00 AM and 9:00 PM GMT
   workflow_dispatch:
@@ -33,16 +40,16 @@ jobs:
 
       - name: Login to Azure
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Run Quota Check
         id: quota-check
         run: |
-          export AZURE_MAINTENANCE_CLIENT_ID=${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }}
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
           export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_MAINTENANCE_CLIENT_SECRET=${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }}
-          export AZURE_MAINTENANCE_SUBSCRIPTION_ID="${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}"
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           export GPT_MIN_CAPACITY="100"
           export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
 
@@ -144,16 +151,16 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
             --template-file infra/main.json \
             --parameters \
-              environmentName="${{ env.ENVIRONMENT_NAME }}" \
+              solutionName="${{ env.ENVIRONMENT_NAME }}" \
               enablePrivateNetworking="false" \
-              secondaryLocation="eastus2" \
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-4o" \
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
-              aiDeploymentsLocation="${{ env.AZURE_LOCATION }}" \
-              tags="{'CreatedBy':'Pipeline', 'SecurityControl':'Ignore','Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
+              aiServiceLocation="${{ env.AZURE_LOCATION }}" \
+              imageTag="latest" \
+              tags="{'CreatedBy':'Pipeline', 'Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
               exit 1
@@ -301,8 +308,8 @@ jobs:
 
       - name: Login to Azure
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_MAINTENANCE_CLIENT_ID }} -p ${{ secrets.AZURE_MAINTENANCE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }}
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Delete Bicep Deployment
         if: always()
@@ -459,7 +466,7 @@ jobs:
             
             echo "Processing KeyVault: $keyvault_name"
             # Check if the KeyVault is soft-deleted
-            deleted_vaults=$(az keyvault list-deleted --query "[?name=='$keyvault_name']" -o json --subscription ${{ secrets.AZURE_MAINTENANCE_SUBSCRIPTION_ID }})
+            deleted_vaults=$(az keyvault list-deleted --query "[?name=='$keyvault_name']" -o json --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }})
 
             # If the KeyVault is found in the soft-deleted state, purge it
             if [ "$(echo "$deleted_vaults" | jq length)" -gt 0 ]; then
