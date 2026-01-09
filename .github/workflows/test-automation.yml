@@ -14,7 +14,9 @@ env:
     url: ${{ inputs.CP_WEB_URL }}
     CP_RG: ${{ inputs.CP_RG }}
     accelerator_name: "Content Processing"
-
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   test:

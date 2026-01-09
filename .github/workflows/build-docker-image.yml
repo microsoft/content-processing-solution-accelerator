@@ -45,6 +45,10 @@ on:
       - '.github/workflows/build-docker-image.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
