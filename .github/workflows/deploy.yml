@@ -35,10 +35,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
 
-      - name: Setup Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az --version  # Verify installation
 
       - name: Login to Azure
         run: |
@@ -141,10 +137,7 @@ jobs:
         run: |
           set -e
           echo "Fetching deployment output..."
-
-          # Install azd (Azure Developer CLI)
-          curl -fsSL https://aka.ms/install-azd.sh | bash
-
+          
           # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
             current_date=$(date -u +"%Y-%m-%dT%H:%M:%S.%7NZ")
 
@@ -304,9 +297,6 @@ jobs:
       AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
       ENVIRONMENT_NAME: ${{ needs.deploy.outputs.ENVIRONMENT_NAME }}
     steps:
-      - name: Setup Azure CLI
-        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
       - name: Login to Azure
         run: |
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
