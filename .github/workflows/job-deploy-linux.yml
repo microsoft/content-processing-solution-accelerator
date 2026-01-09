@@ -301,17 +301,17 @@ jobs:
             exit 1
           fi
 
-          export CONTAINER_API_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_API_APP_FQDN // empty')"
+          CONTAINER_API_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_API_APP_FQDN // empty')"
           echo "CONTAINER_API_APPURL=$CONTAINER_API_APPURL" >> $GITHUB_ENV
 
-          export CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_API_APP_NAME // empty')
+          CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_API_APP_NAME // empty')
           echo "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" >> $GITHUB_ENV
 
-          export CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_FQDN // empty')"
+          CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_FQDN // empty')"
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_ENV
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_OUTPUT
 
-          export CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_NAME // empty')
+          CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_NAME // empty')
           echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
 
       - name: Register schemas (Linux)
