@@ -112,7 +112,7 @@ jobs:
       AZURE_ENV_OPENAI_LOCATION: ${{ steps.set_region.outputs.AZURE_ENV_OPENAI_LOCATION }}
       IMAGE_TAG: ${{ steps.determine_image_tag.outputs.IMAGE_TAG }}
       QUOTA_FAILED: ${{ steps.quota_failure_output.outputs.QUOTA_FAILED }}
-      
+      EXP_ENABLED: ${{ steps.configure_exp.outputs.EXP_ENABLED }}
     steps:
 
       - name: Validate Workflow Input Parameters
@@ -226,7 +226,7 @@ jobs:
           
           # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (Azure Resource ID format)
           if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/resourceGroups/[^/]+/providers/microsoft\.operationalinsights/workspaces/[^/]+$ ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
               echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
               echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
@@ -238,7 +238,7 @@ jobs:
           
           # Validate AZURE_EXISTING_AI_PROJECT_RESOURCE_ID (Azure Resource ID format)
           if [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/resourceGroups/[^/]+/providers/(Microsoft\.MachineLearningServices/(workspaces|projects)/[^/]+|Microsoft\.CognitiveServices/accounts/[^/]+/projects/[^/]+)$ ]]; then
+            if [[ ! "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/([Mm]icrosoft\.[Mm]achine[Ll]earning[Ss]ervices/([Ww]orkspaces|[Pp]rojects)/[^/]+|[Mm]icrosoft\.[Cc]ognitive[Ss]ervices/[Aa]ccounts/[^/]+/[Pp]rojects/[^/]+)$ ]]; then
               echo "❌ ERROR: AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.CognitiveServices/accounts/{accountName}/projects/{projectName}"
               echo "   Got: '$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID'"
@@ -284,28 +284,35 @@ jobs:
           echo "✅ All input parameters validated successfully!"
 
       - name: Validate and Auto-Configure EXP
+        id: configure_exp
         shell: bash
         env:
           INPUT_EXP: ${{ inputs.EXP }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-          INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+          INPUT_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
         run: |
           echo "🔍 Validating EXP configuration..."
           
-          if [[ "$INPUT_EXP" != "true" ]]; then
-            if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]] || [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
-              echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
-              echo ""
-              echo "You provided values for:"
-              [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]] && echo "  - Azure Log Analytics Workspace ID: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
-              [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]] && echo "  - Azure AI Project Resource ID: '$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID'"
-              echo ""
-              echo "✅ Automatically enabling EXP to use these values."
-              echo "EXP=true" >> $GITHUB_ENV
-              echo "📌 EXP has been automatically enabled for this deployment."
-            fi
+          EXP_ENABLED="false"
+          
+          if [[ "$INPUT_EXP" == "true" ]]; then
+            EXP_ENABLED="true"
+            echo "✅ EXP explicitly enabled by user input"
+          elif [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_ID" ]] || [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]]; then
+            echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
+            echo ""
+            echo "You provided values for:"
+            [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_ID" ]] && echo "  - Azure Log Analytics Workspace ID: '$INPUT_LOG_ANALYTICS_WORKSPACE_ID'"
+            [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]] && echo "  - Azure AI Project Resource ID: '$INPUT_AI_PROJECT_RESOURCE_ID'"
+            echo ""
+            echo "✅ Automatically enabling EXP to use these values."
+            EXP_ENABLED="true"
           fi
           
+          echo "EXP_ENABLED=$EXP_ENABLED" >> $GITHUB_ENV
+          echo "EXP_ENABLED=$EXP_ENABLED" >> $GITHUB_OUTPUT
+          echo "Final EXP status: $EXP_ENABLED"
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -482,7 +489,7 @@ jobs:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
           EVENT_NAME: ${{ github.event_name }}
           WAF_STATUS: ${{ env.WAF_ENABLED == 'true' && '✅ Yes' || '❌ No' }}
-          EXP_STATUS: ${{ env.EXP == 'true' && '✅ Yes' || '❌ No' }}
+          EXP_STATUS: ${{ steps.configure_exp.outputs.EXP_ENABLED == 'true' && '✅ Yes' || '❌ No' }}
           CLEANUP_STATUS: ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }}
           BUILD_DOCKER_STATUS: ${{ env.BUILD_DOCKER_IMAGE == 'true' && '✅ Yes' || '❌ No' }}
         run: |
@@ -529,7 +536,7 @@ jobs:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
-      EXP: ${{ inputs.EXP || 'false' }}
+      EXP: ${{ needs.azure-setup.outputs.EXP_ENABLED }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
@@ -547,7 +554,7 @@ jobs:
       RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
-      EXP: ${{ inputs.EXP || 'false' }}
+      EXP: ${{ needs.azure-setup.outputs.EXP_ENABLED }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
