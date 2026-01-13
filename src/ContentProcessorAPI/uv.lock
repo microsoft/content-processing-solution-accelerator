@@ -295,12 +295,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "azure-appconfiguration", specifier = ">=1.7.2" },
-    { name = "azure-identity", specifier = ">=1.21.0" },
+    { name = "azure-identity", specifier = ">=1.23.0" },
     { name = "azure-storage-blob", specifier = ">=12.24.0" },
-    { name = "azure-storage-queue", specifier = ">=12.13.0" },
+    { name = "azure-storage-queue", specifier = ">=12.15.0" },
     { name = "certifi", specifier = ">=2024.12.14" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
-    { name = "h11", specifier = ">=0.16.0" },
+    { name = "h11", specifier = "~=0.16.0" },
     { name = "poppler-utils", specifier = ">=0.1.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "pydantic-settings", specifier = ">=2.8.0" },
@@ -308,7 +308,7 @@ requires-dist = [
     { name = "pymongo", specifier = ">=4.11.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "starlette", specifier = ">=0.49.0" },
-    { name = "urllib3", specifier = ">=2.6.0" },
+    { name = "urllib3", specifier = "~=2.6.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
 
