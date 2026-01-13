@@ -10,7 +10,6 @@ certifi==2025.6.15
 cffi==1.17.1
 charset-normalizer==3.4.1
 click==8.1.8
-colorama==0.4.6
 cryptography==44.0.1
 dnspython==2.7.0
 email-validator==2.2.0
@@ -40,7 +39,6 @@ pyjwt==2.10.1
 pymongo==4.13.2
 python-dotenv==1.1.1
 python-multipart==0.0.20
-pywin32==308
 pyyaml==6.0.2
 requests==2.32.3
 rich==13.9.4
@@ -56,5 +54,6 @@ typing-extensions==4.12.2
 typing-inspection==0.4.1
 urllib3==2.6.0
 uvicorn==0.34.0
+uvloop==0.22.1
 watchfiles==1.0.4
 websockets==14.2
