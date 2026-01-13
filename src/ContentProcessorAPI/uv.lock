@@ -296,7 +296,7 @@ dev = [
 requires-dist = [
     { name = "azure-appconfiguration", specifier = ">=1.7.2" },
     { name = "azure-identity", specifier = ">=1.23.0" },
-    { name = "azure-storage-blob", specifier = ">=12.24.0" },
+    { name = "azure-storage-blob", specifier = ">=12.28.0" },
     { name = "azure-storage-queue", specifier = ">=12.15.0" },
     { name = "certifi", specifier = ">=2024.12.14" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
