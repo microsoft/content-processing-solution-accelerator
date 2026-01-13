@@ -5,22 +5,22 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "azure-appconfiguration>=1.7.1",
-    "azure-identity>=1.20.0",
-    "azure-storage-blob>=12.24.1",
-    "azure-storage-queue>=12.12.0",
+    "azure-appconfiguration>=1.7.2",
+    "azure-identity>=1.21.0",
+    "azure-storage-blob>=12.24.0",
+    "azure-storage-queue>=12.13.0",
     "certifi>=2024.12.14",
-    "fastapi[standard]>=0.115.7",
+    "fastapi[standard]>=0.115.0",
     "poppler-utils>=0.1.0",
-    "pydantic>=2.10.6",
+    "pydantic>=2.10.0",
     "pydantic-settings>=2.8.0",
-    "pygments>=2.19.1",
-    "pymongo>=4.11.1",
+    "pygments>=2.19.0",
+    "pymongo>=4.11.0",
     "python-dotenv>=1.0.1",
-    "starlette>=0.49.1",
+    "starlette>=0.49.0",
     "uvicorn[standard]>=0.34.0", 
-    "h11==0.16.0",
-    "urllib3==2.6.0",
+    "h11>=0.16.0",
+    "urllib3>=2.6.0",
 ]
 
 [dependency-groups]
