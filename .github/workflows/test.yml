@@ -24,7 +24,6 @@ on:
       - main
       - dev
       - demo
-      - dependabotchanges
     paths:
       - 'src/**/*.py'
       - 'tests/**/*.py'
