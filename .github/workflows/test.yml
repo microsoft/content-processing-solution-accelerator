@@ -24,6 +24,7 @@ on:
       - main
       - dev
       - demo
+      - depedendabotchanges
     paths:
       - 'src/**/*.py'
       - 'tests/**/*.py'
@@ -52,6 +53,7 @@ jobs:
           pip install -r src/ContentProcessor/requirements.txt
           pip install pytest-cov
           pip install pytest-asyncio
+          pip install pytest-mock
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
