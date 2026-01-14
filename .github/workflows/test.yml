@@ -45,15 +45,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
 
       - name: Install Backend Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r src/ContentProcessor/requirements.txt
-          pip install pytest-cov
-          pip install pytest-asyncio
-          pip install pytest-mock
+          cd src/ContentProcessor
+          uv sync --frozen --dev
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
@@ -73,7 +73,7 @@ jobs:
         if: env.skip_backend_tests == 'false'
         run: |
           cd src/ContentProcessor
-          python -m pytest -vv --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+          uv run pytest -vv --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
 
       - name: Skip Backend Tests
         if: env.skip_backend_tests == 'true'
