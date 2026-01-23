@@ -1,5 +1,10 @@
-FROM python:3.11-slim-bullseye AS base
+FROM mcr.microsoft.com/devcontainers/python:3.12-bullseye AS base
 WORKDIR /app
+
+RUN rm -f /etc/apt/sources.list.d/yarn.list && \
+    apt-get update && \
+    apt-get install -y poppler-utils && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install poppler-utils
 RUN apt-get update && apt-get install -y poppler-utils && rm -rf /var/lib/apt/lists/*
