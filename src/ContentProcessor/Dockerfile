@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/python:3.12-bullseye AS base
+FROM python:3.11-slim-bullseye AS base
 WORKDIR /app
 
 # Install poppler-utils
