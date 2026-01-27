@@ -1,8 +1,12 @@
 FROM mcr.microsoft.com/devcontainers/python:3.12-bullseye AS base
 WORKDIR /app
 
-# Install poppler-utils
-RUN apt-get update && apt-get install -y poppler-utils && rm -rf /var/lib/apt/lists/*
+# Remove yarn repo and install poppler-utils
+RUN rm -f /etc/apt/sources.list.d/yarn.list && \
+    apt-get update && \
+    apt-get install -y poppler-utils && \
+    rm -rf /var/lib/apt/lists/*
+
 FROM base AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.6.3 /uv /uvx /bin/
