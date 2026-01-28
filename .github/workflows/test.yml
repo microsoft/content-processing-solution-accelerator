@@ -33,7 +33,9 @@ on:
       - 'src/**/pytest.ini'
       - 'src/**/conftest.py'
       - '.github/workflows/test.yml'
-
+permissions:
+  contents: read
+  actions: read
 jobs:
   backend_tests:
     runs-on: ubuntu-latest

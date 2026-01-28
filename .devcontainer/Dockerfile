@@ -7,6 +7,9 @@ FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv
 # Use Debian-based VS Code Dev Container as base
 FROM mcr.microsoft.com/vscode/devcontainers/base:$DEBIAN_VERSION
 
+# Remove Yarn repository to avoid GPG key expiration issue
+RUN rm -f /etc/apt/sources.list.d/yarn.list
+
 # Install dependencies and Node.js 20+ from NodeSource
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
