@@ -67,6 +67,7 @@ env:
 permissions:
   contents: read
   actions: read
+  packages: write  # Required for devcontainer deployment to push image to GHCR
 jobs:
   docker-build:
     uses: ./.github/workflows/job-docker-build.yml
