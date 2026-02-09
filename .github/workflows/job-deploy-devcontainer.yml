@@ -289,7 +289,6 @@ jobs:
             azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$INPUT_AZURE_ENV_OPENAI_LOCATION"
             azd env set AZURE_LOCATION="$INPUT_AZURE_LOCATION"
             azd env set AZURE_RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
-            azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="$INPUT_IMAGE_TAG"
 
             # Set ACR endpoint if available
             if [[ -n "$SECRET_ACR_TEST_LOGIN_SERVER" ]]; then
