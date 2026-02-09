@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       runner_os:
-        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        description: 'Runner OS (ubuntu-latest, windows-latest, or devcontainer)'
         required: true
         type: string
       azure_location:

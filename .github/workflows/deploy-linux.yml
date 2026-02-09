@@ -22,6 +22,15 @@ on:
       - '.github/workflows/deploy-linux.yml'
   workflow_dispatch:
     inputs:
+      deployment_environment:
+        description: 'Deployment Environment'
+        required: false
+        type: choice
+        options:
+          - 'Linux'
+          - 'Devcontainer'
+          - 'Windows'
+        default: 'Linux'
       azure_location:
         description: 'Azure Location For Deployment'
         required: false
@@ -95,11 +104,13 @@ on:
 permissions:
   contents: read
   actions: read
+  packages: write  # Required for devcontainer deployment to push image to GHCR
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
     outputs:
       validation_passed: ${{ steps.validate.outputs.passed }}
+      runner_os: ${{ steps.validate.outputs.runner_os }}
       azure_location: ${{ steps.validate.outputs.azure_location }}
       resource_group_name: ${{ steps.validate.outputs.resource_group_name }}
       waf_enabled: ${{ steps.validate.outputs.waf_enabled }}
@@ -115,6 +126,7 @@ jobs:
         id: validate
         shell: bash
         env:
+          INPUT_DEPLOYMENT_ENVIRONMENT: ${{ github.event.inputs.deployment_environment }}
           INPUT_AZURE_LOCATION: ${{ github.event.inputs.azure_location }}
           INPUT_RESOURCE_GROUP_NAME: ${{ github.event.inputs.resource_group_name }}
           INPUT_WAF_ENABLED: ${{ github.event.inputs.waf_enabled }}
@@ -128,6 +140,25 @@ jobs:
         run: |
           echo "🔍 Validating workflow input parameters..."
           VALIDATION_FAILED=false
+
+          # Validate deployment_environment (specific allowed values) and derive actual runner
+          DEPLOYMENT_ENV="${INPUT_DEPLOYMENT_ENVIRONMENT:-Linux}"
+          if [[ "$DEPLOYMENT_ENV" != "Linux" && "$DEPLOYMENT_ENV" != "Devcontainer" && "$DEPLOYMENT_ENV" != "Windows" ]]; then
+            echo "❌ ERROR: deployment_environment must be one of: Linux, Devcontainer, Windows, got: '$DEPLOYMENT_ENV'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ deployment_environment: '$DEPLOYMENT_ENV' is valid"
+          fi
+
+          # Derive actual runner_os from deployment_environment input
+          if [[ "$DEPLOYMENT_ENV" == "Linux" ]]; then
+            RUNNER_OS="ubuntu-latest"
+          elif [[ "$DEPLOYMENT_ENV" == "Devcontainer" ]]; then
+            RUNNER_OS="devcontainer"
+          else
+            RUNNER_OS="windows-latest"
+          fi
+          echo "✅ runner_os derived as: '$RUNNER_OS'"
           
           # Validate azure_location (Azure region format)
           LOCATION="${INPUT_AZURE_LOCATION:-australiaeast}"
@@ -251,6 +282,7 @@ jobs:
           
           # Output validated values
           echo "passed=true" >> $GITHUB_OUTPUT
+          echo "runner_os=$RUNNER_OS" >> $GITHUB_OUTPUT
           echo "azure_location=$LOCATION" >> $GITHUB_OUTPUT
           echo "resource_group_name=$INPUT_RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
           echo "waf_enabled=$WAF_ENABLED" >> $GITHUB_OUTPUT
@@ -267,7 +299,7 @@ jobs:
     if: needs.validate-inputs.outputs.validation_passed == 'true'
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
-      runner_os: ubuntu-latest
+      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
       azure_location: ${{ needs.validate-inputs.outputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
