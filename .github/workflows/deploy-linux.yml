@@ -27,10 +27,10 @@ on:
         required: false
         type: choice
         options:
-          - 'Linux'
+          - 'Codespace'
           - 'Devcontainer'
-          - 'Windows'
-        default: 'Linux'
+          - 'Local'
+        default: 'Codespace'
       azure_location:
         description: 'Azure Location For Deployment'
         required: false
@@ -142,16 +142,16 @@ jobs:
           VALIDATION_FAILED=false
 
           # Validate deployment_environment (specific allowed values) and derive actual runner
-          DEPLOYMENT_ENV="${INPUT_DEPLOYMENT_ENVIRONMENT:-Linux}"
-          if [[ "$DEPLOYMENT_ENV" != "Linux" && "$DEPLOYMENT_ENV" != "Devcontainer" && "$DEPLOYMENT_ENV" != "Windows" ]]; then
-            echo "❌ ERROR: deployment_environment must be one of: Linux, Devcontainer, Windows, got: '$DEPLOYMENT_ENV'"
+          DEPLOYMENT_ENV="${INPUT_DEPLOYMENT_ENVIRONMENT:-Codespace}"
+          if [[ "$DEPLOYMENT_ENV" != "Codespace" && "$DEPLOYMENT_ENV" != "Devcontainer" && "$DEPLOYMENT_ENV" != "Local" ]]; then
+            echo "❌ ERROR: deployment_environment must be one of: Codespace, Devcontainer, Local, got: '$DEPLOYMENT_ENV'"
             VALIDATION_FAILED=true
           else
             echo "✅ deployment_environment: '$DEPLOYMENT_ENV' is valid"
           fi
 
           # Derive actual runner_os from deployment_environment input
-          if [[ "$DEPLOYMENT_ENV" == "Linux" ]]; then
+          if [[ "$DEPLOYMENT_ENV" == "Codespace" ]]; then
             RUNNER_OS="ubuntu-latest"
           elif [[ "$DEPLOYMENT_ENV" == "Devcontainer" ]]; then
             RUNNER_OS="devcontainer"
