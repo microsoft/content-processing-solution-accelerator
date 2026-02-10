@@ -48,7 +48,7 @@
       "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     },
     "publicContainerImageEndpoint": {
-      "value": "${AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT=cpscontainerreg.azurecr.io}"
+      "value": "${AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT}"
     },
     "imageTag": {
       "value": "${AZURE_ENV_CONTAINER_IMAGE_TAG=latest}"

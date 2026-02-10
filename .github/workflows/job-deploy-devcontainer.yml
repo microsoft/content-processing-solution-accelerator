@@ -23,6 +23,9 @@ on:
       IMAGE_TAG:
         required: true
         type: string
+      BUILD_DOCKER_IMAGE:
+        required: true
+        type: string
       EXP:
         required: true
         type: string
@@ -68,6 +71,7 @@ jobs:
           INPUT_AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
           INPUT_IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+          INPUT_BUILD_DOCKER_IMAGE: ${{ inputs.BUILD_DOCKER_IMAGE }}
           INPUT_EXP: ${{ inputs.EXP }}
           INPUT_WAF_ENABLED: ${{ inputs.WAF_ENABLED }}
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
@@ -132,6 +136,14 @@ jobs:
             VALIDATION_FAILED=true
           else
             echo "✅ IMAGE_TAG: '$INPUT_IMAGE_TAG' is valid"
+          fi
+
+          # Validate BUILD_DOCKER_IMAGE (required, must be 'true' or 'false')
+          if [[ "$INPUT_BUILD_DOCKER_IMAGE" != "true" && "$INPUT_BUILD_DOCKER_IMAGE" != "false" ]]; then
+            echo "❌ ERROR: BUILD_DOCKER_IMAGE must be 'true' or 'false', got: '$INPUT_BUILD_DOCKER_IMAGE'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ BUILD_DOCKER_IMAGE: '$INPUT_BUILD_DOCKER_IMAGE' is valid"
           fi
 
           # Validate EXP (required, boolean string)
@@ -225,6 +237,7 @@ jobs:
           INPUT_AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
           INPUT_IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+          INPUT_BUILD_DOCKER_IMAGE: ${{ inputs.BUILD_DOCKER_IMAGE }}
           INPUT_EXP: ${{ inputs.EXP }}
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
           INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
@@ -249,6 +262,7 @@ jobs:
             INPUT_AZURE_LOCATION
             INPUT_RESOURCE_GROUP_NAME
             INPUT_IMAGE_TAG
+            INPUT_BUILD_DOCKER_IMAGE
             INPUT_EXP
             INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID
             INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID
@@ -290,10 +304,13 @@ jobs:
             azd env set AZURE_LOCATION="$INPUT_AZURE_LOCATION"
             azd env set AZURE_RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
 
-            # Set ACR endpoint if available
-            if [[ -n "$SECRET_ACR_TEST_LOGIN_SERVER" ]]; then
-              azd env set AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT="$SECRET_ACR_TEST_LOGIN_SERVER"
-              echo "Set ACR endpoint to: $SECRET_ACR_TEST_LOGIN_SERVER"
+            # Set ACR endpoint based on BUILD_DOCKER_IMAGE flag
+            if [[ "$INPUT_BUILD_DOCKER_IMAGE" == "true" ]]; then
+              ACR_NAME=$(echo "$SECRET_ACR_TEST_LOGIN_SERVER")
+              azd env set AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT="$ACR_NAME"
+              echo "Set ACR name to: $ACR_NAME"
+            else
+              echo "Skipping ACR name configuration (using existing image)"
             fi
 
             # Set EXP parameters if enabled
