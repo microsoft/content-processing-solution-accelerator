@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.39.26.7824",
-      "templateHash": "17889628032590430216"
+      "version": "0.40.2.10011",
+      "templateHash": "4821257159531769907"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -278,7 +278,8 @@
       "cosmosDB": 6,
       "appConfig": 7,
       "containerRegistry": 8
-    }
+    },
+    "existingTags": "[coalesce(resourceGroup().tags, createObject())]"
   },
   "resources": {
     "avmTelemetry": {
@@ -306,7 +307,7 @@
       "apiVersion": "2025-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(resourceGroup().tags, parameters('tags'), createObject('TemplateName', 'Content Processing', 'Type', if(parameters('enablePrivateNetworking'), 'WAF', 'Non-WAF'), 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name)))]"
+        "tags": "[union(variables('existingTags'), parameters('tags'), createObject('TemplateName', 'Content Processing', 'Type', if(parameters('enablePrivateNetworking'), 'WAF', 'Non-WAF'), 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name))]"
       }
     },
     "virtualNetwork": {
@@ -349,8 +350,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "2779842231546071291"
+              "version": "0.40.2.10011",
+              "templateHash": "637986880127430337"
             }
           },
           "definitions": {
@@ -19226,8 +19227,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "9967760373683235080"
+              "version": "0.40.2.10011",
+              "templateHash": "3741201002953968110"
             }
           },
           "parameters": {
@@ -23232,8 +23233,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "11438993289824448790"
+              "version": "0.40.2.10011",
+              "templateHash": "10844547551448610415"
             }
           },
           "parameters": {
@@ -23824,8 +23825,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "18073394536155497558"
+              "version": "0.40.2.10011",
+              "templateHash": "7885429842089695683"
             },
             "name": "Container Registry Module"
           },
@@ -35177,8 +35178,8 @@
         "avmContainerApp",
         "avmContainerApp_API",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "virtualNetwork"
       ]
     },
@@ -35289,8 +35290,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "11365341673325597162"
+              "version": "0.40.2.10011",
+              "templateHash": "7557665774149769517"
             },
             "name": "Cognitive Services",
             "description": "This module deploys a Cognitive Service."
@@ -36539,8 +36540,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "15006072223125242147"
+                      "version": "0.40.2.10011",
+                      "templateHash": "6588447351857766372"
                     }
                   },
                   "definitions": {
@@ -37503,7 +37504,7 @@
                       "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
                       "type": "Microsoft.Authorization/locks",
                       "apiVersion": "2020-05-01",
-                      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
                       "name": "[coalesce(tryGet(parameters('lock'), 'name'), format('lock-{0}', parameters('name')))]",
                       "properties": {
                         "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
@@ -37517,7 +37518,7 @@
                       },
                       "type": "Microsoft.Insights/diagnosticSettings",
                       "apiVersion": "2021-05-01-preview",
-                      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
                       "name": "[coalesce(tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'name'), format('{0}-diagnosticSettings', parameters('name')))]",
                       "properties": {
                         "copy": [
@@ -37555,7 +37556,7 @@
                       },
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
-                      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
                       "name": "[coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'name'), guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId, coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId))]",
                       "properties": {
                         "roleDefinitionId": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId]",
@@ -38348,8 +38349,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "12797226417049698978"
+                              "version": "0.40.2.10011",
+                              "templateHash": "14939823368517410024"
                             }
                           },
                           "definitions": {
@@ -38502,8 +38503,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "422299638943108486"
+                              "version": "0.40.2.10011",
+                              "templateHash": "13151306134286549002"
                             }
                           },
                           "definitions": {
@@ -38720,8 +38721,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "15006072223125242147"
+                      "version": "0.40.2.10011",
+                      "templateHash": "6588447351857766372"
                     }
                   },
                   "definitions": {
@@ -39684,7 +39685,7 @@
                       "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
                       "type": "Microsoft.Authorization/locks",
                       "apiVersion": "2020-05-01",
-                      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
                       "name": "[coalesce(tryGet(parameters('lock'), 'name'), format('lock-{0}', parameters('name')))]",
                       "properties": {
                         "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
@@ -39698,7 +39699,7 @@
                       },
                       "type": "Microsoft.Insights/diagnosticSettings",
                       "apiVersion": "2021-05-01-preview",
-                      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
                       "name": "[coalesce(tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'name'), format('{0}-diagnosticSettings', parameters('name')))]",
                       "properties": {
                         "copy": [
@@ -39736,7 +39737,7 @@
                       },
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
-                      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
                       "name": "[coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'name'), guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId, coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId))]",
                       "properties": {
                         "roleDefinitionId": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId]",
@@ -40529,8 +40530,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "12797226417049698978"
+                              "version": "0.40.2.10011",
+                              "templateHash": "14939823368517410024"
                             }
                           },
                           "definitions": {
@@ -40683,8 +40684,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.39.26.7824",
-                              "templateHash": "422299638943108486"
+                              "version": "0.40.2.10011",
+                              "templateHash": "13151306134286549002"
                             }
                           },
                           "definitions": {
