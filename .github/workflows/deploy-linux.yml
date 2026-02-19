@@ -95,6 +95,7 @@ on:
 permissions:
   contents: read
   actions: read
+  id-token: write
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
