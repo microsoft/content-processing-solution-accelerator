@@ -64,9 +64,6 @@ on:
 
 env:
   AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
-permissions:
-  contents: read
-  actions: read
 jobs:
   docker-build:
     uses: ./.github/workflows/job-docker-build.yml
@@ -124,7 +121,7 @@ jobs:
     secrets: inherit
 
   cleanup-deployment:
-    if: "!cancelled() && needs.deploy.result == 'success' && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources)"    
+    if: "!cancelled() && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources)"    
     needs: [docker-build, deploy, e2e-test]
     uses: ./.github/workflows/job-cleanup-deployment.yml
     with:
