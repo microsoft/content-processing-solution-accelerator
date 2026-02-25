@@ -41,5 +41,15 @@ addopts = "--maxfail=1"
 testpaths = ["tests"]
 pythonpath = ["src"]
 
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/tests/*", "**/test_*.py", "**/*_test.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
+
 [tool.poetry.scripts]
 start-app = "src.main:main"
