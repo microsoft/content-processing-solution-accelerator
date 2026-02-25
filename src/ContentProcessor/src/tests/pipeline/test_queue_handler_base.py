@@ -85,7 +85,7 @@ def test_initialize_handler(mock_queue_helper, mock_app_context):
 def test_connect_queue(mock_queue_helper, mock_asyncio_run, mock_app_context):
     """Test the connect_queue method."""
     handler = MockHandler(appContext=mock_app_context, step_name="extract")
-    
+
     handler.connect_queue(
         show_information=False,
         app_context=mock_app_context,
@@ -133,7 +133,7 @@ def test_download_output_file_no_matching_file_raises_error(mock_app_context):
 
     mock_data_pipeline = MagicMock(spec=DataPipeline)
     mock_data_pipeline.files = [mock_file]
-    
+
     handler._current_message_context = MagicMock(spec=MessageContext)
     handler._current_message_context.data_pipeline = mock_data_pipeline
 
