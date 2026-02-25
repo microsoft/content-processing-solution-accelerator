@@ -72,7 +72,7 @@ jobs:
         if: env.skip_backend_tests == 'false'
         run: |
           cd src/ContentProcessor
-          python -m pytest -vv --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+          python -m pytest -vv --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=80
 
       - name: Skip Backend Tests
         if: env.skip_backend_tests == 'true'
