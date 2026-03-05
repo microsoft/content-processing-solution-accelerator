@@ -6,22 +6,24 @@ This guide provides comprehensive instructions for setting up the Content Proces
 
 ### Multi-Service Architecture
 
-This application consists of three separate services that run independently:
+This application consists of four separate services that run independently:
 
 1. **ContentProcessorAPI** - REST API server for the frontend
 2. **ContentProcessor** - Background processor that handles document processing from Azure Storage Queue
-3. **ContentProcessorWeb** - React-based user interface
+3. **ContentProcessorWorkflow** - Claim processing workflow service that orchestrates batch processing (Document Processing → Summarizing → Gap Analysis)
+4. **ContentProcessorWeb** - React-based user interface
 
 > ⚠️ **Critical**: Each service must run in its own terminal/console window
 > 
 > - Do NOT close terminals while services are running
-> - Open 3 separate terminal windows for local development
+> - Open 4 separate terminal windows for local development
 > - Each service will occupy its terminal and show live logs
 > 
 > **Terminal Organization:**
 > - Terminal 1: ContentProcessorAPI - HTTP server on port 8000
 > - Terminal 2: ContentProcessor - Runs continuously, polls Azure Storage Queue
-> - Terminal 3: ContentProcessorWeb - Development server on port 3000
+> - Terminal 3: ContentProcessorWorkflow - Runs continuously, polls claim processing queue
+> - Terminal 4: ContentProcessorWeb - Development server on port 3000
 
 ### Path Conventions
 
@@ -40,6 +42,11 @@ content-processing-solution-accelerator/    ← Repository root (start here)
 │   │   └── src/
 │   │       ├── main.py                     ← Processor entry point
 │   │       └── .env                        ← Processor config file
+│   ├── ContentProcessorWorkflow/
+│   │   ├── .venv/                          ← Virtual environment
+│   │   └── src/
+│   │       ├── main_service.py             ← Workflow entry point
+│   │       └── .env                        ← Workflow config file
 │   └── ContentProcessorWeb/
 │       ├── node_modules/
 │       └── .env                            ← Frontend config file
@@ -63,6 +70,7 @@ This project uses separate `.env` files in each service directory with different
 
 - **ContentProcessorAPI**: `src/ContentProcessorAPI/app/.env` - Azure App Configuration URL and local dev settings
 - **ContentProcessor**: `src/ContentProcessor/src/.env` - Azure App Configuration URL and local dev settings
+- **ContentProcessorWorkflow**: `src/ContentProcessorWorkflow/src/.env` - Azure App Configuration URL, queue settings, and local dev settings
 - **ContentProcessorWeb**: `src/ContentProcessorWeb/.env` - API base URL, authentication settings
 
 When copying `.env` samples, always navigate to the specific service directory first.
@@ -431,20 +439,110 @@ The ContentProcessor will start and begin polling the Azure Storage Queue for me
 
 **Keep this terminal open** - the processor will continue running and show processing logs.
 
-## Step 5: ContentProcessorWeb Setup & Run Instructions
+## Step 5: ContentProcessorWorkflow Setup & Run Instructions
 
-> 📋 **Terminal Reminder**: Open a third dedicated terminal window (Terminal 3) for the ContentProcessorWeb. Keep Terminals 1 (API) and 2 (Processor) running. All commands assume you start from the repository root directory.
+> 📋 **Terminal Reminder**: Open a third dedicated terminal window (Terminal 3) for the ContentProcessorWorkflow. Keep Terminals 1 (API) and 2 (Processor) running. All commands assume you start from the repository root directory.
+
+The ContentProcessorWorkflow handles claim batch processing workflows, orchestrating document processing, summarization, and gap analysis through Azure Storage Queue.
+
+### 5.1. Navigate to Workflow Directory
+
+```bash
+# From repository root
+cd src/ContentProcessorWorkflow
+```
+
+### 5.2. Create Virtual Environment
+
+```powershell
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+.venv\Scripts\Activate.ps1  # Windows PowerShell
+# or
+source .venv/bin/activate  # Linux/macOS
+```
+
+### 5.3. Install Dependencies
+
+```bash
+# Install uv package manager if not already installed
+pip install uv
+
+# Install all dependencies using uv
+uv sync --python 3.12 --prerelease=allow
+```
+
+**Note:** This project uses `uv` as the package manager with `pyproject.toml`. The `--prerelease=allow` flag is required for some agent framework dependencies.
+
+### 5.4. Configure Environment Variables
+
+Create a `.env` file in the `src/ContentProcessorWorkflow/src/` directory:
+
+```bash
+cd src
+
+# Create .env file
+New-Item .env  # Windows PowerShell
+# or
+touch .env  # Linux/macOS
+```
+
+Add the following to the `.env` file:
+
+```bash
+# App Configuration endpoint - ALL other settings are read from App Configuration
+APP_CONFIG_ENDPOINT=https://<your-appconfig-name>.azconfig.io
+
+# Local development settings
+APP_ENV=dev
+APP_AUTH_ENABLED=False
+AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
+
+# Logging settings
+APP_LOGGING_LEVEL=INFO
+AZURE_PACKAGE_LOGGING_LEVEL=WARNING
+AZURE_LOGGING_PACKAGES=azure.core,azure.storage,azure.identity
+
+# Queue settings (optional - defaults are provided)
+# CLAIM_PROCESS_QUEUE_NAME=claim-process-queue
+# CONCURRENT_WORKERS=1
+# POLL_INTERVAL_SECONDS=5
+# VISIBILITY_TIMEOUT_MINUTES=5
+# MESSAGE_TIMEOUT_MINUTES=25
+```
+
+### 5.5. Run the Workflow Service
+
+```bash
+# Make sure you're in the src directory
+python main_service.py
+```
+
+The ContentProcessorWorkflow will start and begin polling the claim processing queue for messages.
+
+**Expected behavior:**
+- You may see Storage Queue authorization errors if roles haven't propagated (wait 5-10 minutes)
+- The workflow will show continuous polling activity
+- Claim batch processing will begin when claims are submitted via the API
+
+**Keep this terminal open** - the workflow service will continue running and show processing logs.
+
+## Step 6: ContentProcessorWeb Setup & Run Instructions
+
+> 📋 **Terminal Reminder**: Open a fourth dedicated terminal window (Terminal 4) for the ContentProcessorWeb. Keep Terminals 1 (API), 2 (Processor), and 3 (Workflow) running. All commands assume you start from the repository root directory.
 
 The ContentProcessorWeb provides the React-based user interface.
 
-### 5.1. Navigate to Frontend Directory
+### 6.1. Navigate to Frontend Directory
 
 ```bash
 # From repository root
 cd src/ContentProcessorWeb
 ```
 
-### 5.2. Install Dependencies
+### 6.2. Install Dependencies
 
 ```bash
 # Install dependencies with legacy peer deps flag
@@ -456,7 +554,7 @@ npm install @fluentui/react-dialog @fluentui/react-button --legacy-peer-deps
 
 > **Note:** Always use the `--legacy-peer-deps` flag for npm commands in this project to avoid dependency conflicts with @azure/msal-react.
 
-### 5.3. Configure Environment Variables
+### 6.3. Configure Environment Variables
 
 Update the `.env` file in the `src/ContentProcessorWeb/` directory:
 
@@ -466,7 +564,7 @@ REACT_APP_AUTH_ENABLED=false
 REACT_APP_CONSOLE_LOG_ENABLED=true
 ```
 
-### 5.4. Start Development Server
+### 6.4. Start Development Server
 
 ```bash
 npm start
@@ -476,9 +574,9 @@ The ContentProcessorWeb will start at: `http://localhost:3000`
 
 **Keep this terminal open** - the React development server will continue running with hot reload.
 
-## Step 6: Verify All Services Are Running
+## Step 7: Verify All Services Are Running
 
-Before using the application, confirm all three services are running in separate terminals:
+Before using the application, confirm all four services are running in separate terminals:
 
 ### Terminal Status Checklist
 
@@ -486,7 +584,8 @@ Before using the application, confirm all three services are running in separate
 |----------|---------|---------|-----------------|-----|
 | Terminal 1 | ContentProcessorAPI | `python -m uvicorn app.main:app --reload --port 8000` | `Application startup complete` | http://localhost:8000 |
 | Terminal 2 | ContentProcessor | `python main.py` | Polling messages, no fatal errors | N/A |
-| Terminal 3 | ContentProcessorWeb | `npm start` | `Compiled successfully!` | http://localhost:3000 |
+| Terminal 3 | ContentProcessorWorkflow | `python main_service.py` | Polling claim queue, no fatal errors | N/A |
+| Terminal 4 | ContentProcessorWeb | `npm start` | `Compiled successfully!` | http://localhost:3000 |
 
 ### Quick Verification
 
@@ -507,9 +606,14 @@ Before using the application, confirm all three services are running in separate
    - Should see processing activity or queue polling
    - No authorization errors (if roles have propagated)
 
-## Step 7: Next Steps
+4. **Check Workflow**:
+   - Look at Terminal 3 output
+   - Should see claim processing queue polling
+   - No authorization errors (if roles have propagated)
 
-Once all services are running (as confirmed in Step 6), you can:
+## Step 8: Next Steps
+
+Once all services are running (as confirmed in Step 7), you can:
 
 1. **Access the Application**: Open `http://localhost:3000` in your browser to explore the frontend UI
 2. **Upload Documents**: Use the UI to upload documents for processing
@@ -610,6 +714,7 @@ AZURE_IDENTITY_EXCLUDE_MANAGED_IDENTITY_CREDENTIAL=True
 **Locations to check:**
 - `src/ContentProcessorAPI/app/.env`
 - `src/ContentProcessor/src/.env` (note: must be in the `src/` subdirectory)
+- `src/ContentProcessorWorkflow/src/.env` (note: must be in the `src/` subdirectory)
 
 **Explanation:** Managed Identity is used in Azure deployments but doesn't work locally. Setting `APP_ENV=dev` switches to Azure CLI credential authentication.
 

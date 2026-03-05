@@ -40,6 +40,7 @@ AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest" 
 CONTAINER_WEB_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WEB_APP_NAME" "" true)
 CONTAINER_API_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_API_APP_NAME" "" true)
 CONTAINER_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_APP_NAME" "" true)
+CONTAINER_WORKFLOW_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WORKFLOW_APP_NAME" "" true)
 ACR_NAME=$(get_azd_env_value_or_default "CONTAINER_REGISTRY_NAME" "" true)
 ACR_ENDPOINT=$(get_azd_env_value_or_default "CONTAINER_REGISTRY_LOGIN_SERVER" "" true)
 
@@ -117,5 +118,7 @@ build_and_push_image "contentprocessor" "$SCRIPT_DIR/../../src/ContentProcessor/
 build_and_push_image "contentprocessorapi" "$SCRIPT_DIR/../../src/ContentProcessorAPI/" "$CONTAINER_API_APP_NAME"
 
 build_and_push_image "contentprocessorweb" "$SCRIPT_DIR/../../src/ContentProcessorWeb/" "$CONTAINER_WEB_APP_NAME"
+
+build_and_push_image "contentprocessworkflow" "$SCRIPT_DIR/../../src/ContentProcessWorkflow/" "$CONTAINER_WORKFLOW_APP_NAME"
 
 echo "All Docker images built and pushed successfully."

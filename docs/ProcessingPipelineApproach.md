@@ -4,7 +4,7 @@
 ![image](./images/readme/approach.png)
 At the application level, when a file is processed a number of steps take place to ingest, extract, and transform the contents of the file into the selected schema. The diagram above shows a step-by-step overview of the approach for processing.
 
-1. Documents are passed with a specific schema. This request is sent to the API end point and _can include an optional set of metadata for external refencing_. This collection of data is sent to Azure AI Content Understanding Service for initial extraction of content. This utilizes a pre-built layout for extracting the data.
+1. Documents are passed with a specific schema. This request is sent to the API endpoint and _can include an optional set of metadata for external referencing_. This collection of data is sent to Azure AI Content Understanding Service for initial extraction of content. This utilizes a pre-built layout for extracting the data.
 
 2. This extracted data is converted to a markdown format.
 
@@ -14,23 +14,28 @@ At the application level, when a file is processed a number of steps take place 
 
 5. The top performing data is used for transforming the data into its selected schema. This is saved as a JSON format along with the final extraction and schema mapping scores. These scores can be used to initiate human-in-the-loop review - allowing for manual review, updates, and annotation of changes.
 
-## Processing Pipeline
+## Document Processing Pipeline
 
 ![image](./images/readme/processing-pipeline.png)
 
+The document processing pipeline handles individual document extraction and transformation through four sequential stages:
 
 1. **Extract Pipeline** – Text Extraction via Azure Content Understanding.
 
     Uses Azure AI Content Understanding Service to detect and extract text from images and PDFs. This service also retrieves the coordinates of each piece of text, along with confidence scores, by leveraging built-in (pretrained) models.
 
-2. **Map Pipeline** – Mapping Extracted Text with Azure OpenAI Service GPT-4o
+2. **Map Pipeline** – Mapping Extracted Text with Azure OpenAI Service GPT-5.1
 
-    Takes the extracted text (as context) and the associated document images, then applies GPT-4o’s vision capabilities to interpret the content. It maps the recognized text to a predefined entity schema, providing structured data fields and confidence scores derived from model log probabilities.
+    Takes the extracted text (as context) and the associated document images, then applies GPT-5.1's vision capabilities to interpret the content. It maps the recognized text to a predefined entity schema, providing structured data fields and confidence scores derived from model log probabilities.
 
 3. **Evaluate Pipeline** – Merging and Evaluating Extraction Results
 
-    Combines confidence scores from both the Extract pipeline (Azure AI Content Understanding) and the Map pipeline (GPT-4o). It then calculates an overall confidence level by merging and comparing these scores, ensuring accuracy and consistency in the final extracted data. 
+    Combines confidence scores from both the Extract pipeline (Azure AI Content Understanding) and the Map pipeline (GPT-5.1). It then calculates an overall confidence level by merging and comparing these scores, ensuring accuracy and consistency in the final extracted data. 
 
 4. **Save Pipeline** – Storing Results in Azure Blob Storage and Azure Cosmos DB
 
     Aggregates all outputs from the Extract, Map, and Evaluate steps. It finalizes and saves the processed data to Azure Blob Storage for file-based retrieval and updates or creates records in Azure Cosmos DB for structured, queryable storage. Confidence scoring is captured and saved with results for down-stream use - showing up, for example, in the web UI of the processing queue. This is surfaced as "extraction score" and "schema score" and is used to highlight the need for human-in-the-loop if desired.
+
+---
+
+> **Claim Processing Workflow**: The document processing pipeline above handles individual document extraction. For the higher-level claim batch workflow — which orchestrates multiple document extractions, AI summarization, and gap analysis using the Agent Framework Workflow Engine — see [Claim Processing Workflow](./ClaimProcessWorkflow.md).
