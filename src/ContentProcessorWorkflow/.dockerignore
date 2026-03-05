@@ -1,0 +1,55 @@
+# =============================================================================
+# .dockerignore - keep the Docker build context lean and secure
+# =============================================================================
+
+# Git / GitHub
+.git/
+.github/
+.gitignore
+
+# Tests and coverage
+tests/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+.hypothesis/
+
+# IDE / editor
+.vscode/
+.vs/
+.idea/
+*.swp
+*.swo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Misc / tooling
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.DS_Store
+*.md
+LICENSE
+Dockerfile
+.dockerignore
+docker-compose*
+node_modules/
+npm-debug.log

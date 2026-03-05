@@ -1,34 +1,46 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""FastAPI router for single-file content processing.
+
+Exposes endpoints for submitting documents, polling processing status,
+retrieving/updating/deleting processed results, and streaming the
+original uploaded file.  Persists state in Cosmos DB and Azure Blob Storage.
+"""
+
 import datetime
 import io
 import urllib.parse
 import uuid
+from enum import Enum
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from pymongo.results import UpdateResult
 
-from app.appsettings import AppConfiguration, get_app_config
-from app.routers.logics.contentprocessor import (
-    ContentProcessor,
-    get_content_processor,
+from app.libs.base.typed_fastapi import TypedFastAPI
+from app.routers.logics.claimbatchpocessor import ClaimBatchProcessRepository
+from app.utils.mime_types import MimeTypesDetection
+from app.utils.upload_validation import (
+    validate_upload_for_processing,
 )
-from app.routers.models.contentprocessor.content_process import (
+
+from .logics.contentprocessor import (
+    ContentProcessor,
+)
+from .models.contentprocessor.content_process import (
     ContentProcess as CosmosContentProcess,
 )
-from app.routers.models.contentprocessor.content_process import (
+from .models.contentprocessor.content_process import (
     PaginatedResponse,
 )
-from app.routers.models.contentprocessor.mime_types import MimeTypes, MimeTypesDetection
-from app.routers.models.contentprocessor.model import (
+from .models.contentprocessor.model import (
     ArtifactType,
     ContentCommentUpdate,
     ContentProcess,
     ContentProcessorRequest,
-    ContentResultUpdate,
     ContentResultDelete,
+    ContentResultUpdate,
     Paging,
     ProcessFile,
     Status,
@@ -42,41 +54,58 @@ router = APIRouter(
 )
 
 
+class contentprocess_router_paths(str, Enum):
+    submit = "/submit"
+    status = "/status/{process_id}"
+    delete = "/delete"
+    update = "/update"
+    comment = "/comment"
+    get_original_file = "/processed/files/{process_id}"
+    processed_contents = "/processed"
+    processed_status = "/processed/{process_id}"
+    processed_content_by_process_id = "/processed/{process_id}"
+    processed_steps_content_by_process_id = "/processed/{process_id}/steps"
+    processed_content_update_by_process_id = "/processed/{process_id}"
+    processed_content_delete_by_process_id = "/processed/{process_id}"
+
+
 @router.post(
     "/processed",
     response_model=PaginatedResponse,
-    summary="Get all processed contents list",
+    summary="List processed contents (paginated)",
     description="""
-    Returns a list of all processed contents with pagination support.
+        Returns a list of processed content records with pagination support.
 
-    ## Parameters
-    The parameter for pagination is passed in the request body as JSON.
+        This endpoint is commonly used to build a “Processed Contents” list screen.
 
-    class Paging(BaseModel):
-        page_number: int = Field(default=0, gt=0)
-        page_size: int = Field(default=0, gt=0)
+        ## Parameters
+        Pagination is provided in the request body.
 
-    The request body should contain the following fields:
-    * **page_number** : The page number to retrieve (1-based index).
-    * **page_size** : The number of items per page.
-    * **page_number** and **page_size** are both required and must be greater than 0.
+        - **page_number**: The page number to retrieve (1-based index).
+        - **page_size**: The number of items per page.
 
-    ## Example Request Body
-    {
-        "page_number": 1,
-        "page_size": 10
-    }
+        Both fields are required and must be greater than 0.
+
+        ## Example Request Body
+        ```json
+        {
+            "page_number": 1,
+            "page_size": 10
+        }
+        ```
     """,
 )
 async def get_all_processed_results(
     page_request: Paging,
-    app_config: AppConfiguration = Depends(get_app_config),
+    request: Request = None,
 ) -> PaginatedResponse:
-    # Get all the processed content
+    """Return a paginated list of processed content records."""
+    app: TypedFastAPI = request.app  # type: ignore
+
     paged_cosmos_content_process = CosmosContentProcess.get_all_processes_from_cosmos(
-        connection_string=app_config.app_cosmos_connstr,
-        database_name=app_config.app_cosmos_database,
-        collection_name=app_config.app_cosmos_container_process,
+        connection_string=app.app_context.configuration.app_cosmos_connstr,
+        database_name=app.app_context.configuration.app_cosmos_database,
+        collection_name=app.app_context.configuration.app_cosmos_container_process,
         page_number=page_request.page_number if page_request else 0,
         page_size=page_request.page_size if page_request else 0,
     )
@@ -85,163 +114,161 @@ async def get_all_processed_results(
 
 
 @router.post(
-    "/submit",
-    summary="Submit a file to be processed",
+    contentprocess_router_paths.submit,
+    summary="Submit a file for processing",
     description="""
-    Submits a file to be processed by the content processor.
-    the additional json payload should be passed with files.
+    Submits a single file to the content processor.
 
-    The file must be a PDF or image file (JPEG, BMP, GIF, PNG, TIFF) and should not exceed 20 MB in size.
+    The API validates the upload (filename sanitization, MIME sniffing, Content-Type checks,
+    and size limits) before saving the file and enqueuing processing.
 
-    The request body should contain the following fields:
-    - `Schema_Id`: The schema ID for the content processor.
-    - `Metadata_Id`: The metadata ID for the content processor.
+    The request must be sent as `multipart/form-data` with:
+    - a JSON part (named `data`) that contains schema/metadata IDs
+    - a file part (named `file`)
+
+    ## Parameters
+    - **Schema_Id** (body): Registered schema ID (UUID string).
+    - **Metadata_Id** (body): Metadata identifier for the request.
+    - **file** (form): PDF or image file (JPEG, BMP, GIF, PNG, TIFF). Max size: 20 MB.
 
     ## Example Request Body
-    {
-        "Schema_Id": "registered schema id - UUID string",
-        "Metadata_Id": "metadata_id"
-    }
+    multipart/form-data
+    - `data`: `{ "Schema_Id": "<schema_uuid>", "Metadata_Id": "<metadata_id>" }`
+    - `file`: `<upload>`
 
    """,
 )
 async def Submit_File_With_MetaData(
     data: ContentProcessorRequest = Body(...),
     file: UploadFile = File(...),
-    content_processor: ContentProcessor = Depends(get_content_processor),
-    app_config: AppConfiguration = Depends(get_app_config),
+    request: Request = None,
 ):
-    # Save the uploaded file
-    # 1. Check Mime Type and Validate whether file is supported - Should be pdf or image files
-    if file.content_type not in [
-        MimeTypes.Pdf,
-        MimeTypes.ImageJpeg,
-        MimeTypes.ImagePng,
-        # MimeTypes.ImageBmp,
-        # MimeTypes.ImageGif,
-        # MimeTypes.ImageTiff,
-    ]:
-        return JSONResponse(
-            status_code=415,
-            content={
-                "message": f"Unsupported file type: {file.content_type}. Only PDF and JPEG, PNG image files are available."
-            },
-        )
+    """Submit a single file for processing.
 
-    # 2. Check File Size - Should be less than 20MB
-    if file.size > app_config.app_cps_max_filesize_mb * 1024 * 1024:
-        return JSONResponse(
-            status_code=413,
-            content={
-                "message": f"File size exceeds the limit of {app_config.app_cps_max_filesize_mb} MB. Current size: {file.size / (1024 * 1024):.2f} MB."
-            },
-        )
+    Performs strict validation of the upload (filename, MIME sniffing, Content-Type, size)
+    before persisting to blob storage and enqueuing the processing message.
+    """
+    app: TypedFastAPI = request.app  # type: ignore
+    validated = await validate_upload_for_processing(
+        upload=file,
+        max_filesize_mb=app.app_context.configuration.app_cps_max_filesize_mb,
+    )
+    if isinstance(validated, JSONResponse):
+        return validated
 
-    # Generate Process Id
+    safe_filename, expected_for_ext, size_bytes = validated
+
     process_id = str(uuid.uuid4())
 
-    # Save the file to Blob Storage
+    schema_id = data.Schema_Id
+    metadata_id = data.Metadata_Id
+
+    content_processor: ContentProcessor = app.app_context.get_service(ContentProcessor)
     content_processor.save_file_to_blob(
-        process_id=process_id, file=file.file, file_name=file.filename
+        process_id=process_id, file=file.file, file_name=safe_filename
     )
 
-    # Create Message Object to be sent to Queue
-    submit_queue_message = ContentProcess(
-        **{
+    submit_queue_message = ContentProcess(**{
+        "process_id": process_id,
+        "files": [
+            ProcessFile(**{
+                "process_id": process_id,
+                "id": str(uuid.uuid4()),
+                "name": safe_filename,
+                "size": size_bytes,
+                "mime_type": expected_for_ext,
+                "artifact_type": ArtifactType.SourceContent,
+                "processed_by": "API",
+            }),
+        ],
+        "pipeline_status": Status(**{
             "process_id": process_id,
-            "files": [
-                ProcessFile(
-                    **{
-                        "process_id": process_id,
-                        "id": str(uuid.uuid4()),
-                        "name": file.filename,
-                        "size": file.size,
-                        "mime_type": file.content_type,
-                        "artifact_type": ArtifactType.SourceContent,
-                        "processed_by": "API",
-                    }
-                ),
+            "schema_id": schema_id,
+            "metadata_id": metadata_id,
+            "creation_time": datetime.datetime.now(datetime.timezone.utc),
+            "steps": [
+                Steps.Extract,
+                Steps.Mapping,
+                Steps.Evaluating,
+                Steps.Save,
             ],
-            "pipeline_status": Status(
-                **{
-                    "process_id": process_id,
-                    "schema_id": data.Schema_Id,
-                    "metadata_id": data.Metadata_Id,
-                    "creation_time": datetime.datetime.now(datetime.timezone.utc),
-                    "steps": [
-                        Steps.Extract,
-                        Steps.Mapping,
-                        Steps.Evaluating,
-                        Steps.Save,
-                    ],
-                    "remaining_steps": [
-                        Steps.Extract,
-                        Steps.Mapping,
-                        Steps.Evaluating,
-                        Steps.Save,
-                    ],
-                    "completed_steps": [],
-                }
-            ),
-        }
-    )
+            "remaining_steps": [
+                Steps.Extract,
+                Steps.Mapping,
+                Steps.Evaluating,
+                Steps.Save,
+            ],
+            "completed_steps": [],
+        }),
+    })
 
-    # Droop the message to Queue
     content_processor.enqueue_message(submit_queue_message)
 
-    file_size_mb = file.size / (1024 * 1024)
+    file_size_mb = size_bytes / (1024 * 1024)
 
-    # Add Empty Process
+    status_url = f"/contentprocessor/status/{process_id}"
+
     CosmosContentProcess(
         process_id=process_id,
-        processed_file_name=file.filename,
+        processed_file_name=safe_filename,
         status="processing",
         imported_time=datetime.datetime.now(datetime.timezone.utc),
     ).update_process_status_to_cosmos(
-        connection_string=content_processor.config.app_cosmos_connstr,
-        database_name=content_processor.config.app_cosmos_database,
-        collection_name=content_processor.config.app_cosmos_container_process,
+        connection_string=app.app_context.configuration.app_cosmos_connstr,
+        database_name=app.app_context.configuration.app_cosmos_database,
+        collection_name=app.app_context.configuration.app_cosmos_container_process,
     )
     return JSONResponse(
         status_code=202,
+        headers={"Location": status_url},
         content={
-            "message": f"File '{file.filename}' of size {file_size_mb:.2f} MB received with metadata: {data} \n The file is being processed.",
-            "status_url": f"/contentprocessor/status/{process_id}",
+            "message": f"File '{safe_filename}' of size {file_size_mb:.2f} MB received with metadata: {data} \n The file is being processed.",
+            "process_id": process_id,
+            "status_url": status_url,
         },
     )
 
 
 @router.get(
-    "/status/{process_id}",
-    summary="Get the status of a file being processing. it shows the status of the file being processed",
+    contentprocess_router_paths.status,
+    summary="Get file processing status",
     description="""
-            Returns the status of a file being processed by the content processor.
+    Returns the status of a file being processed by the content processor.
 
-            Once the file is processed, the status will be updated to 'Completed' with return code 302.
-            you can check the processed result by calling the endpoint '/contentprocessor/processed/{process_id}'.
-            If the file processing fails, the status will be updated to 'Error' with return code 500.
+    Once the file is processed, the status will be updated to `Completed` and the endpoint returns `302`.
+    You can then fetch the processed result by calling `/contentprocessor/processed/{process_id}`.
 
-            this method has been designed for aync processing of file processing.
+    This endpoint is designed for async processing. After you submit a file via `/contentprocessor/submit`
+    (which returns `202 Accepted`), you should poll this endpoint until you receive a terminal status.
 
-            Once you file submitted for processing in /contentprocessor/submit, it will return a 202 status code with endpoint to check the status of the file.(/contentprocessor/status/{process_id}).
-            Loop till you get the status code 302 or 500 with this endpoint.
-            The status of the file can be one of the following:
+    The status can be one of the following:
 
-            - `processing`: The file is being processed. - 200
-            - `completed`: The file has been processed successfully. - 302
-            - `failed`: the process id not found in process queue. - 404
-            - `error`: The file processing has failed. - 500
+    - `processing`: The file is being processed (`200`).
+    - `completed`: The file has been processed successfully (`302`).
+    - `failed`: The process ID was not found (`404`).
+    - `error`: The file processing failed (`500`).
+
+    ## Parameters
+    - **process_id** (path): Process ID returned by the submit endpoint.
+
+    ## Example Request Body
+    Not applicable. This is a GET endpoint and does not accept a request body.
+
+    Example request:
+    `GET /contentprocessor/status/{process_id}`
 
             """,
 )
 async def get_status(
-    process_id: str, app_config: AppConfiguration = Depends(get_app_config)
+    process_id: str,
+    request: Request = None,
 ):
-    # Get Content Process Status
+    """Return current processing status and redirect when complete."""
+    app: TypedFastAPI = request.app  # type: ignore
     process_status = CosmosContentProcess(process_id=process_id).get_status_from_cosmos(
-        connection_string=app_config.app_cosmos_connstr,
-        database_name=app_config.app_cosmos_database,
-        collection_name=app_config.app_cosmos_container_process,
+        connection_string=app.app_context.configuration.app_cosmos_connstr,
+        database_name=app.app_context.configuration.app_cosmos_database,
+        collection_name=app.app_context.configuration.app_cosmos_container_process,
     )
 
     if process_status is None:
@@ -249,55 +276,77 @@ async def get_status(
             status_code=404,
             content={
                 "status": "failed",
+                "process_id": process_id,
+                "file_name": "",
                 "message": f"Processing of file with Process ID '{process_id}' not found.",
             },
         )
+
+    file_name = str(getattr(process_status, "processed_file_name", ""))
 
     if process_status.status == "Completed":
         return JSONResponse(
             status_code=302,
             content={
                 "status": "completed",
-                "message": f"Processing of file with Process ID '{process_id}' is completed.",
+                "process_id": process_id,
+                "file_name": file_name,
+                "message": f"Processing of file '{file_name}' with Process ID '{process_id}' is completed.",
                 "resource_url": f"/contentprocessor/processes/{process_id}",
             },
         )
-    elif process_status == "Error":
+    elif process_status.status == "Error":
         return JSONResponse(
             status_code=500,
             content={
                 "status": "failed",
-                "message": f"Processing of file with Process ID '{process_id}' has failed.",
+                "process_id": process_id,
+                "file_name": file_name,
+                "message": f"Processing of file '{file_name}' with Process ID '{process_id}' has failed.",
             },
         )
     else:
-        # Simulate a long-running process
         return JSONResponse(
             status_code=200,
             content={
                 "status": process_status.status,
-                "message": f"Processing of file with Process ID '{process_id}' is still in progress.",
+                "process_id": process_id,
+                "file_name": file_name,
+                "message": f"Processing of file '{file_name}' with Process ID '{process_id}' is still in progress.",
             },
         )
 
 
 @router.get(
-    "/processed/{process_id}",
+    contentprocess_router_paths.processed_content_by_process_id,
     response_model=CosmosContentProcess,
-    summary="Get the processed content result",
+    summary="Get processed content result",
     description="""
-            Returns the processed content result for a given process ID.
-            it returns whole processed content result with all the details in every step processing
+    Returns the full processed content result for a given process ID.
+
+    Use this endpoint to retrieve the complete processing result document (including step details).
+
+    ## Parameters
+    - **process_id** (path): Process ID to retrieve.
+
+    ## Example Request Body
+    Not applicable. This is a GET endpoint and does not accept a request body.
+
+    Example request:
+    `GET /contentprocessor/processed/{process_id}`
             """,
 )
 async def get_process(
-    process_id: str, app_config: AppConfiguration = Depends(get_app_config)
+    process_id: str,
+    request: Request = None,
 ):
-    # Get Content Process Status
+    """Return the full processed content document for *process_id*."""
+    app: TypedFastAPI = request.app  # type: ignore
+
     process_status = CosmosContentProcess(process_id=process_id).get_status_from_cosmos(
-        connection_string=app_config.app_cosmos_connstr,
-        database_name=app_config.app_cosmos_database,
-        collection_name=app_config.app_cosmos_container_process,
+        connection_string=app.app_context.configuration.app_cosmos_connstr,
+        database_name=app.app_context.configuration.app_cosmos_database,
+        collection_name=app.app_context.configuration.app_cosmos_container_process,
     )
 
     if not process_status:
@@ -305,39 +354,44 @@ async def get_process(
             status_code=404,
             content={
                 "status": "failed",
+                "process_id": process_id,
+                "file_name": "",
                 "message": f"Processing of file with Process ID '{process_id}' not found.",
             },
         )
-
-    # process_status.process_output = CosmosContentProcess(
-    #     process_id=process_id
-    # ).get_status_from_blob(
-    #     connection_string=app_config.app_storage_blob_url,
-    #     blob_name="step_outputs.json",
-    #     container_name=f"{app_config.app_cps_processes}/{process_status.process_id}",
-    # )
 
     return process_status
 
 
 @router.get(
-    "/processed/{process_id}/steps",
-    summary="Get the processed content results by step",
+    contentprocess_router_paths.processed_steps_content_by_process_id,
+    summary="Get processed step outputs",
     description="""
-            Some steps of the processing size is too large to be returned in the main processed content result.
-            This endpoint returns only the processed content result for a given process ID.
-            To reducing the payload of the processed content result in /processed/{process_id} endpoint,
-            you may consider to call this  endpoint to reducing the payload of the processed content result.
+    Returns per-step processing outputs for a given process ID.
+
+    Some step outputs can be too large to include in the main processed result. Use this endpoint
+    to fetch step outputs separately and reduce payload sizes in the UI.
+
+    ## Parameters
+    - **process_id** (path): Process ID to retrieve step outputs for.
+
+    ## Example Request Body
+    Not applicable. This is a GET endpoint and does not accept a request body.
+
+    Example request:
+    `GET /contentprocessor/processed/{process_id}/steps`
             """,
 )
 async def get_process_steps(
-    process_id: str, app_config: AppConfiguration = Depends(get_app_config)
+    process_id: str,
+    request: Request = None,
 ):
-    # Get Content Process Status
+    """Return per-step processing outputs from blob storage."""
+    app: TypedFastAPI = request.app  # type: ignore
     process_steps = CosmosContentProcess(process_id=process_id).get_status_from_blob(
-        connection_string=app_config.app_storage_blob_url,
+        connection_string=app.app_context.configuration.app_storage_blob_url,
         blob_name="step_outputs.json",
-        container_name=f"{app_config.app_cps_processes}/{process_id}",
+        container_name=f"{app.app_context.configuration.app_cps_processes}/{process_id}",
     )
 
     if not process_steps:
@@ -345,6 +399,8 @@ async def get_process_steps(
             status_code=404,
             content={
                 "status": "failed",
+                "process_id": process_id,
+                "file_name": "",
                 "message": f"Processing of file with Process ID '{process_id}' not found.",
             },
         )
@@ -353,68 +409,66 @@ async def get_process_steps(
 
 
 @router.put(
-    "/processed/{process_id}",
-    summary="Update the processed content result / Update the comment in this process",
+    contentprocess_router_paths.processed_content_update_by_process_id,
+    summary="Update processed result or comment",
     description="""
-            Updates the processed content result for a given process ID.
-            Updates the comment in the processed content result for a given process ID.
+    Updates either (a) the stored processed result or (b) the process comment.
 
-            It will be used for 2 purposes by the request payload:
-            - Update the processed content result for a given process ID.
-            - Update the comment in the processed content result for a given process ID.
+    Use this endpoint to:
+    - correct/override extracted results (`ContentResultUpdate`), or
+    - attach a user comment (`ContentCommentUpdate`).
 
-            1. To Update the processed content result for a given process ID,
-            payload with the following fields - ContentResultUpdate:
-            - `process_id`: The process ID of the processed content.
-            - `modified_result`: The modified result for the processed content. it should be a json object.
-            ## Example Request Body
+    ## Parameters
+    - **process_id** (path): Process ID to update.
+    - **content_update_request** (body): Either `ContentResultUpdate` or `ContentCommentUpdate`.
 
-            {
-                "process_id": "process_id",
-                "modified_result": {
-                    "key": "value"
-                }
+    ## Example Request Body
+    ContentResultUpdate:
+        ```json
+        {
+            "process_id": "<process_id>",
+            "modified_result": {
+                "key": "value"
             }
+        }
+        ```
 
-            2. To Update the comment in the processed content result for a given process ID,
-            payload with the following fields - ContentCommentUpdate:
-            - `process_id`: The process ID of the processed content.
-            - `comment`: The comment to be added to the processed content.
-            ## Example Request Body
-            {
-                "process_id": "process_id",
-                "comment": "This is a comment"
-            }
+    ContentCommentUpdate:
+        ```json
+        {
+            "process_id": "<process_id>",
+            "comment": "This is a comment"
+        }
+        ```
 
             """,
 )
 async def update_process_result(
     process_id: str,
     content_update_request: ContentResultUpdate | ContentCommentUpdate,
-    app_config: AppConfiguration = Depends(get_app_config),
+    request: Request = None,
 ):
+    """Update the processed result or attach a comment."""
+    app: TypedFastAPI = request.app  # type: ignore
     update_response: UpdateResult = None
 
-    # Check paramter type - ContentResultUpdate or ContentCommentUpdate
     if isinstance(content_update_request, ContentResultUpdate):
-        # Check if the request is of type ContentResultUpdate
         update_response = CosmosContentProcess(
             process_id=process_id,
         ).update_process_result(
-            connection_string=app_config.app_cosmos_connstr,
-            database_name=app_config.app_cosmos_database,
-            collection_name=app_config.app_cosmos_container_process,
+            connection_string=app.app_context.configuration.app_cosmos_connstr,
+            database_name=app.app_context.configuration.app_cosmos_database,
+            collection_name=app.app_context.configuration.app_cosmos_container_process,
             process_result=content_update_request.modified_result,
         )
 
     if isinstance(content_update_request, ContentCommentUpdate):
-        # Check if the request is of type ContentCommentUpdate
         update_response = CosmosContentProcess(
             process_id=process_id,
         ).update_process_comment(
-            connection_string=app_config.app_cosmos_connstr,
-            database_name=app_config.app_cosmos_database,
-            collection_name=app_config.app_cosmos_container_process,
+            connection_string=app.app_context.configuration.app_cosmos_connstr,
+            database_name=app.app_context.configuration.app_cosmos_database,
+            collection_name=app.app_context.configuration.app_cosmos_container_process,
             comment=content_update_request.comment,
         )
 
@@ -437,25 +491,31 @@ async def update_process_result(
 
 
 @router.get(
-    "/processed/files/{process_id}",
-    summary="Get the original file to be processed",
+    contentprocess_router_paths.get_original_file,
+    summary="Stream original uploaded file",
     description="""
-            Returns the original file for a given process ID.
-            it doesn't support file download but it supports file streaming to be used by the file viewer.
-            The file will be returned as a streaming response with the appropriate content type.
-            just use this endpoint for your file viewer URL.
-            for example :
-            contentviewer.url = http://<endpoint>/contentprocessor/processed/files/{process_id}
+    Streams the original uploaded file for a given process ID.
+
+    This endpoint is intended for inline viewing (e.g., in a document viewer). It returns a
+    streaming response with an appropriate content type.
+
+    ## Parameters
+    - **process_id** (path): Process ID of the original upload.
+
+    ## Example Request Body
+    Not applicable. This is a GET endpoint and does not accept a request body.
+
+    Example request:
+    `GET /contentprocessor/processed/files/{process_id}`
             """,
 )
-async def get_original_file(
-    process_id: str, app_config: AppConfiguration = Depends(get_app_config)
-):
-    # Check processed content in Cosmos
+async def get_original_file(process_id: str, request: Request = None):
+    """Stream the originally uploaded file for inline viewing."""
+    app: TypedFastAPI = request.app  # type: ignore
     process_status = CosmosContentProcess(process_id=process_id).get_status_from_cosmos(
-        connection_string=app_config.app_cosmos_connstr,
-        database_name=app_config.app_cosmos_database,
-        collection_name=app_config.app_cosmos_container_process,
+        connection_string=app.app_context.configuration.app_cosmos_connstr,
+        database_name=app.app_context.configuration.app_cosmos_database,
+        collection_name=app.app_context.configuration.app_cosmos_container_process,
     )
 
     if process_status is None:
@@ -467,22 +527,18 @@ async def get_original_file(
             },
         )
 
-    # if not process_status: return 404
     if process_status is not None:
-        # Get the file from Blob Storage
         file_bytes = process_status.get_file_bytes_from_blob(
-            connection_string=app_config.app_storage_blob_url,
+            connection_string=app.app_context.configuration.app_storage_blob_url,
             blob_name=process_status.processed_file_name,
-            container_name=f"{app_config.app_cps_processes}/{process_status.process_id}",
+            container_name=f"{app.app_context.configuration.app_cps_processes}/{process_status.process_id}",
         )
         file_stream = io.BytesIO(file_bytes)
 
-        # Encode the filename to support RFC 5987
         encoded_filename = urllib.parse.quote(process_status.processed_file_name)
         content_type_string = MimeTypesDetection.get_file_type(
             process_status.processed_file_name
         )
-        # Set the response headers
         headers = {
             "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
             "Content-Type": content_type_string,
@@ -494,29 +550,49 @@ async def get_original_file(
 
 
 @router.delete(
-    "/processed/{process_id}",
+    contentprocess_router_paths.processed_content_delete_by_process_id,
     response_model=ContentResultDelete,
-    summary="Delete the processed content result",
+    summary="Delete processed content result",
     description="""
-            Returns the deleted record for a given process ID.
+    Deletes the processed content record for a given process ID.
+
+    This removes the record and related artifacts (when applicable).
+
+    ## Parameters
+    - **process_id** (path): Process ID to delete.
+
+    ## Example Request Body
+    Not applicable. This is a DELETE endpoint and does not accept a request body.
+
+    Example request:
+    `DELETE /contentprocessor/processed/{process_id}`
             """,
 )
 async def delete_processed_file(
-    process_id: str, app_config: AppConfiguration = Depends(get_app_config)
+    process_id: str, request: Request = None
 ) -> ContentResultDelete:
+    """Delete the processed content record and related artifacts."""
+    app: TypedFastAPI = request.app  # type: ignore
     try:
-        deleted_file = CosmosContentProcess(process_id=process_id).delete_processed_file(
-            connection_string=app_config.app_cosmos_connstr,
-            database_name=app_config.app_cosmos_database,
-            collection_name=app_config.app_cosmos_container_process,
-            storage_connection_string=app_config.app_storage_blob_url,
-            container_name=app_config.app_cps_processes,
+        deleted_file = CosmosContentProcess(
+            process_id=process_id
+        ).delete_processed_file(
+            connection_string=app.app_context.configuration.app_cosmos_connstr,
+            database_name=app.app_context.configuration.app_cosmos_database,
+            collection_name=app.app_context.configuration.app_cosmos_container_process,
+            storage_connection_string=app.app_context.configuration.app_storage_blob_url,
+            container_name=app.app_context.configuration.app_cps_processes,
         )
+
+        claim_process_repository = app.app_context.get_service(
+            ClaimBatchProcessRepository
+        )
+        await claim_process_repository.delete_async(process_id)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return ContentResultDelete(
         status="Success" if deleted_file else "Failed",
         process_id=deleted_file.process_id if deleted_file else "",
-        message="" if deleted_file else "This record no longer exists. Please refresh."
+        message="" if deleted_file else "This record no longer exists. Please refresh.",
     )

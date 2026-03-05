@@ -1,25 +1,34 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Azure Storage Queue helpers for the processing pipeline.
+
+Provides queue lifecycle management (create-if-missing), message routing
+between pipeline steps, and dead-letter queue handling.
+"""
+
 import logging
 
 from azure.core.exceptions import ResourceNotFoundError
-from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.queue import QueueClient, QueueMessage
 
 from libs.pipeline import pipeline_step_helper
 from libs.pipeline.entities.pipeline_data import DataPipeline
+from libs.utils.azure_credential_utils import get_azure_credential
 
 
 def create_queue_client_name(step_name: str) -> str:
+    """Return the canonical queue name for a pipeline step."""
     return f"content-pipeline-{step_name}-queue"
 
 
 def create_dead_letter_queue_client_name(step_name: str) -> str:
+    """Return the dead-letter queue name for a pipeline step."""
     return f"{create_queue_client_name(step_name)}-dead-letter-queue"
 
 
 def invalidate_queue(queue_client: QueueClient):
+    """Ensure the queue exists, creating it if missing."""
     try:
         queue_client.get_queue_properties()
     except ResourceNotFoundError:
@@ -30,6 +39,7 @@ def invalidate_queue(queue_client: QueueClient):
 def create_or_get_queue_client(
     queue_name: str, accouont_url: str, credential: get_azure_credential
 ) -> QueueClient:
+    """Return a QueueClient, creating the underlying queue if needed."""
     queue_client = QueueClient(
         account_url=accouont_url, queue_name=queue_name, credential=credential
     )
@@ -38,6 +48,7 @@ def create_or_get_queue_client(
 
 
 def delete_queue_message(message: QueueMessage, queue_client: QueueClient):
+    """Delete a message from the queue after successful processing."""
     queue_client.delete_message(message=message)
 
 
@@ -46,21 +57,23 @@ def move_to_dead_letter_queue(
     dead_letter_queue_client: QueueClient,
     queue_client: QueueClient,
 ):
+    """Copy a message to the dead-letter queue and remove the original."""
     dead_letter_queue_client.send_message(content=message.content)
     delete_queue_message(message=message, queue_client=queue_client)
 
 
 def has_messages(queue_client: QueueClient) -> bool:
+    """Return True if the queue contains at least one message."""
     return queue_client.peek_messages(max_messages=1)
 
 
 def pass_data_pipeline_to_next_step(
     data_pipeline: DataPipeline, account_url: str, credential: get_azure_credential
 ):
+    """Enqueue the pipeline payload to the next step's queue."""
     next_step_name = pipeline_step_helper.get_next_step_name(
         data_pipeline.pipeline_status, data_pipeline.pipeline_status.active_step
     )
-    # If there is no next step, then we are done
     if next_step_name is None:
         return
 

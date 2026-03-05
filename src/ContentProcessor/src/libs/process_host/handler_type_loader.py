@@ -1,11 +1,31 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Dynamic handler class loader for pipeline steps.
+
+Resolves a step name (e.g. ``'extract'``) to its corresponding handler
+class (``ExtractHandler``) via importlib convention-based lookup.
+"""
+
 import importlib
 
 from libs.pipeline.queue_handler_base import HandlerBase
 
 
 def load(process_step: str) -> HandlerBase:
-    """
-    This function is used to load the processor based on the queue name.
+    """Import and return the handler class for a pipeline step.
+
+    Follows the naming convention ``libs.pipeline.handlers.<step>_handler``
+    containing a class ``<Step>Handler``.
+
+    Args:
+        process_step: Lower-case step name (e.g. 'extract', 'map').
+
+    Returns:
+        The handler *class* (not an instance).
+
+    Raises:
+        Exception: If the module or class cannot be found.
     """
 
     module_name = f"libs.pipeline.handlers.{process_step}_handler"

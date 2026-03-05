@@ -1,3 +1,11 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+"""Pydantic models for property loss and damage claim form data extraction.
+
+Defines the schema used by the content processing pipeline to extract
+structured fields from property insurance claim documents.
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional
@@ -25,21 +33,11 @@ class Address(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example Address object.
-
-        Returns:
-            Address: An empty Address object.
-        """
+        """Return an empty instance with default placeholder values."""
         return Address(street="", city="", state="", postal_code="", country="")
 
     def to_dict(self):
-        """
-        Converts the Address object to a dictionary.
-
-        Returns:
-            dict: The Address object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
         return {
             "street": self.street,
             "city": self.city,
@@ -104,12 +102,7 @@ class PolicyClaimInfo(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example PolicyClaimInfo object.
-
-        Returns:
-            PolicyClaimInfo: An empty PolicyClaimInfo object.
-        """
+        """Return an empty instance with default placeholder values."""
         return PolicyClaimInfo(
             first_name="",
             last_name="",
@@ -129,12 +122,7 @@ class PolicyClaimInfo(BaseModel):
         )
 
     def to_dict(self):
-        """
-        Converts the PolicyClaimInfo object to a dictionary.
-
-        Returns:
-            dict: The PolicyClaimInfo object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
         return {
             "first_name": self.first_name,
             "last_name": self.last_name,
@@ -192,12 +180,7 @@ class PropertyClaimDetails(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example PropertyClaimDetails object.
-
-        Returns:
-            PropertyClaimDetails: An empty PropertyClaimDetails object.
-        """
+        """Return an empty instance with default placeholder values."""
         return PropertyClaimDetails(
             item="",
             description="",
@@ -209,12 +192,7 @@ class PropertyClaimDetails(BaseModel):
         )
 
     def to_dict(self):
-        """
-        Converts the PropertyClaimDetails object to a dictionary.
-
-        Returns:
-            dict: The PropertyClaimDetails object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
         return {
             "item": self.item,
             "description": self.description,
@@ -227,38 +205,27 @@ class PropertyClaimDetails(BaseModel):
 
 
 class Signature(BaseModel):
-    """
-    A class representing a signature for an invoice.
+    """Signature block on a property claim form.
 
     Attributes:
-        signatory: Name of the person who signed the invoice.
-        is_signed: Indicates if the invoice is signed.
+        signatory: Name of the person who signed the form.
+        is_signed: Indicates if the form is signed.
     """
 
     signatory: Optional[str] = Field(
-        description="Name of the person who signed the invoice"
+        description="Name of the person who signed the form"
     )
     is_signed: Optional[bool] = Field(
-        description="Indicates if the invoice is signed. GPT should check whether it has signature in image files. if there is Sign, fill it up as True"
+        description="Indicates if the form is signed. GPT should check whether it has signature in image files. if there is Sign, fill it up as True"
     )
 
     @staticmethod
     def example():
-        """
-        Creates an empty example InvoiceSignature object.
-
-        Returns:
-            InvoiceSignature: An empty InvoiceSignature object.
-        """
+        """Return an empty Signature with default placeholder values."""
         return Signature(signatory="", is_signed=False)
 
     def to_dict(self):
-        """
-        Converts the InvoiceSignature object to a dictionary.
-
-        Returns:
-            dict: The InvoiceSignature object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
         return {"signatory": self.signatory, "is_signed": self.is_signed}
 
 
@@ -282,12 +249,7 @@ class ClaimsDisclaimer(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example ClaimsDisclaimer object.
-
-        Returns:
-            ClaimsDisclaimer: An empty ClaimsDisclaimer object.
-        """
+        """Return an empty instance with default placeholder values."""
         return ClaimsDisclaimer(
             disclaimer="",
             policyholder_signature=Signature.example(),
@@ -295,12 +257,7 @@ class ClaimsDisclaimer(BaseModel):
         )
 
     def to_dict(self):
-        """
-        Converts the ClaimsDisclaimer object to a dictionary.
-
-        Returns:
-            dict: The ClaimsDisclaimer object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
         return {
             "disclaimer": self.disclaimer,
             "policyholder_signature": self.policyholder_signature,
@@ -330,12 +287,7 @@ class PropertyLossDamageClaimForm(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example PropertyLossDamageClaimForm object.
-
-        Returns:
-            PropertyLossDamageClaimForm: An empty PropertyLossDamageClaimForm object.
-        """
+        """Return an empty instance with default placeholder values."""
         return PropertyLossDamageClaimForm(
             policy_claim_info=PolicyClaimInfo.example(),
             property_claim_details=[PropertyClaimDetails.example()],
@@ -343,12 +295,7 @@ class PropertyLossDamageClaimForm(BaseModel):
         )
 
     def to_dict(self):
-        """
-        Converts the PropertyLossDamageClaimForm object to a dictionary.
-
-        Returns:
-            dict: The PropertyLossDamageClaimForm object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
         return {
             "policy_claim_info": self.policy_claim_info.to_dict()
             if self.policy_claim_info

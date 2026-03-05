@@ -1,3 +1,11 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+"""Pydantic models for invoice data extraction.
+
+Defines the schema used by the content processing pipeline to extract
+structured fields from invoice documents.
+"""
+
 from __future__ import annotations
 
 import json
@@ -29,22 +37,12 @@ class InvoiceAddress(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example InvoiceAddress object.
-
-        Returns:
-            InvoiceAddress: An empty InvoiceAddress object.
-        """
+        """Return an empty instance with default placeholder values."""
 
         return InvoiceAddress(street="", city="", state="", postal_code="", country="")
 
     def to_dict(self):
-        """
-        Converts the InvoiceAddress object to a dictionary.
-
-        Returns:
-            dict: The InvoiceAddress object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
 
         return {
             "street": self.street,
@@ -72,22 +70,12 @@ class InvoiceSignature(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example InvoiceSignature object.
-
-        Returns:
-            InvoiceSignature: An empty InvoiceSignature object
-        """
+        """Return an empty instance with default placeholder values."""
 
         return InvoiceSignature(signatory="", is_signed=False)
 
     def to_dict(self):
-        """
-        Converts the InvoiceSignature object to a dictionary.
-
-        Returns:
-            dict: The InvoiceSignature object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
 
         return {"signatory": self.signatory, "is_signed": self.is_signed}
 
@@ -134,12 +122,7 @@ class InvoiceItem(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example InvoiceItem object.
-
-        Returns:
-            InvoiceItem: An empty InvoiceItem object.
-        """
+        """Return an empty instance with default placeholder values."""
         return InvoiceItem(
             product_code="",
             description="",
@@ -152,12 +135,7 @@ class InvoiceItem(BaseModel):
         )
 
     def to_dict(self):
-        """
-        Converts the InvoiceItem object to a dictionary.
-
-        Returns:
-            dict: The InvoiceItem object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
 
         return {
             "product_code": self.product_code,
@@ -283,12 +261,7 @@ class Invoice(BaseModel):
 
     @staticmethod
     def example():
-        """
-        Creates an empty example Invoice object.
-
-        Returns:
-            Invoice: An empty Invoice object.
-        """
+        """Return an empty instance with default placeholder values."""
 
         return Invoice(
             customer_name="",
@@ -320,28 +293,12 @@ class Invoice(BaseModel):
 
     @staticmethod
     def from_json(json_str: str):
-        """
-        Creates an Invoice object from a JSON string.
-
-        Args:
-            json_str: The JSON string representing the Invoice object.
-
-        Returns:
-            Invoice: An Invoice object.
-        """
+        """Deserialize a JSON string into an Invoice instance."""
 
         json_content = json.loads(json_str)
 
         def create_invoice_address(address):
-            """
-            Creates an InvoiceAddress object from a dictionary.
-
-            Args:
-                address: A dictionary representing an InvoiceAddress object.
-
-            Returns:
-                InvoiceAddress: An InvoiceAddress object.
-            """
+            """Create an InvoiceAddress from a dictionary."""
 
             if address is None:
                 return None
@@ -355,15 +312,7 @@ class Invoice(BaseModel):
             )
 
         def create_invoice_item(item):
-            """
-            Creates an InvoiceItem object from a dictionary.
-
-            Args:
-                product: A dictionary representing an InvoiceItem object.
-
-            Returns:
-                InvoiceItem: An InvoiceItem object.
-            """
+            """Create an InvoiceItem from a dictionary."""
 
             if item is None:
                 return None
@@ -380,15 +329,7 @@ class Invoice(BaseModel):
             )
 
         def create_invoice_signature(signature):
-            """
-            Creates an InvoiceSignature object from a dictionary.
-
-            Args:
-                signature: A dictionary representing an InvoiceSignature object.
-
-            Returns:
-                InvoiceSignature: An InvoiceSignature object.
-            """
+            """Create an InvoiceSignature from a dictionary."""
 
             if signature is None:
                 return None
@@ -451,12 +392,7 @@ class Invoice(BaseModel):
         )
 
     def to_dict(self):
-        """
-        Converts the Invoice object to a dictionary.
-
-        Returns:
-            dict: The Invoice object as a dictionary.
-        """
+        """Serialize to a plain dictionary."""
 
         def to_list(items, expected_type):
             return [item.to_dict() for item in items if isinstance(item, expected_type)]

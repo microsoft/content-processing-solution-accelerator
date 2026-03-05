@@ -1,0 +1,310 @@
+trigger:
+  branches:
+    include:
+      - main
+      - frontend_dev
+
+  # When multiple commits land quickly on main, only run the latest.
+  batch: true
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'ado-pipeline-fed'
+
+  resourceGroupName: 'rg-cps-v2'
+  containerAppsEnv: 'cps-apps-env'
+  containerAppName: 'containerapp-cpsweb'
+  cpsApiContainerName: 'containerapp-cpsapi'
+
+  acrName: 'cpsv2'
+  acrLoginServer: 'cpsv2.azurecr.io'
+  imageRepository: 'contentprocessorweb'
+
+  appConfigEndpoint: 'https://appconfig-cps.azconfig.io'
+  appApiBaseUrl: 'https://containerapp-cpsapi.proudbeach-01741a45.westus2.azurecontainerapps.io'
+
+  dockerfilePath: 'Dockerfile'
+  dockerContext: '.'
+
+  imageTag: '$(Build.BuildId)'
+
+steps:
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: '$(azureServiceConnection)' # Replace with your Azure Classic service connection name
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        # Log in to Azure Container Registry
+        az acr login --name $(acrName)
+
+        # Retrieve the API URL from the Azure Container App
+        cpsApiBaseUrl="https://$(az containerapp show --name $(cpsApiContainerName) --resource-group $(resourceGroupName) --query "properties.configuration.ingress.fqdn" -o tsv)"
+        echo "CPS API Base URL: $cpsApiBaseUrl"
+
+        # Replace $cpsApiBaseUrl in .env file with URL from Azure Container App
+        sed -i "s|\$API_BASE_URL|$cpsApiBaseUrl|g" .env
+
+        # DEUBG: Check the .env file to ensure the value has been replaced correctly
+        cat .env 
+
+        # Build the Docker image
+        docker build -t $(acrLoginServer)/$(imageRepository):$(Build.BuildId) .
+
+        # Push the Docker image to ACR
+        docker push $(acrLoginServer)/$(imageRepository):$(Build.BuildId)
+    displayName: 'Build and push Docker image'
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: '$(azureServiceConnection)' # Replace with your Azure Classic service connection name
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        az acr repository show-tags --name $(acrName) --repository $(imageRepository) --output table
+    displayName: 'List ACR repository tags'
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: '$(azureServiceConnection)' # Replace with your Azure Classic service connection name
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        # Get the resource ID for the managed identity
+        managedIdentityResourceId=$(az identity show --name $(managedIdentityName) --resource-group $(resourceGroupName) --query 'id' -o tsv)
+        cpsApiBaseUrl="https://$(az containerapp show --name $(cpsApiContainerName) --resource-group $(resourceGroupName) --query "properties.configuration.ingress.fqdn" -o tsv)"
+        echo "CPS API Base URL deploy: $cpsApiBaseUrl"
+
+        # Check if the container app exists
+        if az containerapp show --name $(containerAppName) --resource-group $(resourceGroupName); then
+          # Update the container app with the new image
+          az containerapp update \
+            --name $(containerAppName) \
+            --resource-group $(resourceGroupName) \
+            --image $(acrLoginServer)/$(imageRepository):$(Build.BuildId) \
+            --cpu 4.0 \
+            --memory 8.0Gi \
+            --set-env-vars APP_API_BASE_URL=$cpsApiBaseUrl APP_WEB_CLIENT_ID=$(appWebClientId) APP_WEB_AUTHORITY=$(appWebAuthority) APP__WEB_SCOPE=$(appWebScope) APP_API_SCOPE=$(appApiScope) APP_AUTH_ENABLED=false
+        else
+        # Create the container app with the new image and registry settings
+          az containerapp create \
+            --name $(containerAppName) \
+            --resource-group $(resourceGroupName) \
+            --environment $(environmentName) \
+            --image $(acrLoginServer)/$(imageRepository):$(Build.BuildId) \
+            --cpu 4.0 \
+            --memory 8.0Gi \
+            --registry-server $(acrLoginServer) \
+            --registry-identity $managedIdentityResourceId \
+            --ingress external \ 
+            --env-vars APP_API_BASE_URL=$cpsApiBaseUrl APP_WEB_CLIENT_ID=$(appWebClientId) APP_WEB_AUTHORITY=$(appWebAuthority) APP__WEB_SCOPE=$(appWebScope) APP_API_SCOPE=$(appApiScope) APP_AUTH_ENABLED=false
+
+        fi
+    displayName: 'Deploy container to Azure Container App'
+
+  # - checkout: self
+  #   fetchDepth: 1
+
+  # Build + push to ACR (main only). PRs will build only.
+  # - task: AzureCLI@2
+  #   displayName: Build image (PR + main)
+  #   inputs:
+  #     azureSubscription: '$(azureServiceConnection)'
+  #     scriptType: bash
+  #     scriptLocation: inlineScript
+  #     inlineScript: |
+  #       set -euo pipefail
+
+  #       IMAGE="$(acrLoginServer)/$(imageRepository):$(imageTag)"
+  #       echo "Building $IMAGE"
+
+  #       az acr login --name "$(acrName)"
+  #       az acr show --name "$(acrName)"
+  #       docker build -f "$(dockerfilePath)" -t "$IMAGE" "$(dockerContext)"
+
+  # - task: AzureCLI@2
+  #   displayName: Push image to ACR (main only)
+  #   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  #   inputs:
+  #     azureSubscription: '$(azureServiceConnection)'
+  #     scriptType: bash
+  #     scriptLocation: inlineScript
+  #     inlineScript: |
+  #       set -euo pipefail
+
+  #       IMAGE="$(acrLoginServer)/$(imageRepository):$(imageTag)"
+  #       echo "Pushing $IMAGE"
+
+  #       az acr login --name "$(acrName)"
+  #       docker push "$IMAGE"
+
+  # # Deploy (update container app to the new image) with public ingress.
+  # - task: AzureCLI@2
+  #   displayName: Deploy to Azure Container Apps (main only, external ingress)
+  #   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  #   inputs:
+  #     azureSubscription: '$(azureServiceConnection)'
+  #     scriptType: bash
+  #     scriptLocation: inlineScript
+  #     inlineScript: |
+  #       set -euo pipefail
+
+  #       wait_for_app_ready() {
+  #         local name="$1"
+  #         local rg="$2"
+  #         local max_attempts="${3:-60}"
+  #         local sleep_seconds="${4:-10}"
+
+  #         for i in $(seq 1 "$max_attempts"); do
+  #           state=$(az containerapp show --name "$name" --resource-group "$rg" --query properties.provisioningState -o tsv 2>/dev/null || true)
+  #           if [ -z "$state" ]; then
+  #             echo "Waiting for container app '$name' to exist... ($i/$max_attempts)"
+  #           elif [ "$state" != "InProgress" ]; then
+  #             echo "Container app provisioningState=$state"
+  #             return 0
+  #           else
+  #             echo "Container app provisioningState=InProgress; waiting... ($i/$max_attempts)"
+  #           fi
+  #           sleep "$sleep_seconds"
+  #         done
+
+  #         echo "Timed out waiting for container app provisioning to complete."
+  #         return 1
+  #       }
+
+  #       retry_on_inprogress() {
+  #         local max_attempts="${1:-30}"
+  #         shift
+  #         for i in $(seq 1 "$max_attempts"); do
+  #           set +e
+  #           output=$("$@" 2>&1)
+  #           code=$?
+  #           set -e
+  #           if [ $code -eq 0 ]; then
+  #             return 0
+  #           fi
+  #           echo "$output"
+  #           if echo "$output" | grep -q "ContainerAppOperationInProgress"; then
+  #             echo "Container app busy; retrying... ($i/$max_attempts)"
+  #             sleep 15
+  #             continue
+  #           fi
+  #           return $code
+  #         done
+  #         echo "Timed out retrying operation due to ContainerAppOperationInProgress."
+  #         return 1
+  #       }
+
+  #       IMAGE="$(acrLoginServer)/$(imageRepository):$(imageTag)"
+  #       echo "Deploying $IMAGE to $(containerAppName)"
+
+  #       # Ensure extension is available on the hosted agent.
+  #       az extension add --name containerapp --upgrade
+
+  #       # Create the Container App if it doesn't exist (external ingress => public endpoint).
+  #       if ! az containerapp show --name "$(containerAppName)" --resource-group "$(resourceGroup)" 1>/dev/null 2>&1; then
+  #         az containerapp create \
+  #           --name "$(containerAppName)" \
+  #           --resource-group "$(resourceGroup)" \
+  #           --environment "$(containerAppsEnv)" \
+  #           --image "$IMAGE" \
+  #           --env-vars "APP_CONFIG_ENDPOINT=$(appConfigEndpoint)" "APP_AUTH_ENABLED=false" "APP_API_BASE_URL=$(appApiBaseUrl)" \
+  #           --ingress external \
+  #           --target-port 3000 \
+  #           --transport auto \
+  #           --allow-insecure \
+  #           --only-show-errors 1>/dev/null
+  #       fi
+
+  #       wait_for_app_ready "$(containerAppName)" "$(resourceGroup)" 60 10
+
+  #       # Ensure ingress is enabled and points to the container's listening port.
+  #       retry_on_inprogress 30 az containerapp ingress enable \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --type external \
+  #         --target-port 3000 \
+  #         --transport auto \
+  #         --allow-insecure \
+  #         --only-show-errors 1>/dev/null
+
+  #       wait_for_app_ready "$(containerAppName)" "$(resourceGroup)" 60 10
+
+  #       # Configure managed identity to pull from ACR.
+  #       retry_on_inprogress 30 az containerapp identity assign \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --system-assigned \
+  #         --only-show-errors 1>/dev/null
+
+  #       wait_for_app_ready "$(containerAppName)" "$(resourceGroup)" 60 10
+
+  #       PRINCIPAL_ID=$(az containerapp show \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --query identity.principalId \
+  #         -o tsv)
+
+  #       ACR_ID=$(az acr show \
+  #         --name "$(acrName)" \
+  #         --query id \
+  #         -o tsv)
+
+  #       # Validate that the container app identity already has AcrPull on the registry.
+  #       # NOTE: Using --assignee can trigger a Graph API lookup and emit warnings in locked-down tenants.
+  #       # Filtering by principalId avoids Graph entirely.
+  #       if ! az role assignment list \
+  #         --scope "$ACR_ID" \
+  #         --query "[?principalId=='$PRINCIPAL_ID' && roleDefinitionName=='AcrPull'] | length(@)" \
+  #         -o tsv | grep -q '^1$'; then
+  #         echo "ERROR: Container App managed identity does not have 'AcrPull' on ACR scope: $ACR_ID"
+  #         echo "Ask an Azure admin to run:"
+  #         echo "  az role assignment create --assignee $PRINCIPAL_ID --role AcrPull --scope $ACR_ID"
+  #         exit 1
+  #       fi
+
+  #       retry_on_inprogress 30 az containerapp registry set \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --server "$(acrLoginServer)" \
+  #         --identity system \
+  #         --only-show-errors 1>/dev/null
+
+  #       wait_for_app_ready "$(containerAppName)" "$(resourceGroup)" 60 10
+
+  #       # Roll out the new image.
+  #       retry_on_inprogress 40 az containerapp update \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --image "$IMAGE" \
+  #         --set-env-vars "APP_CONFIG_ENDPOINT=$(appConfigEndpoint)" "APP_AUTH_ENABLED=false" "APP_API_BASE_URL=$(appApiBaseUrl)"\
+  #         --only-show-errors
+
+  #       wait_for_app_ready "$(containerAppName)" "$(resourceGroup)" 80 10
+
+  #       echo "Container image configured on app:"
+  #       az containerapp show \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --query "properties.template.containers[0].{name:name,image:image}" \
+  #         -o table
+
+  #       READY_REV=$(az containerapp show \
+  #         --name "$(containerAppName)" \
+  #         --resource-group "$(resourceGroup)" \
+  #         --query properties.latestReadyRevisionName \
+  #         -o tsv)
+
+  #       if [ -n "$READY_REV" ]; then
+  #         echo "Latest ready revision: $READY_REV"
+  #         az containerapp revision show \
+  #           --name "$(containerAppName)" \
+  #           --resource-group "$(resourceGroup)" \
+  #           --revision "$READY_REV" \
+  #           --query "properties.template.containers[0].image" \
+  #           -o tsv
+  #       fi

@@ -1,0 +1,48 @@
+{
+    "name": "DevContainer for processor development",
+    "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+    "features": {
+        "ghcr.io/dhoeric/features/hadolint:1": {},
+        "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
+        "ghcr.io/azure/azure-dev/azd:latest": {},
+        "ghcr.io/devcontainers/features/azure-cli:1": {},
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22"
+        }
+    },
+    "runArgs": [
+        "--cpus=16",
+        "--memory=40g",
+        "--memory-swap=40g",
+        "--memory-swappiness=0",
+        "--shm-size=4g"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "charliermarsh.ruff",
+                "exiasr.hadolint",
+                "kevinrose.vsc-python-indent",
+                "mosapride.zenkaku",
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "njpwerner.autodocstring",
+                "redhat.vscode-yaml",
+                "shardulm94.trailing-spaces",
+                "tamasfe.even-better-toml",
+                "yzhang.markdown-all-in-one",
+                "ms-vscode.azure-account",
+                "ms-azuretools.azure-dev"
+            ]
+        }
+    },
+    "containerEnv": {
+        "DISPLAY": "dummy",
+        "UV_LINK_MODE": "copy",
+        "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
+        "VIRTUAL_ENV": "/home/vscode/.venv"
+    },
+    "postCreateCommand": "uv sync --prerelease=allow --python 3.12 --link-mode=copy --frozen",
+    "postStartCommand": "uv tool install pre-commit --with pre-commit-uv --force-reinstall",
+    "remoteUser": "vscode"
+}

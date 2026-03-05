@@ -1,16 +1,30 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Accordion-based view of the processing steps for a selected document.
+ * Each step is expandable and renders its raw JSON payload in a read-only
+ * json-edit-react editor.
+ */
+
+import React, { useEffect, useState, useRef } from "react";
 import { Accordion, AccordionItem, AccordionHeader, AccordionPanel } from "@fluentui/react-components";
-import { useSelector, shallowEqual } from 'react-redux';
-import { RootState } from '../../../../store/index.ts';
-import { JsonEditor } from "json-edit-react";
 import { CheckmarkCircleFilled } from "@fluentui/react-icons";
 import { Spinner } from "@fluentui/react-components";
+import { JsonEditor } from "json-edit-react";
+
+import { useSelector, shallowEqual } from 'react-redux';
+import { RootState } from '../../../../store';
 
 type LoadingStates = {
   [key: string]: boolean;
 };
 
-const ProcessSteps = () => {
+/**
+ * Renders an accordion of processing steps, each showing its JSON details
+ * and elapsed processing time.
+ */
+const ProcessSteps: React.FC = () => {
   const status = ['extract', 'processing', 'map', 'evaluate'];
   const [loadingStates, setLoadingStates] = useState<LoadingStates>({});
   const childRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -38,7 +52,7 @@ const ProcessSteps = () => {
     return `${totalSeconds}s`;
   };
 
-  const handleExpand = (itemId: any) => {
+  const handleExpand = (itemId: number) => {
     setLoadingStates((prevState) => ({ ...prevState, [itemId]: true }));
     setTimeout(() => {
       const childDiv = childRefs.current[itemId];

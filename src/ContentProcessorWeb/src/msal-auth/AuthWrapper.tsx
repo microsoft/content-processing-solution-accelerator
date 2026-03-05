@@ -1,29 +1,36 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+/**
+ * Conditionally triggers MSAL login and gates child rendering
+ * until the user is authenticated and a token is available.
+ */
 import React, { useEffect } from "react";
-import { msalInstance } from "./msalInstance";
-import { loginRequest } from "./msaConfig";
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+
 import { InteractionStatus } from "@azure/msal-browser";
 
 import useAuth from './useAuth';
 
-const AuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthWrapperProps {
+  /** Child elements rendered only after successful authentication. */
+  readonly children: React.ReactNode;
+}
 
-  const { isAuthenticated, login, inProgress,token } = useAuth();
-  const authEnabled = process.env.REACT_APP_AUTH_ENABLED?.toLowerCase() !== 'false'; // Defaults to true if not set
+const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
+  const { isAuthenticated, login, inProgress, token } = useAuth();
+  const authEnabled = process.env.REACT_APP_AUTH_ENABLED?.toLowerCase() !== 'false';
 
   useEffect(() => {
     if (authEnabled && !isAuthenticated && inProgress === InteractionStatus.None) {
       login();
     }
-  }, [authEnabled, isAuthenticated, inProgress]);
+  }, [authEnabled, isAuthenticated, inProgress, login]);
 
   if (!authEnabled) {
     return <>{children}</>;
   }
 
-  return <>{(isAuthenticated && token) && children}</>
+  return <>{(isAuthenticated && token) && children}</>;
 };
 
 export default AuthWrapper;
-

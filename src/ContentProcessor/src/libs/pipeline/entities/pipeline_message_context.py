@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Message processing context passed to pipeline handlers.
+
+Bundles the deserialized ``DataPipeline`` payload with the raw Azure
+Storage ``QueueMessage`` so handlers have access to both.
+"""
+
 from azure.storage.queue import QueueMessage
 
 from libs.base.application_models import AppModelBase

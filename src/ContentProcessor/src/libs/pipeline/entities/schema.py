@@ -1,3 +1,13 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Schema metadata model for dynamic extraction templates.
+
+A ``Schema`` record is stored in Cosmos DB and describes a Python
+class file (in blob storage) that defines the structured output
+format for a particular document type.
+"""
+
 import datetime
 from typing import Optional
 
@@ -7,6 +17,16 @@ from libs.azure_helper.comsos_mongo import CosmosMongDBHelper
 
 
 class Schema(BaseModel):
+    """Metadata for a registered extraction schema.
+
+    Attributes:
+        Id: Unique schema identifier.
+        ClassName: Python class name in the remote module.
+        Description: Human-readable description.
+        FileName: Blob filename containing the schema class.
+        ContentType: Target content type this schema handles.
+    """
+
     Id: str
     ClassName: str
     Description: str
