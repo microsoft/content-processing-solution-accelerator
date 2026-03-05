@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from libs.agent_framework.cosmos_checkpoint_storage import (
     CosmosCheckpointStorage,

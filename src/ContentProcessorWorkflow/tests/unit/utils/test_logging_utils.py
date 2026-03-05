@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import logging
 
+import pytest
+
 from utils.logging_utils import (
     LogMessages,
     _format_specific_error_details,
@@ -153,6 +155,3 @@ class TestLogMessages:
             operation="summarize", details="ok"
         )
         assert "summarize" in msg
-
-
-import pytest

@@ -5,9 +5,6 @@
 
 from __future__ import annotations
 
-import os
-import tempfile
-
 import pytest
 
 from utils.prompt_util import TemplateUtility

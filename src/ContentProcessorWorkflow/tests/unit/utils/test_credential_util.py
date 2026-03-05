@@ -5,8 +5,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from utils.credential_util import (
     get_azure_credential,
     get_async_azure_credential,
