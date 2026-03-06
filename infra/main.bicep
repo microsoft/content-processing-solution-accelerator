@@ -827,7 +827,7 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.13.2' = 
     enableTelemetry: enableTelemetry
     networkAcls: {
       bypass: 'AzureServices'
-      defaultAction: 'Allow' // Always allow for AI Services
+      defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
     }
     roleAssignments: [
       {
