@@ -1202,7 +1202,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${publicContainerImageEndpoint}/contentprocessworkflow:${imageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessorworkflow:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1768,7 +1768,7 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${publicContainerImageEndpoint}/contentprocessworkflow:${imageTag}'
+        image: '${publicContainerImageEndpoint}/contentprocessorworkflow:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'

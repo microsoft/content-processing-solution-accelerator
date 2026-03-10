@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "6210457697516744303"
+      "templateHash": "10682864961053259354"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -49931,7 +49931,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessworkflow:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -65431,7 +65431,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessworkflow:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
