@@ -25,6 +25,8 @@ from typing import Optional
 from pydantic import Field
 from sas.cosmosdb.mongo.model import EntityBase, RootEntityBase
 
+from steps.rai.executor.rai_executor import RAIExecutor
+
 
 class Claim_Steps(str, Enum):
     """

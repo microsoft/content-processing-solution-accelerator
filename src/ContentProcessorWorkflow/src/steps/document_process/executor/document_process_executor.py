@@ -242,6 +242,7 @@ class DocumentProcessExecutor(Executor):
 
                             async def _on_poll(r):
                                 nonlocal process_id
+                                nonlocal seen_progress_digests
 
                                 if r.status not in (200, 500) or not r.body:
                                     return
