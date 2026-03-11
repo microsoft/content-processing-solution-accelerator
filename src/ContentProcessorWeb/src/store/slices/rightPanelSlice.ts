@@ -35,8 +35,18 @@ export const fetchContentFileData = createAsyncThunk<
             const response = await httpUtility.headers(url);
 
             if (!response.ok) throw new Error("Failed to fetch file");
+            // const blob = await response.blob();
+            // const blobURL = URL.createObjectURL(blob);
+            //The blob: URL is created in the top-level page context, then loaded inside an <iframe>. 
+            // Chrome's storage partitioning blocks cross-partition blob URL access, 
+            // causing the iframe to fail loading the PDF/document.
             const blob = await response.blob();
-            const blobURL = URL.createObjectURL(blob);
+            const blobURL = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+            });
+
             const headers = response.headers;
             if (!headers) {
                 throw new Error("Failed to fetch headers");
