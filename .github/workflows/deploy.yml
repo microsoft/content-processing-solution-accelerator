@@ -151,7 +151,7 @@ jobs:
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
               aiServiceLocation="${{ env.AZURE_LOCATION }}" \
-              imageTag="latest" \
+              imageTag="latest_v2" \
               tags="{'CreatedBy':'Pipeline', 'Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."

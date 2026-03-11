@@ -36,7 +36,7 @@ ENV_NAME=$(get_azd_env_value_or_default "AZURE_ENV_NAME" "" true)
 CONTAINER_APP_USER_IDENTITY_ID=$(get_azd_env_value_or_default "CONTAINER_APP_USER_IDENTITY_ID" "" true)
 AZURE_RESOURCE_GROUP=$(get_azd_env_value_or_default "AZURE_RESOURCE_GROUP" "" true)
 CONTAINER_APP_USER_PRINCIPAL_ID=$(get_azd_env_value_or_default "CONTAINER_APP_USER_PRINCIPAL_ID" "" true)
-AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest" false)
+AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest_v2" false)
 CONTAINER_WEB_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WEB_APP_NAME" "" true)
 CONTAINER_API_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_API_APP_NAME" "" true)
 CONTAINER_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_APP_NAME" "" true)
@@ -119,6 +119,6 @@ build_and_push_image "contentprocessorapi" "$SCRIPT_DIR/../../src/ContentProcess
 
 build_and_push_image "contentprocessorweb" "$SCRIPT_DIR/../../src/ContentProcessorWeb/" "$CONTAINER_WEB_APP_NAME"
 
-build_and_push_image "contentprocessworkflow" "$SCRIPT_DIR/../../src/ContentProcessWorkflow/" "$CONTAINER_WORKFLOW_APP_NAME"
+build_and_push_image "contentprocessorworkflow" "$SCRIPT_DIR/../../src/ContentProcessorWorkflow/" "$CONTAINER_WORKFLOW_APP_NAME"
 
 echo "All Docker images built and pushed successfully."

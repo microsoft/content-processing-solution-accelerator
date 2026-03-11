@@ -10,7 +10,7 @@ $TemplateFile = Join-Path $ScriptDir "..\deploy_container_registry.bicep"
 $ContentProcessorPath = Join-Path $ScriptDir "..\..\src\ContentProcessor"
 $ContentApiPath = Join-Path $ScriptDir "..\..\src\ContentProcessorAPI"
 $ContentWebPath = Join-Path $ScriptDir "..\..\src\ContentProcessorWeb"
-$ContentWorkflowPath = Join-Path $ScriptDir "..\..\src\ContentProcessWorkflow"
+$ContentWorkflowPath = Join-Path $ScriptDir "..\..\src\ContentProcessorWorkflow"
 
 # Define function to build and push Docker images
 function Build-And-Push-Image {
@@ -103,7 +103,7 @@ $ENV_NAME = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_NAME" -Required $true
 $CONTAINER_APP_USER_IDENTITY_ID = Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_USER_IDENTITY_ID" -Required $true
 $AZURE_RESOURCE_GROUP = Get-AzdEnvValueOrDefault -KeyName "AZURE_RESOURCE_GROUP" -Required $true
 $CONTAINER_APP_USER_PRINCIPAL_ID = Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_USER_PRINCIPAL_ID" -Required $true
-$AZURE_ENV_IMAGETAG = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_IMAGETAG" -DefaultValue "latest"
+$AZURE_ENV_IMAGETAG = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_IMAGETAG" -DefaultValue "latest_v2"
 $CONTAINER_WEB_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_WEB_APP_NAME" -Required $true
 $CONTAINER_API_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_API_APP_NAME" -Required $true
 $CONTAINER_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_NAME" -Required $true
@@ -151,6 +151,6 @@ if ($LASTEXITCODE -ne 0) {
 Build-And-Push-Image "contentprocessor" "$ContentProcessorPath" $CONTAINER_APP_NAME
 Build-And-Push-Image "contentprocessorapi" "$ContentApiPath" $CONTAINER_API_APP_NAME
 Build-And-Push-Image "contentprocessorweb" "$ContentWebPath" $CONTAINER_WEB_APP_NAME
-Build-And-Push-Image "contentprocessworkflow" "$ContentWorkflowPath" $CONTAINER_WORKFLOW_APP_NAME
+Build-And-Push-Image "contentprocessorworkflow" "$ContentWorkflowPath" $CONTAINER_WORKFLOW_APP_NAME
 
 Write-Host "All Docker images built and pushed successfully."
