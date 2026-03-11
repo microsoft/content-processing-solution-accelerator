@@ -1173,6 +1173,14 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
             value: '<BACKEND_API_SCOPE>'
           }
           {
+            name: 'APP_REDIRECT_URL'
+            value: '/'
+          }
+          {
+            name: 'APP_POST_REDIRECT_URL'
+            value: '/'
+          }
+          {
             name: 'APP_CONSOLE_LOG_ENABLED'
             value: 'false'
           }
