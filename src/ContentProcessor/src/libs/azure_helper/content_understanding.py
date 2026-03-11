@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import base64
 import json
 import logging
 import time
@@ -18,7 +19,7 @@ class AzureContentUnderstandingHelper:
     def __init__(
         self,
         endpoint: str,
-        api_version: str = "2024-12-01-preview",
+        api_version: str = "2025-11-01",
         x_ms_useragent: str = "cps-contentunderstanding/client",
     ):
         self.credential = get_azure_credential()
@@ -45,12 +46,18 @@ class AzureContentUnderstandingHelper:
     def _get_analyze_url(self, endpoint, api_version, analyzer_id):
         return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyze?api-version={api_version}"  # noqa
 
+    def _get_analyze_binary_url(self, endpoint, api_version, analyzer_id):
+        return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyzeBinary?api-version={api_version}"  # noqa
+
+    def _get_result_file_url(self, endpoint, api_version, operation_id, file_path):
+        return f"{endpoint}/contentunderstanding/analyzerResults/{operation_id}/files/{file_path}?api-version={api_version}"  # noqa
+
     def _get_training_data_config(
         self, storage_container_sas_url, storage_container_path_prefix
     ):
         return {
+            "kind": "labeledData",
             "containerUrl": storage_container_sas_url,
-            "kind": "blob",
             "prefix": storage_container_path_prefix,
         }
 
@@ -144,10 +151,12 @@ class AzureContentUnderstandingHelper:
             training_storage_container_sas_url
             and training_storage_container_path_prefix
         ):  # noqa
-            analyzer_template["trainingData"] = self._get_training_data_config(
-                training_storage_container_sas_url,
-                training_storage_container_path_prefix,
-            )
+            analyzer_template["knowledgeSources"] = [
+                self._get_training_data_config(
+                    training_storage_container_sas_url,
+                    training_storage_container_path_prefix,
+                )
+            ]
 
         headers = {"Content-Type": "application/json"}
         headers.update(self._headers)
@@ -184,7 +193,7 @@ class AzureContentUnderstandingHelper:
 
     def begin_analyze_stream(self, analyzer_id: str, file_stream: bytes):
         """
-        Begins the analysis of a file or URL using the specified analyzer.
+        Begins the analysis of a binary file stream using the specified analyzer.
 
         Args:
             analyzer_id (str): The ID of the analyzer to use.
@@ -194,13 +203,12 @@ class AzureContentUnderstandingHelper:
             Response: The response from the analysis request.
 
         Raises:
-            ValueError: If the file location is not a valid path or URL.
             HTTPError: If the HTTP request returned an unsuccessful status code.
         """
         headers = {"Content-Type": "application/octet-stream"}
         headers.update(self._headers)
         response = requests.post(
-            url=self._get_analyze_url(self._endpoint, self._api_version, analyzer_id),
+            url=self._get_analyze_binary_url(self._endpoint, self._api_version, analyzer_id),
             headers=headers,
             data=file_stream,
         )
@@ -224,34 +232,25 @@ class AzureContentUnderstandingHelper:
             ValueError: If the file location is not a valid path or URL.
             HTTPError: If the HTTP request returned an unsuccessful status code.
         """
-        data = None
         if Path(file_location).exists():
             with open(file_location, "rb") as file:
-                data = file.read()
-            headers = {"Content-Type": "application/octet-stream"}
+                file_bytes = file.read()
+            base64_data = base64.b64encode(file_bytes).decode("utf-8")
+            body = {"inputs": [{"data": base64_data}]}
         elif "https://" in file_location or "http://" in file_location:
-            data = {"url": file_location}
-            headers = {"Content-Type": "application/json"}
+            body = {"inputs": [{"url": file_location}]}
         else:
             raise ValueError("File location must be a valid path or URL.")
 
+        headers = {"Content-Type": "application/json"}
         headers.update(self._headers)
-        if isinstance(data, dict):
-            response = requests.post(
-                url=self._get_analyze_url(
-                    self._endpoint, self._api_version, analyzer_id
-                ),
-                headers=headers,
-                json=data,
-            )
-        else:
-            response = requests.post(
-                url=self._get_analyze_url(
-                    self._endpoint, self._api_version, analyzer_id
-                ),
-                headers=headers,
-                data=data,
-            )
+        response = requests.post(
+            url=self._get_analyze_url(
+                self._endpoint, self._api_version, analyzer_id
+            ),
+            headers=headers,
+            json=body,
+        )
 
         response.raise_for_status()
         self._logger.info(
@@ -259,31 +258,30 @@ class AzureContentUnderstandingHelper:
         )
         return response
 
-    def get_image_from_analyze_operation(
-        self, analyze_response: Response, image_id: str
+    def get_file_from_analyze_operation(
+        self, analyze_response: Response, file_path: str
     ):
-        """Retrieves an image from the analyze operation using the image ID.
+        """Retrieves a file from the analyze operation result using the file path.
         Args:
             analyze_response (Response): The response object from the analyze operation.
-            image_id (str): The ID of the image to retrieve.
+            file_path (str): The path of the file to retrieve (e.g. 'figure-1.1').
         Returns:
-            bytes: The image content as a byte string.
+            bytes: The file content as a byte string.
         """
         operation_location = analyze_response.headers.get("operation-location", "")
         if not operation_location:
             raise ValueError(
                 "Operation location not found in the analyzer response header."
             )
-        operation_location = operation_location.split("?api-version")[0]
-        image_retrieval_url = (
-            f"{operation_location}/images/{image_id}?api-version={self._api_version}"
+        # Extract operation ID from the operation-location URL
+        # Format: {endpoint}/contentunderstanding/analyzerResults/{operationId}?api-version=...
+        operation_id = operation_location.split("/analyzerResults/")[-1].split("?")[0]
+        file_retrieval_url = self._get_result_file_url(
+            self._endpoint, self._api_version, operation_id, file_path
         )
         try:
-            response = requests.get(url=image_retrieval_url, headers=self._headers)
+            response = requests.get(url=file_retrieval_url, headers=self._headers)
             response.raise_for_status()
-
-            assert response.headers.get("Content-Type") == "image/jpeg"
-
             return response.content
         except requests.exceptions.RequestException as e:
             print(f"HTTP request failed: {e}")

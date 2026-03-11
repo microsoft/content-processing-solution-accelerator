@@ -27,7 +27,7 @@ Using Azure App Configuration, app settings and configurations are centralized a
 Using Azure Storage Queue, pipeline work steps and processing jobs are added to the storage queue to be picked up and run for their respective jobs. Files uploaded are queued while being saved the blob storage and removed after successful completion. 
 
 ### Azure AI Content Understanding Service
-Used to detect and extract text from images and PDFs. This service also retrieves the coordinates of each piece of text, along with confidence scores, by leveraging built-in (pretrained) models. This utilizes the prebuild-layout 2024-12-01-preview for extraction.
+Used to detect and extract text from images and PDFs. This service also retrieves the coordinates of each piece of text, along with confidence scores, by leveraging built-in (pretrained) models. This utilizes the prebuild-layout 2025-11-01 for extraction.
 
 ### Azure OpenAI Service
 Using Azure OpenAI Service, a deployment of the GPT-4o 2024-10-01-preview model is used during the content processing pipeline to extract content. GPT Vision is used for extraction and validation functions during processing. This model can be changed to a different Azure OpenAI Service model if desired, but this has not been thoroughly tested and may be affected by the output token limits.
