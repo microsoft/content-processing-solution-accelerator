@@ -81,7 +81,6 @@ const fetchWithAuth = async <T>(
     if (error?.status !== undefined) {
       throw error;
     }
-    const isNetworkError = error instanceof TypeError && error.message === 'Failed to fetch';
     const isOffline = !navigator.onLine; //isNetworkError ||
 
     const message = isOffline

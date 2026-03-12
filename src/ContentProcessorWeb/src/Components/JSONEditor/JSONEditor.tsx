@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { JsonEditor, JsonEditorProps, githubDarkTheme } from 'json-edit-react'
+import { JsonEditor } from 'json-edit-react'
 import './JSONEditor.styles.scss'
 
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';

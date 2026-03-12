@@ -3,7 +3,7 @@ import { FixedSizeList as List } from "react-window";
 import { DocumentQueueAdd20Regular, DocumentPdfRegular, ImageRegular } from "@fluentui/react-icons";
 import { Tooltip } from "@fluentui/react-components";
 import {
-     useScrollbarWidth, useFluent, TableBody, TableCell, TableRow, Table,
+    TableBody, TableCell, TableRow, Table,
     TableHeader, TableHeaderCell, TableCellLayout, createTableColumn, useTableFeatures,
     useTableSelection, useTableSort, TableColumnId, 
     TableRowId
@@ -79,8 +79,6 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
     }), shallowEqual
     );
 
-    const { targetDocument } = useFluent();
-    
     const [sortState, setSortState] = useState<{
         sortDirection: "ascending" | "descending";
         sortColumn: TableColumnId | undefined;
@@ -166,9 +164,6 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
         getRows,
         sort: { getSortDirection, toggleColumnSort, sort },
         selection: {
-            allRowsSelected,
-            someRowsSelected,
-            toggleAllRows,
             toggleRow,
             isRowSelected,
         },
