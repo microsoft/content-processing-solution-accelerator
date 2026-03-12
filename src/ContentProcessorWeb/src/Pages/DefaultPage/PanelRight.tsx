@@ -4,7 +4,6 @@ import DocumentViewer from '../../Components/DocumentViewer/DocumentViewer.tsx'
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchContentFileData } from '../../store/slices/rightPanelSlice'
-import { updatePanelCollapse } from "../../store/slices/defaultPageSlice.ts";
 import { bundleIcon, ChevronDoubleLeft20Filled, ChevronDoubleLeft20Regular } from "@fluentui/react-icons";
 import { Button } from "@fluentui/react-components";
 const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLeft20Filled);
