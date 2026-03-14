@@ -31,7 +31,7 @@ pydantic==2.12.5
 pydantic-core==2.41.5
 pydantic-settings==2.12.0
 pygments==2.19.2
-pyjwt==2.10.1
+pyjwt==2.12.0
 pymongo==4.16.0
 pytest==9.0.2
 pytest-asyncio==1.3.0
