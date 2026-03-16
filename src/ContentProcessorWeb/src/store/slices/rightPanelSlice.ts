@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 import httpUtility from '../../Services/httpUtility';
 
-import { toast } from "react-toastify";
 interface T {
     headers: any,
     blobURL: string,

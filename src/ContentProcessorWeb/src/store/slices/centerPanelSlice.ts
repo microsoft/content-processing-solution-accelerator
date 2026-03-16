@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 import httpUtility, { handleApiThunk } from '../../Services/httpUtility';
 import { toast } from "react-toastify";

@@ -8,7 +8,7 @@ import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store/index.ts';
 import { updatePanelCollapse } from "../../store/slices/defaultPageSlice.ts";
 
-import { makeStyles, Button } from "@fluentui/react-components";
+import { Button } from "@fluentui/react-components";
 
 const Page: React.FC = () => {
 

@@ -209,7 +209,7 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
     setUploading(false);
     setFileErrors({})
     setUploadCompleted(false);
-  }
+  };
   const isSchemaSelectedOptionEmpty = !store.schemaSelectedOption || Object.keys(store.schemaSelectedOption).length === 0;
   const onCloseHandler = () => {
     resetState();
