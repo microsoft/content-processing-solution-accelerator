@@ -81,7 +81,7 @@ const fetchWithAuth = async <T>(
     if (error?.status !== undefined) {
       throw error;
     }
-    const isOffline = !navigator.onLine; //isNetworkError ||
+    const isOffline = !navigator.onLine;
 
     const message = isOffline
       ? 'No internet connection. Please check your network and try again.'
