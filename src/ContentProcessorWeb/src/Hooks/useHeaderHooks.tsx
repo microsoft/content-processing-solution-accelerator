@@ -10,7 +10,6 @@
 import React, { useEffect, useCallback, useState } from "react";
 
 import {
-  Avatar,
   Subtitle2,
   Tag,
 } from "@fluentui/react-components";
@@ -87,11 +86,10 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Title Section */}
       <Link to="/default" style={{ textDecoration: "none", color: "inherit" }}>
       <div className="headerTitle">
-        <Avatar
-          image={{ src: avatarSrc }}
-          shape="square"
-          //color= {null}
-        
+        <img
+          src={avatarSrc}
+          alt="Logo"
+          style={{ height: '100%', maxHeight: 32, objectFit: 'contain' }}
         />
         <div className="headerTitleText">
         <Subtitle2 style={{ whiteSpace: "nowrap" }}>
