@@ -41,10 +41,13 @@
     "enableScalability": {
       "value": true
     },
-    "virtualMachineAdminUsername": {
+    "vmSize": {
+      "value": "${AZURE_ENV_VM_SIZE}"
+    },
+    "vmAdminUsername": {
       "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
     },
-    "virtualMachineAdminPassword": {
+    "vmAdminPassword": {
       "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     },
     "publicContainerImageEndpoint": {
