@@ -15,7 +15,8 @@ RUN apt-get update \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL https://aka.ms/install-azd.sh | bash
+    && curl -fsSL https://aka.ms/install-azd.sh | bash \
+    && ln -sf /usr/bin/python3 /usr/bin/python
 
 # Copy UV binaries
 COPY --from=uv --chown=vscode: /uv /uvx /bin/
