@@ -14,7 +14,7 @@ interface PanelToolbarProps {
   /** Icon element displayed before the header text. */
   icon: React.ReactNode;
   /** Panel header label. */
-  header: string;
+  header: React.ReactNode;
   /** Optional action buttons or controls rendered to the right. */
   children?: React.ReactNode;
 }

@@ -333,7 +333,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
         <div className={styles.tabContainer}>
           <TabList selectedValue={selectedTab} onTabSelect={onTabSelect} className="custom-test" >
             <Tab value="ai-summary">AI Summary</Tab>
-            <Tab value="gap-analysis">Gap Analysis</Tab>
+            <Tab value="gap-analysis">AI Gap Analysis</Tab>
           </TabList>
         </div>
         <Divider />
@@ -404,7 +404,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
 
   return (
     <div className={`pc ${styles.panelCenter}`}>
-      <PanelToolbar icon={null} header="Output Review">
+      <PanelToolbar icon={null} header={store.selectionType === 'claim' ? <>Output Review <span style={{ fontWeight: 'normal' }}>(for Illustrative purposes only)</span></> : "Output Review"}>
         <Button icon={<ChevronDoubleLeft />} title="Collapse Panel" onClick={() => togglePanel('Center')} />
       </PanelToolbar>
       {store.selectionType === 'claim' ? renderClaimView() : renderDocumentView()}
