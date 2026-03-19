@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "4821257159531769907"
+      "templateHash": "12321899448461321231"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -4928,7 +4928,7 @@
           "osType": {
             "value": "Windows"
           },
-          "vmSize": "[if(empty(parameters('vmSize')), createObject('value', 'Standard_DS2_v2'), createObject('value', parameters('vmSize')))]",
+          "vmSize": "[if(empty(parameters('vmSize')), createObject('value', 'Standard_D2s_v5'), createObject('value', parameters('vmSize')))]",
           "adminUsername": "[if(empty(parameters('vmAdminUsername')), createObject('value', 'JumpboxAdminUser'), createObject('value', parameters('vmAdminUsername')))]",
           "adminPassword": "[if(empty(parameters('vmAdminPassword')), createObject('value', 'JumpboxAdminP@ssw0rd1234!'), createObject('value', parameters('vmAdminPassword')))]",
           "managedIdentities": {
@@ -40925,9 +40925,9 @@
       "dependsOn": [
         "avmContainerApp",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "logAnalyticsWorkspace",
         "virtualNetwork"
