@@ -362,10 +362,23 @@ The analyst reviews the AI-generated summary for a quick overview, checks gap an
 - **No-code gap rules** <br/>
   Gap analysis rules are defined in a YAML DSL that domain experts can modify without writing code — add required document checks, adjust severity levels, or define new discrepancy rules across industries.
 
-- **Confidence scoring** <br/>
-  Extraction and schema mapping are scored for accuracy, so analysts can focus human review on low-confidence results while high-confidence data flows through automatically.
+- **Confidence-driven human-in-the-loop** <br/>
+  Extraction and schema mapping are scored for accuracy using dual confidence signals (OCR-level and model log-probability), so analysts can focus human review on low-confidence results while high-confidence data flows through automatically.
 
-- **Verifiable Approvals** <br/>
+- **Verifiable review & audit trail** <br/>
+  Review AI-generated extractions, summaries, and gap analysis results side-by-side with source documents. Annotate changes, add comments, and compare processing steps for transparency and audit readiness.
+
+- **Responsible AI safety gate** <br/>
+  A built-in RAI executor screens every document's extracted content against 10 safety categories — including self-harm, violence, prompt injection, and discriminatory content — before further processing, helping ensure only safe content reaches downstream workflows.
+
+- **Schema-driven extensibility** <br/>
+  Define custom Pydantic schemas to extract structured data from any document type. The same extraction pipeline generalizes across industries — insurance, logistics, legal, finance — without code changes.
+
+- **Production-ready orchestration** <br/>
+  The Agent Framework Workflow Engine provides DAG-based execution with event streaming, retry logic, dead-letter queues, and graceful shutdown — designed for reliable, scalable processing in production environments.
+
+- **API-first integration** <br/>
+  All capabilities — claim lifecycle, content processing, schema management — are exposed through REST APIs, enabling integration with existing line-of-business systems, RPA workflows, and custom applications.
 
 </details>
 
