@@ -339,7 +339,7 @@ You should see output like this in the terminal:
 ### 5.4 Test the Application
 
 **Quick Test Steps:**
-1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `autoclaim/` or `autoclaim_gap1/` folders for auto claim documents.
+1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
 2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
 3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
 

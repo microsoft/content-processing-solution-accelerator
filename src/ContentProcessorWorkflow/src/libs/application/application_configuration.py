@@ -133,7 +133,7 @@ class Configuration(_configuration_base):
         default="content-processing-db", alias="APP_COSMOS_DATABASE"
     )
     app_cosmos_container_batch_process: str = Field(
-        default="batch-processes", alias="APP_COSMOS_CONTAINER_BATCH_PROCESS"
+        default="claimprocesses", alias="APP_COSMOS_CONTAINER_BATCH_PROCESS"
     )
     storage_queue_account: str = Field(
         default="http://<storage queue url>", alias="STORAGE_QUEUE_ACCOUNT"
@@ -149,7 +149,7 @@ class Configuration(_configuration_base):
         default="<storage account name>", alias="APP_STORAGE_ACCOUNT_NAME"
     )
     app_cps_process_batch: str = Field(
-        default="cps-process-batch", alias="APP_CPS_PROCESS_BATCH"
+        default="process-batch", alias="APP_CPS_PROCESS_BATCH"
     )
     app_cps_processes: str = Field(default="cps-processes", alias="APP_CPS_PROCESSES")
 

@@ -92,7 +92,6 @@ graph TB
 
     subgraph Config["🔧 Configuration & Infrastructure"]
         APPCONFIG["<b>App Configuration</b>"]
-        KV["<b>Key Vault</b>"]
         ACR["<b>Container Registry</b>"]
         CAE["<b>Container App Environment</b>"]
         LOG["<b>Log Analytics</b>"]
@@ -341,7 +340,7 @@ The analyst creates a claim in the system and uploads all documents. The workflo
 
 The analyst reviews the AI-generated summary for a quick overview, checks gap analysis results for flagged issues and discrepancies, and drills into individual document extractions when needed. What previously required hours of manual cross-referencing is now orchestrated in minutes.
 
-> **Sample data included:** The `autoclaim/` folder provides a complete claim package (claim form + police report + repair estimate + damage photo). The `autoclaim_gap1/` folder provides an incomplete claim (missing police report and repair estimate) to demonstrate gap detection. See [Golden Path Workflows](./docs/GoldenPathWorkflows.md) for a step-by-step walkthrough.
+> **Sample data included:** The `claim_date_of_loss/` folder provides a complete claim package (claim form + police report + repair estimate + damage photo). The `claim_hail/` folder provides a claim with a subset of documents (claim form + repair estimate + damage photo) to demonstrate gap detection. See [Golden Path Workflows](./docs/GoldenPathWorkflows.md) for a step-by-step walkthrough.
 
 ⚠️ The sample data used in this repository is synthetic and generated using Azure OpenAI service. The data is intended for use as sample data only.
 
@@ -378,9 +377,7 @@ Supporting documentation
 
 ### Security guidelines
 
-This template uses Azure Key Vault to store all connections to communicate between resources.
-
-This template also uses [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for local development and deployment.
+This template uses [Azure App Configuration](https://learn.microsoft.com/azure/azure-app-configuration/overview) for centralized configuration management and [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for secure service-to-service authentication — no connection strings or secrets are stored in application code.
 
 To ensure continued best practices in your own repository, we recommend that anyone creating solutions based on our templates ensure that the [Github secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) setting is enabled.
 
