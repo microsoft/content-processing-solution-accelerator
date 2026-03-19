@@ -289,15 +289,6 @@ azd up
 
 **⚠️ Deployment Issues:** If you encounter errors or timeouts, try a different region as there may be capacity constraints. For detailed error solutions, see our [Troubleshooting Guide](./TroubleShootingSteps.md).
 
-### 4.3 Get Application URL
-
-After successful deployment:
-1. The terminal will display the Name, Endpoint (Application URL), and Azure Portal URL for the Web and API Azure Container Apps. The solution deploys four container apps: Content Processor (background worker), Content Process API, Claim Process Monitor Web, and Content Process Workflow (claim processor).
-  
-    ![](./images/cp-post-deployment.png)
-
-2. Copy the **Web App Endpoint** to access the application.
-
 ⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
 
 ## Step 5: Post-Deployment Configuration
@@ -313,9 +304,54 @@ Schema registration happens **automatically** as part of the `azd up` post-provi
 3. Creates an **"Auto Claim"** schema set
 4. Adds all registered schemas into the schema set
 
-You should see output like this in the terminal:
+After successful deployment, the terminal displays container app details and schema registration output:
 
-![schema file registration](./images/SchemaFileRegistration.png)  
+```
+🧭 Web App Details:
+  ✅ Name: ca-<env>-web
+  🌐 Endpoint: ca-<env>-web.<region>.azurecontainerapps.io
+  🔗 Portal URL: https://portal.azure.com/#resource/...
+
+🧭 API App Details:
+  ✅ Name: ca-<env>-api
+  🌐 Endpoint: ca-<env>-api.<region>.azurecontainerapps.io
+  🔗 Portal URL: https://portal.azure.com/#resource/...
+
+🧭 Workflow App Details:
+  ✅ Name: ca-<env>-wkfl
+  🔗 Portal URL: https://portal.azure.com/#resource/...
+
+📦 Registering schemas and creating schema set...
+  ⏳ Waiting for API to be ready...
+  ✅ API is ready.
+============================================================
+Step 1: Register schemas
+============================================================
+✓ Successfully registered: Auto Insurance Claim Form's Schema Id - <id>
+✓ Successfully registered: Damaged Vehicle Image Assessment's Schema Id - <id>
+✓ Successfully registered: Police Report Document's Schema Id - <id>
+✓ Successfully registered: Repair Estimate Document's Schema Id - <id>
+
+============================================================
+Step 2: Create schema set
+============================================================
+✓ Created schema set 'Auto Claim' with ID: <id>
+
+============================================================
+Step 3: Add schemas to schema set
+============================================================
+  ✓ Added 'AutoInsuranceClaimForm' (<id>) to schema set
+  ✓ Added 'DamagedVehicleImageAssessment' (<id>) to schema set
+  ✓ Added 'PoliceReportDocument' (<id>) to schema set
+  ✓ Added 'RepairEstimateDocument' (<id>) to schema set
+
+============================================================
+Schema registration process completed.
+  Schema set ID: <id>
+  Schemas added: 4
+============================================================
+  ✅ Schema registration complete.
+```
 
 ### 5.2 Configure Authentication (Required)
 
@@ -326,7 +362,7 @@ You should see output like this in the terminal:
 
 ### 5.3 Verify Deployment
 
-1. Access your application using the URL from [Step 4.3](#43-get-application-url).
+1. Access your application using the **Web App Endpoint** from the deployment output.
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
 
