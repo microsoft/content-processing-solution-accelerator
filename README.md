@@ -219,6 +219,8 @@ If you'd like to customize the solution accelerator, here are some common areas 
 
 [Claim Processing Workflow (Agent Framework)](./docs/ClaimProcessWorkflow.md)
 
+[Golden Path Workflows (end-to-end walkthroughs)](./docs/GoldenPathWorkflows.md)
+
 <br/>
 
 ### Key features
@@ -335,7 +337,7 @@ The analyst creates a claim in the system and uploads all documents. The workflo
 
 The analyst reviews the AI-generated summary for a quick overview, checks gap analysis results for flagged issues and discrepancies, and drills into individual document extractions when needed. What previously required hours of manual cross-referencing is now orchestrated in minutes.
 
-> **Sample data included:** The `autoclaim/` folder provides a complete claim package (claim form + police report + repair estimate + damage photo). The `autoclaim_gap1/` folder provides an incomplete claim (missing police report and repair estimate) to demonstrate gap detection. See [Sample Workflow](./docs/SampleWorkflow.md) for a step-by-step walkthrough.
+> **Sample data included:** The `autoclaim/` folder provides a complete claim package (claim form + police report + repair estimate + damage photo). The `autoclaim_gap1/` folder provides an incomplete claim (missing police report and repair estimate) to demonstrate gap detection. See [Golden Path Workflows](./docs/GoldenPathWorkflows.md) for a step-by-step walkthrough.
 
 ⚠️ The sample data used in this repository is synthetic and generated using Azure OpenAI service. The data is intended for use as sample data only.
 

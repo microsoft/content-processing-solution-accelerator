@@ -343,7 +343,7 @@ You should see output like this in the terminal:
 2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
 3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
 
-📖 **Detailed Instructions:** See the complete [Sample Workflow](./SampleWorkflow.md) guide for step-by-step testing procedures.
+📖 **Detailed Instructions:** See the complete [Golden Path Workflows](./GoldenPathWorkflows.md) guide for step-by-step testing procedures.
 
 ## Step 6: Clean Up (Optional)
 
