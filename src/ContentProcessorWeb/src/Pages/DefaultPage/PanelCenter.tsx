@@ -78,21 +78,21 @@ const useStyles = makeStyles({
   },
   panelLabel: {
     fontWeight: 'bold',
-    color: '#424242',
+    color: tokens.colorNeutralForeground1,
     paddingLeft: '10px'
   },
   tabItemCotnent: {
     height: 'calc(100vh - 383px)',
-    border: '1px solid #DBDBDB',
+    border: `1px solid ${tokens.colorNeutralStroke1}`,
     overflow: 'auto',
-    background: '#f6f6f6',
+    background: tokens.colorNeutralBackground3,
     padding: '5px 5px',
     boxSizing: 'border-box'
   },
 
   processTabItemCotnent: {
     height: 'calc(100vh - 200px)',
-    border: '1px solid #DBDBDB',
+    border: `1px solid ${tokens.colorNeutralStroke1}`,
     overflow: 'auto',
     background: tokens.colorNeutralBackground3,
     padding: '5px',
