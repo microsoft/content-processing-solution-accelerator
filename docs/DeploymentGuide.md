@@ -66,7 +66,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 
 **Recommended Configuration:**
 - **Default:** 300k tokens
-- **Optimal:** 300k tokens (recommended for multi-document claim processing)
+- **Optimal:** 500k tokens (recommended for multi-document claim processing)
 
 > **Note:** When you run `azd up`, the deployment will automatically show you regions with available quota, so this pre-check is optional but helpful for planning purposes. You can customize these settings later in [Step 3.3: Advanced Configuration](#33-advanced-configuration-optional).
 
@@ -306,7 +306,7 @@ After successful deployment:
 
  > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
 
-Schema registration happens **automatically** as part of the `azd up` post-provisioning hook. After infrastructure is deployed, the hook:
+Schema registration happens **automatically** as part of the `azd up` post-provisioning hook — no manual steps required. After infrastructure is deployed, the hook:
 
 1. Waits for the API container app to be ready
 2. Registers the sample schema files (auto claim, damaged car image, police report, repair estimate)
@@ -316,12 +316,6 @@ Schema registration happens **automatically** as part of the `azd up` post-provi
 You should see output like this in the terminal:
 
 ![schema file registration](./images/SchemaFileRegistration.png)  
-
-> **If registration was skipped** (e.g. the API wasn't ready in time), you can run it manually:
-> ```bash
-> cd src/ContentProcessorAPI/samples/schemas
-> python register_schema.py https://<< API Service Endpoint>> schema_info.json
-> ```
 
 ### 5.2 Configure Authentication (Required)
 

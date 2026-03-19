@@ -16,7 +16,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`          | Defines the model deployment type. Allowed: `Standard`, `GlobalStandard`.             |
 | `AZURE_ENV_MODEL_NAME`                 | string  | `gpt-5.1`                 | Specifies the GPT model name. Default: `gpt-5.1`.                                     |
 | `AZURE_ENV_MODEL_VERSION`              | string  | `2025-04-14`              | Specifies the GPT model version.                                                      |
-| `AZURE_ENV_MODEL_CAPACITY`             | integer | `300`                       | Sets the model capacity (minimum 1). Recommended: 300 for multi-document claim processing. |
+| `AZURE_ENV_MODEL_CAPACITY`             | integer | `300`                       | Sets the model capacity (minimum 1). Default: 300. Optimal: 500 for multi-document claim processing. |
 | `AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT` | string  | `cpscontainerreg.azurecr.io` | Sets the public container image endpoint for pulling pre-built images.                |
 | `AZURE_ENV_CONTAINER_IMAGE_TAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).                       |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
