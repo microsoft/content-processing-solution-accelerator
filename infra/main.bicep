@@ -1472,6 +1472,10 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
         : []
     }
   }
+  dependsOn: [
+    cognitiveServicePrivateEndpoint
+    contentUnderstandingPrivateEndpoint
+  ]
 }
 
 module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' = {
@@ -1595,6 +1599,9 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
       ]
     }
   }
+  dependsOn: [
+    cognitiveServicePrivateEndpoint
+  ]
 }
 
 // ============ //
