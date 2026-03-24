@@ -814,7 +814,7 @@ module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoi
   }
 }
 
-module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.13.2' = {
+module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.1' = {
   name: take('avm.res.cognitive-services.account.content-understanding.${solutionSuffix}', 64)
 
   params: {
@@ -872,6 +872,10 @@ module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-en
         {
           name: 'aicu-dns-zone-cognitiveservices'
           privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-aiservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
         }
         {
           name: 'aicu-dns-zone-contentunderstanding'
