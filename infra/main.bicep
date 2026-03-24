@@ -240,7 +240,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
     enableTelemetry: enableTelemetry
     computerName: take(jumpboxVmName, 15)
     osType: 'Windows'
-    vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
+    vmSize: empty(vmSize) ? 'Standard_D2s_v5' : vmSize
     adminUsername: empty(vmAdminUsername) ? 'JumpboxAdminUser' : vmAdminUsername
     adminPassword: empty(vmAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : vmAdminPassword
     managedIdentities: {
@@ -771,36 +771,46 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
     // WAF related parameters
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
     //publicNetworkAccess: 'Enabled' // Always enabled for AI Services
-    privateEndpoints: (enablePrivateNetworking && empty(existingProjectResourceId))
-      ? [
-          {
-            name: 'pep-aiservices-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-aiservices-${solutionSuffix}'
-            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'ai-services-dns-zone-cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-openai'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-aiservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-contentunderstanding'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
-          }
-        ]
-      : []
+  }
+}
+
+module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
+  name: take('avm.res.network.private-endpoint.${solutionSuffix}', 64)
+  params: {
+    name: 'pep-aiservices-${solutionSuffix}'
+    location: location
+    tags: tags
+    customNetworkInterfaceName: 'nic-aiservices-${solutionSuffix}'
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aiservices-${solutionSuffix}-cognitiveservices-connection'
+        properties: {
+          privateLinkServiceId: avmAiServices.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'ai-services-dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-openai'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-aiservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-contentunderstanding'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
+        }
+      ]
+    }
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
   }
 }
 
@@ -838,28 +848,38 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.13.2' = 
     ]
 
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (enablePrivateNetworking)
-      ? [
-          {
-            name: 'pep-aicu-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-aicu-${solutionSuffix}'
-            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'aicu-dns-zone-cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-                {
-                  name: 'aicu-dns-zone-contentunderstanding'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
-          }
-        ]
-      : []
+  }
+}
+
+module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.private-endpoint.aicu-${solutionSuffix}', 64)
+  params: {
+    name: 'pep-aicu-${solutionSuffix}'
+    location: location
+    tags: tags
+    customNetworkInterfaceName: 'nic-aicu-${solutionSuffix}'
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aicu-${solutionSuffix}-cognitiveservices-connection'
+        properties: {
+          privateLinkServiceId: avmAiServices_cu.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'aicu-dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'aicu-dns-zone-contentunderstanding'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
+        }
+      ]
+    }
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
   }
 }
 
