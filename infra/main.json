@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "13407662447721904016"
+      "templateHash": "12196124000444437279"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -41701,9 +41701,9 @@
       },
       "dependsOn": [
         "avmAiServices",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "virtualNetwork"
       ]
@@ -45072,8 +45072,8 @@
       },
       "dependsOn": [
         "avmAiServices_cu",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "virtualNetwork"
       ]
     },
@@ -63527,7 +63527,9 @@
       "dependsOn": [
         "avmAppConfig",
         "avmContainerAppEnv",
-        "avmContainerRegistryReader"
+        "avmContainerRegistryReader",
+        "cognitiveServicePrivateEndpoint",
+        "contentUnderstandingPrivateEndpoint"
       ]
     },
     "avmContainerApp_API_update": {
@@ -65201,7 +65203,8 @@
       "dependsOn": [
         "avmAppConfig",
         "avmContainerAppEnv",
-        "avmContainerRegistryReader"
+        "avmContainerRegistryReader",
+        "cognitiveServicePrivateEndpoint"
       ]
     }
   },
