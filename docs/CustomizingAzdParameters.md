@@ -22,6 +22,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_LOCATION`                       | string  | `eastus`                    | Sets the primary Azure region for resource deployment.                                |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
 | `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`    | string  | `<Existing AI Project resource Id>`            | Reuses an existing AIFoundry and AIFoundryProject instead of creating a new one.  |
+| `AZURE_ENV_VM_SIZE`                        | string  | `Standard_D2s_v5`          | Overrides the jumpbox VM size (private networking only). Default: `Standard_D2s_v5`. |
 
 ## How to Set a Parameter
 
