@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - demo
+      - psl-unit-test-cps-v2
     paths:
       - 'src/**/*.py'
       - 'tests/**/*.py'
