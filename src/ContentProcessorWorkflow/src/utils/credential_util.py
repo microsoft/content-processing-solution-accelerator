@@ -54,6 +54,18 @@ async def get_async_bearer_token_provider():
     )
 
 
+def get_api_token_provider(api_client_id: str):
+    """Return an async token provider for the content-processing API.
+
+    Acquires tokens scoped to the API's Entra ID app registration so that
+    EasyAuth on the API container app accepts service-to-service calls
+    from the Workflow's managed identity.
+    """
+    credential = get_async_azure_credential()
+    scope = f"api://{api_client_id}/.default"
+    return identity_get_async_bearer_token_provider(credential, scope)
+
+
 def get_bearer_token_provider():
     """Return a bearer token provider for sync Azure SDK clients.
 

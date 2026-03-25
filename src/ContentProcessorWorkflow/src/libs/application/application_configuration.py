@@ -156,6 +156,11 @@ class Configuration(_configuration_base):
     app_cps_content_process_endpoint: str = Field(
         default="http://localhost:8000/", alias="APP_CPS_CONTENT_PROCESS_ENDPOINT"
     )
+    app_api_client_id: str = Field(
+        default="",
+        alias="APP_API_CLIENT_ID",
+        description="Client ID of the API app registration for service-to-service auth",
+    )
 
     app_cps_poll_interval_seconds: float = Field(
         default=3.0,

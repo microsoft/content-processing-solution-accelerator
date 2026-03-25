@@ -22,6 +22,7 @@ from sas.storage.blob.async_helper import AsyncStorageBlobHelper
 from libs.application.application_context import AppContext
 from repositories.claim_processes import Claim_Process, Claim_Processes, Content_Process
 from steps.models.output import Executor_Output, Workflow_Output
+from utils.credential_util import get_api_token_provider
 from utils.http_request import HttpRequestClient, MultipartFile
 
 from ...models.manifest import ClaimProcess
@@ -153,7 +154,13 @@ class DocumentProcessExecutor(Executor):
             else "/contentprocessor/submit"
         )
 
-        async with HttpRequestClient(base_url=base_endpoint) as client:
+        token_provider = None
+        api_client_id = getattr(self.app_context.configuration, "app_api_client_id", "")
+        if api_client_id:
+            token_provider = get_api_token_provider(api_client_id)
+            print(f"[DocumentProcess] Token provider configured for API client: {api_client_id}")
+
+        async with HttpRequestClient(base_url=base_endpoint, token_provider=token_provider) as client:
             # Limit concurrency to avoid overwhelming the service
             max_concurrency = 2
             semaphore = asyncio.Semaphore(max_concurrency)
@@ -401,6 +408,10 @@ class DocumentProcessExecutor(Executor):
                             or response.url,
                         }
                     except Exception as e:
+                        print(
+                            f"[DocumentProcess] EXCEPTION processing {getattr(item, 'file_name', '<unknown>')}: "
+                            f"{type(e).__name__}: {e}"
+                        )
                         # Ensure the failure is reflected in Cosmos so the
                         # status doesn't remain at the last polling value
                         # (e.g. "Extract").

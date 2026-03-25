@@ -26,6 +26,7 @@ from libs.application.application_context import AppContext
 from repositories.claim_processes import Claim_Processes
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
+from utils.credential_util import get_api_token_provider
 from utils.http_request import HttpRequestClient
 
 
@@ -227,7 +228,12 @@ class SummarizeExecutor(Executor):
             else "/contentprocessor/processed"
         )
 
-        async with HttpRequestClient() as http_client:
+        token_provider = None
+        api_client_id = getattr(self.app_context.configuration, "app_api_client_id", "")
+        if api_client_id:
+            token_provider = get_api_token_provider(api_client_id)
+
+        async with HttpRequestClient(token_provider=token_provider) as http_client:
             url = f"{base_endpoint}{fetch_processed_result_path}/{process_id}/steps"
             response = await http_client.get(url)
             if response.status == 200:

@@ -118,6 +118,9 @@ param vmAdminPassword string = ''
 @description('Optional. A unique text value for the solution. This is used to ensure resource names are unique for global resources. Defaults to a 5-character substring of the unique string generated from the subscription ID, resource group name, and solution name.')
 param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
+@description('Optional. Client ID of the API app registration. Set after configuring Entra ID authentication on the API container app. Used by the Workflow for service-to-service auth.')
+param apiAppClientId string = ''
+
 var solutionSuffix = toLower(trim(replace(
   replace(
     replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
@@ -1448,6 +1451,10 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
       {
         name: 'APP_CPS_CONTENT_PROCESS_ENDPOINT'
         value: 'http://${avmContainerApp_API.outputs.name}/'
+      }
+      {
+        name: 'APP_API_CLIENT_ID'
+        value: apiAppClientId
       }
       {
         name: 'APP_CPS_POLL_INTERVAL_SECONDS'

@@ -2,14 +2,14 @@
 
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 
-> **Note:** The solution deploys four container apps. Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues using managed identity — they do not expose public endpoints.
+> **Note:** The solution deploys four container apps. Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues and managed identity — they do not expose public endpoints. The Workflow makes internal HTTP calls to the API using a managed identity token for service-to-service authentication.
 
 | Container App | Authentication |
 |---|---|
 | `ca-<randomname>-web` | Requires Entra ID authentication (configured below) |
 | `ca-<randomname>-api` | Requires Entra ID authentication (configured below) |
 | `ca-<randomname>-app` | Internal only — no external ingress, uses managed identity |
-| `ca-<randomname>-wkfl` | Internal only — no external ingress, uses managed identity |
+| `ca-<randomname>-wkfl` | Internal only — no external ingress, uses managed identity token to call API |
 
 ## Prerequisites
 
@@ -49,9 +49,11 @@ We will add Microsoft Entra ID as an authentication provider to API and Web Appl
 
      ![add_auth_provider_api_2](./images/add_auth_provider_api_2.png)
 
-   - Set **Unauthenticated requests**, then click **Add** button.  
+   - Set **Unauthenticated requests** to **Require authentication** (HTTP 401), then click **Add** button.  
 
      ![add_auth_provider_api_3](./images/add_auth_provider_api_3.png)
+
+     > **Note:** The API is configured with **"Require authentication"** so all requests must include a valid Bearer token. The **Web** app sends user tokens, and the **Workflow** container app sends managed identity tokens for service-to-service calls. The Workflow's managed identity appId must be added to the API's allowed client applications list (see [Step 6](#step-6-configure-service-to-service-authentication-for-workflow)).
 
 ## Step 2: Configure Application Registration - Web Application 🌐
 
@@ -165,6 +167,64 @@ Now, we will edit and deploy the Web Application Container with updated Environm
 Click on **Save as a new revision**.
    The updated revision will be activated soon.
 
+## Step 6: Configure Service-to-Service Authentication for Workflow
+
+The **Workflow** container app (`ca-<randomname>-wkfl`) makes internal HTTP calls to the **API** (e.g., `POST /contentprocessor/submit`, `GET /contentprocessor/status/{id}`). Since the API requires authentication, the Workflow uses its **system-assigned managed identity** to acquire tokens and send them as Bearer tokens.
+
+6.1. Find the Workflow Managed Identity's Application (Client) ID
+
+   - Run the following commands to find the Workflow's managed identity principal ID and then its application ID:
+
+     ```bash
+     # Get the Workflow MI principal ID
+     az containerapp show --name ca-<randomname>-wkfl --resource-group <resource-group> --query "identity.principalId" -o tsv
+     
+     # Get the MI's application (client) ID
+     az ad sp show --id <principal-id-from-above> --query "appId" -o tsv
+     ```
+
+6.2. Add the Workflow MI's Application ID to the API's Allowed Client Applications
+
+   - Go to the deployed Container App `ca-<randomname>-api`, select **Authentication**, and click **Edit** on the identity provider.
+   - Under **"Allow requests from specific client applications"**, add the Workflow MI's **Application (Client) ID** obtained in the previous step.
+   - Save the changes.
+
+   The allowed client applications list should now contain:
+   - The API's own Client ID (`ca-<randomname>-api`)
+   - The Web app's Client ID (`ca-<randomname>-web`)
+   - The Workflow MI's Application ID
+
+6.3. Assign the API.Access App Role to the Workflow MI (if not already done)
+
+   - In the API's App Registration, go to **App roles** and ensure an `API.Access` role exists. If not, create one with:
+     - Display name: `API.Access`
+     - Allowed member types: **Applications**
+     - Value: `API.Access`
+
+   - Assign the role to the Workflow's managed identity:
+
+     ```bash
+     # Get the API's service principal object ID
+     az ad sp list --filter "appId eq '<api-client-id>'" --query "[0].id" -o tsv
+     
+     # Get the API.Access role ID
+     az ad sp list --filter "appId eq '<api-client-id>'" --query "[0].appRoles[?value=='API.Access'].id" -o tsv
+     
+     # Assign the role to the Workflow MI
+     az rest --method POST --url "https://graph.microsoft.com/v1.0/servicePrincipals/<api-sp-object-id>/appRoleAssignments" --body '{"principalId": "<workflow-mi-principal-id>", "resourceId": "<api-sp-object-id>", "appRoleId": "<api-access-role-id>"}'
+     ```
+
+6.4. Set the API Client ID Environment Variable on the Workflow
+
+   - Set `APP_API_CLIENT_ID` on the Workflow container app to the API's Application (Client) ID:
+
+     ```bash
+     az containerapp update --name ca-<randomname>-wkfl --resource-group <resource-group> \
+       --set-env-vars APP_API_CLIENT_ID=<api-client-id>
+     ```
+
+   This tells the Workflow code which audience to request tokens for when calling the API.
+
 ## Conclusion
 
-You have successfully configured the front-end and back-end Azure App Registrations with proper API permissions and security settings.
+You have successfully configured the front-end and back-end Azure App Registrations with proper API permissions and service-to-service authentication between the Workflow and API container apps.
