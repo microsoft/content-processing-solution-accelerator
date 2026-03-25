@@ -203,15 +203,16 @@ Copy the contents from the production configuration file to your main parameters
 5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
 6. Save the file (Ctrl+S)
 
-### 3.2 Set VM Credentials (Optional - Production Deployment Only)
+### 3.2 Set VM Credentials & Size (Optional - Production Deployment Only)
 
 > **Note:** This section only applies if you selected **Production** deployment type in section 3.1. VMs are not deployed in the default Development/Testing configuration.
 
-By default, random GUIDs are generated for VM credentials. To set custom credentials:
+By default, random GUIDs are generated for VM credentials and the VM size defaults to `Standard_D2s_v5`. To set custom values:
 
 ```shell
 azd env set AZURE_ENV_VM_ADMIN_USERNAME <your-username>
 azd env set AZURE_ENV_VM_ADMIN_PASSWORD <your-password>
+azd env set AZURE_ENV_VM_SIZE <your-vm-size>
 ```
 
 ### 3.3 Advanced Configuration (Optional)

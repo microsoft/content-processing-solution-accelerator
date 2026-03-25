@@ -229,7 +229,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
     enableTelemetry: enableTelemetry
     computerName: take(jumpboxVmName, 15)
     osType: 'Windows'
-    vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
+    vmSize: empty(vmSize) ? 'Standard_D2s_v5' : vmSize
     adminUsername: empty(vmAdminUsername) ? 'JumpboxAdminUser' : vmAdminUsername
     adminPassword: empty(vmAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : vmAdminPassword
     managedIdentities: {
