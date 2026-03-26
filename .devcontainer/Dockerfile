@@ -22,7 +22,9 @@ RUN apt-get update \
 COPY --from=uv --chown=vscode: /uv /uvx /bin/
 
 # Install global NPM packages
-RUN npm install -g tslint-to-eslint-config typescript yarn react-app-rewired
+RUN npm install -g tslint-to-eslint-config typescript react-app-rewired \
+    && corepack enable \
+    && corepack prepare pnpm@10.28.2 --activate
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]
