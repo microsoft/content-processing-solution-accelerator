@@ -153,6 +153,15 @@ class Configuration(_configuration_base):
     )
     app_cps_processes: str = Field(default="cps-processes", alias="APP_CPS_PROCESSES")
 
+    app_cosmos_container_process: str = Field(
+        default="Processes", alias="APP_COSMOS_CONTAINER_PROCESS"
+    )
+    app_storage_blob_url: str = Field(default="", alias="APP_STORAGE_BLOB_URL")
+    app_storage_queue_url: str = Field(default="", alias="APP_STORAGE_QUEUE_URL")
+    app_message_queue_extract: str = Field(
+        default="content-pipeline-extract-queue", alias="APP_MESSAGE_QUEUE_EXTRACT"
+    )
+
     app_cps_content_process_endpoint: str = Field(
         default="http://localhost:8000/", alias="APP_CPS_CONTENT_PROCESS_ENDPOINT"
     )

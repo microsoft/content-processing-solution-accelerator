@@ -997,36 +997,49 @@ class ClaimProcessingQueueService:
             # Use the step-based workflow runner (src/steps/claim_processor.py).
             claim_processor = self.app_context.get_service(ClaimProcessor)
 
+            workflow_error: Exception | None = None
             try:
                 await claim_processor.run(input_data=claim_process_id)
+            except Exception as e:
+                workflow_error = e
+            finally:
+                claim_processor = None
 
-                execution_time = time.time() - message_start_time
+            execution_time = time.time() - message_start_time
+
+            # Cancel the visibility-renewal loop BEFORE touching the queue
+            # message.  If the renew loop fires ``update_message`` while we
+            # are about to ``delete_message``, the pop_receipt can become
+            # stale and the delete silently fails — leaving the message in
+            # the queue for duplicate processing.
+            if renew_task is not None:
+                renew_task.cancel()
+                await asyncio.gather(renew_task, return_exceptions=True)
+                renew_task = None
+
+            if workflow_error is None:
                 await self._handle_successful_processing(
                     queue_message, claim_process_id, execution_time, worker_id=worker_id
                 )
-            except WorkflowExecutorFailedException as e:
-                execution_time = time.time() - message_start_time
+            elif isinstance(workflow_error, WorkflowExecutorFailedException):
                 await self._handle_failed_no_retry(
                     queue_message,
                     claim_process_id,
-                    f"Workflow executor failed: {e}",
+                    f"Workflow executor failed: {workflow_error}",
                     execution_time,
                     claim_process_id_for_cleanup=claim_process_id,
                     worker_id=worker_id,
                     force_dead_letter=True,
                 )
-            except Exception as e:
-                execution_time = time.time() - message_start_time
+            else:
                 await self._handle_failed_no_retry(
                     queue_message,
                     claim_process_id,
-                    f"Unhandled exception: {e}",
+                    f"Unhandled exception: {workflow_error}",
                     execution_time,
                     claim_process_id_for_cleanup=claim_process_id,
                     worker_id=worker_id,
                 )
-            finally:
-                claim_processor = None
 
         except asyncio.CancelledError:
             # When cancelled, we assume stop_process has already deleted the message

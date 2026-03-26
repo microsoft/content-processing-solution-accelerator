@@ -27,9 +27,9 @@ from libs.agent_framework.agent_builder import AgentBuilder
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.application.application_context import AppContext
 from repositories.claim_processes import Claim_Processes
+from services.content_process_service import ContentProcessService
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
-from utils.http_request import HttpRequestClient
 
 
 class GapExecutor(Executor):
@@ -157,11 +157,9 @@ class GapExecutor(Executor):
                 extracted_file = ExtractedFile(
                     file_name=document["file_name"],
                     mime_type=document["mime_type"],
-                    extracted_content=json.dumps(processed_output),
+                    extracted_content=json.dumps(processed_output, default=str),
                 )
                 processed_files.append(extracted_file)
-            else:
-                pass
 
         agent_framework_helper = self.app_context.get_service(AgentFrameworkHelper)
         agent_client = await agent_framework_helper.get_client_async("default")
@@ -185,10 +183,12 @@ class GapExecutor(Executor):
             ChatMessage(
                 role="user",
                 text="Now analyze the following document extracts:\n\n"
-                + "\n\n".join([
-                    f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
-                    for file in processed_files
-                ]),
+                + "\n\n".join(
+                    [
+                        f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
+                        for file in processed_files
+                    ]
+                ),
             )
         )
 
@@ -209,26 +209,13 @@ class GapExecutor(Executor):
     async def fetch_processed_result(self, process_id: str) -> dict | None:
         """Fetch the full processed output for a document.
 
+        Uses direct Cosmos DB access instead of HTTP.
+
         Args:
             process_id: Content-processing process identifier.
 
         Returns:
-            Parsed JSON object, or ``None`` on non-200 responses.
+            Parsed JSON object, or ``None`` if not found.
         """
-        base_endpoint = (
-            self.app_context.configuration.app_cps_content_process_endpoint or ""
-        ).rstrip("/")
-
-        fetch_processed_result_path = (
-            "/submit"
-            if base_endpoint.endswith("/contentprocessor")
-            else "/contentprocessor/processed"
-        )
-
-        async with HttpRequestClient() as http_client:
-            url = f"{base_endpoint}{fetch_processed_result_path}/{process_id}"
-            response = await http_client.get(url)
-            if response.status == 200:
-                return response.json()
-            else:
-                return None
+        content_process_service = self.app_context.get_service(ContentProcessService)
+        return await content_process_service.get_processed(process_id)

@@ -9,6 +9,7 @@ For production queue-based execution see :mod:`main_service`.
 """
 
 import asyncio
+import logging
 import os
 
 from sas.storage.blob.async_helper import AsyncStorageBlobHelper
@@ -22,7 +23,10 @@ from libs.agent_framework.middlewares import (
 )
 from libs.base.application_base import ApplicationBase
 from repositories.claim_processes import Claim_Processes
+from services.content_process_service import ContentProcessService
 from steps.claim_processor import ClaimProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class Application(ApplicationBase):
@@ -40,10 +44,7 @@ class Application(ApplicationBase):
 
     def initialize(self):
         """Bootstrap the application context and register services."""
-        print(
-            "Application initialized with configuration:",
-            self.application_context.configuration,
-        )
+        logger.info("Application initialized with configuration (secrets redacted)")
 
         self.register_services()
 
@@ -57,8 +58,9 @@ class Application(ApplicationBase):
         )
 
         (
-            self.application_context
-            .add_singleton(DebuggingMiddleware, DebuggingMiddleware)
+            self.application_context.add_singleton(
+                DebuggingMiddleware, DebuggingMiddleware
+            )
             .add_singleton(LoggingFunctionMiddleware, LoggingFunctionMiddleware)
             .add_singleton(InputObserverMiddleware, InputObserverMiddleware)
             .add_singleton(Mem0AsyncMemoryManager, Mem0AsyncMemoryManager)
@@ -79,6 +81,13 @@ class Application(ApplicationBase):
                     connection_string=self.application_context.configuration.app_cosmos_connstr,
                     database_name=self.application_context.configuration.app_cosmos_database,
                     container_name=self.application_context.configuration.app_cosmos_container_batch_process,
+                ),
+            )
+            .add_singleton(
+                ContentProcessService,
+                lambda: ContentProcessService(
+                    config=self.application_context.configuration,
+                    credential=self.application_context.credential,
                 ),
             )
         )
