@@ -142,7 +142,7 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
-    ) -> "AzureOpenAIChatClient": ...
+    ) -> "AzureOpenAIChatClient": ...  # noqa: E704
 
     @overload
     @staticmethod
@@ -164,7 +164,7 @@ class AgentFrameworkHelper:
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
         retry_config: RateLimitRetryConfig | None = None,
-    ) -> AzureOpenAIChatClientWithRetry: ...
+    ) -> AzureOpenAIChatClientWithRetry: ...  # noqa: E704
 
     @overload
     @staticmethod
@@ -187,7 +187,7 @@ class AgentFrameworkHelper:
         async_client: object | None = None,
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
-    ) -> "AzureOpenAIAssistantsClient": ...
+    ) -> "AzureOpenAIAssistantsClient": ...  # noqa: E704
 
     @overload
     @staticmethod
@@ -208,7 +208,7 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
-    ) -> "AzureOpenAIResponsesClient": ...
+    ) -> "AzureOpenAIResponsesClient": ...  # noqa: E704
 
     @overload
     @staticmethod
@@ -230,7 +230,7 @@ class AgentFrameworkHelper:
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
         retry_config: RateLimitRetryConfig | None = None,
-    ) -> AzureOpenAIResponseClientWithRetry: ...
+    ) -> AzureOpenAIResponseClientWithRetry: ...  # noqa: E704
 
     @overload
     @staticmethod
@@ -246,7 +246,7 @@ class AgentFrameworkHelper:
         async_credential: object | None = None,
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
-    ) -> "AzureAIAgentClient": ...
+    ) -> "AzureAIAgentClient": ...  # noqa: E704
 
     @staticmethod
     def create_client(
