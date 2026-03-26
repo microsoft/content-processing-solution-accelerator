@@ -12,15 +12,15 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_NAME`                       | string  | `cps`                     | Sets the environment name prefix for all Azure resources (3-20 characters).            |
 | `AZURE_LOCATION`                       | string  | `eastus2`                  | Sets the primary Azure region for resource deployment. Allowed: `australiaeast`, `centralus`, `eastasia`, `eastus2`, `japaneast`, `northeurope`, `southeastasia`, `uksouth`. |
 | `AZURE_ENV_CU_LOCATION`                | string  | `WestUS`                  | Sets the location for the Azure AI Content Understanding service. Allowed: `WestUS`, `SwedenCentral`, `AustraliaEast`. |
-| `AZURE_ENV_AI_DEPLOYMENTS_LOCATION`    | string  | `eastus`                  | Sets the location for Azure AI Services (OpenAI) deployment.                          |
+| `AZURE_ENV_AI_SERVICE_LOCATION`    | string  | `eastus`                  | Sets the location for Azure AI Services (OpenAI) deployment.                          |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`          | Defines the model deployment type. Allowed: `Standard`, `GlobalStandard`.             |
-| `AZURE_ENV_MODEL_NAME`                 | string  | `gpt-5.1`                 | Specifies the GPT model name. Default: `gpt-5.1`.                                     |
-| `AZURE_ENV_MODEL_VERSION`              | string  | `2025-04-14`              | Specifies the GPT model version.                                                      |
-| `AZURE_ENV_MODEL_CAPACITY`             | integer | `300`                       | Sets the model capacity (minimum 1). Default: 300. Optimal: 500 for multi-document claim processing. |
+| `AZURE_ENV_GPT_MODEL_NAME`                 | string  | `gpt-5.1`                 | Specifies the GPT model name. Default: `gpt-5.1`.                                     |
+| `AZURE_ENV_GPT_MODEL_VERSION`              | string  | `2025-04-14`              | Specifies the GPT model version.                                                      |
+| `AZURE_ENV_GPT_MODEL_CAPACITY`             | integer | `300`                       | Sets the model capacity (minimum 1). Default: 300. Optimal: 500 for multi-document claim processing. |
 | `AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT` | string  | `cpscontainerreg.azurecr.io` | Sets the public container image endpoint for pulling pre-built images.                |
-| `AZURE_ENV_CONTAINER_IMAGE_TAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).                       |
-| `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
-| `AZURE_ENV_FOUNDRY_PROJECT_ID`         | string  | Guide to get your [Existing AI Project ID](/docs/re-use-foundry-project.md) | Reuses an existing AI Foundry and AI Foundry Project instead of creating a new one.   |
+| `AZURE_ENV_IMAGETAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).                       |
+| `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID` | string  | Guide to get your [Existing Workspace Resource ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
+| `AZURE_ENV_FOUNDRY_PROJECT_RID`         | string  | Guide to get your [Existing AI Project Resource ID](/docs/re-use-foundry-project.md) | Reuses an existing AI Foundry and AI Foundry Project instead of creating a new one.   |
 
 ## How to Set a Parameter
 
