@@ -27,6 +27,7 @@ from libs.agent_framework.middlewares import (
 )
 from libs.base.application_base import ApplicationBase
 from repositories.claim_processes import Claim_Processes
+from services.content_process_service import ContentProcessService
 from services.queue_service import (
     ClaimProcessingQueueService,
     QueueServiceConfig,
@@ -100,10 +101,7 @@ class ClaimsQueueWorkerService(ApplicationBase):
         Populates the DI container with agent-framework helpers, middlewares,
         repository services, and the queue-processing service.
         """
-        print(
-            "Application initialized with configuration:",
-            self.application_context.configuration,
-        )
+        logger.info("Application initialized with configuration (secrets redacted)")
         self.register_services()
 
     def register_services(self):
@@ -116,8 +114,9 @@ class ClaimsQueueWorkerService(ApplicationBase):
         )
 
         (
-            self.application_context
-            .add_singleton(DebuggingMiddleware, DebuggingMiddleware)
+            self.application_context.add_singleton(
+                DebuggingMiddleware, DebuggingMiddleware
+            )
             .add_singleton(LoggingFunctionMiddleware, LoggingFunctionMiddleware)
             .add_singleton(InputObserverMiddleware, InputObserverMiddleware)
             .add_singleton(Mem0AsyncMemoryManager, Mem0AsyncMemoryManager)
@@ -138,6 +137,13 @@ class ClaimsQueueWorkerService(ApplicationBase):
                     connection_string=self.application_context.configuration.app_cosmos_connstr,
                     database_name=self.application_context.configuration.app_cosmos_database,
                     container_name=self.application_context.configuration.app_cosmos_container_batch_process,
+                ),
+            )
+            .add_singleton(
+                ContentProcessService,
+                lambda: ContentProcessService(
+                    config=self.application_context.configuration,
+                    credential=get_azure_credential(),
                 ),
             )
         )
