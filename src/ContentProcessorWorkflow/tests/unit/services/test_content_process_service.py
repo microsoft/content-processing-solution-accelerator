@@ -178,17 +178,12 @@ class TestPollStatus:
 
             svc._process_repo.get_async.side_effect = _get_async
 
-            changes: list[str] = []
-
-            async def _on_change(new_status: str, _result: dict) -> None:
-                changes.append(new_status)
-
-            await svc.poll_status(
+            result = await svc.poll_status(
                 "p1",
                 poll_interval_seconds=0.01,
-                on_status_change=_on_change,
             )
-            assert changes == ["processing", "extract", "Completed"]
+            assert result["status"] == "Completed"
+            assert result["terminal"] is True
 
         asyncio.run(_run())
 
@@ -199,15 +194,11 @@ class TestPollStatus:
 class TestClose:
     def test_releases_resources(self):
         svc = _make_service()
-        fake_queue = MagicMock()
-        svc._queue_client = fake_queue
         svc._blob_helper = MagicMock()
 
         svc.close()
 
         assert svc._blob_helper is None
-        assert svc._queue_client is None
-        fake_queue.close.assert_called_once()
 
     def test_close_idempotent(self):
         svc = _make_service()

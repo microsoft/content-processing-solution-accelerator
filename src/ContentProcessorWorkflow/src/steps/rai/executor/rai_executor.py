@@ -77,6 +77,22 @@ class RAIExecutor(Executor):
         result: Workflow_Output,
         ctx: WorkflowContext[Workflow_Output, Workflow_Output],
     ) -> None:
+        """Run Responsible-AI content analysis on extracted documents.
+
+        Steps:
+            1. Retrieve document-processing results from the prior executor.
+            2. Fetch extraction steps for each successfully processed file.
+            3. Concatenate all extracted text and send to the safety classifier.
+            4. Block the workflow if content is flagged as unsafe.
+
+        Args:
+            result: Workflow output accumulated by prior executors.
+            ctx: Workflow context carrying shared state across executors.
+
+        Raises:
+            RuntimeError: If content is deemed unsafe by the classifier.
+        """
+
         previous_output = next(
             filter(
                 lambda output: output.step_name == "document_processing",
@@ -162,8 +178,6 @@ class RAIExecutor(Executor):
             f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
             for file in processed_files
         )
-
-        # print(f"[For Debuggging]:\n{document_text}\n[/For Debuggging]")
 
         model_response = await agent.run(
             ChatMessage(
