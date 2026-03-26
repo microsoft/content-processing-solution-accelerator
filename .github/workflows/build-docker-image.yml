@@ -102,7 +102,7 @@ jobs:
           elif [[ "$BRANCH" == "dependabotchanges" ]]; then
             BASE_TAG="dependabotchanges"
           elif [[ "$BRANCH" == "psl-docker-build-and-push-v2" ]]; then
-            BASE_TAG="psl_latest_v2"
+            BASE_TAG="latest_v2"
             
           else
             BASE_TAG="pullrequest-ignore"
