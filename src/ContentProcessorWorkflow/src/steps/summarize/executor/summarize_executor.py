@@ -144,8 +144,6 @@ class SummarizeExecutor(Executor):
                                 ][0]["markdown"],
                             )
                             processed_files.append(extracted_file)
-                else:
-                    pass
 
             elif document["mime_type"] in ["image/png", "image/jpg", "image/jpeg"]:
                 process_id = document.get("process_id")
@@ -163,9 +161,6 @@ class SummarizeExecutor(Executor):
                                 ]["content"],
                             )
                             processed_files.append(extracted_file)
-
-                else:
-                    pass
 
         agent_framework_helper = self.app_context.get_service(AgentFrameworkHelper)
         agent_client = await agent_framework_helper.get_client_async("default")
@@ -188,12 +183,10 @@ class SummarizeExecutor(Executor):
         model_response = await agent.run(
             ChatMessage(
                 role="user",
-                text="Now summarize the following document extracts: : \n\n".join(
-                    [
-                        f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
-                        for file in processed_files
-                    ]
-                ),
+                text="Now summarize the following document extracts: : \n\n".join([
+                    f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
+                    for file in processed_files
+                ]),
             )
         )
 

@@ -13,7 +13,6 @@ import asyncio
 import json
 import logging
 import uuid
-from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 
 from azure.identity import DefaultAzureCredential
@@ -86,6 +85,9 @@ class ContentProcessService:
                 account_name=self._config.app_storage_account_name,
                 credential=self._credential,
             )
+            # Ensure the processes container exists (sas-storage does not
+            # auto-create containers on upload, unlike the API's helper).
+            self._blob_helper.create_container(self._config.app_cps_processes)
         return self._blob_helper
 
     def _get_queue_client(self) -> QueueClient:
@@ -98,6 +100,9 @@ class ContentProcessService:
             )
         return self._queue_client
 
+    # ------------------------------------------------------------------ #
+    # submit — replaces POST /contentprocessor/submit
+    # ------------------------------------------------------------------ #
     async def submit(
         self,
         file_bytes: bytes,
@@ -115,29 +120,13 @@ class ContentProcessService:
         # 1. Upload file to blob: {cps-processes}/{process_id}/{filename}
         container_name = self._config.app_cps_processes
         blob_helper = self._get_blob_helper()
-        await asyncio.to_thread(
-            blob_helper.upload_blob,
+        blob_helper.upload_blob(
             container_name=container_name,
             blob_name=f"{process_id}/{filename}",
             data=file_bytes,
         )
 
-        # 2. Insert Cosmos record BEFORE enqueuing — the external
-        #    ContentProcessor does find_document({"process_id": ...}) and
-        #    only $set-updates the existing doc.  If the doc doesn't exist
-        #    yet, it inserts a duplicate without the "id" field, causing
-        #    get_status (which queries by "id") to always see "processing".
-        record = ContentProcessRecord(
-            id=process_id,
-            process_id=process_id,
-            processed_file_name=filename,
-            processed_file_mime_type=mime_type,
-            status="processing",
-            imported_time=datetime.now(timezone.utc),
-        )
-        await self._process_repo.add_async(record)
-
-        # 3. Enqueue processing message (after Cosmos record exists)
+        # 2. Enqueue processing message
         message = ContentProcessMessage(
             process_id=process_id,
             files=[
@@ -171,14 +160,25 @@ class ContentProcessService:
                 completed_steps=[],
             ),
         )
-        await asyncio.to_thread(
-            self._get_queue_client().send_message,
-            message.model_dump_json(),
+        self._get_queue_client().send_message(message.model_dump_json())
+
+        # 3. Insert initial Cosmos record via sas-cosmosdb
+        record = ContentProcessRecord(
+            id=process_id,
+            process_id=process_id,
+            processed_file_name=filename,
+            processed_file_mime_type=mime_type,
+            status="processing",
+            imported_time=datetime.now(timezone.utc),
         )
+        await self._process_repo.add_async(record)
 
         logger.info("Submitted process %s for file %s", process_id, filename)
         return process_id
 
+    # ------------------------------------------------------------------ #
+    # get_status — replaces GET /contentprocessor/status/{id}
+    # ------------------------------------------------------------------ #
     async def get_status(self, process_id: str) -> dict | None:
         """Query Cosmos for process status.
 
@@ -194,6 +194,9 @@ class ContentProcessService:
             "file_name": getattr(record, "processed_file_name", "") or "",
         }
 
+    # ------------------------------------------------------------------ #
+    # get_processed — replaces GET /contentprocessor/processed/{id}
+    # ------------------------------------------------------------------ #
     async def get_processed(self, process_id: str) -> dict | None:
         """Query Cosmos for the full processed content result.
 
@@ -204,6 +207,9 @@ class ContentProcessService:
             return None
         return record.model_dump()
 
+    # ------------------------------------------------------------------ #
+    # get_steps — replaces GET /contentprocessor/processed/{id}/steps
+    # ------------------------------------------------------------------ #
     def get_steps(self, process_id: str) -> list | None:
         """Download step_outputs.json from blob storage.
 
@@ -219,28 +225,25 @@ class ContentProcessService:
             )
             return json.loads(data.decode("utf-8"))
         except Exception:
-            logger.debug("step_outputs.json not found for process %s", process_id)
+            logger.debug(
+                "step_outputs.json not found for process %s", process_id
+            )
             return None
 
+    # ------------------------------------------------------------------ #
+    # poll_status — replaces the HTTP polling loop
+    # ------------------------------------------------------------------ #
     async def poll_status(
         self,
         process_id: str,
         poll_interval_seconds: float = 5.0,
         timeout_seconds: float = 600.0,
-        on_status_change: Callable[[str, dict], Awaitable[None]] | None = None,
     ) -> dict:
         """Poll Cosmos for status until terminal state or timeout.
-
-        Args:
-            on_status_change: Optional async callback invoked whenever the
-                status value changes between polls.  Receives
-                ``(new_status, result_dict)``.
 
         Returns the final status dict with keys: status, process_id, file_name.
         """
         elapsed = 0.0
-        last_status: str | None = None
-        result: dict | None = None
         while elapsed < timeout_seconds:
             result = await self.get_status(process_id)
             if result is None:
@@ -252,18 +255,6 @@ class ContentProcessService:
                 }
 
             status = result.get("status", "processing")
-
-            if status != last_status:
-                logger.info(
-                    "Poll status change: process_id=%s %s -> %s",
-                    process_id,
-                    last_status,
-                    status,
-                )
-                last_status = status
-                if on_status_change is not None:
-                    await on_status_change(status, result)
-
             if status in ("Completed", "Error"):
                 result["terminal"] = True
                 return result
@@ -282,6 +273,3 @@ class ContentProcessService:
     def close(self):
         """Release connections."""
         self._blob_helper = None
-        if self._queue_client is not None:
-            self._queue_client.close()
-            self._queue_client = None

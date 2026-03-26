@@ -156,8 +156,12 @@ class Configuration(_configuration_base):
     app_cosmos_container_process: str = Field(
         default="Processes", alias="APP_COSMOS_CONTAINER_PROCESS"
     )
-    app_storage_blob_url: str = Field(default="", alias="APP_STORAGE_BLOB_URL")
-    app_storage_queue_url: str = Field(default="", alias="APP_STORAGE_QUEUE_URL")
+    app_storage_blob_url: str = Field(
+        default="", alias="APP_STORAGE_BLOB_URL"
+    )
+    app_storage_queue_url: str = Field(
+        default="", alias="APP_STORAGE_QUEUE_URL"
+    )
     app_message_queue_extract: str = Field(
         default="content-pipeline-extract-queue", alias="APP_MESSAGE_QUEUE_EXTRACT"
     )

@@ -157,7 +157,7 @@ class GapExecutor(Executor):
                 extracted_file = ExtractedFile(
                     file_name=document["file_name"],
                     mime_type=document["mime_type"],
-                    extracted_content=json.dumps(processed_output, default=str),
+                    extracted_content=json.dumps(processed_output),
                 )
                 processed_files.append(extracted_file)
 
@@ -183,12 +183,10 @@ class GapExecutor(Executor):
             ChatMessage(
                 role="user",
                 text="Now analyze the following document extracts:\n\n"
-                + "\n\n".join(
-                    [
-                        f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
-                        for file in processed_files
-                    ]
-                ),
+                + "\n\n".join([
+                    f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
+                    for file in processed_files
+                ]),
             )
         )
 

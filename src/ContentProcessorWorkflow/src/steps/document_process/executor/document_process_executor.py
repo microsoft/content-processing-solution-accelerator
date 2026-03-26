@@ -154,13 +154,9 @@ class DocumentProcessExecutor(Executor):
             )
         )
 
-        # Limit concurrency to avoid overwhelming the ContentProcessor.
+        # Limit concurrency to avoid overwhelming the service
         max_concurrency = 2
         semaphore = asyncio.Semaphore(max_concurrency)
-
-        # Serialize Cosmos upserts on the parent Claim_Process document to
-        # prevent concurrent read-modify-write from reverting status updates.
-        upsert_lock = asyncio.Lock()
 
         async def _process_one(item) -> dict:
             async with semaphore:
@@ -175,9 +171,15 @@ class DocumentProcessExecutor(Executor):
                     file_bytes = bytes(source_file)
 
                     metadata_id = (
-                        item.metadata_id if item.metadata_id else f"Meta-{uuid.uuid4()}"
+                        item.metadata_id
+                        if item.metadata_id
+                        else f"Meta-{uuid.uuid4()}"
                     )
                     schema_id = str(item.schema_id)
+
+                    print(
+                        f"Processing document: {item.file_name} with schema_id: {schema_id}"
+                    )
 
                     # Direct submit: blob upload + queue enqueue + cosmos insert
                     process_id = await content_process_service.submit(
@@ -189,37 +191,21 @@ class DocumentProcessExecutor(Executor):
                     )
 
                     # Upsert initial status to claim process
-                    async with upsert_lock:
-                        await claim_process_repository.Upsert_Content_Process(
-                            process_id=claim_id,
-                            content_process=Content_Process(
-                                process_id=process_id,
-                                file_name=str(item.file_name),
-                                mime_type=content_type or "application/octet-stream",
-                                status="processing",
-                            ),
-                        )
+                    await claim_process_repository.Upsert_Content_Process(
+                        process_id=claim_id,
+                        content_process=Content_Process(
+                            process_id=process_id,
+                            file_name=str(item.file_name),
+                            mime_type=content_type or "application/octet-stream",
+                            status="processing",
+                        ),
+                    )
 
-                    # Poll Cosmos directly until terminal status,
-                    # propagating interim step statuses to the claim process.
-                    async def _on_status_change(new_status: str, _result: dict) -> None:
-                        async with upsert_lock:
-                            await claim_process_repository.Upsert_Content_Process(
-                                process_id=claim_id,
-                                content_process=Content_Process(
-                                    process_id=process_id,
-                                    file_name=str(item.file_name),
-                                    mime_type=content_type
-                                    or "application/octet-stream",
-                                    status=new_status,
-                                ),
-                            )
-
+                    # Poll Cosmos directly until terminal status
                     poll_result = await content_process_service.poll_status(
                         process_id=process_id,
                         poll_interval_seconds=poll_interval_seconds,
                         timeout_seconds=600.0,
-                        on_status_change=_on_status_change,
                     )
 
                     status_text = poll_result.get("status", "Failed")
@@ -235,7 +221,9 @@ class DocumentProcessExecutor(Executor):
                             process_id
                         )
                         if isinstance(final_payload, dict):
-                            status_text = final_payload.get("status") or status_text
+                            status_text = (
+                                final_payload.get("status") or status_text
+                            )
                             try:
                                 schema_score_f = float(
                                     final_payload.get("schema_score") or 0.0
@@ -257,20 +245,18 @@ class DocumentProcessExecutor(Executor):
                             result_payload = final_payload
 
                         # Final cosmos upsert with scores
-                        async with upsert_lock:
-                            await claim_process_repository.Upsert_Content_Process(
-                                process_id=claim_id,
-                                content_process=Content_Process(
-                                    process_id=process_id,
-                                    file_name=str(item.file_name),
-                                    mime_type=content_type
-                                    or "application/octet-stream",
-                                    status=status_text,
-                                    schema_score=schema_score_f,
-                                    entity_score=entity_score_f,
-                                    processed_time=processed_time,
-                                ),
-                            )
+                        await claim_process_repository.Upsert_Content_Process(
+                            process_id=claim_id,
+                            content_process=Content_Process(
+                                process_id=process_id,
+                                file_name=str(item.file_name),
+                                mime_type=content_type or "application/octet-stream",
+                                status=status_text,
+                                schema_score=schema_score_f,
+                                entity_score=entity_score_f,
+                                processed_time=processed_time,
+                            ),
+                        )
 
                     # Map status to HTTP-like code for downstream compatibility
                     if status_text == "Completed":
