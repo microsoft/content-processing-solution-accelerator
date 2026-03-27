@@ -5,7 +5,7 @@
 
 Covers prompt loading (``_load_rai_executor_prompt``), the
 ``RAIResponse`` Pydantic model, and the ``fetch_processed_steps_result``
-URL-building logic.
+direct-resource-access logic.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -46,39 +46,32 @@ class TestRAIResponse:
     """Tests for the RAIResponse Pydantic model."""
 
     def test_safe_response(self):
-        resp = RAIResponse(IsNotSafe=False, Reasoning="Content is clean.")
+        resp = RAIResponse(IsNotSafe=False)
         assert resp.IsNotSafe is False
-        assert resp.Reasoning == "Content is clean."
 
     def test_unsafe_response(self):
-        resp = RAIResponse(IsNotSafe=True, Reasoning="Violent language detected.")
+        resp = RAIResponse(IsNotSafe=True)
         assert resp.IsNotSafe is True
-        assert "Violent" in resp.Reasoning
-
-    def test_missing_required_field_raises(self):
-        with pytest.raises(Exception):
-            RAIResponse(IsNotSafe=True)  # type: ignore[call-arg]
 
     def test_missing_is_not_safe_raises(self):
         with pytest.raises(Exception):
-            RAIResponse(Reasoning="oops")  # type: ignore[call-arg]
+            RAIResponse()  # type: ignore[call-arg]
 
     def test_round_trip_serialization(self):
-        original = RAIResponse(IsNotSafe=False, Reasoning="OK")
+        original = RAIResponse(IsNotSafe=False)
         data = original.model_dump()
         restored = RAIResponse.model_validate(data)
         assert restored == original
 
     def test_json_round_trip(self):
-        original = RAIResponse(IsNotSafe=True, Reasoning="Blocked")
+        original = RAIResponse(IsNotSafe=True)
         json_str = original.model_dump_json()
         restored = RAIResponse.model_validate_json(json_str)
         assert restored == original
 
     def test_field_types(self):
-        resp = RAIResponse(IsNotSafe=False, Reasoning="Fine")
+        resp = RAIResponse(IsNotSafe=False)
         assert isinstance(resp.IsNotSafe, bool)
-        assert isinstance(resp.Reasoning, str)
 
 
 # ── Prompt loading ───────────────────────────────────────────────────────────
@@ -101,8 +94,6 @@ class TestLoadRAIExecutorPrompt:
         assert "TRUE" in prompt
         assert "FALSE" in prompt
         assert "safety" in prompt.lower()
-        assert "IsNotSafe" in prompt
-        assert "Reasoning" in prompt
         assert "document-processing pipeline" in prompt
 
     def test_raises_on_missing_file(self):
@@ -131,121 +122,38 @@ class TestLoadRAIExecutorPrompt:
 
 
 class TestFetchProcessedStepsResult:
-    """Tests for RAIExecutor.fetch_processed_steps_result."""
+    """Tests for RAIExecutor.fetch_processed_steps_result.
 
-    def _make_executor_with_endpoint(self, endpoint: str) -> RAIExecutor:
-        """Create a RAIExecutor with a mock app_context returning *endpoint*."""
+    The method now delegates to ContentProcessService.get_steps()
+    via app_context instead of using HttpRequestClient.
+    """
+
+    def _make_executor_with_mock_service(self, return_value=None):
+        """Create a RAIExecutor with a mocked ContentProcessService."""
         exe = _make_executor()
-        config = MagicMock()
-        config.app_cps_content_process_endpoint = endpoint
+        mock_service = MagicMock()
+        mock_service.get_steps.return_value = return_value
         context = MagicMock()
-        context.configuration = config
+        context.get_service.return_value = mock_service
         exe.app_context = context
-        return exe
+        return exe, mock_service
 
-    def test_url_with_contentprocessor_suffix(self):
-        """When endpoint ends with /contentprocessor, use /submit path."""
-        exe = self._make_executor_with_endpoint("https://example.com/contentprocessor")
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.json.return_value = [{"step_name": "extract"}]
+    def test_returns_steps_list(self):
+        """get_steps returns a list of step dicts."""
+        steps = [{"step_name": "extract"}, {"step_name": "map"}]
+        exe, mock_svc = self._make_executor_with_mock_service(steps)
+        result = asyncio.run(exe.fetch_processed_steps_result("proc-123"))
+        mock_svc.get_steps.assert_called_once_with("proc-123")
+        assert result == steps
 
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch(
-            "steps.rai.executor.rai_executor.HttpRequestClient",
-            return_value=mock_client,
-        ):
-            result = asyncio.run(exe.fetch_processed_steps_result("proc-123"))
-
-        mock_client.get.assert_called_once_with(
-            "https://example.com/contentprocessor/submit/proc-123/steps"
-        )
-        assert result == [{"step_name": "extract"}]
-
-    def test_url_without_contentprocessor_suffix(self):
-        """When endpoint does not end with /contentprocessor, use /contentprocessor/processed."""
-        exe = self._make_executor_with_endpoint("https://example.com/api")
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.json.return_value = [{"step_name": "map"}]
-
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch(
-            "steps.rai.executor.rai_executor.HttpRequestClient",
-            return_value=mock_client,
-        ):
-            result = asyncio.run(exe.fetch_processed_steps_result("proc-456"))
-
-        mock_client.get.assert_called_once_with(
-            "https://example.com/api/contentprocessor/processed/proc-456/steps"
-        )
-        assert result == [{"step_name": "map"}]
-
-    def test_returns_none_on_non_200(self):
-        """Non-200 responses yield None."""
-        exe = self._make_executor_with_endpoint("https://example.com/api")
-        mock_response = MagicMock()
-        mock_response.status = 404
-
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch(
-            "steps.rai.executor.rai_executor.HttpRequestClient",
-            return_value=mock_client,
-        ):
-            result = asyncio.run(exe.fetch_processed_steps_result("proc-789"))
-
+    def test_returns_none_when_not_found(self):
+        """get_steps returns None when blob not found."""
+        exe, mock_svc = self._make_executor_with_mock_service(None)
+        result = asyncio.run(exe.fetch_processed_steps_result("proc-789"))
         assert result is None
 
-    def test_trailing_slash_stripped_from_endpoint(self):
-        """Trailing slashes on the endpoint are stripped before URL assembly."""
-        exe = self._make_executor_with_endpoint("https://example.com/api/")
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.json.return_value = []
-
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch(
-            "steps.rai.executor.rai_executor.HttpRequestClient",
-            return_value=mock_client,
-        ):
-            asyncio.run(exe.fetch_processed_steps_result("proc-000"))
-
-        url_called = mock_client.get.call_args[0][0]
-        assert "/api/contentprocessor/processed/proc-000/steps" in url_called
-        assert "//" not in url_called.split("://")[1]
-
-    def test_none_endpoint_handled(self):
-        """None endpoint defaults to empty string without crashing."""
-        exe = self._make_executor_with_endpoint(None)  # type: ignore[arg-type]
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.json.return_value = []
-
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_response
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch(
-            "steps.rai.executor.rai_executor.HttpRequestClient",
-            return_value=mock_client,
-        ):
-            result = asyncio.run(exe.fetch_processed_steps_result("proc-nil"))
-
+    def test_returns_empty_list(self):
+        """get_steps can return an empty list."""
+        exe, mock_svc = self._make_executor_with_mock_service([])
+        result = asyncio.run(exe.fetch_processed_steps_result("proc-000"))
         assert result == []

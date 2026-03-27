@@ -101,7 +101,10 @@ class ClaimsQueueWorkerService(ApplicationBase):
         Populates the DI container with agent-framework helpers, middlewares,
         repository services, and the queue-processing service.
         """
-        logger.info("Application initialized with configuration (secrets redacted)")
+        print(
+            "Application initialized with configuration:",
+            self.application_context.configuration,
+        )
         self.register_services()
 
     def register_services(self):
@@ -114,9 +117,8 @@ class ClaimsQueueWorkerService(ApplicationBase):
         )
 
         (
-            self.application_context.add_singleton(
-                DebuggingMiddleware, DebuggingMiddleware
-            )
+            self.application_context
+            .add_singleton(DebuggingMiddleware, DebuggingMiddleware)
             .add_singleton(LoggingFunctionMiddleware, LoggingFunctionMiddleware)
             .add_singleton(InputObserverMiddleware, InputObserverMiddleware)
             .add_singleton(Mem0AsyncMemoryManager, Mem0AsyncMemoryManager)
