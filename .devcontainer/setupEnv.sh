@@ -18,7 +18,7 @@ cd ../../
 
 echo "Installing dependencies for ContentProcessorWeb..."
 cd ./src/ContentProcessorWeb
-yarn install
+pnpm install
 
 cd ../../
 
