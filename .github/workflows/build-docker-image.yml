@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [main, dev, demo, hotfix]
+    branches: [main, dev, demo, hotfix, psl-docker-build-and-push-v2, psl-cps-v2]
     paths:
       - 'src/ContentProcessor/src/**'
       - 'src/**/Dockerfile'
@@ -21,7 +21,7 @@ on:
       - 'src/ContentProcessorWeb/env.sh'
       - '.github/workflows/build-docker-image.yml'
   pull_request:
-    branches: [main, dev, demo, hotfix]
+    branches: [main, dev, demo, hotfix, psl-docker-build-and-push-v2, psl-cps-v2]
     types: [opened, ready_for_review, reopened, synchronize]
     paths:
       - 'src/ContentProcessor/src/**'
@@ -48,14 +48,14 @@ on:
 permissions:
   contents: read
   actions: read
+  id-token: write
   
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: production
     env:
       ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     steps:
       - name: Checkout repository
@@ -68,13 +68,17 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-      - name: Log in to Azure Container Registry
-        if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
-        uses: azure/docker-login@v2
+      - name: Login to Azure
+        if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' || github.ref_name == 'psl-docker-build-and-push-v2' || github.ref_name == 'psl-cps-v2' }}
+        uses: azure/login@v2
         with:
-          login-server: ${{ env.ACR_LOGIN_SERVER }}
-          username: ${{ env.ACR_USERNAME }}
-          password: ${{ env.ACR_PASSWORD }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to Azure Container Registry
+        if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' || github.ref_name == 'psl-docker-build-and-push-v2' || github.ref_name == 'psl-cps-v2' }}
+        run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
       
       - name: Get registry
         id: registry
@@ -97,6 +101,10 @@ jobs:
             BASE_TAG="hotfix"
           elif [[ "$BRANCH" == "dependabotchanges" ]]; then
             BASE_TAG="dependabotchanges"
+          elif [[ "$BRANCH" == "psl-docker-build-and-push-v2" ]]; then
+            BASE_TAG="latest_v2"
+          elif [[ "$BRANCH" == "psl-cps-v2" ]]; then
+            BASE_TAG="latest_v2"
             
           else
             BASE_TAG="pullrequest-ignore"
@@ -111,7 +119,7 @@ jobs:
         with:
           context: ./src/ContentProcessor
           file: ./src/ContentProcessor/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' || github.ref_name == 'psl-docker-build-and-push-v2' || github.ref_name == 'psl-cps-v2' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.DATE_TAG }}
@@ -121,7 +129,7 @@ jobs:
         with:
           context: ./src/ContentProcessorAPI
           file: ./src/ContentProcessorAPI/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' || github.ref_name == 'psl-docker-build-and-push-v2' || github.ref_name == 'psl-cps-v2' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.DATE_TAG }}
@@ -131,7 +139,7 @@ jobs:
         with:
           context: ./src/ContentProcessorWeb
           file: ./src/ContentProcessorWeb/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' || github.ref_name == 'psl-docker-build-and-push-v2' || github.ref_name == 'psl-cps-v2' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}
@@ -141,7 +149,7 @@ jobs:
         with:
           context: ./src/ContentProcessorWorkflow
           file: ./src/ContentProcessorWorkflow/Dockerfile
-          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' || github.ref_name == 'psl-docker-build-and-push-v2' || github.ref_name == 'psl-cps-v2' }}
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorworkflow:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorworkflow:${{ env.DATE_TAG }}

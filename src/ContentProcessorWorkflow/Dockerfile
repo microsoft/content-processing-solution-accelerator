@@ -16,6 +16,7 @@ WORKDIR /app
 RUN tdnf update -y && tdnf install -y \
     tar \
     ca-certificates \
+    gawk \
     shadow-utils \
     && tdnf clean all \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
