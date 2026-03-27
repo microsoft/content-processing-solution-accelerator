@@ -67,7 +67,7 @@ param gptModelVersion string = '2025-11-13'
 @description('Optional. Capacity of the GPT deployment: (minimum 10).')
 param gptDeploymentCapacity int = 300
 
-@description('Optional. The public container image endpoint.')
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
 param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
