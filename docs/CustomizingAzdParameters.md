@@ -21,6 +21,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_CONTAINER_IMAGE_TAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).                       |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
 | `AZURE_ENV_FOUNDRY_PROJECT_ID`         | string  | Guide to get your [Existing AI Project ID](/docs/re-use-foundry-project.md) | Reuses an existing AI Foundry and AI Foundry Project instead of creating a new one.   |
+| `AZURE_ENV_VM_SIZE` | string | `Standard_D2s_v5` | Overrides the jumpbox VM size (private networking only). Default: `Standard_D2s_v5`. |
 
 ## How to Set a Parameter
 
