@@ -147,9 +147,9 @@ jobs:
               enablePrivateNetworking="false" \
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
-              gptModelName="gpt-4o" \
+              gptModelName="gpt-5.1" \
               gptModelVersion="2025-11-13" \
-              gptDeploymentCapacity="30" \
+              gptDeploymentCapacity="300" \
               azureAiServiceLocation="${{ env.AZURE_LOCATION }}" \
               imageTag="latest_v2" \
               tags="{'CreatedBy':'Pipeline', 'Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \

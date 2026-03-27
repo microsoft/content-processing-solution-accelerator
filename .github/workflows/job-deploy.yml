@@ -97,6 +97,7 @@ env:
   CLEANUP_RESOURCES: ${{ inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources }}
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
   BUILD_DOCKER_IMAGE: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.build_docker_image || false) || false }}
+  RG_TAGS: ${{ vars.RG_TAGS }}
 permissions:
   contents: read
   actions: read
@@ -407,7 +408,7 @@ jobs:
           rg_exists=$(az group exists --name $RESOURCE_GROUP_NAME)
           if [ "$rg_exists" = "false" ]; then
             echo "📦 Resource group does not exist. Creating new resource group '$RESOURCE_GROUP_NAME' in location '$AZURE_LOCATION'..."
-            az group create --name $RESOURCE_GROUP_NAME --location $AZURE_LOCATION || { echo "❌ Error creating resource group"; exit 1; }
+            az group create --name $RESOURCE_GROUP_NAME --location $AZURE_LOCATION --tags ${{ env.RG_TAGS }} || { echo "❌ Error creating resource group"; exit 1; }
             echo "✅ Resource group '$RESOURCE_GROUP_NAME' created successfully."
           else
             echo "✅ Resource group '$RESOURCE_GROUP_NAME' already exists. Deploying to existing resource group."
@@ -445,8 +446,8 @@ jobs:
             echo "Current branch: $BRANCH_NAME"
             
             if [[ "$BRANCH_NAME" == "main" ]]; then
-              IMAGE_TAG="latest"
-              echo "Using main branch - image tag: latest"
+              IMAGE_TAG="latest_v2"
+              echo "Using main branch - image tag: latest_v2"
             elif [[ "$BRANCH_NAME" == "dev" ]]; then
               IMAGE_TAG="dev"
               echo "Using dev branch - image tag: dev"
@@ -458,8 +459,8 @@ jobs:
             elif [[ "$BRANCH_NAME" == "dependabotchanges" ]]; then
               IMAGE_TAG="dependabotchanges"
             else
-              IMAGE_TAG="latest"
-              echo "Using default for branch '$BRANCH_NAME' - image tag: latest"
+              IMAGE_TAG="latest_v2"
+              echo "Using default for branch '$BRANCH_NAME' - image tag: latest_v2"
             fi
             
             echo "Using existing Docker image tag: $IMAGE_TAG"
