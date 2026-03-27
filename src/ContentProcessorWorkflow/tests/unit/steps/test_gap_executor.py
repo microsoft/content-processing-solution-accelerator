@@ -5,11 +5,22 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+import json
+import sys
+from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from steps.gap_analysis.executor.gap_executor import GapExecutor
+with patch.dict(
+    sys.modules,
+    {
+        "repositories.claim_processes": MagicMock(Claim_Processes=object),
+        "services.content_process_service": MagicMock(ContentProcessService=object),
+    },
+):
+    with patch("agent_framework.handler", lambda fn: fn):
+        from steps.gap_analysis.executor.gap_executor import GapExecutor
 
 
 class TestReadTextFile:
@@ -69,3 +80,27 @@ class TestLoadPromptAndRules:
 
         with pytest.raises(RuntimeError, match="Invalid YAML"):
             exe._load_prompt_and_rules()
+
+
+class TestSerializeProcessedOutput:
+    def _make_executor(self):
+        with patch.object(GapExecutor, "__init__", lambda self, *a, **kw: None):
+            exe = GapExecutor.__new__(GapExecutor)
+        exe._PROMPT_FILE_NAME = "gap_executor_prompt.txt"
+        exe._RULES_FILE_NAME = "fnol_gap_rules.dsl.yaml"
+        return exe
+
+    def test_serializes_datetime_values(self):
+        exe = self._make_executor()
+
+        serialized = exe._serialize_processed_output(
+            {
+                "created_at": datetime(2026, 3, 27, 12, 56, 20),
+                "nested": {"updated_at": datetime(2026, 3, 27, 13, 1, 2)},
+            }
+        )
+
+        assert json.loads(serialized) == {
+            "created_at": "2026-03-27T12:56:20",
+            "nested": {"updated_at": "2026-03-27T13:01:02"},
+        }
