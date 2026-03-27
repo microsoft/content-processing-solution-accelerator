@@ -288,7 +288,7 @@ jobs:
         shell: bash
         env:
           INPUT_EXP: ${{ inputs.EXP }}
-          INPUT_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+          INPUT_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
         run: |
           echo "🔍 Validating EXP configuration..."
@@ -298,11 +298,11 @@ jobs:
           if [[ "$INPUT_EXP" == "true" ]]; then
             EXP_ENABLED="true"
             echo "✅ EXP explicitly enabled by user input"
-          elif [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_ID" ]] || [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]]; then
+          elif [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_RID" ]] || [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]]; then
             echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
             echo ""
             echo "You provided values for:"
-            [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_ID" ]] && echo "  - Azure Log Analytics Workspace ID: '$INPUT_LOG_ANALYTICS_WORKSPACE_ID'"
+            [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_RID" ]] && echo "  - Azure Log Analytics Workspace Resource ID: '$INPUT_LOG_ANALYTICS_WORKSPACE_RID'"
             [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]] && echo "  - Azure AI Project Resource ID: '$INPUT_AI_PROJECT_RESOURCE_ID'"
             echo ""
             echo "✅ Automatically enabling EXP to use these values."
