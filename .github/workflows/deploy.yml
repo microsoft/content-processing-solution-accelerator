@@ -148,7 +148,7 @@ jobs:
               contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-4o" \
-              gptModelVersion="2024-08-06" \
+              gptModelVersion="2025-11-13" \
               gptDeploymentCapacity="30" \
               azureAiServiceLocation="${{ env.AZURE_LOCATION }}" \
               imageTag="latest_v2" \
