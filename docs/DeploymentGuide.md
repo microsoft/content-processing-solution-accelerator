@@ -16,7 +16,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 |------------------------------|-----------|-------------|
 | **Contributor** | Subscription or Resource Group | Create and manage Azure resources |
 | **User Access Administrator** | Subscription or Resource Group | Manage user access and role assignments |
-| **Role Based Access Control** | Subscription/Resource Group level | Configure RBAC permissions |
+| **Role Based Access Control Admin** | Subscription/Resource Group level | Configure RBAC permissions |
 | **Application Administrator** | Tenant | Create app registrations for authentication |
 
 **🔍 How to Check Your Permissions:**
