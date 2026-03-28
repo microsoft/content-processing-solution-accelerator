@@ -102,7 +102,7 @@ class ContentProcessService:
         return self._queue_client
 
     # ------------------------------------------------------------------ #
-    # submit — replaces POST /contentprocessor/submit
+    # submit
     # ------------------------------------------------------------------ #
     async def submit(
         self,
@@ -112,13 +112,26 @@ class ContentProcessService:
         schema_id: str,
         metadata_id: str,
     ) -> str:
-        """Upload file to blob, enqueue processing message, create Cosmos record.
+        """Upload file to blob, insert Cosmos record, and enqueue processing.
 
-        Returns the generated process_id.
+        Steps:
+            1. Upload the file to blob storage.
+            2. Insert a Cosmos DB record so ContentProcessor finds it
+               on pickup (avoids duplicate-document race).
+            3. Enqueue a processing message to the extract queue.
+
+        Args:
+            file_bytes: Raw file content.
+            filename: Sanitized file name.
+            mime_type: Detected MIME type.
+            schema_id: Schema to apply during extraction.
+            metadata_id: Associated metadata identifier.
+
+        Returns:
+            The generated process_id (UUID string).
         """
         process_id = str(uuid.uuid4())
 
-        # 1. Upload file to blob: {cps-processes}/{process_id}/{filename}
         container_name = self._config.app_cps_processes
         blob_helper = self._get_blob_helper()
         await asyncio.to_thread(
@@ -128,7 +141,18 @@ class ContentProcessService:
             data=file_bytes,
         )
 
-        # 2. Enqueue processing message
+        # Insert Cosmos record BEFORE enqueuing so ContentProcessor
+        # finds this record (not creates a duplicate) when it starts.
+        record = ContentProcessRecord(
+            id=process_id,
+            process_id=process_id,
+            processed_file_name=filename,
+            processed_file_mime_type=mime_type,
+            status="processing",
+            imported_time=datetime.now(timezone.utc),
+        )
+        await self._process_repo.add_async(record)
+
         message = ContentProcessMessage(
             process_id=process_id,
             files=[
@@ -166,28 +190,21 @@ class ContentProcessService:
             self._get_queue_client().send_message, message.model_dump_json()
         )
 
-        # 3. Insert initial Cosmos record via sas-cosmosdb
-        record = ContentProcessRecord(
-            id=process_id,
-            process_id=process_id,
-            processed_file_name=filename,
-            processed_file_mime_type=mime_type,
-            status="processing",
-            imported_time=datetime.now(timezone.utc),
-        )
-        await self._process_repo.add_async(record)
-
         logger.info("Submitted process %s for file %s", process_id, filename)
         return process_id
 
     # ------------------------------------------------------------------ #
-    # get_status — replaces GET /contentprocessor/status/{id}
+    # get_status
     # ------------------------------------------------------------------ #
     async def get_status(self, process_id: str) -> dict | None:
         """Query Cosmos for process status.
 
-        Returns a dict with keys: status, process_id, file_name.
-        Returns None if not found.
+        Args:
+            process_id: The content process identifier.
+
+        Returns:
+            Dict with keys ``status``, ``process_id``, ``file_name``;
+            ``None`` if the record does not exist.
         """
         record = await self._process_repo.get_async(process_id)
         if record is None:
@@ -199,12 +216,16 @@ class ContentProcessService:
         }
 
     # ------------------------------------------------------------------ #
-    # get_processed — replaces GET /contentprocessor/processed/{id}
+    # get_processed
     # ------------------------------------------------------------------ #
     async def get_processed(self, process_id: str) -> dict | None:
         """Query Cosmos for the full processed content result.
 
-        Returns the full document dict, or None if not found.
+        Args:
+            process_id: The content process identifier.
+
+        Returns:
+            Full document dict, or ``None`` if not found.
         """
         record = await self._process_repo.get_async(process_id)
         if record is None:
@@ -212,12 +233,16 @@ class ContentProcessService:
         return record.model_dump(mode="json")
 
     # ------------------------------------------------------------------ #
-    # get_steps — replaces GET /contentprocessor/processed/{id}/steps
+    # get_steps
     # ------------------------------------------------------------------ #
     async def get_steps(self, process_id: str) -> list | None:
         """Download step_outputs.json from blob storage.
 
-        Returns parsed list of step output dicts, or None if not found.
+        Args:
+            process_id: The content process identifier.
+
+        Returns:
+            Parsed JSON list of step objects, or ``None`` if not found.
         """
         container_name = self._config.app_cps_processes
         blob_name = f"{process_id}/step_outputs.json"
@@ -234,7 +259,7 @@ class ContentProcessService:
             return None
 
     # ------------------------------------------------------------------ #
-    # poll_status — replaces the HTTP polling loop
+    # poll_status
     # ------------------------------------------------------------------ #
     async def poll_status(
         self,
@@ -243,16 +268,18 @@ class ContentProcessService:
         timeout_seconds: float = 600.0,
         on_poll: Callable[[dict], Awaitable[None] | None] | None = None,
     ) -> dict:
-        """Poll Cosmos for status until terminal state or timeout.
+        """Poll Cosmos for status until a terminal state or timeout.
 
         Args:
             process_id: The content process ID to poll.
             poll_interval_seconds: Delay between poll attempts.
-            timeout_seconds: Maximum time to wait for a terminal status.
-            on_poll: Optional callback invoked on each poll iteration with
+            timeout_seconds: Maximum elapsed time before giving up.
+            on_poll: Optional callback invoked on each iteration with
                 the current status dict.  Accepts sync or async callables.
 
-        Returns the final status dict with keys: status, process_id, file_name.
+        Returns:
+            Final status dict with keys ``status``, ``process_id``,
+            ``file_name``, and ``terminal``.
         """
         elapsed = 0.0
         result: dict | None = None

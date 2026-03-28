@@ -157,9 +157,11 @@ class DocumentProcessExecutor(Executor):
             )
         )
 
-        # Limit concurrency to avoid overwhelming the service
-        max_concurrency = 2
+        # Limit concurrency; serialize Cosmos writes via _upsert_lock to
+        # prevent lost-update races on the shared Claim_Process document.
+        max_concurrency = 4
         semaphore = asyncio.Semaphore(max_concurrency)
+        _upsert_lock = asyncio.Lock()
 
         async def _process_one(item) -> dict:
             async with semaphore:
@@ -184,7 +186,7 @@ class DocumentProcessExecutor(Executor):
                         schema_id,
                     )
 
-                    # Direct submit: blob upload + queue enqueue + cosmos insert
+                    # Direct submit: blob upload + cosmos insert + queue enqueue
                     process_id = await content_process_service.submit(
                         file_bytes=file_bytes,
                         filename=filename,
@@ -193,21 +195,21 @@ class DocumentProcessExecutor(Executor):
                         metadata_id=metadata_id,
                     )
 
-                    # Upsert initial status to claim process
-                    await claim_process_repository.Upsert_Content_Process(
-                        process_id=claim_id,
-                        content_process=Content_Process(
-                            process_id=process_id,
-                            file_name=str(item.file_name),
-                            mime_type=content_type or "application/octet-stream",
-                            status="processing",
-                        ),
-                    )
+                    # Upsert initial "processing" status to claim process
+                    async with _upsert_lock:
+                        await claim_process_repository.Upsert_Content_Process(
+                            process_id=claim_id,
+                            content_process=Content_Process(
+                                process_id=process_id,
+                                file_name=str(item.file_name),
+                                mime_type=content_type or "application/octet-stream",
+                                status="processing",
+                            ),
+                        )
 
-                    # Poll Cosmos directly until terminal status,
-                    # upserting intermediate status changes to the claim process.
-                    # Track the last status to avoid redundant writes that
-                    # create race conditions with concurrent tasks.
+                    # Poll until terminal status, upserting intermediate
+                    # changes. Skip duplicate and terminal statuses to
+                    # avoid clobbering the caller's richer final upsert.
                     _last_polled_status: str | None = None
 
                     async def _on_poll(poll_data: dict) -> None:
@@ -216,19 +218,20 @@ class DocumentProcessExecutor(Executor):
                         if polled_status == _last_polled_status:
                             return
                         _last_polled_status = polled_status
-                        # Skip the final "Completed"/"Error" upsert here;
-                        # the caller does a richer upsert with scores.
+                        # Terminal statuses are handled by the caller with scores.
                         if polled_status in ("Completed", "Error"):
                             return
-                        await claim_process_repository.Upsert_Content_Process(
-                            process_id=claim_id,
-                            content_process=Content_Process(
-                                process_id=process_id,
-                                file_name=str(item.file_name),
-                                mime_type=content_type or "application/octet-stream",
-                                status=polled_status,
-                            ),
-                        )
+                        async with _upsert_lock:
+                            await claim_process_repository.Upsert_Content_Process(
+                                process_id=claim_id,
+                                content_process=Content_Process(
+                                    process_id=process_id,
+                                    file_name=str(item.file_name),
+                                    mime_type=content_type
+                                    or "application/octet-stream",
+                                    status=polled_status,
+                                ),
+                            )
 
                     poll_result = await content_process_service.poll_status(
                         process_id=process_id,
@@ -239,7 +242,6 @@ class DocumentProcessExecutor(Executor):
 
                     status_text = poll_result.get("status", "Failed")
 
-                    # Fetch final processed result for scores
                     schema_score_f = 0.0
                     entity_score_f = 0.0
                     processed_time = ""
@@ -271,21 +273,23 @@ class DocumentProcessExecutor(Executor):
                                 processed_time = ""
                             result_payload = final_payload
 
-                        # Final cosmos upsert with scores
-                        await claim_process_repository.Upsert_Content_Process(
-                            process_id=claim_id,
-                            content_process=Content_Process(
-                                process_id=process_id,
-                                file_name=str(item.file_name),
-                                mime_type=content_type or "application/octet-stream",
-                                status=status_text,
-                                schema_score=schema_score_f,
-                                entity_score=entity_score_f,
-                                processed_time=processed_time,
-                            ),
-                        )
+                        # Final upsert with scores
+                        async with _upsert_lock:
+                            await claim_process_repository.Upsert_Content_Process(
+                                process_id=claim_id,
+                                content_process=Content_Process(
+                                    process_id=process_id,
+                                    file_name=str(item.file_name),
+                                    mime_type=content_type
+                                    or "application/octet-stream",
+                                    status=status_text,
+                                    schema_score=schema_score_f,
+                                    entity_score=entity_score_f,
+                                    processed_time=processed_time,
+                                ),
+                            )
 
-                    # Map status to HTTP-like code for downstream compatibility
+                    # Map to HTTP-like code for downstream compatibility
                     if status_text == "Completed":
                         status_code = 302
                     elif status_text in ("Error", "Failed"):
