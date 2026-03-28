@@ -13,6 +13,7 @@ to the ContentProcessorAPI, avoiding Easy Auth sidecar issues.
 """
 
 import asyncio
+import logging
 import mimetypes
 import uuid
 from datetime import datetime, timezone
@@ -27,6 +28,8 @@ from services.content_process_service import ContentProcessService
 from steps.models.output import Executor_Output, Workflow_Output
 
 from ...models.manifest import ClaimProcess
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentProcessExecutor(Executor):
@@ -171,14 +174,14 @@ class DocumentProcessExecutor(Executor):
                     file_bytes = bytes(source_file)
 
                     metadata_id = (
-                        item.metadata_id
-                        if item.metadata_id
-                        else f"Meta-{uuid.uuid4()}"
+                        item.metadata_id if item.metadata_id else f"Meta-{uuid.uuid4()}"
                     )
                     schema_id = str(item.schema_id)
 
-                    print(
-                        f"Processing document: {item.file_name} with schema_id: {schema_id}"
+                    logger.info(
+                        "Processing document: %s with schema_id: %s",
+                        item.file_name,
+                        schema_id,
                     )
 
                     # Direct submit: blob upload + queue enqueue + cosmos insert
@@ -201,11 +204,37 @@ class DocumentProcessExecutor(Executor):
                         ),
                     )
 
-                    # Poll Cosmos directly until terminal status
+                    # Poll Cosmos directly until terminal status,
+                    # upserting intermediate status changes to the claim process.
+                    # Track the last status to avoid redundant writes that
+                    # create race conditions with concurrent tasks.
+                    _last_polled_status: str | None = None
+
+                    async def _on_poll(poll_data: dict) -> None:
+                        nonlocal _last_polled_status
+                        polled_status = poll_data.get("status", "processing")
+                        if polled_status == _last_polled_status:
+                            return
+                        _last_polled_status = polled_status
+                        # Skip the final "Completed"/"Error" upsert here;
+                        # the caller does a richer upsert with scores.
+                        if polled_status in ("Completed", "Error"):
+                            return
+                        await claim_process_repository.Upsert_Content_Process(
+                            process_id=claim_id,
+                            content_process=Content_Process(
+                                process_id=process_id,
+                                file_name=str(item.file_name),
+                                mime_type=content_type or "application/octet-stream",
+                                status=polled_status,
+                            ),
+                        )
+
                     poll_result = await content_process_service.poll_status(
                         process_id=process_id,
                         poll_interval_seconds=poll_interval_seconds,
                         timeout_seconds=600.0,
+                        on_poll=_on_poll,
                     )
 
                     status_text = poll_result.get("status", "Failed")
@@ -221,9 +250,7 @@ class DocumentProcessExecutor(Executor):
                             process_id
                         )
                         if isinstance(final_payload, dict):
-                            status_text = (
-                                final_payload.get("status") or status_text
-                            )
+                            status_text = final_payload.get("status") or status_text
                             try:
                                 schema_score_f = float(
                                     final_payload.get("schema_score") or 0.0

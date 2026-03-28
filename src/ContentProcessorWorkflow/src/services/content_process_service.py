@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 
 from azure.identity import DefaultAzureCredential
@@ -120,7 +121,8 @@ class ContentProcessService:
         # 1. Upload file to blob: {cps-processes}/{process_id}/{filename}
         container_name = self._config.app_cps_processes
         blob_helper = self._get_blob_helper()
-        blob_helper.upload_blob(
+        await asyncio.to_thread(
+            blob_helper.upload_blob,
             container_name=container_name,
             blob_name=f"{process_id}/{filename}",
             data=file_bytes,
@@ -160,7 +162,9 @@ class ContentProcessService:
                 completed_steps=[],
             ),
         )
-        self._get_queue_client().send_message(message.model_dump_json())
+        await asyncio.to_thread(
+            self._get_queue_client().send_message, message.model_dump_json()
+        )
 
         # 3. Insert initial Cosmos record via sas-cosmosdb
         record = ContentProcessRecord(
@@ -205,12 +209,12 @@ class ContentProcessService:
         record = await self._process_repo.get_async(process_id)
         if record is None:
             return None
-        return record.model_dump()
+        return record.model_dump(mode="json")
 
     # ------------------------------------------------------------------ #
     # get_steps — replaces GET /contentprocessor/processed/{id}/steps
     # ------------------------------------------------------------------ #
-    def get_steps(self, process_id: str) -> list | None:
+    async def get_steps(self, process_id: str) -> list | None:
         """Download step_outputs.json from blob storage.
 
         Returns parsed list of step output dicts, or None if not found.
@@ -219,15 +223,14 @@ class ContentProcessService:
         blob_name = f"{process_id}/step_outputs.json"
         try:
             blob_helper = self._get_blob_helper()
-            data = blob_helper.download_blob(
+            data = await asyncio.to_thread(
+                blob_helper.download_blob,
                 container_name=container_name,
                 blob_name=blob_name,
             )
             return json.loads(data.decode("utf-8"))
         except Exception:
-            logger.debug(
-                "step_outputs.json not found for process %s", process_id
-            )
+            logger.debug("step_outputs.json not found for process %s", process_id)
             return None
 
     # ------------------------------------------------------------------ #
@@ -238,12 +241,21 @@ class ContentProcessService:
         process_id: str,
         poll_interval_seconds: float = 5.0,
         timeout_seconds: float = 600.0,
+        on_poll: Callable[[dict], Awaitable[None] | None] | None = None,
     ) -> dict:
         """Poll Cosmos for status until terminal state or timeout.
+
+        Args:
+            process_id: The content process ID to poll.
+            poll_interval_seconds: Delay between poll attempts.
+            timeout_seconds: Maximum time to wait for a terminal status.
+            on_poll: Optional callback invoked on each poll iteration with
+                the current status dict.  Accepts sync or async callables.
 
         Returns the final status dict with keys: status, process_id, file_name.
         """
         elapsed = 0.0
+        result: dict | None = None
         while elapsed < timeout_seconds:
             result = await self.get_status(process_id)
             if result is None:
@@ -253,6 +265,11 @@ class ContentProcessService:
                     "file_name": "",
                     "terminal": True,
                 }
+
+            if on_poll is not None:
+                poll_handler = on_poll(result)
+                if asyncio.iscoroutine(poll_handler):
+                    await poll_handler
 
             status = result.get("status", "processing")
             if status in ("Completed", "Error"):

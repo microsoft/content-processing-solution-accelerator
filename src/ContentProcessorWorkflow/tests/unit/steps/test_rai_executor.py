@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -132,7 +132,7 @@ class TestFetchProcessedStepsResult:
         """Create a RAIExecutor with a mocked ContentProcessService."""
         exe = _make_executor()
         mock_service = MagicMock()
-        mock_service.get_steps.return_value = return_value
+        mock_service.get_steps = AsyncMock(return_value=return_value)
         context = MagicMock()
         context.get_service.return_value = mock_service
         exe.app_context = context

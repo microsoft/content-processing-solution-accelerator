@@ -229,14 +229,16 @@ def validate_azure_authentication() -> dict[str, Any]:
     else:
         auth_info["environment"] = "local_development"
         auth_info["credential_type"] = "cli_credentials"
-        auth_info["recommendations"].extend([
-            "For local development, authenticate using one of:",
-            "  • Azure Developer CLI: 'azd auth login' (recommended for development)",
-            "  • Azure CLI: 'az login' (traditional method)",
-            "Both methods are supported and will be tried automatically",
-            "Ensure you have access to required Azure resources",
-            "Consider using 'az account show' to verify current subscription",
-        ])
+        auth_info["recommendations"].extend(
+            [
+                "For local development, authenticate using one of:",
+                "  • Azure Developer CLI: 'azd auth login' (recommended for development)",
+                "  • Azure CLI: 'az login' (traditional method)",
+                "Both methods are supported and will be tried automatically",
+                "Ensure you have access to required Azure resources",
+                "Consider using 'az account show' to verify current subscription",
+            ]
+        )
 
     try:
         credential = get_azure_credential()

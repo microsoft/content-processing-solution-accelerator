@@ -991,11 +991,13 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
             name = getattr(item, "name", None)
             call_id = getattr(item, "call_id", None)
             if name and call_id:
-                calls.append({
-                    "name": name,
-                    "call_id": call_id,
-                    "arguments": getattr(item, "arguments", None),
-                })
+                calls.append(
+                    {
+                        "name": name,
+                        "call_id": call_id,
+                        "arguments": getattr(item, "arguments", None),
+                    }
+                )
                 continue
 
             # Dict path (serialized content)
@@ -1003,11 +1005,13 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
                 "function_call",
                 "tool_call",
             }:
-                calls.append({
-                    "name": item.get("name"),
-                    "call_id": item.get("call_id"),
-                    "arguments": item.get("arguments"),
-                })
+                calls.append(
+                    {
+                        "name": item.get("name"),
+                        "call_id": item.get("call_id"),
+                        "arguments": item.get("arguments"),
+                    }
+                )
                 continue
 
         return calls

@@ -183,10 +183,12 @@ class SummarizeExecutor(Executor):
         model_response = await agent.run(
             ChatMessage(
                 role="user",
-                text="Now summarize the following document extracts: : \n\n".join([
-                    f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
-                    for file in processed_files
-                ]),
+                text="Now summarize the following document extracts: : \n\n".join(
+                    [
+                        f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
+                        for file in processed_files
+                    ]
+                ),
             )
         )
 
@@ -215,4 +217,4 @@ class SummarizeExecutor(Executor):
             Parsed JSON list of step objects, or ``None`` if not found.
         """
         content_process_service = self.app_context.get_service(ContentProcessService)
-        return content_process_service.get_steps(process_id)
+        return await content_process_service.get_steps(process_id)

@@ -28,6 +28,7 @@ Key behaviours:
 """
 
 import json
+import logging
 import time
 from datetime import datetime
 from typing import Any
@@ -52,6 +53,8 @@ from .document_process.executor.document_process_executor import DocumentProcess
 from .gap_analysis.executor.gap_executor import GapExecutor
 from .rai.executor.rai_executor import RAIExecutor
 from .summarize.executor.summarize_executor import SummarizeExecutor
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowExecutorFailedException(Exception):
@@ -232,7 +235,7 @@ class ClaimProcessor:
         try:
             async for event in self.workflow.run_stream(input_data):
                 if isinstance(event, WorkflowStartedEvent):
-                    print(f"Workflow started ({event.origin.value})")
+                    logger.info("Workflow started (%s)", event.origin.value)
                 elif isinstance(event, WorkflowOutputEvent):
                     claim_process_repository = self.app_context.get_service(
                         Claim_Processes
@@ -265,7 +268,7 @@ class ClaimProcessor:
 
                 elif isinstance(event, ExecutorInvokedEvent):
                     last_invoked_executor_id = event.executor_id
-                    print(text2art(event.executor_id.capitalize()))
+                    logger.info("\n%s", text2art(event.executor_id.capitalize()))
                     claim_process_repository = self.app_context.get_service(
                         Claim_Processes
                     )
@@ -299,9 +302,11 @@ class ClaimProcessor:
             mins, secs = divmod(total_secs, 60)
             hours, mins = divmod(mins, 60)
             elapsed_formatted = f"{hours:02d}:{mins:02d}:{secs:02d}.{ms:02d}"
-            print(
-                f"Workflow elapsed time: {elapsed_formatted} "
-                f"(start={start_dt.isoformat(timespec='seconds')}, end={end_dt.isoformat(timespec='seconds')})"
+            logger.info(
+                "Workflow elapsed time: %s (start=%s, end=%s)",
+                elapsed_formatted,
+                start_dt.isoformat(timespec="seconds"),
+                end_dt.isoformat(timespec="seconds"),
             )
 
             claim_process_repository = self.app_context.get_service(Claim_Processes)

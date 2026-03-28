@@ -41,12 +41,14 @@ def test_coordinator_complete_terminates_when_selected_participant_none_even_wit
 
         orch._current_agent_start_time = datetime.now()
         orch._current_agent_response = [
-            json.dumps({
-                "selected_participant": None,
-                "instruction": "complete",
-                "finish": False,
-                "final_message": "done",
-            })
+            json.dumps(
+                {
+                    "selected_participant": None,
+                    "instruction": "complete",
+                    "finish": False,
+                    "final_message": "done",
+                }
+            )
         ]
 
         await orch._complete_agent_response("Coordinator", callback=None)
@@ -69,12 +71,14 @@ def test_coordinator_complete_rejected_when_signoffs_missing():
 
         orch._current_agent_start_time = datetime.now()
         orch._current_agent_response = [
-            json.dumps({
-                "selected_participant": None,
-                "instruction": "complete",
-                "finish": False,
-                "final_message": "done",
-            })
+            json.dumps(
+                {
+                    "selected_participant": None,
+                    "instruction": "complete",
+                    "finish": False,
+                    "final_message": "done",
+                }
+            )
         ]
 
         await orch._complete_agent_response("Coordinator", callback=None)
@@ -92,12 +96,14 @@ def test_loop_detection_resets_when_other_agent_makes_progress_between_repeated_
         def _coordinator_select(participant: str, instruction: str = "do"):
             orch._current_agent_start_time = datetime.now()
             orch._current_agent_response = [
-                json.dumps({
-                    "selected_participant": participant,
-                    "instruction": instruction,
-                    "finish": False,
-                    "final_message": "",
-                })
+                json.dumps(
+                    {
+                        "selected_participant": participant,
+                        "instruction": instruction,
+                        "finish": False,
+                        "final_message": "",
+                    }
+                )
             ]
 
         def _agent_reply(text: str = "ok"):
