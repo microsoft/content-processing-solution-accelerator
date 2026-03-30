@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > **Important Update**
-> We've made major updates to Agentic Content Processing that include breaking changes. If you need the previous version, you can still find it in the [v1 branch](https://github.com/microsoft/content-processing-solution-accelerator/tree/v1).
+> We've made major updates to Agentic Content Processing that include breaking changes. If you need the previous version, you can still find it in the [v1 branch](https://github.com/microsoft/content-processing-solution-accelerator/tree/cps-v1).
 
 Process multi-document claims by extracting data from each document, applying schemas with confidence scoring, and generating AI-powered summaries and gap analysis across the entire claim. Upload multiple files — invoices, forms, images, contracts — to a single claim, and the solution automatically processes each document through a multi-modal content extraction pipeline, then orchestrates cross-document summarization and gap identification using an Agent Framework Workflow Engine.
 
