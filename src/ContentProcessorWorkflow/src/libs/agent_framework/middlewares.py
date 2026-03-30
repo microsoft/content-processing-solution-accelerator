@@ -28,6 +28,7 @@ Note:
     structured logging via ``logging.getLogger``.
 """
 
+import logging
 import time
 from collections.abc import Awaitable, Callable
 
@@ -41,6 +42,8 @@ from agent_framework import (
     FunctionMiddleware,
     Role,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class DebuggingMiddleware(AgentMiddleware):
@@ -74,19 +77,18 @@ class DebuggingMiddleware(AgentMiddleware):
                 streaming configuration.
             next: Callable that invokes the next middleware or the agent itself.
         """
-        print("[Debug] Debug mode enabled for this run")
-        print(f"[Debug] Messages count: {len(context.messages)}")
-        print(f"[Debug] Is streaming: {context.is_streaming}")
+        logger.debug("Debug mode enabled for this run")
+        logger.debug("Messages count: %d", len(context.messages))
+        logger.debug("Is streaming: %s", context.is_streaming)
 
-        # Log existing metadata from agent middleware
         if context.metadata:
-            print(f"[Debug] Existing metadata: {context.metadata}")
+            logger.debug("Existing metadata: %s", context.metadata)
 
         context.metadata["debug_enabled"] = True
 
         await next(context)
 
-        print("[Debug] Debug information collected")
+        logger.debug("Debug information collected")
 
 
 class LoggingFunctionMiddleware(FunctionMiddleware):
@@ -136,59 +138,60 @@ class LoggingFunctionMiddleware(FunctionMiddleware):
         duration = end_time - start_time
 
         # Build comprehensive log output
-        print("\n" + "=" * 80)
-        print("[LoggingFunctionMiddleware] Function Call")
-        print("=" * 80)
-        print(f"Function Name: {function_name}")
-        print(f"Execution Time: {duration:.5f}s")
+        log_lines = [
+            "",
+            "=" * 80,
+            "[LoggingFunctionMiddleware] Function Call",
+            "=" * 80,
+            f"Function Name: {function_name}",
+            f"Execution Time: {duration:.5f}s",
+        ]
 
-        # Display arguments
         if args_info:
-            print("\nArguments:")
+            log_lines.append("\nArguments:")
             for arg in args_info:
-                print(f"  - {arg}")
+                log_lines.append(f"  - {arg}")
         else:
-            print("\nArguments: None")
+            log_lines.append("\nArguments: None")
 
-        # Display output results
         if context.result:
-            print("\nOutput Results:")
+            log_lines.append("\nOutput Results:")
 
-            # Ensure context.result is treated as a list
             results = (
                 context.result if isinstance(context.result, list) else [context.result]
             )
 
             for idx, result in enumerate(results):
-                print(f"  Result #{idx + 1}:")
+                log_lines.append(f"  Result #{idx + 1}:")
 
-                # Use raw_representation to get the actual output
                 if hasattr(result, "raw_representation"):
                     raw_output = result.raw_representation
                     raw_type = type(raw_output).__name__
-                    print(f"    Type: {raw_type}")
+                    log_lines.append(f"    Type: {raw_type}")
 
-                    # Limit output length for very large content
                     output_str = str(raw_output)
                     if len(output_str) > 1000:
-                        print(f"    Output (truncated): {output_str[:1000]}...")
+                        log_lines.append(
+                            f"    Output (truncated): {output_str[:1000]}..."
+                        )
                     else:
-                        print(f"    Output: {output_str}")
-                # result is just string or primitive
+                        log_lines.append(f"    Output: {output_str}")
                 else:
                     output_str = str(result)
                     if len(output_str) > 1000:
-                        print(f"    Output (truncated): {output_str[:1000]}...")
+                        log_lines.append(
+                            f"    Output (truncated): {output_str[:1000]}..."
+                        )
                     else:
-                        print(f"    Output: {output_str}")
+                        log_lines.append(f"    Output: {output_str}")
 
-                # Check if result has error flag
                 if hasattr(result, "is_error"):
-                    print(f"    Is Error: {result.is_error}")
+                    log_lines.append(f"    Is Error: {result.is_error}")
         else:
-            print("\nOutput Results: None")
+            log_lines.append("\nOutput Results: None")
 
-        print("=" * 80 + "\n")
+        log_lines.append("=" * 80)
+        logger.debug("\n".join(log_lines))
 
 
 class InputObserverMiddleware(ChatMiddleware):
@@ -234,13 +237,15 @@ class InputObserverMiddleware(ChatMiddleware):
             context: The chat context containing the message list.
             next: Callable that invokes the next middleware or the chat client.
         """
-        print("[InputObserverMiddleware] Observing input messages:")
+        logger.debug("[InputObserverMiddleware] Observing input messages:")
 
         for i, message in enumerate(context.messages):
             content = message.text if message.text else str(message.contents)
-            print(f"  Message {i + 1} ({message.role.value}): {content}")
+            logger.debug("  Message %d (%s): %s", i + 1, message.role.value, content)
 
-        print(f"[InputObserverMiddleware] Total messages: {len(context.messages)}")
+        logger.debug(
+            "[InputObserverMiddleware] Total messages: %d", len(context.messages)
+        )
 
         # Modify user messages by creating new messages with enhanced text
         modified_messages: list[ChatMessage] = []
@@ -253,8 +258,10 @@ class InputObserverMiddleware(ChatMiddleware):
 
                 if self.replacement:
                     updated_text = self.replacement
-                    print(
-                        f"[InputObserverMiddleware] Updated: '{original_text}' -> '{updated_text}'"
+                    logger.debug(
+                        "[InputObserverMiddleware] Updated: '%s' -> '%s'",
+                        original_text,
+                        updated_text,
                     )
 
                 modified_message = ChatMessage(role=message.role, text=updated_text)
@@ -270,4 +277,4 @@ class InputObserverMiddleware(ChatMiddleware):
         await next(context)
 
         # Observe that processing is complete
-        print("[InputObserverMiddleware] Processing completed")
+        logger.debug("[InputObserverMiddleware] Processing completed")
