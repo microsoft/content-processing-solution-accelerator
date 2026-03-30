@@ -7,6 +7,8 @@ FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv
 # Use Debian-based VS Code Dev Container as base
 FROM mcr.microsoft.com/vscode/devcontainers/base:$DEBIAN_VERSION
 
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+
 # Install dependencies and Node.js 20+ from NodeSource
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
