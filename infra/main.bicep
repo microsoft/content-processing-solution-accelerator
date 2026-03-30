@@ -34,6 +34,16 @@ param location string
 })
 param contentUnderstandingLocation string = 'WestUS'
 
+@allowed([
+  'australiaeast'
+  'centralus'
+  'eastasia'
+  'eastus2'
+  'japaneast'
+  'northeurope'
+  'southeastasia'
+  'uksouth'
+])
 @description('Required. Location for the Azure AI Services deployment.')
 @metadata({
   azd: {
