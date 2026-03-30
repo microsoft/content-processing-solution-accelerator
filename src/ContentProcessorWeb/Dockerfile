@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Ensure pnpm is available
-RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+RUN npm install -g pnpm@10.28.2
 
 # Install project dependencies
 RUN pnpm install --frozen-lockfile
