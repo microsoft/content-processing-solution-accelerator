@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.40.2.10011",
-      "templateHash": "91469570804589345"
+      "version": "0.41.2.15936",
+      "templateHash": "11088967464764447289"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -58,6 +58,16 @@
     },
     "aiServiceLocation": {
       "type": "string",
+      "allowedValues": [
+        "australiaeast",
+        "centralus",
+        "eastasia",
+        "eastus2",
+        "japaneast",
+        "northeurope",
+        "southeastasia",
+        "uksouth"
+      ],
       "metadata": {
         "azd": {
           "type": "location",
@@ -338,8 +348,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.40.2.10011",
-              "templateHash": "637986880127430337"
+              "version": "0.41.2.15936",
+              "templateHash": "4055670269816744382"
             }
           },
           "definitions": {
@@ -19215,8 +19225,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.40.2.10011",
-              "templateHash": "3741201002953968110"
+              "version": "0.41.2.15936",
+              "templateHash": "6350282028214740152"
             }
           },
           "parameters": {
@@ -23221,8 +23231,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.40.2.10011",
-              "templateHash": "10844547551448610415"
+              "version": "0.41.2.15936",
+              "templateHash": "13929816981891754138"
             }
           },
           "parameters": {
@@ -23813,8 +23823,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.40.2.10011",
-              "templateHash": "7885429842089695683"
+              "version": "0.41.2.15936",
+              "templateHash": "17694195801715707119"
             },
             "name": "Container Registry Module"
           },
@@ -35298,8 +35308,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.40.2.10011",
-              "templateHash": "7557665774149769517"
+              "version": "0.41.2.15936",
+              "templateHash": "11676375352983709807"
             },
             "name": "Cognitive Services",
             "description": "This module deploys a Cognitive Service."
@@ -36548,8 +36558,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.40.2.10011",
-                      "templateHash": "6588447351857766372"
+                      "version": "0.41.2.15936",
+                      "templateHash": "8716336912243881623"
                     }
                   },
                   "definitions": {
@@ -38357,8 +38367,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.40.2.10011",
-                              "templateHash": "14939823368517410024"
+                              "version": "0.41.2.15936",
+                              "templateHash": "10989408486030617267"
                             }
                           },
                           "definitions": {
@@ -38511,8 +38521,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.40.2.10011",
-                              "templateHash": "13151306134286549002"
+                              "version": "0.41.2.15936",
+                              "templateHash": "7933643033523871028"
                             }
                           },
                           "definitions": {
@@ -38729,8 +38739,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.40.2.10011",
-                      "templateHash": "6588447351857766372"
+                      "version": "0.41.2.15936",
+                      "templateHash": "8716336912243881623"
                     }
                   },
                   "definitions": {
@@ -40538,8 +40548,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.40.2.10011",
-                              "templateHash": "14939823368517410024"
+                              "version": "0.41.2.15936",
+                              "templateHash": "10989408486030617267"
                             }
                           },
                           "definitions": {
@@ -40692,8 +40702,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.40.2.10011",
-                              "templateHash": "13151306134286549002"
+                              "version": "0.41.2.15936",
+                              "templateHash": "7933643033523871028"
                             }
                           },
                           "definitions": {
@@ -41711,10 +41721,10 @@
       },
       "dependsOn": [
         "avmAiServices",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "virtualNetwork"
       ]
     },
@@ -45013,8 +45023,8 @@
       "dependsOn": [
         "avmAiServices_cu",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "virtualNetwork"
       ]
     },
