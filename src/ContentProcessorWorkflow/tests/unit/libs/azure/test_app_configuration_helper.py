@@ -16,7 +16,7 @@ class _FakeSetting:
 
 
 class _FakeAppConfigClient:
-    def __init__(self, endpoint: str, credential: object):
+    def __init__(self, endpoint: str, credential: object, **kwargs):
         self.endpoint = endpoint
         self.credential = credential
         self._settings: list[_FakeSetting] = []
@@ -28,7 +28,7 @@ class _FakeAppConfigClient:
 def test_app_configuration_helper_initializes_client(monkeypatch) -> None:
     from libs.azure import app_configuration as mod
 
-    def _factory(endpoint: str, credential: object):
+    def _factory(endpoint: str, credential: object, **kwargs):
         # Return a new fake client each time so the test can assert endpoint wiring.
         return _FakeAppConfigClient(endpoint, credential)
 
@@ -83,7 +83,7 @@ def test_read_and_set_environmental_variables_sets_os_environ(monkeypatch) -> No
         _FakeSetting("K2", "V2"),
     ]
 
-    def _factory(endpoint: str, credential: object):
+    def _factory(endpoint: str, credential: object, **kwargs):
         return fake
 
     monkeypatch.setattr(mod, "AzureAppConfigurationClient", _factory)

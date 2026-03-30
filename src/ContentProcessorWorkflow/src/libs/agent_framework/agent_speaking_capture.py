@@ -32,10 +32,13 @@ Note:
     ``GroupChatOrchestrator``’s response buffer.
 """
 
+import logging
 from datetime import datetime
 from typing import Any, Callable, Optional
 
 from agent_framework import AgentMiddleware, AgentRunContext
+
+logger = logging.getLogger(__name__)
 
 
 class AgentSpeakingCaptureMiddleware(AgentMiddleware):
@@ -231,8 +234,8 @@ class AgentSpeakingCaptureMiddleware(AgentMiddleware):
                     await loop.run_in_executor(None, self.callback, capture_data)
             except Exception as e:
                 # Log error but don't break the middleware chain
-                print(
-                    f"[WARNING] Callback error in AgentSpeakingCaptureMiddleware: {e}"
+                logger.warning(
+                    "Callback error in AgentSpeakingCaptureMiddleware: %s", e
                 )
 
     async def _trigger_stream_complete_callback(self, capture_data: dict[str, Any]):
@@ -267,7 +270,7 @@ class AgentSpeakingCaptureMiddleware(AgentMiddleware):
                     )
             except Exception as e:
                 # Log error but don't break the middleware chain
-                print(f"[WARNING] Stream complete callback error: {e}")
+                logger.warning("Stream complete callback error: %s", e)
 
     def get_all_responses(self) -> list[dict[str, Any]]:
         """Get all captured responses.

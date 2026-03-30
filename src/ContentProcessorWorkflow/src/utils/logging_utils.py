@@ -31,7 +31,7 @@ def configure_application_logging(debug_mode: bool = False):
     """
     if debug_mode:
         logging.basicConfig(level=logging.DEBUG, force=True)
-        print("🐛 Debug logging enabled")
+        logging.getLogger(__name__).debug("Debug logging enabled")
     else:
         logging.basicConfig(level=logging.INFO, force=True)
 
@@ -119,10 +119,13 @@ def configure_application_logging(debug_mode: bool = False):
     os.environ.setdefault("HTTPX_LOG_LEVEL", "WARNING")
     os.environ.setdefault("AZURE_CORE_ENABLE_HTTP_LOGGER", "false")
 
+    _logger = logging.getLogger(__name__)
     if debug_mode:
-        print("🔇 Verbose logging suppressed (debug mode: some INFO logging allowed)")
+        _logger.debug(
+            "Verbose logging suppressed (debug mode: some INFO logging allowed)"
+        )
     else:
-        print("🔇 All verbose logging suppressed (production mode)")
+        _logger.info("Verbose logging suppressed (production mode)")
 
 
 def create_migration_logger(name: str, level: int = logging.INFO) -> logging.Logger:
@@ -207,19 +210,23 @@ def get_error_details(exception: Exception) -> dict[str, Any]:
     }
 
     if isinstance(exception, HttpResponseError):
-        details.update({
-            "http_status_code": getattr(exception, "status_code", None),
-            "http_reason": getattr(exception, "reason", None),
-            "http_response": getattr(exception, "response", None),
-            "http_model": getattr(exception, "model", None),
-        })
+        details.update(
+            {
+                "http_status_code": getattr(exception, "status_code", None),
+                "http_reason": getattr(exception, "reason", None),
+                "http_response": getattr(exception, "response", None),
+                "http_model": getattr(exception, "model", None),
+            }
+        )
 
     if "AzureChatCompletion" in str(type(exception)):
-        details.update({
-            "azure_chat_completion_error": True,
-            "model_deployment": getattr(exception, "model", None),
-            "endpoint": getattr(exception, "endpoint", None),
-        })
+        details.update(
+            {
+                "azure_chat_completion_error": True,
+                "model_deployment": getattr(exception, "model", None),
+                "endpoint": getattr(exception, "endpoint", None),
+            }
+        )
 
     return details
 

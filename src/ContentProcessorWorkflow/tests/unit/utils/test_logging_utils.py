@@ -151,7 +151,5 @@ class TestLogMessages:
         assert "timeout" in msg
 
     def test_success_template(self):
-        msg = LogMessages.SUCCESS_COMPLETED.format(
-            operation="summarize", details="ok"
-        )
+        msg = LogMessages.SUCCESS_COMPLETED.format(operation="summarize", details="ok")
         assert "summarize" in msg

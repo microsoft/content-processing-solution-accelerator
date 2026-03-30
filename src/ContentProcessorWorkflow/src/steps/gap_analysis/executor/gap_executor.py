@@ -11,7 +11,6 @@ into Cosmos DB.
 """
 
 import json
-from datetime import date, datetime, time
 from pathlib import Path
 from typing import Never, cast
 
@@ -94,25 +93,6 @@ class GapExecutor(Executor):
 
         return prompt_template.replace("{{RULES_DSL}}", rules_text)
 
-    def _json_default(self, value: object) -> str:
-        """Convert non-JSON-native values from processed output into strings."""
-        if isinstance(value, (datetime, date, time)):
-            return value.isoformat()
-        raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
-
-    def _serialize_processed_output(self, processed_output: dict) -> str:
-        """Serialize processed output for prompt injection.
-
-        Content-processing results can contain Python datetime objects when they
-        are materialized from storage, so serialize those explicitly instead of
-        letting ``json.dumps`` fail mid-workflow.
-        """
-        return json.dumps(
-            processed_output,
-            ensure_ascii=False,
-            default=self._json_default,
-        )
-
     @handler
     async def handle_execute(
         self,
@@ -177,7 +157,7 @@ class GapExecutor(Executor):
                 extracted_file = ExtractedFile(
                     file_name=document["file_name"],
                     mime_type=document["mime_type"],
-                    extracted_content=self._serialize_processed_output(processed_output),
+                    extracted_content=json.dumps(processed_output),
                 )
                 processed_files.append(extracted_file)
 
@@ -203,10 +183,12 @@ class GapExecutor(Executor):
             ChatMessage(
                 role="user",
                 text="Now analyze the following document extracts:\n\n"
-                + "\n\n".join([
-                    f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
-                    for file in processed_files
-                ]),
+                + "\n\n".join(
+                    [
+                        f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
+                        for file in processed_files
+                    ]
+                ),
             )
         )
 

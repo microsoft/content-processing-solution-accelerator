@@ -206,4 +206,4 @@ class RAIExecutor(Executor):
             Parsed JSON list of step objects, or ``None`` if not found.
         """
         content_process_service = self.app_context.get_service(ContentProcessService)
-        return content_process_service.get_steps(process_id)
+        return await content_process_service.get_steps(process_id)
