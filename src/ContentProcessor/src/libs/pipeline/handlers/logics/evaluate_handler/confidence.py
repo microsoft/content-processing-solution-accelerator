@@ -1,3 +1,13 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Confidence score merging and lookup utilities.
+
+Provides recursive traversal of nested confidence dictionaries to
+extract, merge, and summarize per-field confidence values.
+"""
+
+
 def get_confidence_values(data, key="confidence"):
     """
     Finds all of the confidence values in a nested dictionary or list.
@@ -16,7 +26,10 @@ def get_confidence_values(data, key="confidence"):
         if isinstance(d, dict):
             for k, v in d.items():
                 if k == key and (v is not None and v != 0):
-                    confidence_values.append(v)
+                    # Only treat numeric values as confidence scores.
+                    # Some schemas include a nested field literally named "confidence".
+                    if isinstance(v, (int, float)) and not isinstance(v, bool):
+                        confidence_values.append(v)
                 if isinstance(v, (dict, list)):
                     recursive_search(v)
         elif isinstance(d, list):
@@ -46,7 +59,12 @@ def find_keys_with_min_confidence(data, min_confidence, key="confidence"):
         if isinstance(d, dict):
             for k, v in d.items():
                 new_key = f"{parent_key}.{k}" if parent_key else k
-                if k == key and v == min_confidence:
+                if (
+                    k == key
+                    and isinstance(v, (int, float))
+                    and not isinstance(v, bool)
+                    and v == min_confidence
+                ):
                     keys_with_min_confidence.append(parent_key)
                 if isinstance(v, (dict, list)):
                     recursive_search(v, new_key)
@@ -72,9 +90,18 @@ def merge_confidence_values(confidence_a: dict, confidence_b: dict):
         dict: The merged confidence evaluation.
     """
 
+    def _is_leaf_confidence_node(node: any) -> bool:
+        if not isinstance(node, dict):
+            return False
+        # Leaf nodes are expected to look like: {"confidence": <number>, "value": <any>}
+        # If a domain schema includes a nested field named "confidence", the parent object
+        # should NOT be treated as a leaf just because it has a "confidence" key.
+        allowed_keys = {"confidence", "value"}
+        return "confidence" in node and set(node.keys()).issubset(allowed_keys)
+
     def merge_field_confidence_value(
         field_a: any, field_b: any, score_resolver: callable = min
-    ) -> dict:
+    ) -> any:
         """
         Merges two field confidence values.
         If the field is a dictionary or list, the function is called recursively.
@@ -89,47 +116,64 @@ def merge_confidence_values(confidence_a: dict, confidence_b: dict):
 
         CONFIDENT_SCORE_ROUNDING = 3
 
-        if isinstance(field_a, dict) and "confidence" not in field_a:
+        # Dict merge
+        if isinstance(field_a, dict):
+            if not isinstance(field_b, dict):
+                return field_a
+
+            # Leaf merge: {confidence, value}
+            if _is_leaf_confidence_node(field_a) and _is_leaf_confidence_node(field_b):
+                a_conf = field_a.get("confidence")
+                b_conf = field_b.get("confidence")
+
+                valid_confidences = [
+                    conf
+                    for conf in [a_conf, b_conf]
+                    if isinstance(conf, (int, float))
+                    and not isinstance(conf, bool)
+                    and conf not in (None, 0)
+                ]
+
+                merged_confidence = (
+                    score_resolver(valid_confidences) if valid_confidences else 0.0
+                )
+                return {
+                    "confidence": round(merged_confidence, CONFIDENT_SCORE_ROUNDING),
+                    "value": field_a.get("value"),
+                }
+
+            # Nested object merge
             result = {}
             all_keys = set(field_a.keys()) | set(field_b.keys())
             for key in all_keys:
                 if key.startswith("_"):
                     continue
                 if key in field_a and key in field_b:
-                    result[key] = merge_field_confidence_value(field_a[key], field_b[key])
+                    result[key] = merge_field_confidence_value(
+                        field_a[key], field_b[key]
+                    )
                 elif key in field_a:
                     result[key] = field_a[key]
-                elif key in field_b:
+                else:
                     result[key] = field_b[key]
             return result
-        elif isinstance(field_a, list):
-            return [
-                merge_field_confidence_value(field_a[i], field_b[i])
-                for i in range(len(field_a))
-            ]
-        else:
-            valid_confidences = [
-                conf
-                for conf in [field_a["confidence"], field_b["confidence"]]
-                if conf not in (None, 0)
-            ]
 
-            merged_confidence = (
-                score_resolver(valid_confidences) if valid_confidences else 0.0
-            )
-            return {
-                "confidence": round(merged_confidence, CONFIDENT_SCORE_ROUNDING),
-                "value": field_a["value"] if "value" in field_a else None,
-            }
+        # List merge
+        if isinstance(field_a, list):
+            if not isinstance(field_b, list):
+                return field_a
 
-            # return {
-            #     "confidence": score_resolver(valid_confidences)
-            #     if valid_confidences
-            #     else 0.0,
-            #     #"value": field_a["value"] if "field" in field_a else None,
-            #     "value": field_a["value"] if "value" in field_a else None
-            #     #"normalized_polygons": field_a["normalized_polygons"]
-            # }
+            merged = [
+                merge_field_confidence_value(a, b) for a, b in zip(field_a, field_b)
+            ]
+            if len(field_a) > len(field_b):
+                merged.extend(field_a[len(field_b) :])
+            elif len(field_b) > len(field_a):
+                merged.extend(field_b[len(field_a) :])
+            return merged
+
+        # Scalar fallback (including bool)
+        return field_a if field_a is not None else field_b
 
     merged_confidence = merge_field_confidence_value(confidence_a, confidence_b)
     confidence_scores = get_confidence_values(merged_confidence)
@@ -153,14 +197,6 @@ def merge_confidence_values(confidence_a: dict, confidence_b: dict):
         merged_confidence["zero_confidence_fields_count"] = len(
             merged_confidence["zero_confidence_fields"]
         )
-        # merged_confidence["overall_hit_rate"] = round(
-        #     (
-        #         merged_confidence["total_evaluated_fields_count"]
-        #         - merged_confidence["missed_fields_count"]
-        #     )
-        #     / merged_confidence["total_evaluated_fields_count"],
-        #     3,
-        # )
     else:
         merged_confidence["overall"] = 0.0
         merged_confidence["total_evaluated_fields_count"] = 0

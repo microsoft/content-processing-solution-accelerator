@@ -11,7 +11,7 @@ FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:${VARIANT}
 # RUN su node -c "npm install yarn react-app-rewired"
 
 RUN npm install -g tslint-to-eslint-config typescript
-RUN npm install -g yarn react-app-rewired
+RUN npm install -g pnpm@10.28.2
 # # Install Python
 # RUN apt-get update && apt-get install -y python3 python3-pip
 

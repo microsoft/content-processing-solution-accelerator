@@ -7,8 +7,7 @@ FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv
 # Use Debian-based VS Code Dev Container as base
 FROM mcr.microsoft.com/vscode/devcontainers/base:$DEBIAN_VERSION
 
-# Remove Yarn repository to avoid GPG key expiration issue
-RUN rm -f /etc/apt/sources.list.d/yarn.list
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 # Install dependencies and Node.js 20+ from NodeSource
 RUN apt-get update \
@@ -18,13 +17,16 @@ RUN apt-get update \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL https://aka.ms/install-azd.sh | bash
+    && curl -fsSL https://aka.ms/install-azd.sh | bash \
+    && ln -sf /usr/bin/python3 /usr/bin/python
 
 # Copy UV binaries
 COPY --from=uv --chown=vscode: /uv /uvx /bin/
 
 # Install global NPM packages
-RUN npm install -g tslint-to-eslint-config typescript yarn react-app-rewired
+RUN npm install -g tslint-to-eslint-config typescript react-app-rewired \
+    && corepack enable \
+    && corepack prepare pnpm@10.28.2 --activate
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]

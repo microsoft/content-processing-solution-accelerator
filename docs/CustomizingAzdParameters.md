@@ -9,20 +9,19 @@ By default this template will use the environment name as the prefix to prevent 
 
 | Name                                   | Type    | Example Value               | Purpose                                                                               |
 | -------------------------------------- | ------- | --------------------------- | ------------------------------------------------------------------------------------- |
-| `AZURE_ENV_NAME`                       | string  | `cps`                     | Sets the environment name prefix for all Azure resources.                             |
-| `AZURE_ENV_SECONDARY_LOCATION`         | string  | `eastus2`                 | Specifies a secondary Azure region.                                                   |
-| `AZURE_ENV_CU_LOCATION`                | string  | `WestUS`                  | Sets the location for the Azure Content Understanding service.                        |
-| `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`          | Defines the model deployment type (allowed values: `Standard`, `GlobalStandard`).     |
-| `AZURE_ENV_MODEL_NAME`                 | string  | `gpt-4o`                  | Specifies the GPT model name (allowed values: `gpt-4o`).       
-| `AZURE_ENV_MODEL_VERSION`                 | string  | `2024-08-06`                  | Specifies the GPT model version (allowed values: `2024-08-06`).                       |
-| `AZURE_ENV_MODEL_CAPACITY`             | integer | `30`                        | Sets the model capacity (choose based on your subscription's available GPT capacity). |
-| `AZURE_ENV_IMAGETAG`                      | boolean | `latest`                     | Set the Image tag Like (allowed values: latest, dev, hotfix)                       |
-| `AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT` | string  | `cpscontainerreg.azurecr.io` | Sets the Azure Container Registry name (allowed value: `cpscontainerreg.azurecr.io`) |            |
-| `AZURE_ENV_CONTAINER_IMAGE_TAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).            |
-| `AZURE_LOCATION`                       | string  | `eastus`                    | Sets the primary Azure region for resource deployment.                                |
+| `AZURE_ENV_NAME`                       | string  | `cps`                     | Sets the environment name prefix for all Azure resources (3-20 characters).            |
+| `AZURE_LOCATION`                       | string  | `eastus2`                  | Sets the primary Azure region for resource deployment. Allowed: `australiaeast`, `centralus`, `eastasia`, `eastus2`, `japaneast`, `northeurope`, `southeastasia`, `uksouth`. |
+| `AZURE_ENV_CU_LOCATION`                | string  | `WestUS`                  | Sets the location for the Azure AI Content Understanding service. Allowed: `WestUS`, `SwedenCentral`, `AustraliaEast`. |
+| `AZURE_ENV_AI_DEPLOYMENTS_LOCATION`    | string  | `eastus`                  | Sets the location for Azure AI Services (OpenAI) deployment.                          |
+| `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`          | Defines the model deployment type. Allowed: `Standard`, `GlobalStandard`.             |
+| `AZURE_ENV_MODEL_NAME`                 | string  | `gpt-5.1`                 | Specifies the GPT model name. Default: `gpt-5.1`.                                     |
+| `AZURE_ENV_MODEL_VERSION`              | string  | `2025-04-14`              | Specifies the GPT model version.                                                      |
+| `AZURE_ENV_MODEL_CAPACITY`             | integer | `300`                       | Sets the model capacity (minimum 1). Default: 300. Optimal: 500 for multi-document claim processing. |
+| `AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT` | string  | `cpscontainerreg.azurecr.io` | Sets the public container image endpoint for pulling pre-built images.                |
+| `AZURE_ENV_CONTAINER_IMAGE_TAG`        | string  | `latest`                    | Sets the container image tag (e.g., `latest`, `dev`, `hotfix`).                       |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string  | Guide to get your [Existing Workspace ID](/docs/re-use-log-analytics.md) | Reuses an existing Log Analytics Workspace instead of provisioning a new one.         |
-| `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`    | string  | `<Existing AI Project resource Id>`            | Reuses an existing AIFoundry and AIFoundryProject instead of creating a new one.  |
-| `AZURE_ENV_VM_SIZE`                        | string  | `Standard_D2s_v5`          | Overrides the jumpbox VM size (private networking only). Default: `Standard_D2s_v5`. |
+| `AZURE_ENV_FOUNDRY_PROJECT_ID`         | string  | Guide to get your [Existing AI Project ID](/docs/re-use-foundry-project.md) | Reuses an existing AI Foundry and AI Foundry Project instead of creating a new one.   |
+| `AZURE_ENV_VM_SIZE` | string | `Standard_D2s_v5` | Overrides the jumpbox VM size (private networking only). Default: `Standard_D2s_v5`. |
 
 ## How to Set a Parameter
 

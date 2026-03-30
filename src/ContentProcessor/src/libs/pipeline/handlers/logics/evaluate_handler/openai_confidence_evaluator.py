@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Confidence scoring via OpenAI logprobs token analysis.
+
+Maps extracted field values back to response tokens and computes
+per-field confidence from average token log-probabilities.
+"""
+
 import math
 
 import tiktoken
