@@ -79,8 +79,10 @@ def parse_parameters_json(json_path: Path) -> list[str]:
     """Return the raw parameter key names (preserving whitespace) from a
     parameters JSON file."""
     text = json_path.read_text(encoding="utf-8-sig")
-    # azd parameter files may use ${VAR=default} syntax which is not valid JSON.
-    # Replace boolean-like defaults so json.loads doesn't choke.
+    # azd parameter files may include ${VAR} or ${VAR=default} placeholders inside
+    # string values. These are valid JSON strings, but we sanitize them so that
+    # json.loads remains resilient to azd-specific placeholders and any unusual
+    # default formats.
     sanitized = re.sub(r'"\$\{[^}]+\}"', '"__placeholder__"', text)
     try:
         data = json.loads(sanitized)
