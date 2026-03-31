@@ -1,17 +1,32 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Header-related hook and presentational `Header` component.
+ *
+ * `useHeaderHooks` manages the keyboard shortcut for theme toggling.
+ * `Header` renders the logo, title, optional subtitle/badge, and child navigation elements.
+ */
 import React, { useEffect, useCallback, useState } from "react";
+
 import {
-  Avatar,
   Subtitle2,
   Tag,
 } from "@fluentui/react-components";
 import { Link } from "react-router-dom";
 
-// Header Hooks
 interface HeaderHooksProps {
+  /** Callback to toggle between light and dark themes. */
   toggleTheme: () => void;
+  /** Whether the UI is currently in dark mode. */
   isDarkMode: boolean;
 }
 
+/**
+ * Registers a Ctrl+D / ⌘+D keyboard shortcut to toggle the theme.
+ *
+ * @returns An object containing the platform-appropriate `shortcutLabel`.
+ */
 export const useHeaderHooks = ({ toggleTheme, isDarkMode }: HeaderHooksProps) => {
   const [shortcutLabel, setShortcutLabel] = useState("Ctrl+D");
 
@@ -41,14 +56,23 @@ export const useHeaderHooks = ({ toggleTheme, isDarkMode }: HeaderHooksProps) =>
   };
 };
 
-// Header Component
+/** Props for the {@link Header} presentational component. */
 interface HeaderProps {
+  /** Avatar image source URL. */
   avatarSrc: string;
+  /** Primary header title text. */
   title: string;
+  /** Optional subtitle appended after the title. */
   subtitle?: string;
+  /** Optional badge label displayed next to the title. */
   badge?: string;
-  children?: React.ReactNode; // All child elements, including navigation and tools
+  /** Navigation tabs, toolbar buttons, and other header content. */
+  children?: React.ReactNode;
 }
+
+/**
+ * Presentational header component that renders the logo, title, and child navigation elements.
+ */
 
 export const Header: React.FC<HeaderProps> = ({
   avatarSrc,
@@ -62,11 +86,10 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Title Section */}
       <Link to="/default" style={{ textDecoration: "none", color: "inherit" }}>
       <div className="headerTitle">
-        <Avatar
-          image={{ src: avatarSrc }}
-          shape="square"
-          //color= {null}
-        
+        <img
+          src={avatarSrc}
+          alt="Logo"
+          style={{ height: '100%', maxHeight: 32, objectFit: 'contain' }}
         />
         <div className="headerTitleText">
         <Subtitle2 style={{ whiteSpace: "nowrap" }}>

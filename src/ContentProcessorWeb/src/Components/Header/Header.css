@@ -47,12 +47,10 @@ header {
 .clickable-avatar {
   cursor: pointer;
   transition: box-shadow 0.2s ease-in-out;
-  /* Smooth transition for the shadow */
 }
 
 .clickable-avatar:hover {
   box-shadow: 0 0 0 2px var(--colorNeutralStrokeAlpha2);
-  /* Outer border effect without resizing */
 }
 
 

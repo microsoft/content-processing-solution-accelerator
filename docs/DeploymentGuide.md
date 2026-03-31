@@ -47,13 +47,14 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 - [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
 - [Azure AI Content Understanding Service](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
 - [Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/)
-- [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/)
+- [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/) (4 container apps: Processor, API, Web, Workflow)
 - [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/)
 - [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/)
 - [Azure Queue Storage](https://learn.microsoft.com/en-us/azure/storage/queues/)
+- [Azure App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/)
 - [GPT Model Capacity](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models)
 
-**Recommended Regions:** East US, East US2, Australia East, UK South, France Central.
+**Recommended Regions:** Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, UK South.
 
 🔍 **Check Availability:** Use [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/) to verify service availability.
 
@@ -64,8 +65,8 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 📖 **Follow:** [Quota Check Instructions](./quota_check.md) to ensure sufficient capacity.
 
 **Recommended Configuration:**
-- **Default:** 100k tokens
-- **Optimal:** 100k tokens (recommended for best performance)
+- **Default:** 300k tokens
+- **Optimal:** 500k tokens (recommended for multi-document claim processing)
 
 > **Note:** When you run `azd up`, the deployment will automatically show you regions with available quota, so this pre-check is optional but helpful for planning purposes. You can customize these settings later in [Step 3.3: Advanced Configuration](#33-advanced-configuration-optional).
 
@@ -77,12 +78,12 @@ Select one of the following options to deploy the Content Processing Solution Ac
 
 ### Environment Comparison
 
-| **Option** | **Best For** | **Prerequisites** | **Setup Time** |
-|------------|--------------|-------------------|----------------|
-| **GitHub Codespaces** | Quick deployment, no local setup required | GitHub account | ~3-5 minutes |
-| **VS Code Dev Containers** | Fast deployment with local tools | Docker Desktop, VS Code | ~5-10 minutes |
-| **VS Code Web** | Quick deployment, no local setup required | Azure account | ~2-4 minutes |
-| **Local Environment** | Enterprise environments, full control | All tools individually | ~15-30 minutes |
+| **Option**                 | **Best For**                              | **Prerequisites**       | **Setup Time** |
+| -------------------------- | ----------------------------------------- | ----------------------- | -------------- |
+| **GitHub Codespaces**      | Quick deployment, no local setup required | GitHub account          | ~3-5 minutes   |
+| **VS Code Dev Containers** | Fast deployment with local tools          | Docker Desktop, VS Code | ~5-10 minutes  |
+| **VS Code Web**            | Quick deployment, no local setup required | Azure account           | ~2-4 minutes   |
+| **Local Environment**      | Enterprise environments, full control     | All tools individually  | ~15-30 minutes |
 
 **💡 Recommendation:** For fastest deployment, start with **GitHub Codespaces** - no local installation required.
 
@@ -182,14 +183,14 @@ Review the configuration options below. You can customize any settings that meet
 
 ### 3.1 Choose Deployment Type (Optional)
 
-| **Aspect** | **Development/Testing (Default)** | **Production** |
-|------------|-----------------------------------|----------------|
-| **Configuration File** | `main.parameters.json` (sandbox) | Copy `main.waf.parameters.json` to `main.parameters.json` |
-| **Security Controls** | Minimal (for rapid iteration) | Enhanced (production best practices) |
-| **Cost** | Lower costs | Cost optimized |
-| **Use Case** | POCs, development, testing | Production workloads |
-| **Framework** | Basic configuration | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
-| **Features** | Core functionality | Reliability, security, operational excellence |
+| **Aspect**             | **Development/Testing (Default)** | **Production**                                                                          |
+| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------- |
+| **Configuration File** | `main.parameters.json` (sandbox)  | Copy `main.waf.parameters.json` to `main.parameters.json`                               |
+| **Security Controls**  | Minimal (for rapid iteration)     | Enhanced (production best practices)                                                    |
+| **Cost**               | Lower costs                       | Cost optimized                                                                          |
+| **Use Case**           | POCs, development, testing        | Production workloads                                                                    |
+| **Framework**          | Basic configuration               | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
+| **Features**           | Core functionality                | Reliability, security, operational excellence                                           |
 
 **To use production configuration:**
 
@@ -285,121 +286,99 @@ azd up
 **During deployment, you'll be prompted for:**
 1. **Environment name** - Must be 3-20 characters, lowercase alphanumeric only (e.g., `cpsapp01`).
 2. **Azure subscription** selection.
-3. **Azure AI Foundry deployment region** - Select a region with available gpt-4o model quota for AI operations
-4. **Primary location** - Select the region where your infrastructure resources will be deployed
-5. **Resource group** selection (create new or use existing)
+3. **Azure AI Foundry deployment region** - Select a region with available GPT-5.1 model quota for AI operations.
+4. **Primary location** - Select the region where your infrastructure resources will be deployed (Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, UK South).
+5. **Resource group** selection (create new or use existing).
 
 **Expected Duration:** 4-6 minutes for default configuration.
 
 **⚠️ Deployment Issues:** If you encounter errors or timeouts, try a different region as there may be capacity constraints. For detailed error solutions, see our [Troubleshooting Guide](./TroubleShootingSteps.md).
 
-### 4.3 Get Application URL
-
-After successful deployment:
-1. The terminal will display the Name, Endpoint (Application URL), and Azure Portal URL for both the Web and API Azure Container Apps.
-  
-    ![](./images/cp-post-deployment.png)
-
-2. Copy the **Web App Endpoint** to access the application.
-
 ⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Register Schema Files
+### 5.1 Schema Registration (Automatic)
 
  > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
 
-The below steps will add two sample schemas to the solution: _Invoice_ and _Property Loss Damage Claim Form_:
+Schema registration happens **automatically** as part of the `azd up` post-provisioning hook — no manual steps required. After infrastructure is deployed, the hook:
 
-1. **Get API Service's Endpoint**
-    - Get API Service Endpoint Url from your container app for API
+1. Waits for the API container app to be ready
+2. Registers the sample schema files (auto claim, damaged car image, police report, repair estimate)
+3. Creates an **"Auto Claim"** schema set
+4. Adds all registered schemas into the schema set
 
-      Name is **ca-**<< your environmentName >>-**api**  
-      ![Check API Service Url](./images/CheckAPIService.png)  
+After successful deployment, the terminal displays container app details and schema registration output:
 
-    - Copy the URL
+```
+🧭 Web App Details:
+  ✅ Name: ca-<env>-web
+  🌐 Endpoint: ca-<env>-web.<region>.azurecontainerapps.io
+  🔗 Portal URL: https://portal.azure.com/#resource/...
 
-2. **Execute Script to registering Schemas**
-    - Move the folder to samples/schemas in ContentProcessorAPI - [/src/ContentProcessorAPI/samples/schemas](/src/ContentProcessorAPI/samples/schemas)  
+🧭 API App Details:
+  ✅ Name: ca-<env>-api
+  🌐 Endpoint: ca-<env>-api.<region>.azurecontainerapps.io
+  🔗 Portal URL: https://portal.azure.com/#resource/...
 
-    
-      Bash
+🧭 Workflow App Details:
+  ✅ Name: ca-<env>-wkfl
+  🔗 Portal URL: https://portal.azure.com/#resource/...
 
-      ```bash
-      cd src/ContentProcessorAPI/samples/schemas
-      ```  
+📦 Registering schemas and creating schema set...
+  ⏳ Waiting for API to be ready...
+  ✅ API is ready.
+============================================================
+Step 1: Register schemas
+============================================================
+✓ Successfully registered: Auto Insurance Claim Form's Schema Id - <id>
+✓ Successfully registered: Damaged Vehicle Image Assessment's Schema Id - <id>
+✓ Successfully registered: Police Report Document's Schema Id - <id>
+✓ Successfully registered: Repair Estimate Document's Schema Id - <id>
 
-      Powershell
+============================================================
+Step 2: Create schema set
+============================================================
+✓ Created schema set 'Auto Claim' with ID: <id>
 
-      ```Powershell
-      cd .\src\ContentProcessorAPI\samples\schemas\
-      ```  
+============================================================
+Step 3: Add schemas to schema set
+============================================================
+  ✓ Added 'AutoInsuranceClaimForm' (<id>) to schema set
+  ✓ Added 'DamagedVehicleImageAssessment' (<id>) to schema set
+  ✓ Added 'PoliceReportDocument' (<id>) to schema set
+  ✓ Added 'RepairEstimateDocument' (<id>) to schema set
 
-    - Then use below command
+============================================================
+Schema registration process completed.
+  Schema set ID: <id>
+  Schemas added: 4
+============================================================
+  ✅ Schema registration complete.
+```
 
-      Bash
-
-      ```bash
-      ./register_schema.sh https://<< API Service Endpoint>>/schemavault/ schema_info_sh.json
-      ```  
-
-      Powershell
-
-      ```Powershell
-      ./register_schema.ps1 https://<< API Service Endpoint>>/schemavault/ .\schema_info_ps1.json
-      ```  
-
-3. **Verify Results**
-
-    ![schema file registration](./images/SchemaFileRegistration.png)  
-
-### 5.2 Import Sample Data
-1. Grab the Schema IDs for Invoice and Property Damage Claim Form's Schema from first step
-2. Move to the folder location to samples in ContentProcessorAPI - [/src/ContentProcessorAPI/samples/](/src/ContentProcessorAPI/samples/)
-3. Execute the script with Schema IDs  
-
-    Bash  
-
-    ```bash
-    ./upload_files.sh https://<< API Service Endpoint >>/contentprocessor/submit ./invoices <<Invoice Schema Id>>
-    ```
-
-    ```bash
-    ./upload_files.sh https://<< API Service Endpoint >>/contentprocessor/submit ./propertyclaims <<Property Loss Damage Claim Form Schema Id>>
-    ```
-
-    Windows
-
-    ```powershell
-    ./upload_files.ps1 https://<< API Service Endpoint >>/contentprocessor/submit .\invoices <<Invoice Schema Id>>
-    ```
-
-    ```powershell
-    ./upload_files.ps1 https://<< API Service Endpoint >>/contentprocessor/submit .\propertyclaims <<Property Loss Damage Claim Form Schema Id>>
-    ```
-
-### 5.3 Configure Authentication (Required)
+### 5.2 Configure Authentication (Required)
 
 **This step is mandatory for application access:**
 
 1. Follow [App Authentication Configuration](./ConfigureAppAuthentication.md).
 2. Wait up to 10 minutes for authentication changes to take effect.
 
-### 5.4 Verify Deployment
+### 5.3 Verify Deployment
 
-1. Access your application using the URL from [Step 4.3](#43-get-application-url).
+1. Access your application using the **Web App Endpoint** from the deployment output.
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
 
-### 5.5 Test the Application
+### 5.4 Test the Application
 
 **Quick Test Steps:**
-1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples).
-2. **Upload**: In the app, select a **Schema** (e.g., Invoice), click Import Content, and upload a sample file.
+1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
+2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
 3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
 
-📖 **Detailed Instructions:** See the complete [Sample Workflow](./SampleWorkflow.md) guide for step-by-step testing procedures.
+📖 **Detailed Instructions:** See the complete [Golden Path Workflows](./GoldenPathWorkflows.md) guide for step-by-step testing procedures.
 
 ## Step 6: Clean Up (Optional)
 

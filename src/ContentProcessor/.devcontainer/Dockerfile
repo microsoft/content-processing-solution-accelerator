@@ -1,16 +1,15 @@
-ARG UV_VERSION=latest
-ARG DEBIAN_VERSION=bookworm
-
-
-FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv
-FROM mcr.microsoft.com/vscode/devcontainers/base:$DEBIAN_VERSION
+FROM mcr.microsoft.com/devcontainers/python:3.12-bookworm
 
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils \
-    # To remove the image size, it is recommended refresh the package cache as follows
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        poppler-utils \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL https://aka.ms/install-azd.sh | bash
+    && rm -rf /var/lib/apt/lists/*
 
-COPY --from=uv --chown=vscode: /uv /uvx /bin/
+# Install uv without using an external container image layer.
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && if [ -f /root/.local/bin/uvx ]; then mv /root/.local/bin/uvx /usr/local/bin/uvx; fi

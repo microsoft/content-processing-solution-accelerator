@@ -1,19 +1,37 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Azure Content Understanding REST client.
+
+Manages analyzer lifecycle (create / list / delete) and document analysis
+operations against the Azure Content Understanding preview API, used by
+the extract pipeline step.
+"""
+
 import json
 import logging
 import time
 from pathlib import Path
 
 import requests
-from helpers.azure_credential_utils import get_azure_credential
 from requests.models import Response
+
+from libs.utils.azure_credential_utils import get_azure_credential
 
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 
 
 class AzureContentUnderstandingHelper:
+    """REST client for the Azure Content Understanding preview API.
+
+    Responsibilities:
+        1. Manage analyzer lifecycle (create, list, get, delete).
+        2. Submit documents for analysis (file path, URL, or byte stream).
+        3. Poll long-running analysis operations until completion.
+
+    Attributes:
+        credential: Azure credential used for bearer-token auth.
+    """
 
     def __init__(
         self,
@@ -55,12 +73,14 @@ class AzureContentUnderstandingHelper:
         }
 
     def _get_headers(self, api_token, x_ms_useragent):
-        """Returns the headers for the HTTP requests.
+        """Build default HTTP headers for Content Understanding requests.
+
         Args:
-            api_token (str): The API token for the service.
-            enable_face_identification (bool): A flag to enable face identification.
+            api_token: Bearer token for the Cognitive Services scope.
+            x_ms_useragent: User-agent string for telemetry.
+
         Returns:
-            dict: A dictionary containing the headers for the HTTP requests.
+            Header dictionary.
         """
         headers = {"Authorization": f"Bearer {api_token}"}
         headers["x-ms-useragent"] = x_ms_useragent

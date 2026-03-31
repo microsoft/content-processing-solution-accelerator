@@ -27,7 +27,7 @@ on:
       WAF_ENABLED:
         required: false
         type: string
-        default: 'false'
+        default: "false"
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
         required: false
         type: string
@@ -38,10 +38,12 @@ on:
       CONTAINER_WEB_APPURL:
         description: "Container Web App URL"
         value: ${{ jobs.deploy-linux.outputs.CONTAINER_WEB_APPURL }}
+permissions:
+  contents: read
+  actions: read
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
-    environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
@@ -63,7 +65,7 @@ jobs:
         run: |
           echo "🔍 Validating workflow input parameters..."
           VALIDATION_FAILED=false
-          
+
           # Validate ENV_NAME (required, alphanumeric and hyphens)
           if [[ -z "$INPUT_ENV_NAME" ]]; then
             echo "❌ ERROR: ENV_NAME is required but not provided"
@@ -74,7 +76,7 @@ jobs:
           else
             echo "✅ ENV_NAME: '$INPUT_ENV_NAME' is valid"
           fi
-          
+
           # Validate AZURE_ENV_OPENAI_LOCATION (required, Azure region format)
           if [[ -z "$INPUT_AZURE_ENV_OPENAI_LOCATION" ]]; then
             echo "❌ ERROR: AZURE_ENV_OPENAI_LOCATION is required but not provided"
@@ -85,7 +87,7 @@ jobs:
           else
             echo "✅ AZURE_ENV_OPENAI_LOCATION: '$INPUT_AZURE_ENV_OPENAI_LOCATION' is valid"
           fi
-          
+
           # Validate AZURE_LOCATION (required, Azure region format)
           if [[ -z "$INPUT_AZURE_LOCATION" ]]; then
             echo "❌ ERROR: AZURE_LOCATION is required but not provided"
@@ -96,7 +98,7 @@ jobs:
           else
             echo "✅ AZURE_LOCATION: '$INPUT_AZURE_LOCATION' is valid"
           fi
-          
+
           # Validate RESOURCE_GROUP_NAME (required, Azure naming convention)
           if [[ -z "$INPUT_RESOURCE_GROUP_NAME" ]]; then
             echo "❌ ERROR: RESOURCE_GROUP_NAME is required but not provided"
@@ -110,7 +112,7 @@ jobs:
           else
             echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
           fi
-          
+
           # Validate IMAGE_TAG (required, Docker tag pattern)
           if [[ -z "$INPUT_IMAGE_TAG" ]]; then
             echo "❌ ERROR: IMAGE_TAG is required but not provided"
@@ -121,7 +123,7 @@ jobs:
           else
             echo "✅ IMAGE_TAG: '$INPUT_IMAGE_TAG' is valid"
           fi
-          
+
           # Validate BUILD_DOCKER_IMAGE (required, must be 'true' or 'false')
           if [[ "$INPUT_BUILD_DOCKER_IMAGE" != "true" && "$INPUT_BUILD_DOCKER_IMAGE" != "false" ]]; then
             echo "❌ ERROR: BUILD_DOCKER_IMAGE must be 'true' or 'false', got: '$INPUT_BUILD_DOCKER_IMAGE'"
@@ -129,7 +131,7 @@ jobs:
           else
             echo "✅ BUILD_DOCKER_IMAGE: '$INPUT_BUILD_DOCKER_IMAGE' is valid"
           fi
-          
+
           # Validate EXP (required, must be 'true' or 'false')
           if [[ "$INPUT_EXP" != "true" && "$INPUT_EXP" != "false" ]]; then
             echo "❌ ERROR: EXP must be 'true' or 'false', got: '$INPUT_EXP'"
@@ -137,7 +139,7 @@ jobs:
           else
             echo "✅ EXP: '$INPUT_EXP' is valid"
           fi
-          
+
           # Validate WAF_ENABLED (must be 'true' or 'false')
           if [[ "$INPUT_WAF_ENABLED" != "true" && "$INPUT_WAF_ENABLED" != "false" ]]; then
             echo "❌ ERROR: WAF_ENABLED must be 'true' or 'false', got: '$INPUT_WAF_ENABLED'"
@@ -145,7 +147,7 @@ jobs:
           else
             echo "✅ WAF_ENABLED: '$INPUT_WAF_ENABLED' is valid"
           fi
-          
+
           # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (optional, if provided must be valid Resource ID)
           if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
             if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
@@ -157,7 +159,7 @@ jobs:
               echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
             fi
           fi
-          
+
           # Validate AZURE_EXISTING_AI_PROJECT_RESOURCE_ID (optional, if provided must be valid Resource ID)
           if [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
             if [[ ! "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/([Mm]icrosoft\.[Mm]achine[Ll]earning[Ss]ervices/([Ww]orkspaces|[Pp]rojects)/[^/]+|[Mm]icrosoft\.[Cc]ognitive[Ss]ervices/[Aa]ccounts/[^/]+/[Pp]rojects/[^/]+)$ ]]; then
@@ -169,20 +171,20 @@ jobs:
               echo "✅ AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: Valid Resource ID format"
             fi
           fi
-          
+
           # Fail workflow if any validation failed
           if [[ "$VALIDATION_FAILED" == "true" ]]; then
             echo ""
             echo "❌ Parameter validation failed. Please correct the errors above and try again."
             exit 1
           fi
-          
+
           echo ""
           echo "✅ All input parameters validated successfully!"
 
       - name: Checkout Code
         uses: actions/checkout@v4
-      
+
       - name: Configure Parameters Based on WAF Setting
         shell: bash
         env:
@@ -194,22 +196,17 @@ jobs:
           else
             echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
           fi
-      
+
       - name: Install azd
         uses: Azure/setup-azd@v2
-          
+
       - name: Login to AZD
         id: login-azure
         shell: bash
         run: |
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider "github" --tenant-id ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Login to Azure CLI
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
@@ -239,14 +236,14 @@ jobs:
 
           echo "Setting default subscription..."
           azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        
+
           # Set additional parameters
           azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$AZURE_ENV_OPENAI_LOCATION"
           azd env set AZURE_LOCATION="$AZURE_LOCATION"
           azd env set AZURE_RESOURCE_GROUP="$RESOURCE_GROUP_NAME"
           azd env set AZURE_ENV_CONTAINER_IMAGE_TAG="$IMAGE_TAG"
-          
+
           if [[ "$BUILD_DOCKER_IMAGE" == "true" ]]; then
             ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}")
             azd env set AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT="$ACR_NAME"
@@ -279,14 +276,14 @@ jobs:
           fi
 
           azd up --no-prompt
-          
+
           echo "✅ Deployment succeeded."
           echo "$DEPLOY_OUTPUT"
 
           echo "Extracting deployment outputs..."
           DEPLOY_OUTPUT=$(azd env get-values --output json)
           echo "Deployment output: $DEPLOY_OUTPUT"
-          
+
           if [[ -z "$DEPLOY_OUTPUT" ]]; then
             echo "Error: Deployment output is empty. Please check the deployment logs."
             exit 1
@@ -304,26 +301,6 @@ jobs:
 
           CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.CONTAINER_WEB_APP_NAME // empty')
           echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
-
-      - name: Register schemas (Linux)
-        id: register_linux
-        shell: bash
-        run: |
-          echo "Registering schemas..."
-          sleep 40
-
-          cd src/ContentProcessorAPI/samples/schemas
-          chmod +x ./register_schema.sh
-          ./register_schema.sh ${{ env.CONTAINER_API_APPURL }}/schemavault/ schema_info_sh.json
-
-      - name: Upload sample invoice and claim data (Linux)
-        shell: bash
-        run: |
-          echo "Uploading sample data..."
-          cd src/ContentProcessorAPI/samples
-          chmod +x ./upload_files.sh
-          ./upload_files.sh ${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit ./invoices '${{ steps.register_linux.outputs.invoice_schema_id }}'
-          ./upload_files.sh ${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit ./propertyclaims '${{ steps.register_linux.outputs.propertylossdamageclaimform_schema_id }}'
 
       - name: Disable Auth in Web App
         shell: bash

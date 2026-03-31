@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Confidence scoring against Azure Content Understanding OCR results.
+
+Cross-references extracted field values with OCR lines to derive
+per-field confidence based on word-level recognition scores.
+"""
+
 import copy
 from typing import Iterable, Optional
 

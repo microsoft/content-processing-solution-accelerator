@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Field-level extraction comparison data structures.
+
+Builds tabular comparison views of extracted fields with their confidence
+scores and threshold checks, used by the evaluate and save handlers.
+"""
+
 from typing import Any, List, Optional
 
 import pandas as pd
@@ -7,6 +16,8 @@ from libs.utils.utils import flatten_dict
 
 
 class ExtractionComparisonItem(BaseModel):
+    """Single field comparison row with confidence and threshold status."""
+
     Field: Optional[str]
     Extracted: Optional[Any]
     Confidence: Optional[str]
@@ -20,6 +31,8 @@ class ExtractionComparisonItem(BaseModel):
 
 
 class ExtractionComparisonData(BaseModel):
+    """Collection of field comparison rows for the full extraction result."""
+
     items: List[ExtractionComparisonItem]
 
     def to_dict(self) -> dict:
@@ -43,10 +56,8 @@ def get_extraction_comparison_data(
         ExtractionComparisonData: The JSON object comparing the extracted fields with the expected fields.
     """
 
-    # expected_flat = flatten_dict(expected)
     extracted_flat = flatten_dict(actual)
     confidence_flat = flatten_dict(confidence)
-    # accuracy_flat = flatten_dict(accuracy)
 
     all_keys = sorted(set(extracted_flat.keys()))
 
@@ -90,15 +101,13 @@ def get_extraction_comparison(
 
     rows = []
     for key in all_keys:
-        rows.append(
-            {
-                "Field": key,
-                "Expected": expected_flat.get(key),
-                "Extracted": extracted_flat.get(key),
-                "Confidence": f"{confidence_flat.get(f'{key}_confidence', 0.0) * 100:.2f}%",
-                "Accuracy": f"{'Match' if accuracy_flat.get(f'accuracy_{key}', 0.0) == 1.0 else 'Mismatch'}",
-            }
-        )
+        rows.append({
+            "Field": key,
+            "Expected": expected_flat.get(key),
+            "Extracted": extracted_flat.get(key),
+            "Confidence": f"{confidence_flat.get(f'{key}_confidence', 0.0) * 100:.2f}%",
+            "Accuracy": f"{'Match' if accuracy_flat.get(f'accuracy_{key}', 0.0) == 1.0 else 'Mismatch'}",
+        })
     df = pd.DataFrame(rows)
 
     def highlight_row(row):

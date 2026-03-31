@@ -1,22 +1,29 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Redux slice that tracks a stack of active loading identifiers.
+ *
+ * Components push an identifier when an async operation starts and pop it
+ * when the operation completes, enabling a global loading spinner.
+ */
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-// Define the state type
-interface LoaderState {
-  loadingStack: string[]; // Array of identifiers (API keys, action names, etc.)
+export interface LoaderState {
+  /** Stack of active loading operation identifiers. */
+  readonly loadingStack: string[];
 }
 
-// Initial state with type
 const initialState: LoaderState = {
   loadingStack: [],
 };
 
-// Create the slice with TypeScript types
 const loaderSlice = createSlice({
   name: "loader",
   initialState,
   reducers: {
     startLoader: (state, action: PayloadAction<string>) => {
-      state.loadingStack.push(action.payload); // Add an identifier to track loading
+      state.loadingStack.push(action.payload);
     },
     stopLoader: (state, action: PayloadAction<string>) => {
       state.loadingStack = state.loadingStack.filter(
@@ -26,6 +33,5 @@ const loaderSlice = createSlice({
   },
 });
 
-// Export actions and reducer
 export const { startLoader, stopLoader } = loaderSlice.actions;
 export default loaderSlice.reducer;
