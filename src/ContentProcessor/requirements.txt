@@ -41,7 +41,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 pytz==2025.2
 regex==2025.11.3
-requests==2.32.5
+requests==2.33.0
 ruff==0.14.11
 sentinels==1.1.1
 six==1.17.0
