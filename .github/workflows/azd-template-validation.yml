@@ -34,7 +34,7 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_AI_SERVICE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_AI_MODEL_CAPACITY: 1 # keep low to avoid potential quota issues
-          GITHUB_TOKEN: ${{ secrets.AZD_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
