@@ -50,5 +50,5 @@ jobs:
             azd env new "$AZURE_ENV_NAME" --subscription "$AZURE_SUBSCRIPTION_ID" --location "$AZURE_LOCATION" --no-prompt
           fi
           azd config set defaults.subscription "$AZURE_SUBSCRIPTION_ID"
-          azd env set AZURE_AI_SERVICE_LOCATION="$AZURE_LOCATION"
+          azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$AZURE_LOCATION"
           azd up --no-prompt
