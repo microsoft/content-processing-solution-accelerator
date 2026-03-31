@@ -32,12 +32,15 @@ Example:
         print(cfg.endpoint, cfg.chat_deployment_name)
 """
 
+import logging
 import os
 
 from pydantic import Field, model_validator
 
 from libs.application.application_configuration import _configuration_base
 from libs.application.service_config import ServiceConfig
+
+logger = logging.getLogger(__name__)
 
 
 class AgentFrameworkSettings(_configuration_base):
@@ -180,8 +183,10 @@ class AgentFrameworkSettings(_configuration_base):
             config = ServiceConfig(service_id, prefix, env_vars, use_entra_id=True)
             if config.is_valid():
                 discovered_configs[service_id] = config
-                print(
-                    f"Discovered valid service configuration: {service_id} (prefix: {prefix})"
+                logger.info(
+                    "Discovered valid service configuration: %s (prefix: %s)",
+                    service_id,
+                    prefix,
                 )
             else:
                 missing_fields = []
@@ -191,8 +196,11 @@ class AgentFrameworkSettings(_configuration_base):
                     missing_fields.append("ENDPOINT")
                 if not config.chat_deployment_name:
                     missing_fields.append("CHAT_DEPLOYMENT_NAME")
-                print(
-                    f"Incomplete service configuration for {service_id} (prefix: {prefix}) - Missing: {', '.join(missing_fields)}"
+                logger.warning(
+                    "Incomplete service configuration for %s (prefix: %s) - Missing: %s",
+                    service_id,
+                    prefix,
+                    ", ".join(missing_fields),
                 )
 
         self.service_configs = discovered_configs

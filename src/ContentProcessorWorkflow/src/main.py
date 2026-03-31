@@ -9,6 +9,7 @@ For production queue-based execution see :mod:`main_service`.
 """
 
 import asyncio
+import logging
 import os
 
 from sas.storage.blob.async_helper import AsyncStorageBlobHelper
@@ -24,6 +25,8 @@ from libs.base.application_base import ApplicationBase
 from repositories.claim_processes import Claim_Processes
 from services.content_process_service import ContentProcessService
 from steps.claim_processor import ClaimProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class Application(ApplicationBase):
@@ -41,11 +44,7 @@ class Application(ApplicationBase):
 
     def initialize(self):
         """Bootstrap the application context and register services."""
-        print(
-            "Application initialized with configuration:",
-            self.application_context.configuration,
-        )
-
+        logger.info("Application initialized.")
         self.register_services()
 
     def register_services(self):
@@ -58,8 +57,9 @@ class Application(ApplicationBase):
         )
 
         (
-            self.application_context
-            .add_singleton(DebuggingMiddleware, DebuggingMiddleware)
+            self.application_context.add_singleton(
+                DebuggingMiddleware, DebuggingMiddleware
+            )
             .add_singleton(LoggingFunctionMiddleware, LoggingFunctionMiddleware)
             .add_singleton(InputObserverMiddleware, InputObserverMiddleware)
             .add_singleton(Mem0AsyncMemoryManager, Mem0AsyncMemoryManager)
@@ -97,7 +97,9 @@ class Application(ApplicationBase):
         input_data = "cbe699df-9cc2-440f-adb5-17ab55154d92"
         process_output = await claim_processor.run(input_data=input_data)
 
-        print(f"Claim Processing Workflow completed. Final Output: {process_output}")
+        logger.info(
+            "Claim Processing Workflow completed. Final Output: %s", process_output
+        )
 
 
 async def main():

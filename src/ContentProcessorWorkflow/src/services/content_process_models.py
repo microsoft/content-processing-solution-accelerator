@@ -10,7 +10,7 @@ in sync with ``ContentProcessorAPI/app/routers/models/contentprocessor/model.py`
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from sas.cosmosdb.mongo.model import RootEntityBase
@@ -84,3 +84,14 @@ class ContentProcessRecord(RootEntityBase):
     schema_score: Optional[float] = 0.0
     result: Optional[Any] = None
     confidence: Optional[Any] = None
+
+    def to_cosmos_dict(self) -> Dict[str, Any]:
+        """Convert to Cosmos DB document, preserving native datetime objects.
+
+        Overrides the base ``to_cosmos_dict()`` which uses
+        ``model_dump(mode="json")`` and converts datetime to ISO strings.
+        PyMongo needs native ``datetime`` objects to store them as BSON
+        datetime, matching how ContentProcessor writes the same field.
+        """
+        data = self.model_dump(by_alias=True, exclude_none=False)
+        return data

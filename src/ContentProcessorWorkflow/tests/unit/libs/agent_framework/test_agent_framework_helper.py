@@ -81,15 +81,11 @@ class TestCreateClient:
 
     def test_openai_assistant_raises_not_implemented(self):
         with pytest.raises(NotImplementedError):
-            AgentFrameworkHelper.create_client(
-                client_type=ClientType.OpenAIAssistant
-            )
+            AgentFrameworkHelper.create_client(client_type=ClientType.OpenAIAssistant)
 
     def test_openai_response_raises_not_implemented(self):
         with pytest.raises(NotImplementedError):
-            AgentFrameworkHelper.create_client(
-                client_type=ClientType.OpenAIResponse
-            )
+            AgentFrameworkHelper.create_client(client_type=ClientType.OpenAIResponse)
 
     def test_unsupported_type_raises_value_error(self):
         with pytest.raises(ValueError, match="Unsupported agent type"):
@@ -99,9 +95,7 @@ class TestCreateClient:
     def test_azure_chat_completion_creates_client(self, mock_token):
         mock_token.return_value = lambda: "token"
 
-        with patch(
-            "agent_framework.azure.AzureOpenAIChatClient"
-        ) as mock_cls:
+        with patch("agent_framework.azure.AzureOpenAIChatClient") as mock_cls:
             mock_cls.return_value = "chat_client"
             client = AgentFrameworkHelper.create_client(
                 client_type=ClientType.AzureOpenAIChatCompletion,
@@ -114,9 +108,7 @@ class TestCreateClient:
     def test_azure_response_creates_client(self, mock_token):
         mock_token.return_value = lambda: "token"
 
-        with patch(
-            "agent_framework.azure.AzureOpenAIResponsesClient"
-        ) as mock_cls:
+        with patch("agent_framework.azure.AzureOpenAIResponsesClient") as mock_cls:
             mock_cls.return_value = "response_client"
             client = AgentFrameworkHelper.create_client(
                 client_type=ClientType.AzureOpenAIResponse,

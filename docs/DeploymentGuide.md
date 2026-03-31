@@ -12,12 +12,12 @@ This guide walks you through deploying the Content Processing Solution Accelerat
 
 Ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the following permissions:
 
-| **Required Permission/Role**  | **Scope**                         | **Purpose**                                 |
-| ----------------------------- | --------------------------------- | ------------------------------------------- |
-| **Contributor**               | Subscription or Resource Group    | Create and manage Azure resources           |
-| **User Access Administrator** | Subscription or Resource Group    | Manage user access and role assignments     |
-| **Role Based Access Control** | Subscription/Resource Group level | Configure RBAC permissions                  |
-| **Application Administrator** | Tenant                            | Create app registrations for authentication |
+| **Required Permission/Role** | **Scope** | **Purpose** |
+|------------------------------|-----------|-------------|
+| **Contributor** | Subscription or Resource Group | Create and manage Azure resources |
+| **User Access Administrator** | Subscription or Resource Group | Manage user access and role assignments |
+| **Role Based Access Control Admin** | Subscription/Resource Group level | Configure RBAC permissions |
+| **Application Administrator** | Tenant | Create app registrations for authentication |
 
 **🔍 How to Check Your Permissions:**
 
@@ -273,6 +273,11 @@ azd auth login --tenant-id <tenant-id>
    > 3. Under the **Overview** section, locate the **Tenant ID** field. Copy the value displayed.
 
 ### 4.2 Start Deployment
+
+**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
+```bash 
+azd config set provision.preflight off
+```
 
 ```shell
 azd up

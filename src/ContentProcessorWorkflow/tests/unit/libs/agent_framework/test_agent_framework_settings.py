@@ -81,7 +81,9 @@ class TestEnvFileLoading:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://already-set.openai.azure.com")
+        monkeypatch.setenv(
+            "AZURE_OPENAI_ENDPOINT", "https://already-set.openai.azure.com"
+        )
         monkeypatch.delenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", raising=False)
 
         settings = AgentFrameworkSettings(env_file_path=str(env_file))

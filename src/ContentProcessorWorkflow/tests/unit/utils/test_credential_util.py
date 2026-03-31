@@ -56,9 +56,7 @@ class TestGetAzureCredential:
 
 
 class TestGetAsyncAzureCredential:
-    def test_returns_async_managed_identity_when_azure_env_detected(
-        self, monkeypatch
-    ):
+    def test_returns_async_managed_identity_when_azure_env_detected(self, monkeypatch):
         monkeypatch.setenv("IDENTITY_ENDPOINT", "http://169.254.169.254")
         monkeypatch.delenv("AZURE_CLIENT_ID", raising=False)
 

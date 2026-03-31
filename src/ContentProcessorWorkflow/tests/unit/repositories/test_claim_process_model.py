@@ -76,16 +76,12 @@ class TestClaimProcess:
 
     def test_with_documents(self):
         doc = Content_Process(process_id="p1", file_name="a.pdf")
-        cp = Claim_Process(
-            id="p1", schemaset_id="ss1", processed_documents=[doc]
-        )
+        cp = Claim_Process(id="p1", schemaset_id="ss1", processed_documents=[doc])
         assert len(cp.processed_documents) == 1
         assert cp.processed_documents[0].file_name == "a.pdf"
 
     def test_status_assignment(self):
-        cp = Claim_Process(
-            id="p1", schemaset_id="ss1", status=Claim_Steps.COMPLETED
-        )
+        cp = Claim_Process(id="p1", schemaset_id="ss1", status=Claim_Steps.COMPLETED)
         assert cp.status == Claim_Steps.COMPLETED
 
     def test_independent_default_lists(self):

@@ -185,9 +185,7 @@ class TestUpdateHelpers:
             repo.get_async = AsyncMock(return_value=claim)
             repo.update_async = AsyncMock()
 
-            result = await repo.Update_Claim_Process_Status(
-                "p1", Claim_Steps.COMPLETED
-            )
+            result = await repo.Update_Claim_Process_Status("p1", Claim_Steps.COMPLETED)
             assert result is not None
             assert result.status == Claim_Steps.COMPLETED
 

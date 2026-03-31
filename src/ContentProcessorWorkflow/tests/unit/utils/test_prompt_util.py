@@ -40,13 +40,9 @@ class TestRenderFromFile:
 
     def test_multiline_template(self, tmp_path):
         template_file = tmp_path / "multi.txt"
-        template_file.write_text(
-            "Line1: {{ a }}\nLine2: {{ b }}", encoding="utf-8"
-        )
+        template_file.write_text("Line1: {{ a }}\nLine2: {{ b }}", encoding="utf-8")
 
-        result = TemplateUtility.render_from_file(
-            str(template_file), a="X", b="Y"
-        )
+        result = TemplateUtility.render_from_file(str(template_file), a="X", b="Y")
         assert result == "Line1: X\nLine2: Y"
 
     def test_missing_file_raises(self):

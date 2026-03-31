@@ -183,10 +183,12 @@ class GapExecutor(Executor):
             ChatMessage(
                 role="user",
                 text="Now analyze the following document extracts:\n\n"
-                + "\n\n".join([
-                    f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
-                    for file in processed_files
-                ]),
+                + "\n\n".join(
+                    [
+                        f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
+                        for file in processed_files
+                    ]
+                ),
             )
         )
 

@@ -13,6 +13,7 @@ to the ContentProcessorAPI, avoiding Easy Auth sidecar issues.
 """
 
 import asyncio
+import logging
 import mimetypes
 import uuid
 from datetime import datetime, timezone
@@ -27,6 +28,8 @@ from services.content_process_service import ContentProcessService
 from steps.models.output import Executor_Output, Workflow_Output
 
 from ...models.manifest import ClaimProcess
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentProcessExecutor(Executor):
@@ -154,9 +157,11 @@ class DocumentProcessExecutor(Executor):
             )
         )
 
-        # Limit concurrency to avoid overwhelming the service
-        max_concurrency = 2
+        # Limit concurrency; serialize Cosmos writes via _upsert_lock to
+        # prevent lost-update races on the shared Claim_Process document.
+        max_concurrency = 4
         semaphore = asyncio.Semaphore(max_concurrency)
+        _upsert_lock = asyncio.Lock()
 
         async def _process_one(item) -> dict:
             async with semaphore:
@@ -171,17 +176,17 @@ class DocumentProcessExecutor(Executor):
                     file_bytes = bytes(source_file)
 
                     metadata_id = (
-                        item.metadata_id
-                        if item.metadata_id
-                        else f"Meta-{uuid.uuid4()}"
+                        item.metadata_id if item.metadata_id else f"Meta-{uuid.uuid4()}"
                     )
                     schema_id = str(item.schema_id)
 
-                    print(
-                        f"Processing document: {item.file_name} with schema_id: {schema_id}"
+                    logger.info(
+                        "Processing document: %s with schema_id: %s",
+                        item.file_name,
+                        schema_id,
                     )
 
-                    # Direct submit: blob upload + queue enqueue + cosmos insert
+                    # Direct submit: blob upload + cosmos insert + queue enqueue
                     process_id = await content_process_service.submit(
                         file_bytes=file_bytes,
                         filename=filename,
@@ -190,27 +195,53 @@ class DocumentProcessExecutor(Executor):
                         metadata_id=metadata_id,
                     )
 
-                    # Upsert initial status to claim process
-                    await claim_process_repository.Upsert_Content_Process(
-                        process_id=claim_id,
-                        content_process=Content_Process(
-                            process_id=process_id,
-                            file_name=str(item.file_name),
-                            mime_type=content_type or "application/octet-stream",
-                            status="processing",
-                        ),
-                    )
+                    # Upsert initial "processing" status to claim process
+                    async with _upsert_lock:
+                        await claim_process_repository.Upsert_Content_Process(
+                            process_id=claim_id,
+                            content_process=Content_Process(
+                                process_id=process_id,
+                                file_name=str(item.file_name),
+                                mime_type=content_type or "application/octet-stream",
+                                status="processing",
+                            ),
+                        )
 
-                    # Poll Cosmos directly until terminal status
+                    # Poll until terminal status, upserting intermediate
+                    # changes. Skip duplicate and terminal statuses to
+                    # avoid clobbering the caller's richer final upsert.
+                    _last_polled_status: str | None = None
+
+                    async def _on_poll(poll_data: dict) -> None:
+                        nonlocal _last_polled_status
+                        polled_status = poll_data.get("status", "processing")
+                        if polled_status == _last_polled_status:
+                            return
+                        _last_polled_status = polled_status
+                        # Terminal statuses are handled by the caller with scores.
+                        if polled_status in ("Completed", "Error"):
+                            return
+                        async with _upsert_lock:
+                            await claim_process_repository.Upsert_Content_Process(
+                                process_id=claim_id,
+                                content_process=Content_Process(
+                                    process_id=process_id,
+                                    file_name=str(item.file_name),
+                                    mime_type=content_type
+                                    or "application/octet-stream",
+                                    status=polled_status,
+                                ),
+                            )
+
                     poll_result = await content_process_service.poll_status(
                         process_id=process_id,
                         poll_interval_seconds=poll_interval_seconds,
                         timeout_seconds=600.0,
+                        on_poll=_on_poll,
                     )
 
                     status_text = poll_result.get("status", "Failed")
 
-                    # Fetch final processed result for scores
                     schema_score_f = 0.0
                     entity_score_f = 0.0
                     processed_time = ""
@@ -221,9 +252,7 @@ class DocumentProcessExecutor(Executor):
                             process_id
                         )
                         if isinstance(final_payload, dict):
-                            status_text = (
-                                final_payload.get("status") or status_text
-                            )
+                            status_text = final_payload.get("status") or status_text
                             try:
                                 schema_score_f = float(
                                     final_payload.get("schema_score") or 0.0
@@ -244,21 +273,23 @@ class DocumentProcessExecutor(Executor):
                                 processed_time = ""
                             result_payload = final_payload
 
-                        # Final cosmos upsert with scores
-                        await claim_process_repository.Upsert_Content_Process(
-                            process_id=claim_id,
-                            content_process=Content_Process(
-                                process_id=process_id,
-                                file_name=str(item.file_name),
-                                mime_type=content_type or "application/octet-stream",
-                                status=status_text,
-                                schema_score=schema_score_f,
-                                entity_score=entity_score_f,
-                                processed_time=processed_time,
-                            ),
-                        )
+                        # Final upsert with scores
+                        async with _upsert_lock:
+                            await claim_process_repository.Upsert_Content_Process(
+                                process_id=claim_id,
+                                content_process=Content_Process(
+                                    process_id=process_id,
+                                    file_name=str(item.file_name),
+                                    mime_type=content_type
+                                    or "application/octet-stream",
+                                    status=status_text,
+                                    schema_score=schema_score_f,
+                                    entity_score=entity_score_f,
+                                    processed_time=processed_time,
+                                ),
+                            )
 
-                    # Map status to HTTP-like code for downstream compatibility
+                    # Map to HTTP-like code for downstream compatibility
                     if status_text == "Completed":
                         status_code = 302
                     elif status_text in ("Error", "Failed"):
