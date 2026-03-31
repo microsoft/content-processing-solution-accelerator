@@ -32,6 +32,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Environment variables exempt from the AZURE_ENV_ naming convention.
+_ENV_VAR_EXCEPTIONS = {"AZURE_LOCATION"}
 
 # ---------------------------------------------------------------------------
 # Bicep param parser
@@ -235,7 +237,6 @@ def validate_pair(
         ))
 
     # 5. Env var naming convention – all azd vars should start with AZURE_ENV_
-    _ENV_VAR_EXCEPTIONS = {"AZURE_LOCATION"}
     env_vars = parse_parameters_env_vars(params_path)
     for param_name, var_names in sorted(env_vars.items()):
         for var in var_names:
