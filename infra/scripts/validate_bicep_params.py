@@ -9,6 +9,9 @@ Checks performed:
   2. Existence   – every JSON parameter must map to a `param` in the Bicep file.
   3. Casing      – names must match exactly (case-sensitive).
   4. Orphaned    – required Bicep params (no default) missing from the JSON file.
+  5. Env vars    – parameter values bound to environment variables must use the
+                  AZURE_ENV_* naming convention, except for explicitly allowed
+                  names (for example, AZURE_LOCATION).
 
 Usage:
   # Validate a specific pair
