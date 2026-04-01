@@ -17,10 +17,10 @@ Usage:
   # Auto-discover all *.parameters.json files under infra/
   python validate_bicep_params.py --dir infra
 
-  # CI mode – exit code 1 on any error
+  # CI mode – exit code 1 when errors are found (warnings are ignored)
   python validate_bicep_params.py --dir infra --strict
 
-Returns exit-code 0 when clean, 1 when issues are found (in --strict mode).
+Returns exit-code 0 when no errors are found, 1 when errors are found (in --strict mode).
 """
 
 from __future__ import annotations
