@@ -5,6 +5,7 @@ description = "Content Process Gold Standard Solution Accelerator - Content Proc
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "agent-framework>=1.0.0b260127",
     "azure-ai-inference>=1.0.0b9",
     "azure-appconfiguration>=1.7.2",
     "azure-identity>=1.25.1",
@@ -12,6 +13,7 @@ dependencies = [
     "azure-storage-queue>=12.15.0",
     "certifi>=2026.1.4",
     "charset-normalizer>=3.4.4",
+    "opentelemetry-api>=1.39.1",
     "pandas>=2.3.3",
     "pdf2image>=1.17.0",
     "poppler-utils>=0.1.0",
@@ -37,19 +39,26 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "8.3.4"
-addopts = "--maxfail=1"
+addopts = "-v --strict-markers --maxfail=5"
 testpaths = ["tests"]
 pythonpath = ["src"]
+python_files = ["test_*.py"]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["src/tests/*", "**/test_*.py", "**/*_test.py"]
+omit = ["src/__init__.py"]
 
 [tool.coverage.report]
+show_missing = true
+skip_empty = true
 exclude_lines = [
     "pragma: no cover",
-    "if __name__ == .__main__.:",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
 ]
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.poetry.scripts]
 start-app = "src.main:main"

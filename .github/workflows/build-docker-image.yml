@@ -92,7 +92,7 @@ jobs:
           DATE="${{ steps.date.outputs.date }}"
           GITHUB_RUN_NUMBER="${{ github.run_number }}"
           if [[ "$BRANCH" == "main" ]]; then
-            BASE_TAG="latest"
+            BASE_TAG="latest_v2"
           elif [[ "$BRANCH" == "dev" ]]; then
             BASE_TAG="dev"
           elif [[ "$BRANCH" == "demo" ]]; then
@@ -101,7 +101,6 @@ jobs:
             BASE_TAG="hotfix"
           elif [[ "$BRANCH" == "dependabotchanges" ]]; then
             BASE_TAG="dependabotchanges"
-            
           else
             BASE_TAG="pullrequest-ignore"
           fi
@@ -139,3 +138,13 @@ jobs:
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}
+
+      - name: Build and Push ContentProcessorWorkflow Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/ContentProcessorWorkflow
+          file: ./src/ContentProcessorWorkflow/Dockerfile
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+          tags: |
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorworkflow:${{ env.BASE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorworkflow:${{ env.DATE_TAG }}

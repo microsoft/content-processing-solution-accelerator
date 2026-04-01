@@ -1,12 +1,51 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Factory component that renders grid cells in different formats
+ * (status badges, percentages, process times, delete buttons, etc.)
+ * based on a `type` discriminator string.
+ */
+
 import React from 'react';
 import { CaretUp16Filled, CaretDown16Filled, EditPersonFilled } from '@fluentui/react-icons';
 import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from '@fluentui/react-components';
-import { MoreVerticalRegular, MoreVerticalFilled, bundleIcon , Delete20Filled , Delete20Regular} from '@fluentui/react-icons';
+import { MoreVerticalRegular, MoreVerticalFilled, bundleIcon, Delete20Filled, Delete20Regular } from '@fluentui/react-icons';
 
-type CellRendererProps = {
-  type: string;
-  props?: any;
-};
+/** Props describing a delete-button disabled state. */
+interface DeleteBtnStatus {
+  /** Whether the button is disabled. */
+  readonly disabled: boolean;
+  /** Tooltip message shown when disabled. */
+  readonly message: string;
+}
+
+/** Minimal item shape expected by the delete button renderer. */
+interface DeleteItem {
+  readonly processId: { readonly label: string };
+}
+
+/** Union of all possible cell renderer prop bags. */
+interface CellRendererExtraProps {
+  readonly txt?: string;
+  readonly timeString?: string;
+  readonly valueText?: string;
+  readonly status?: string;
+  readonly lastModifiedBy?: string;
+  readonly text?: string | number;
+  readonly item?: DeleteItem;
+  readonly deleteBtnStatus?: DeleteBtnStatus;
+  readonly setSelectedDeleteItem?: (item: DeleteItem) => void;
+  readonly toggleDialog?: () => void;
+}
+
+/** Props for the {@link CellRenderer} component. */
+interface CellRendererProps {
+  /** Determines which cell rendering strategy to use. */
+  readonly type: string;
+  /** Extra data required by the selected rendering strategy. */
+  readonly props?: CellRendererExtraProps;
+}
 
 const MoreVerticallIcon = bundleIcon(
   MoreVerticalFilled,
@@ -18,6 +57,9 @@ const DeleteIcon = bundleIcon(
   Delete20Regular
 );
 
+/**
+ * Renders a table cell in different visual formats based on the `type` prop.
+ */
 const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
   // Destructure props based on type
   const {
@@ -97,7 +139,7 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
   };
 
   // Render for text
-  const renderText = (text: any, type = '') => {
+  const renderText = (text: string | number, type = '') => {
     if (type === 'date') {
       const date = new Date(text);
       const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getDate().toString().padStart(2, "0")}/${date.getFullYear()}`;
@@ -107,7 +149,7 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
   };
 
   // Render for delete button
-  const renderDeleteButton = (item: any, deleteBtnStatus: any) => (
+  const renderDeleteButton = (item: DeleteItem, deleteBtnStatus: DeleteBtnStatus) => (
     <Menu positioning={{ autoSize: true }} key={item.processId.label}>
       <MenuTrigger>
         <Button

@@ -1,0 +1,28 @@
+{
+    "schemas": [
+        {
+            "File": "autoclaim.py",
+            "ClassName": "AutoInsuranceClaimForm",
+            "Description": "Auto Insurance Claim Form"
+        },
+        {
+            "File": "damagedcarimage.py",
+            "ClassName": "DamagedVehicleImageAssessment",
+            "Description": "Damaged Vehicle Image Assessment"
+        },
+        {
+            "File": "policereport.py",
+            "ClassName": "PoliceReportDocument",
+            "Description": "Police Report Document"
+        },
+        {
+            "File": "repairestimate.py",
+            "ClassName": "RepairEstimateDocument",
+            "Description": "Repair Estimate Document"
+        }
+    ],
+    "schemaset": {
+        "Name": "Auto Claim",
+        "Description": "Claim schema set for auto claims processing"
+    }
+}

@@ -29,6 +29,12 @@ jspm_packages/
 # Optional npm cache directory
 .npm
 
+# pnpm cache/store (if configured to live inside the repo)
+.pnpm-store/
+.pnpm-cache/
+.pnpm/
+pnpm-debug.log*
+
 # Optional eslint cache
 .eslintcache
 
@@ -37,15 +43,50 @@ jspm_packages/
 
 # dotenv environment variables file
 
+# Environment files (keep .env.example committed)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# CRA-style local overrides
+.env.local
+.env.*.local
 
 # Parcel-bundler cache (https://parceljs.org/)
 .cache
+/.parcel-cache
+
+# Test coverage
+coverage/
 
 # Next.js build output
 .next
 
 # Nuxt.js build output
 .nuxt
+
+# Vite / SWC / Turborepo caches
+.vite/
+.swc/
+.turbo/
+
+# Storybook
+storybook-static/
+
+# Hosting/deploy outputs
+.vercel/
+.netlify/
+.firebase/
+
+# Yarn Berry (if used)
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
 # Gatsby files
 .cache/
@@ -72,3 +113,4 @@ jspm_packages/
 Thumbs.db
 
 .env.development
+.env

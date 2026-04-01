@@ -1,16 +1,33 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Right panel of the Default Page layout.
+ * Fetches and displays the source document for the currently selected process
+ * item using the {@link DocumentViewer} component.
+ */
+
 import React, { useEffect, useState } from "react";
-import PanelToolbar from "../../Hooks/usePanelHooks.tsx";
-import DocumentViewer from '../../Components/DocumentViewer/DocumentViewer.tsx'
+import { Button } from "@fluentui/react-components";
+import { bundleIcon, ChevronDoubleLeft20Filled, ChevronDoubleLeft20Regular } from "@fluentui/react-icons";
+
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchContentFileData } from '../../store/slices/rightPanelSlice'
-import { bundleIcon, ChevronDoubleLeft20Filled, ChevronDoubleLeft20Regular } from "@fluentui/react-icons";
-import { Button } from "@fluentui/react-components";
+import { fetchContentFileData } from '../../store/slices/rightPanelSlice';
+import { updatePanelCollapse } from "../../store/slices/defaultPageSlice";
+
+import PanelToolbar from "../../Hooks/usePanelHooks";
+import DocumentViewer from '../../Components/DocumentViewer/DocumentViewer';
 const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLeft20Filled);
+/** Props for the {@link PanelRight} component. */
 interface PanelRightProps {
-  togglePanel: (panel: string) => void;
+  /** Callback to collapse/expand a named panel. */
+  readonly togglePanel: (panel: string) => void;
 }
 
+/**
+ * Renders the right panel displaying the source document for the selected process item.
+ */
 const PanelRight: React.FC<PanelRightProps> = ({ togglePanel }) => {
 
   const dispatch = useDispatch<AppDispatch>();
@@ -25,11 +42,11 @@ const PanelRight: React.FC<PanelRightProps> = ({ togglePanel }) => {
   }), shallowEqual);
 
   const isBlobExists = () => {
-    const isfileExists = store.fileResponse.find(i => i.processId == store.processId)
+    const isfileExists = store.fileResponse.find(i => i.processId === store.processId)
     return isfileExists;
   }
   useEffect(() => {
-    if (store.processId != null && store.processId != '' && !isBlobExists()) {
+    if (store.processId !== null && store.processId !== '' && !isBlobExists()) {
       dispatch(fetchContentFileData({ processId: store.processId }))
     }
   }, [store.processId])
@@ -37,7 +54,7 @@ const PanelRight: React.FC<PanelRightProps> = ({ togglePanel }) => {
 
   useEffect(() => {
     const isExists = isBlobExists();
-    if (store.fileResponse.length > 0 && isExists && isExists.processId == store.processId) {
+    if (store.fileResponse.length > 0 && isExists && isExists.processId === store.processId) {
       setFileData({ 'urlWithSasToken': isExists.blobURL, 'mimeType': isExists.headers['content-type'] })
     } else {
       setFileData({ 'urlWithSasToken': '', 'mimeType': '' })

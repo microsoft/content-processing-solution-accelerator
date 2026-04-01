@@ -1,0 +1,67 @@
+#@baseUrl = http://localhost:8000
+@baseUrl = https://containerapp-cpsapi.proudbeach-01741a45.westus2.azurecontainerapps.io/
+@schemavault = /schemavault
+
+### List registered schemas
+# @name listSchemas
+GET {{baseUrl}}{{schemavault}}/
+
+### Register a schema (.py) into the vault
+# Sends multipart/form-data with fields:
+# - data: JSON string { ClassName, Description }
+# - file: schema file
+#
+# @name registerSchema
+POST {{baseUrl}}{{schemavault}}/
+Content-Type: multipart/form-data; boundary=----schema-boundary
+
+------schema-boundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+	"ClassName": "AutoClaimSchema",
+	"Description": "Uploaded from VS Code REST Client"
+}
+------schema-boundary
+Content-Disposition: form-data; name="file"; filename="autoclaim.py"
+Content-Type: text/x-python
+
+< ../samples/schemas/autoclaim.py
+------schema-boundary--
+
+### Update an existing schema (re-upload file + new ClassName)
+#@schemaId = {{registerSchema.response.body.$.Id}}
+@schemaId = 5fb7d528-3ea4-42a8-8a19-ab347ddd9ce0 
+# @name updateSchema
+PUT {{baseUrl}}{{schemavault}}/
+Content-Type: multipart/form-data; boundary=----schema-boundary
+
+------schema-boundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+	"SchemaId": "{{schemaId}}",
+	"ClassName": "DamagedVehicleImageAssessment"
+}
+------schema-boundary
+Content-Disposition: form-data; name="file"; filename="damagedcarimage.py"
+Content-Type: text/x-python
+
+< ../samples/schemas/damagedcarimage.py
+------schema-boundary--
+
+### Download the registered schema file
+GET {{baseUrl}}{{schemavault}}/schemas/{{schemaId}}
+
+### Unregister (delete) the schema
+DELETE {{baseUrl}}{{schemavault}}/
+Content-Type: application/json
+
+{
+	"SchemaId": "{{schemaId}}"
+}
+
+
+
