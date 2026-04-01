@@ -1,11 +1,19 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Save handler — final persistence of processed results.
+
+Aggregates outputs from all preceding steps and writes the final
+``ContentProcess`` record to Cosmos DB and step-output artifacts
+to blob storage.
+"""
+
 import datetime
 import json
 
 from libs.application.application_context import AppContext
 from libs.models.content_process import ContentProcess, Step_Outputs
+from libs.pipeline.entities.mime_types import MimeTypes
 from libs.pipeline.entities.pipeline_file import ArtifactType, PipelineLogEntry
 from libs.pipeline.entities.pipeline_message_context import MessageContext
 from libs.pipeline.entities.pipeline_step_result import StepResult
@@ -15,53 +23,38 @@ from libs.pipeline.queue_handler_base import HandlerBase
 
 
 class SaveHandler(HandlerBase):
+    """Pipeline step that persists final extraction results.
+
+    Responsibilities:
+        1. Collect outputs from extract, map, and evaluate steps.
+        2. Compute aggregate scores (entity, schema, min confidence).
+        3. Write the ContentProcess record to Cosmos DB.
+        4. Save step-output history to blob storage.
+    """
+
     def __init__(self, appContext: AppContext, step_name: str, **data):
         super().__init__(appContext, step_name, **data)
 
     async def execute(self, context: MessageContext) -> StepResult:
-        print(context.data_pipeline.get_previous_step_result(self.handler_name))
+        source_mime_type = context.data_pipeline.get_source_files()[0].mime_type
 
-        # #########################################################
-        # # TODO : Save Step Result to Blob Storage
-        # # Check the steps that have been executed so far
-        # # and save the result of each step to blob storage.
-        # # For example, if the steps "extract", "map", and "evaluate" have been
-        # executed_steps = context.data_pipeline.pipeline_status.completed_steps
-
-        # # loop through the executed steps and save the result of each step
-        # for step in executed_steps:
-        #     if step == "extract":
-        #         artifact_type = ArtifactType.ExtractedContent
-        #     elif step == "map":
-        #         artifact_type = ArtifactType.SchemaMappedData
-        #     elif step == "evaluate":
-        #         artifact_type = ArtifactType.ScoreMergedData
-        #         continue  # Skip unknown steps
-
-        #     self.download_output_file_to_json_string(
-        #         processed_by=step,
-        #         artifact_type=artifact_type
-        #     )
-
-        #########################################################
         # Get Results from All Steps - Content Understanding
-        #########################################################
-        output_file_json_string_from_extract = self.download_output_file_to_json_string(
-            processed_by="extract",
-            artifact_type=ArtifactType.ExtractedContent,
-        )
+        output_file_json_string_from_extract = ""
+        if source_mime_type not in [MimeTypes.ImageJpeg, MimeTypes.ImagePng]:
+            output_file_json_string_from_extract = (
+                self.download_output_file_to_json_string(
+                    processed_by="extract",
+                    artifact_type=ArtifactType.ExtractedContent,
+                )
+            )
 
-        ####################################################
-        # Get the result from Map step handler - OpenAI
-        ####################################################
+        # Get the result from Map step handler
         output_file_json_string_from_map = self.download_output_file_to_json_string(
             processed_by="map",
             artifact_type=ArtifactType.SchemaMappedData,
         )
 
-        ##########################################################
-        # Get the result from Evaluate step handler - Scored / Evaluated
-        ##########################################################
+        # Get the result from Evaluate step handler
         output_file_json_string_from_evaluate = (
             self.download_output_file_to_json_string(
                 processed_by="evaluate",
@@ -73,9 +66,6 @@ class SaveHandler(HandlerBase):
             **json.loads(output_file_json_string_from_evaluate)
         )
 
-        ########################################################
-        # Setup Output Result
-        ########################################################
         def find_process_result(step_name: str):
             return next(
                 (
@@ -87,11 +77,24 @@ class SaveHandler(HandlerBase):
             )
 
         process_outputs: list[Step_Outputs] = []
+
+        if output_file_json_string_from_extract:
+            extract_step_result_obj = json.loads(output_file_json_string_from_extract)
+        else:
+            extract_step_result_obj = {
+                "result": "skipped",
+                "reason": "Content type is image, skipping extraction.",
+            }
+
         process_outputs.append(
             Step_Outputs(
                 step_name="extract",
-                processed_time=find_process_result("extract").elapsed,
-                step_result=json.loads(output_file_json_string_from_extract),
+                processed_time=(
+                    find_process_result("extract").elapsed
+                    if find_process_result("extract") is not None
+                    else ""
+                ),
+                step_result=extract_step_result_obj,
             )
         )
         process_outputs.append(
@@ -154,7 +157,6 @@ class SaveHandler(HandlerBase):
                 collection_name=self.application_context.configuration.app_cosmos_container_schema,
             ),
             confidence=evaluated_result.confidence,
-            # process_output=process_outputs, # Mongo Document Size Limit, can't ship this result.
             extracted_comparison_data=evaluated_result.comparison_result,
             comment="",
         )
@@ -171,12 +173,10 @@ class SaveHandler(HandlerBase):
             file_name="step_outputs.json", artifact_type=ArtifactType.SavedContent
         )
         processed_history.log_entries.append(
-            PipelineLogEntry(
-                **{
-                    "source": self.handler_name,
-                    "message": "Process Output has been added. this file should be deserialized to Step_Outputs[]",
-                }
-            )
+            PipelineLogEntry(**{
+                "source": self.handler_name,
+                "message": "Process Output has been added. this file should be deserialized to Step_Outputs[]",
+            })
         )
         processed_history.upload_json_text(
             account_url=self.application_context.configuration.app_storage_blob_url,
@@ -189,17 +189,20 @@ class SaveHandler(HandlerBase):
             file_name="save_output.json", artifact_type=ArtifactType.SavedContent
         )
         result_file.log_entries.append(
-            PipelineLogEntry(
-                **{
-                    "source": self.handler_name,
-                    "message": "Save Result has been added",
-                }
-            )
+            PipelineLogEntry(**{
+                "source": self.handler_name,
+                "message": "Save Result has been added",
+            })
         )
         result_file.upload_json_text(
             account_url=self.application_context.configuration.app_storage_blob_url,
             container_name=self.application_context.configuration.app_cps_processes,
             text=processed_result.model_dump_json(),
+        )
+
+        # Console out
+        print(
+            f"The Content ({processed_result.process_id}): {processed_result.processed_file_name} has been processed with {processed_result.target_schema.ClassName} - {processed_result.processed_time}"
         )
 
         return StepResult(

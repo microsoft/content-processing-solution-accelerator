@@ -1,37 +1,40 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import datetime
+"""Uvicorn entry point for the ContentProcessorAPI service.
 
-from fastapi import FastAPI, Response
+Exposes the module-level ``app`` object that uvicorn imports
+(e.g. ``uvicorn app.main:app``).  A singleton Application instance
+is lazily created on first access to ensure reload-safe bootstrapping.
+"""
 
-from app.routers import contentprocessor, schemavault
+import warnings
 
-start_time = datetime.datetime.now()
-# app = FastAPI(dependencies=[Depends(get_token_header), Depends(get_query_token)])
-app = FastAPI(redirect_slashes=False)
+from application import Application
 
-# Add the routers to the app
-app.include_router(contentprocessor.router)
-app.include_router(schemavault.router)
+# PyMongo emits a noisy compatibility warning when it detects Azure Cosmos DB
+# (Mongo API). This warning is informational and can be safely suppressed in
+# production logs.
+warnings.filterwarnings(
+    "ignore",
+    message=r"You appear to be connected to a CosmosDB cluster\..*supportability/cosmosdb.*",
+    category=UserWarning,
+)
 
-
-# class Hello(BaseModel):
-#     message: str
-
-
-@app.get("/health")
-async def ImAlive(response: Response):
-    # Add Header Name is Custom-Header
-    response.headers["Custom-Header"] = "liveness probe"
-    return {"message": "I'm alive!"}
+_app_instance = None
 
 
-@app.get("/startup")
-async def Startup(response: Response):
-    # Add Header Name is Custom-Header
-    response.headers["Custom-Header"] = "Startup probe"
-    uptime = datetime.datetime.now() - start_time
-    hours, remainder = divmod(uptime.total_seconds(), 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return {"message": f"Running for {int(hours)}:{int(minutes)}:{int(seconds)}"}
+def get_app():
+    """Return the singleton Application, creating it on first call."""
+    global _app_instance
+    if _app_instance is None:
+        _app_instance = Application()
+    return _app_instance.app
+
+
+# Module-level reference used by uvicorn's import-string (app.main:app).
+app = get_app()
+
+
+if __name__ == "__main__":
+    app = Application().app

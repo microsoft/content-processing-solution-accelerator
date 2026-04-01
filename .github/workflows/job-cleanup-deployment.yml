@@ -40,7 +40,9 @@ on:
         description: 'Docker Image Tag'
         required: true
         type: string
-
+permissions:
+  contents: read
+  actions: read
 jobs:
   cleanup-deployment:
     runs-on: ${{ inputs.runner_os }}
@@ -52,13 +54,151 @@ jobs:
       ENV_NAME: ${{ inputs.ENV_NAME }}
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
     steps:
-      - name: Setup Azure CLI
+      - name: Validate Workflow Input Parameters
         shell: bash
+        env:
+          INPUT_RUNNER_OS: ${{ inputs.runner_os }}
+          INPUT_TRIGGER_TYPE: ${{ inputs.trigger_type }}
+          INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
+          INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
+          INPUT_AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
+          INPUT_ENV_NAME: ${{ inputs.ENV_NAME }}
+          INPUT_IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
         run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+          
+          # Validate runner_os (required, must be specific values)
+          if [[ -z "$INPUT_RUNNER_OS" ]]; then
+            echo "❌ ERROR: runner_os is required but not provided"
+            VALIDATION_FAILED=true
+          else
+            ALLOWED_RUNNER_OS=("ubuntu-latest" "windows-latest")
+            if [[ ! " ${ALLOWED_RUNNER_OS[@]} " =~ " ${INPUT_RUNNER_OS} " ]]; then
+              echo "❌ ERROR: runner_os '$INPUT_RUNNER_OS' is invalid. Allowed values: ${ALLOWED_RUNNER_OS[*]}"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ runner_os: '$INPUT_RUNNER_OS' is valid"
+            fi
           fi
-          az --version
+          
+          # Validate trigger_type (required - alphanumeric with underscores)
+          if [[ -z "$INPUT_TRIGGER_TYPE" ]]; then
+            echo "❌ ERROR: trigger_type is required but was not provided"
+            VALIDATION_FAILED=true
+          elif [[ ! "$INPUT_TRIGGER_TYPE" =~ ^[a-zA-Z0-9_]+$ ]]; then
+            echo "❌ ERROR: trigger_type '$INPUT_TRIGGER_TYPE' is invalid. Must contain only alphanumeric characters and underscores"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ trigger_type: '$INPUT_TRIGGER_TYPE' is valid"
+          fi
+          
+          # Validate cleanup_resources (boolean)
+          if [[ "$INPUT_CLEANUP_RESOURCES" != "true" && "$INPUT_CLEANUP_RESOURCES" != "false" ]]; then
+            echo "❌ ERROR: cleanup_resources must be 'true' or 'false', got: '$INPUT_CLEANUP_RESOURCES'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ cleanup_resources: '$INPUT_CLEANUP_RESOURCES' is valid"
+          fi
+          
+          # Validate existing_webapp_url (must start with https if provided)
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_webapp_url must start with 'https://', got: '$INPUT_EXISTING_WEBAPP_URL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_webapp_url: '$INPUT_EXISTING_WEBAPP_URL' is valid"
+            fi
+          fi
+          
+          # Validate RESOURCE_GROUP_NAME (required, Azure resource group naming convention)
+          if [[ -z "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            echo "❌ ERROR: RESOURCE_GROUP_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          else
+            if [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+              echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+              echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+            fi
+          fi
+          
+          # Validate AZURE_LOCATION (required)
+          if [[ -z "$INPUT_AZURE_LOCATION" ]]; then
+            echo "❌ ERROR: AZURE_LOCATION is required but not provided"
+            VALIDATION_FAILED=true
+          else
+            # Azure location should be lowercase alphanumeric (e.g., eastus, westeurope)
+            if [[ ! "$INPUT_AZURE_LOCATION" =~ ^[a-z0-9]+$ ]]; then
+              echo "❌ ERROR: AZURE_LOCATION '$INPUT_AZURE_LOCATION' is invalid. Should be lowercase alphanumeric (e.g., 'eastus', 'westeurope')"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_LOCATION: '$INPUT_AZURE_LOCATION' is valid"
+            fi
+          fi
+          
+          # Validate AZURE_ENV_OPENAI_LOCATION (required)
+          if [[ -z "$INPUT_AZURE_ENV_OPENAI_LOCATION" ]]; then
+            echo "❌ ERROR: AZURE_ENV_OPENAI_LOCATION is required but not provided"
+            VALIDATION_FAILED=true
+          else
+            # Azure location should be lowercase alphanumeric
+            if [[ ! "$INPUT_AZURE_ENV_OPENAI_LOCATION" =~ ^[a-z0-9]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_OPENAI_LOCATION '$INPUT_AZURE_ENV_OPENAI_LOCATION' is invalid. Should be lowercase alphanumeric (e.g., 'eastus', 'westeurope')"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_OPENAI_LOCATION: '$INPUT_AZURE_ENV_OPENAI_LOCATION' is valid"
+            fi
+          fi
+          
+          # Validate ENV_NAME (required, alphanumeric with hyphens)
+          if [[ -z "$INPUT_ENV_NAME" ]]; then
+            echo "❌ ERROR: ENV_NAME is required but not provided"
+            VALIDATION_FAILED=true
+          else
+            if [[ ! "$INPUT_ENV_NAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$|^[a-zA-Z0-9]$ ]]; then
+              echo "❌ ERROR: ENV_NAME '$INPUT_ENV_NAME' is invalid. Must start and end with alphanumeric, can contain hyphens"
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_ENV_NAME} -gt 64 ]]; then
+              echo "❌ ERROR: ENV_NAME '$INPUT_ENV_NAME' exceeds 64 characters"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ ENV_NAME: '$INPUT_ENV_NAME' is valid"
+            fi
+          fi
+          
+          # Validate IMAGE_TAG (required)
+          if [[ -z "$INPUT_IMAGE_TAG" ]]; then
+            echo "❌ ERROR: IMAGE_TAG is required but not provided"
+            VALIDATION_FAILED=true
+          else
+            # Docker image tag validation (alphanumeric, dots, dashes, underscores, max 128 chars)
+            if [[ ! "$INPUT_IMAGE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+              echo "❌ ERROR: IMAGE_TAG '$INPUT_IMAGE_TAG' is invalid. Must contain only alphanumerics, dots, dashes, and underscores"
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_IMAGE_TAG} -gt 128 ]]; then
+              echo "❌ ERROR: IMAGE_TAG '$INPUT_IMAGE_TAG' exceeds 128 characters"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ IMAGE_TAG: '$INPUT_IMAGE_TAG' is valid"
+            fi
+          fi
+          
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All input parameters validated successfully!"
 
       - name: Login to Azure
         shell: bash

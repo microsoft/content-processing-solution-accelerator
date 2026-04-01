@@ -24,7 +24,9 @@ env:
     url: ${{ inputs.CP_WEB_URL }}
     accelerator_name: "Content Processing"
     test_suite: ${{ inputs.TEST_SUITE }}
-
+permissions:
+  contents: read
+  actions: read
 jobs:
   test:
     runs-on: ubuntu-latest

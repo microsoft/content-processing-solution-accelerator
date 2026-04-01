@@ -1,3 +1,13 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Result container models for extraction and classification.
+
+Used by the evaluate and save handlers to bundle extracted data,
+confidence scores, comparison results, and token usage into a
+single serializable object.
+"""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +36,6 @@ class DataExtractionResult(BaseModel):
 
     extracted_result: dict
     confidence: dict
-    # self.accuracy = accuracy
     comparison_result: ExtractionComparisonData
     prompt_tokens: int
     completion_tokens: int
@@ -44,7 +53,7 @@ class DataExtractionResult(BaseModel):
         """
 
         # return json.dumps(self.to_dict(), indent=indent, cls=CustomEncoder)
-        return self.model_dump_json(indent=indent, cls=CustomEncoder)
+        return self.model_dump_json(indent=indent)
 
     def to_dict(self) -> dict:
         """

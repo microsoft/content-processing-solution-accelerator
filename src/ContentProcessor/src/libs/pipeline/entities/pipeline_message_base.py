@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Base classes for pipeline messages with serializable exception support.
+
+Provides ``PipelineMessageBase`` which all pipeline status and result
+models inherit from, along with ``SerializableException`` for safe
+JSON serialization of Python exceptions.
+"""
+
 import traceback
 from abc import abstractmethod
 from typing import Optional
@@ -69,7 +76,7 @@ class PipelineMessageBase(AppModelBase):
         )
 
     @abstractmethod
-    def save_to_persistent_storage(self):
+    def save_to_persistent_storage(self, account_url: str, container_name: str):
         raise NotImplementedError("Method not implemented")
 
     class Config:

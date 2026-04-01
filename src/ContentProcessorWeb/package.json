@@ -2,27 +2,32 @@
   "name": "contentprocessor_web",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.28.2",
   "dependencies": {
-    "@azure/msal-browser": "^4.24.1",
-    "@azure/msal-react": "^3.0.20",
-    "@fluentui/react-components": "^9.70.0",
-    "@fluentui/react-icons": "latest",
-    "@reduxjs/toolkit": "^2.9.0",
-    "axios": "^1.12.2",
+    "@azure/msal-browser": "^4.27.0",
+    "@azure/msal-react": "^3.0.23",
+    "@fluentui/react-button": "^9.8.0",
+    "@fluentui/react-components": "^9.72.9",
+    "@fluentui/react-dialog": "^9.16.6",
+    "@fluentui/react-icons": "^2.0.245",
+    "@reduxjs/toolkit": "^2.11.2",
+    "axios": "^1.13.5",
     "babel-preset-react-app": "^10.1.0",
     "contentprocessor_web": "file:",
     "cra-template-typescript": "1.3.0",
-    "json-edit-react": "^1.27.2",
-    "node-forge": ">=1.3.2",
+    "i18next": "^25.8.4",
+    "json-edit-react": "^1.29.0",
+    "node-forge": ">=1.3.3",
     "nth-check": "2.1.1",
     "postcss": "8.5.6",
     "prismjs": "^1.30.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.8",
+    "react-i18next": "^16.5.4",
     "react-medium-image-zoom": "^5.4.0",
-    "react-redux": "^9.1.2",
-    "react-router-dom": "^7.9.3",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.12.0",
     "react-scripts": "^5.0.1",
     "react-toastify": "^11.0.5",
     "react-virtualized": "^9.22.6",
@@ -33,10 +38,10 @@
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
-    "predeploy": "yarn build",
+    "predeploy": "pnpm build",
     "deploy": "gh-pages -d build",
     "eject": "react-scripts eject",
-    "build:deploy": "yarn build && cp -r build/* /path/to/nginx/html"
+    "build:deploy": "pnpm build && cp -r build/* /path/to/nginx/html"
   },
   "browserslist": {
     "production": [
@@ -51,23 +56,27 @@
     ]
   },
   "devDependencies": {
-    "@eslint/js": "^9.36.0",
+    "@eslint/js": "^9.39.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.1",
+    "@types/react-dom": "^18.3.5",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-virtualized": "^9.22.3",
     "@types/react-window": "^2.0.0",
     "customize-cra": "^1.0.0",
     "gh-pages": "^6.3.0",
-    "globals": "^16.4.0",
+    "globals": "^17.0.0",
     "husky": "^9.1.7",
     "raw-loader": "^4.0.2",
     "react-app-rewired": "^2.2.1",
     "react-tiff": "^0.0.14",
-    "sass": "^1.93.2",
-    "sass-loader": "^16.0.5",
+    "sass": "^1.97.2",
+    "sass-loader": "^16.0.6",
     "typescript": "^4.9.5",
-    "typescript-eslint": "^8.45.0"
+    "typescript-eslint": "^8.52.0"
   },
   "compilerOptions": {
     "typeRoots": [
@@ -80,11 +89,26 @@
     "src/**/*.tsx",
     "src/**/*.d.ts"
   ],
-  "resolutions": {
-    "postcss": "^8.5.1",
-    "nth-check": "^2.1.1",
-    "string_decoder": "^1.3.0",
-    "typescript": "^4.9.5",
-    "node-forge": "^1.3.2"
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router-dom$": "react-router-dom/dist/index.js",
+      "^react-router$": "react-router/dist/development/index.js",
+      "^react-router/dom$": "react-router/dist/development/dom-export.js",
+      "^@fluentui/react-icons/lib/(.*)$": "@fluentui/react-icons/lib-cjs/$1"
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "^8.5.1",
+      "nth-check": "^2.1.1",
+      "string_decoder": "^1.3.0",
+      "typescript": "^4.9.5",
+      "node-forge": "^1.3.2"
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "core-js",
+      "core-js-pure"
+    ]
   }
 }

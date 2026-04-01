@@ -1,29 +1,49 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Renders an inline document viewer that selects the correct embed strategy
+ * (Office Online, native PDF, image zoom, TIFF, or generic iframe) based on
+ * the file’s MIME type.
+ */
+
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TIFFViewer } from 'react-tiff';
-import './DocumentViewer.styles.scss';
 
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 
+import './DocumentViewer.styles.scss';
 
-interface IIFrameComponentProps {
-    className?: string;
-    metadata?: any;
-    urlWithSasToken: string | undefined;
-    iframeKey: number;
+/** Metadata describing the document to be rendered. */
+interface DocumentMetadata {
+  /** MIME type of the document (e.g. "application/pdf"). */
+  readonly mimeType: string;
 }
 
-const DocumentViewer = ({ className, metadata, urlWithSasToken, iframeKey }: IIFrameComponentProps) => {
+/** Props for the {@link DocumentViewer} component. */
+interface DocumentViewerProps {
+  /** Optional CSS class name applied to the outer container. */
+  readonly className?: string;
+  /** Document metadata containing at least the MIME type. */
+  readonly metadata?: DocumentMetadata;
+  /** Pre-signed URL (with SAS token) to the document blob. */
+  readonly urlWithSasToken: string | undefined;
+  /** Key used to force iframe re-mount when the document changes. */
+  readonly iframeKey: number;
+}
+
+/**
+ * Selects and renders the appropriate viewer for the given document based on MIME type.
+ */
+const DocumentViewer: React.FC<DocumentViewerProps> = ({ className, metadata, urlWithSasToken, iframeKey }) => {
     const { t } = useTranslation();
     const [imgError, setImageError] = useState(false);
 
     useEffect(() => {
         setImageError(false)
     }, [urlWithSasToken])
-
-    // Ref for the container div where the Dialog will be rendered
-    const containerRef = React.useRef<HTMLDivElement | null>(null);
 
     const getContentComponent = () => {
         if (!metadata || !urlWithSasToken) {
@@ -101,17 +121,17 @@ const DocumentViewer = ({ className, metadata, urlWithSasToken, iframeKey }: IIF
         }
     };
 
-    return <> <div className={`${className} ${imgError ? 'imageErrorContainer' : ''}`}>
-        {imgError ?
-            <div className={"invalidImagePopup"}>
-                <span className="imgEH">We can't open this file</span>
-                <p className="imgCtn">Something went wrong.</p>
-            </div>
-            : getContentComponent()
-        }
-    </div>
-
-    </>;
+    return (
+        <div className={`${className} ${imgError ? 'imageErrorContainer' : ''}`}>
+            {imgError ?
+                <div className={"invalidImagePopup"}>
+                    <span className="imgEH">We can't open this file</span>
+                    <p className="imgCtn">Something went wrong.</p>
+                </div>
+                : getContentComponent()
+            }
+        </div>
+    );
 }
 
 export default DocumentViewer;

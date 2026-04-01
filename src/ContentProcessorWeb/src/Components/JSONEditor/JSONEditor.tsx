@@ -1,17 +1,31 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Interactive JSON editor component powered by json-edit-react.
+ * Renders the extracted result data for a selected document and
+ * dispatches edits back to the Redux store.
+ */
+
 import React, { useEffect, useState } from 'react'
-import { JsonEditor, JsonEditorProps, githubDarkTheme } from 'json-edit-react'
-import './JSONEditor.styles.scss'
+import { JsonEditor } from 'json-edit-react'
+import { SearchBox } from "@fluentui/react-components";
 
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchContentJsonData, setModifiedResult } from '../../store/slices/centerPanelSlice';
+import { setModifiedResult } from '../../store/slices/centerPanelSlice';
 
-import { SearchBox } from "@fluentui/react-components";
+import './JSONEditor.styles.scss'
 
+/** Props for the {@link JSONEditor} component. */
 interface JSONEditorProps {
+  /** Process ID of the currently selected document (unused in render, kept for future use). */
   processId?: string | null;
 }
 
+/**
+ * Renders an interactive JSON editor for the extracted result of a processed document.
+ */
 const JSONEditor: React.FC<JSONEditorProps> = () => {
   const [jsonData, setJsonData] = React.useState({})
   const [isFocused, setIsFocused] = useState(false);
@@ -43,7 +57,7 @@ const JSONEditor: React.FC<JSONEditorProps> = () => {
 
   }, [store.contentData])
 
-  const onUpdateHandle = (newData: any) => {
+  const onUpdateHandle = (newData: Record<string, unknown>) => {
     dispatch(setModifiedResult(newData));
   }
 
@@ -64,7 +78,7 @@ const JSONEditor: React.FC<JSONEditorProps> = () => {
   return (
     <>{
       store.cLoader ? <div className={"JSONEditorLoader"}><p>Loading...</p></div> :
-        Object.keys(jsonData).length == 0 ? <p style={{ textAlign: 'center' }}>No data available</p> :
+        Object.keys(jsonData).length === 0 ? <p style={{ textAlign: 'center' }}>No data available</p> :
           <div className="JSONEditor-container">
             {store.isJSONEditorSearchEnabled &&
               <div className="JSONEditor-searchDiv">
@@ -101,15 +115,11 @@ const JSONEditor: React.FC<JSONEditorProps> = () => {
                     },
                   }
                 }]}
-                onUpdate={({ newData, currentData, newValue, currentValue, name, path }) => {
+                onUpdate={({ newData }) => {
                   onUpdateHandle(newData)
                 }}
-                //setData={ setJsonData } // optional
-                // restrictEdit={({ key, path, level, index, value, size, parentData, fullData, collapsed }) => {
-                //   return !path.includes('extracted_result')
-                // }
-                // }
                 restrictDelete={true}
+                showIconTooltips={true}
               />
             </div>
           </div>

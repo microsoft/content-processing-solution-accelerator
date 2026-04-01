@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Pydantic response models for Azure Content Understanding analysis results.
+
+Maps the JSON payload returned by the Content Understanding API into
+typed Python objects used downstream by pipeline handlers.
+"""
+
 from typing import List, Optional
 
 from pydantic import BaseModel, ValidationInfo, field_validator
@@ -19,22 +25,24 @@ class Word(BaseModel):
     polygon: Optional[List[float]] = None
 
     @field_validator("polygon", mode="after")
+    @classmethod
     def parse_polygon(cls, value, info: ValidationInfo):
-        """
-        Providing comparability with Azure Documenent Document Intelligence Service API result.
+        """Extract polygon coordinates from the ``source`` field.
+
+        Provides compatibility with Azure Document Intelligence API results
+        by parsing the ``D(page, x1, y1, ...)`` source format.
 
         Args:
-            value (_type_): _description_
-            info (ValidationInfo): _description_
+            value: The raw polygon value (may be None).
+            info: Pydantic validation context carrying sibling field data.
 
         Returns:
-            Parsed Polygon Information with metadata
+            List of float coordinates, or an empty list.
         """
         source_str = info.data.get("source", "")
         if source_str.startswith("D(") and source_str.endswith(")"):
-            inside = source_str[2:-1]  # remove "D(" and ")"
+            inside = source_str[2:-1]
             parts = inside.split(",")
-            # skip the first item (like the "1") and parse the rest
             if len(parts) > 1:
                 return [float(x.strip()) for x in parts[1:]]
         return []
@@ -51,12 +59,13 @@ class Line(BaseModel):
     polygon: Optional[List[float]] = None
 
     @field_validator("polygon", mode="after")
+    @classmethod
     def parse_polygon(cls, value, info: ValidationInfo):
+        """Extract polygon coordinates from the ``source`` field."""
         source_str = info.data.get("source", "")
         if source_str.startswith("D(") and source_str.endswith(")"):
-            inside = source_str[2:-1]  # remove "D(" and ")"
+            inside = source_str[2:-1]
             parts = inside.split(",")
-            # skip the first item (like the "1") and parse the rest
             if len(parts) > 1:
                 return [float(x.strip()) for x in parts[1:]]
         return []
@@ -73,12 +82,13 @@ class Paragraph(BaseModel):
     polygon: Optional[List[float]] = None
 
     @field_validator("polygon", mode="after")
+    @classmethod
     def parse_polygon(cls, value, info: ValidationInfo):
+        """Extract polygon coordinates from the ``source`` field."""
         source_str = info.data.get("source", "")
         if source_str.startswith("D(") and source_str.endswith(")"):
-            inside = source_str[2:-1]  # remove "D(" and ")"
+            inside = source_str[2:-1]
             parts = inside.split(",")
-            # skip the first item (like the "1") and parse the rest
             if len(parts) > 1:
                 return [float(x.strip()) for x in parts[1:]]
         return []

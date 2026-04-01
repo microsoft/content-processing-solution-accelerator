@@ -1,15 +1,28 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Default page layout that arranges the Processing Queue (left), Output Review
+ * (center), and Source Document (right) panels in a collapsible three-column layout.
+ */
+
 import * as React from "react";
-import PanelCenter from "./PanelCenter.tsx";
-import PanelLeft from "./PanelLeft.tsx";
-import PanelRight from "./PanelRight.tsx";
-import './Panels.styles.scss';
+import { Button } from "@fluentui/react-components";
 
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { AppDispatch, RootState } from '../../store/index.ts';
-import { updatePanelCollapse } from "../../store/slices/defaultPageSlice.ts";
+import { AppDispatch, RootState } from '../../store';
+import { updatePanelCollapse } from "../../store/slices/defaultPageSlice";
 
-import { makeStyles, Button } from "@fluentui/react-components";
+import PanelCenter from "./PanelCenter";
+import PanelLeft from "./PanelLeft";
+import PanelRight from "./PanelRight";
 
+import './Panels.styles.scss';
+
+/**
+ * Three-panel layout page with collapsible Processing Queue, Output Review,
+ * and Source Document panels.
+ */
 const Page: React.FC = () => {
 
   const dispatch = useDispatch<AppDispatch>();

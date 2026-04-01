@@ -1,5 +1,9 @@
 .dialogBody {
     margin: 16px 0px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
 
     .inputDiv {
         margin: 16px 0px;
@@ -37,9 +41,12 @@
 
 
 .filesList {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+
     .fiiles {
-        max-height: calc(100vh - 358px);
-        overflow: auto;
+        overflow: visible;
     }
 
     .error {

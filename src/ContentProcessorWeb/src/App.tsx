@@ -1,58 +1,60 @@
-import * as React from "react";
-import { useEffect } from "react";
-import Header from "./Components/Header/Header.tsx"; // Import Header
-import "./Styles/App.css";
-import HomePage from "./Pages/HomePage.tsx";
-import DefaultPage from "./Pages/DefaultPage";
-//import AuxiliaryPage from "./Pages/AuxiliaryPage/AuxiliaryPage.tsx";
-import NotFound from "./Pages/NotFound.tsx";
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Root application shell that provides routing, global loading spinner, and toast notifications.
+ *
+ * Mounted inside the FluentProvider / Redux Provider in index.tsx.
+ */
+import React, { useEffect } from "react";
+
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
+import { useSelector, shallowEqual } from "react-redux";
+
+import { RootState } from "./store";
+import Header from "./Components/Header/Header";
+import Spinner from "./Components/Spinner/Spinner";
+import HomePage from "./Pages/HomePage";
+import DefaultPage from "./Pages/DefaultPage";
+import NotFound from "./Pages/NotFound";
+
 import "react-toastify/dist/ReactToastify.css";
-import {
-  HashRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import Spinner from "./Components/Spinner/Spinner.tsx";
+import "./Styles/App.css";
 
-import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { RootState } from './store';
+/** Props accepted by the root {@link App} component. */
+interface AppProps {
+  /** Whether the UI is currently rendered in dark mode. */
+  readonly isDarkMode: boolean;
+  /** Callback to toggle between light and dark themes. */
+  readonly toggleTheme: () => void;
+}
 
-
-type AppProps = {
-  isDarkMode: boolean; // Prop to control dark mode
-  toggleTheme: () => void; // Function to toggle dark mode
-};
-
+/**
+ * Renders the top-level application layout including the header, route definitions,
+ * a global loading spinner, and the toast notification container.
+ */
 const App: React.FC<AppProps> = ({ isDarkMode, toggleTheme }) => {
+  const loadingStack = useSelector(
+    (state: RootState) => state.loader.loadingStack,
+    shallowEqual
+  );
 
-  const store = useSelector((state: RootState) => ({
-    loader: state.loader.loadingStack
-  }), shallowEqual);
-
-  // Apply or remove the "dark-mode" class on the body element based on isDarkMode
   useEffect(() => {
-    if (isDarkMode) {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
+    document.body.classList.toggle("dark-mode", isDarkMode);
   }, [isDarkMode]);
 
   return (
     <div className="app-container">
-      <Spinner isLoading={store.loader.length > 0} label="please wait..." />
+      <Spinner isLoading={loadingStack.length > 0} label="please wait..." />
       <Router>
         <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
 
-        {/* Main Layout */}
         <main>
           <Routes>
-            <Route path="/" element={<Navigate to="/default" />} /> {/*Default route (i.e., landing page) */}
+            <Route path="/" element={<Navigate to="/default" />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/default" element={<DefaultPage />} />
-            {/* <Route path="/auxiliary" element={<AuxiliaryPage />} /> */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

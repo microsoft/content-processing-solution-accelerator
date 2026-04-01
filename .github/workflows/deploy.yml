@@ -4,16 +4,23 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "infra/**"
+      - "src/**"
+      - "tests/e2e-test/**"
+      - "azure.yaml"
+      - ".github/workflows/deploy.yml"
+      - ".github/workflows/test-automation.yml"
   schedule:
     - cron: "0 9,21 * * *" # Runs at 9:00 AM and 9:00 PM GMT
   workflow_dispatch:
-
+permissions:
+  contents: read
+  actions: read
 jobs:
   deploy:
     runs-on: ubuntu-latest
     outputs:
-      invoice_schema_id: ${{ steps.register.outputs.invoice_schema_id }}
-      propertydamageclaimform_schema_id: ${{ steps.register.outputs.propertylossdamageclaimform_schema_id }}
       RESOURCE_GROUP_NAME: ${{ steps.generate_rg_name.outputs.RESOURCE_GROUP_NAME }}
       CONTAINER_WEB_APPURL: ${{ steps.get_output.outputs.CONTAINER_WEB_APPURL }}
       DEPLOYMENT_SUCCESS: ${{ steps.deployment_status.outputs.SUCCESS }}
@@ -26,11 +33,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
 
-      - name: Setup Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az --version  # Verify installation
-
       - name: Login to Azure
         run: |
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
@@ -38,14 +40,14 @@ jobs:
 
       - name: Run Quota Check
         id: quota-check
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          GPT_MIN_CAPACITY: "100"
+          AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="100"
-          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
-
           chmod +x infra/scripts/checkquota.sh
           if ! infra/scripts/checkquota.sh; then
             # If quota check fails due to insufficient quota, set the flag
@@ -126,15 +128,12 @@ jobs:
           UNIQUE_ENV_NAME="${TIMESTAMP_SHORT}${RANDOM_SUFFIX}"    # Usually ~12-13 chars
           echo "ENVIRONMENT_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_ENV
           echo "Generated ENVIRONMENT_NAME: ${UNIQUE_ENV_NAME}"
-      
+
       - name: Get Deployment Output and extract Values
         id: get_output
         run: |
           set -e
           echo "Fetching deployment output..."
-
-          # Install azd (Azure Developer CLI)
-          curl -fsSL https://aka.ms/install-azd.sh | bash
 
           # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
             current_date=$(date -u +"%Y-%m-%dT%H:%M:%S.%7NZ")
@@ -152,7 +151,7 @@ jobs:
               gptModelVersion="2024-08-06" \
               gptDeploymentCapacity="30" \
               aiServiceLocation="${{ env.AZURE_LOCATION }}" \
-              imageTag="latest" \
+              imageTag="latest_v2" \
               tags="{'CreatedBy':'Pipeline', 'Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
             --query "properties.outputs" -o json); then
               echo "❌ Deployment failed. See logs above."
@@ -162,38 +161,18 @@ jobs:
           echo "✅ Deployment succeeded."
           echo "$DEPLOY_OUTPUT"
 
-          # Export variables only after successful deploy
-          export CONTAINER_API_APPURL=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_API_APP_FQDN.value')
+          CONTAINER_API_APPURL=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_API_APP_FQDN.value')
           echo "CONTAINER_API_APPURL=$CONTAINER_API_APPURL" >> $GITHUB_ENV
 
-          export CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_API_APP_NAME.value')
+          CONTAINER_API_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_API_APP_NAME.value')
           echo "CONTAINER_API_APPNAME=$CONTAINER_API_APPNAME" >> $GITHUB_ENV
 
-          export CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_FQDN.value')"
+          CONTAINER_WEB_APPURL="https://$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_FQDN.value')"
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_ENV
           echo "CONTAINER_WEB_APPURL=$CONTAINER_WEB_APPURL" >> $GITHUB_OUTPUT
 
-          export CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_NAME.value')
+          CONTAINER_WEB_APPNAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.containeR_WEB_APP_NAME.value')
           echo "CONTAINER_WEB_APPNAME=$CONTAINER_WEB_APPNAME" >> $GITHUB_ENV
-
-      - name: Register schemas
-        id: register
-        run: |
-          echo "Registering schemas..."
-          sleep 40  # Wait for the API to be ready
-
-          cd src/ContentProcessorAPI/samples/schemas
-          chmod +x ./register_schema.sh
-          ./register_schema.sh ${{ env.CONTAINER_API_APPURL }}/schemavault/ schema_info_sh.json
-
-      - name: Upload sample invoice and claim data
-        run: |
-          echo "Uploading sample data..."
-          cd src/ContentProcessorAPI/samples
-          chmod +x ./upload_files.sh
-          ./upload_files.sh ${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit ./invoices '${{ steps.register.outputs.invoice_schema_id }}'
-          ./upload_files.sh ${{ env.CONTAINER_API_APPURL }}/contentprocessor/submit ./propertyclaims '${{ steps.register.outputs.propertylossdamageclaimform_schema_id }}'
-
 
       - name: Disable Auth in Web App
         run: |
@@ -230,7 +209,7 @@ jobs:
         run: |
           set -e
           echo "Listing all KeyVaults in the resource group ${{ env.RESOURCE_GROUP_NAME }}..."
-          
+
           # Get the list of KeyVaults in the specified resource group
           keyvaults=$(az resource list --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "[?type=='Microsoft.KeyVault/vaults'].name" -o tsv)
 
@@ -256,7 +235,7 @@ jobs:
             # Output the formatted array and save it to the job output
             echo "KEYVAULTS=$keyvault_array" >> $GITHUB_OUTPUT
           fi
-          
+
       - name: Set Deployment Status
         id: deployment_status
         if: always()
@@ -286,7 +265,7 @@ jobs:
     secrets: inherit
 
   cleanup:
-    if: always() 
+    if: always()
     needs: [deploy, e2e-test]
     runs-on: ubuntu-latest
     env:
@@ -296,9 +275,6 @@ jobs:
       AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
       ENVIRONMENT_NAME: ${{ needs.deploy.outputs.ENVIRONMENT_NAME }}
     steps:
-      - name: Setup Azure CLI
-        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
       - name: Login to Azure
         run: |
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
@@ -310,12 +286,12 @@ jobs:
           set -e  
           echo "Checking if resource group exists..."
           echo "Resource group name: ${{ env.RESOURCE_GROUP_NAME }}"
-          
+
           if [ -z "${{ env.RESOURCE_GROUP_NAME }}" ]; then
             echo "Resource group name is empty. Skipping deletion."
             exit 0
           fi
-          
+
           rg_exists=$(az group exists --name "${{ env.RESOURCE_GROUP_NAME }}")
           if [ "$rg_exists" = "true" ]; then
             echo "Resource group exists. Cleaning..."
@@ -342,12 +318,12 @@ jobs:
 
           # Remove the surrounding square brackets and quotes, if they exist
           stripped_keyvaults=$(echo "$KEYVAULTS" | sed 's/\[\|\]//g' | sed 's/"//g')
-          
+
           # Convert the comma-separated string into an array
           IFS=',' read -r -a resources_to_check <<< "$stripped_keyvaults"
-          
+
           echo "List of resources to check: ${resources_to_check[@]}"
-         
+
           # Check if resource group still exists before listing resources
           rg_exists=$(az group exists --name "${{ env.RESOURCE_GROUP_NAME }}")
           if [ "$rg_exists" = "false" ]; then
@@ -446,7 +422,7 @@ jobs:
 
           # Remove the surrounding square brackets and quotes, if they exist
           stripped_keyvaults=$(echo "$KEYVAULTS" | sed 's/\[\|\]//g' | sed 's/"//g')
-          
+
           # Convert the comma-separated string into an array
           IFS=',' read -r -a keyvault_array <<< "$stripped_keyvaults"
 
@@ -471,7 +447,7 @@ jobs:
           done
 
           echo "Resource purging completed successfully"
-      
+
       - name: Purge Container Apps Environment and Cosmos DB
         if: always()
         run: |
