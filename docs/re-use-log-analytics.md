@@ -23,7 +23,7 @@ Copy Resource ID that is your Workspace ID
 ### 4. Set the Workspace Resource ID in Your Environment
 Run the following command in your terminal
 ```bash
-azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID '<Existing Log Analytics Workspace Resource Id>'
+azd env set AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID '<Existing Log Analytics Workspace Resource Id>'
 ```
 Replace `<Existing Log Analytics Workspace Resource Id>` with the value obtained from Step 3.
 
