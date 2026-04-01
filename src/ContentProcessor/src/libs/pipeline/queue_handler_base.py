@@ -246,36 +246,68 @@ class HandlerBase(AppModelBase, ABC):
                             container_name=self.application_context.configuration.app_cps_processes,
                         )
 
-                        ContentProcess(
-                            process_id=self._current_message_context.data_pipeline.process_id,
-                            processed_file_name=self._current_message_context.data_pipeline.files[
-                                0
-                            ].name,
-                            status="Error",
-                            processed_file_mime_type=self._current_message_context.data_pipeline.files[
-                                0
-                            ].mime_type,
-                            last_modified_time=datetime.datetime.now(datetime.UTC),
-                            last_modified_by=step_name,
-                            imported_time=datetime.datetime.strptime(
-                                self._current_message_context.data_pipeline.pipeline_status.creation_time,
-                                "%Y-%m-%dT%H:%M:%S.%fZ",
-                            ),
-                            process_output=[
-                                Step_Outputs(
-                                    step_name=self.handler_name,
-                                    step_result=exception_result.result,
-                                )
-                            ],
-                        ).update_status_to_cosmos(
-                            connection_string=self.application_context.configuration.app_cosmos_connstr,
-                            database_name=self.application_context.configuration.app_cosmos_database,
-                            collection_name=self.application_context.configuration.app_cosmos_container_process,
-                        )
+                        # Only mark as terminal "Error" when retries are
+                        # exhausted.  While retries remain, use "Retrying"
+                        # so the workflow poller keeps waiting instead of
+                        # treating the first transient failure as final.
+                        has_retries_remaining = queue_message.dequeue_count <= 5
+
+                        if has_retries_remaining:
+                            # Lightweight status-only update — avoids
+                            # overwriting the document with null result /
+                            # scores that a previous successful step may
+                            # have written.
+                            ContentProcess(
+                                process_id=self._current_message_context.data_pipeline.process_id,
+                                processed_file_name=self._current_message_context.data_pipeline.files[
+                                    0
+                                ].name,
+                                status="Retrying",
+                                processed_file_mime_type=self._current_message_context.data_pipeline.files[
+                                    0
+                                ].mime_type,
+                                last_modified_time=datetime.datetime.now(datetime.UTC),
+                                last_modified_by=step_name,
+                                imported_time=datetime.datetime.strptime(
+                                    self._current_message_context.data_pipeline.pipeline_status.creation_time,
+                                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                                ),
+                            ).update_process_status_to_cosmos(
+                                connection_string=self.application_context.configuration.app_cosmos_connstr,
+                                database_name=self.application_context.configuration.app_cosmos_database,
+                                collection_name=self.application_context.configuration.app_cosmos_container_process,
+                            )
+                        else:
+                            ContentProcess(
+                                process_id=self._current_message_context.data_pipeline.process_id,
+                                processed_file_name=self._current_message_context.data_pipeline.files[
+                                    0
+                                ].name,
+                                status="Error",
+                                processed_file_mime_type=self._current_message_context.data_pipeline.files[
+                                    0
+                                ].mime_type,
+                                last_modified_time=datetime.datetime.now(datetime.UTC),
+                                last_modified_by=step_name,
+                                imported_time=datetime.datetime.strptime(
+                                    self._current_message_context.data_pipeline.pipeline_status.creation_time,
+                                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                                ),
+                                process_output=[
+                                    Step_Outputs(
+                                        step_name=self.handler_name,
+                                        step_result=exception_result.result,
+                                    )
+                                ],
+                            ).update_status_to_cosmos(
+                                connection_string=self.application_context.configuration.app_cosmos_connstr,
+                                database_name=self.application_context.configuration.app_cosmos_database,
+                                collection_name=self.application_context.configuration.app_cosmos_container_process,
+                            )
 
                         process_outputs: list[Step_Outputs] = []
 
-                        if queue_message.dequeue_count > 5:
+                        if not has_retries_remaining:
                             logging.info(
                                 "Message will be moved to the Dead Letter Queue."
                             )
