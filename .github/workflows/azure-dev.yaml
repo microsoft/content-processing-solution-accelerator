@@ -23,6 +23,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set timestamp and env name
+        run: |
+          HHMM=$(date -u +'%H%M')
+          echo "AZURE_ENV_NAME=azd-${{ vars.AZURE_ENV_NAME }}-${HHMM}" >> $GITHUB_ENV
+
       - name: Install azd
         uses: Azure/setup-azd@v2
 
