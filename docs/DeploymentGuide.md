@@ -311,6 +311,7 @@ Schema registration happens **automatically** as part of the `azd up` post-provi
 2. Registers the sample schema files (auto claim, damaged car image, police report, repair estimate)
 3. Creates an **"Auto Claim"** schema set
 4. Adds all registered schemas into the schema set
+5. Processes sample file bundles (`claim_date_of_loss/` and `claim_hail/`) — creates claim batches, uploads files with their mapped schemas, and submits them for processing
 
 After successful deployment, the terminal displays container app details and schema registration output:
 
@@ -358,7 +359,29 @@ Schema registration process completed.
   Schema set ID: <id>
   Schemas added: 4
 ============================================================
-  ✅ Schema registration complete.
+
+============================================================
+Step 4: Process sample file bundles
+============================================================
+
+  📂 Processing bundle: claim_date_of_loss
+    ✅ Claim batch created with ID: <id>
+    ✅ Uploaded 'claim_form.pdf' successfully.
+    ✅ Uploaded 'damage_photo.png' successfully.
+    ✅ Uploaded 'police_report.pdf' successfully.
+    ✅ Uploaded 'repair_estimate.pdf' successfully.
+    ✅ Claim batch '<id>' submitted for processing.
+
+  📂 Processing bundle: claim_hail
+    ✅ Claim batch created with ID: <id>
+    ✅ Uploaded 'claim_form.pdf' successfully.
+    ✅ Uploaded 'damage_photo.png' successfully.
+    ✅ Uploaded 'repair_estimate.pdf' successfully.
+    ✅ Claim batch '<id>' submitted for processing.
+
+============================================================
+Sample file processing completed.
+============================================================
 ```
 
 ### 5.2 Configure Authentication (Automatic)
@@ -420,10 +443,12 @@ The automation is fully compatible with the WAF / production profile (`main.waf.
 
 ### 5.4 Test the Application
 
+> **Note:** The post-deployment hook automatically uploads and processes two sample claim bundles (`claim_date_of_loss` and `claim_hail`). You can verify the results in the web app immediately after deployment.
+
 **Quick Test Steps:**
-1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
-2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
-3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
+1. **Check Processed Results**: Open the web app — you should see the two sample claim batches already processed with extracted data.
+2. **Review**: Click a processed claim row to verify the extracted data against the source document.
+3. **Upload More (Optional)**: To test additional uploads, get sample files from the [samples directory](../src/ContentProcessorAPI/samples), select the **"Auto Claim"** schema set, and upload via Import Content.
 
 📖 **Detailed Instructions:** See the complete [Golden Path Workflows](./GoldenPathWorkflows.md) guide for step-by-step testing procedures.
 

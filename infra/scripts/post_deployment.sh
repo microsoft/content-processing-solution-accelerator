@@ -246,6 +246,131 @@ else
   echo "Schema registration process completed."
   echo "  Schemas registered: ${#REGISTERED_IDS[@]}"
   echo "============================================================"
+
+  # --- Step 4: Process sample file bundles ---
+  if [ -n "$SCHEMASET_ID" ] && [ -n "$REGISTERED_IDS" ]; then
+    echo ""
+    echo "============================================================"
+    echo "Step 4: Process sample file bundles"
+    echo "============================================================"
+
+    SAMPLES_DIR="$(realpath "$SCRIPT_DIR/../../src/ContentProcessorAPI/samples")"
+    CLAIM_PROCESSOR_URL="$API_BASE_URL/claimprocessor/claims"
+
+    for BUNDLE in claim_date_of_loss claim_hail; do
+      BUNDLE_DIR="$SAMPLES_DIR/$BUNDLE"
+      BUNDLE_INFO="$BUNDLE_DIR/bundle_info.json"
+
+      if [ ! -f "$BUNDLE_INFO" ]; then
+        echo "  Skipping '$BUNDLE' - no bundle_info.json found."
+        continue
+      fi
+
+      echo ""
+      echo "  📂 Processing bundle: $BUNDLE"
+
+      # Step 4a: Create claim batch with schemaset ID
+      echo "    - Creating claim batch..."
+      RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X PUT "$CLAIM_PROCESSOR_URL" \
+        -H "Content-Type: application/json" \
+        -d "{\"schema_collection_id\": \"$SCHEMASET_ID\"}" \
+        --connect-timeout 30)
+
+      HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+      BODY=$(echo "$RESPONSE" | sed '$d')
+
+      if [ "$HTTP_CODE" != "200" ]; then
+        echo "    ❌ Failed to create claim batch. HTTP $HTTP_CODE"
+        echo "    Error: $BODY"
+        continue
+      fi
+
+      CLAIM_ID=$(echo "$BODY" | grep -o '"claim_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+      echo "    ✅ Claim batch created with ID: $CLAIM_ID"
+
+      # Step 4b: Upload each file with its mapped schema ID
+      UPLOAD_SUCCESS=true
+      FILE_COUNT=$(cat "$BUNDLE_INFO" | grep -o '"file_name"' | wc -l)
+
+      for fidx in $(seq 0 $((FILE_COUNT - 1))); do
+        FILE_NAME=$(cat "$BUNDLE_INFO" | grep -o '"file_name"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((fidx + 1))p" | sed 's/.*"\([^"]*\)"$/\1/')
+        SCHEMA_CLASS=$(cat "$BUNDLE_INFO" | grep -o '"schema_class"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((fidx + 1))p" | sed 's/.*"\([^"]*\)"$/\1/')
+
+        FILE_PATH="$BUNDLE_DIR/$FILE_NAME"
+
+        if [ ! -f "$FILE_PATH" ]; then
+          echo "    - File '$FILE_NAME' not found. Skipping."
+          continue
+        fi
+
+        # Look up schema ID from registered schemas
+        SCHEMA_ID=""
+        RIDX=0
+        for RID in $REGISTERED_IDS; do
+          RIDX=$((RIDX + 1))
+          RNAME=$(echo "$REGISTERED_NAMES" | tr ' ' '\n' | sed -n "${RIDX}p")
+          if [ "$RNAME" = "$SCHEMA_CLASS" ]; then
+            SCHEMA_ID="$RID"
+            break
+          fi
+        done
+
+        if [ -z "$SCHEMA_ID" ]; then
+          echo "    - No schema ID found for '$SCHEMA_CLASS'. Skipping '$FILE_NAME'."
+          continue
+        fi
+
+        echo "    - Uploading '$FILE_NAME' (schema: $SCHEMA_CLASS)..."
+
+        DATA_JSON="{\"Claim_Id\": \"$CLAIM_ID\", \"Schema_Id\": \"$SCHEMA_ID\", \"Metadata_Id\": \"sample-$BUNDLE\"}"
+
+        RESPONSE=$(curl -s -w "\n%{http_code}" \
+          -X POST "$CLAIM_PROCESSOR_URL/$CLAIM_ID/files" \
+          -F "data=$DATA_JSON" \
+          -F "file=@$FILE_PATH" \
+          --connect-timeout 60)
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "    ✅ Uploaded '$FILE_NAME' successfully."
+        else
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "    ❌ Failed to upload '$FILE_NAME'. HTTP $HTTP_CODE"
+          echo "    Error: $BODY"
+          UPLOAD_SUCCESS=false
+        fi
+      done
+
+      # Step 4c: Launch processing
+      if [ "$UPLOAD_SUCCESS" = true ]; then
+        echo "    - Submitting claim batch for processing..."
+        RESPONSE=$(curl -s -w "\n%{http_code}" \
+          -X POST "$CLAIM_PROCESSOR_URL" \
+          -H "Content-Type: application/json" \
+          -d "{\"claim_process_id\": \"$CLAIM_ID\"}" \
+          --connect-timeout 30)
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+
+        if [ "$HTTP_CODE" = "202" ]; then
+          echo "    ✅ Claim batch '$CLAIM_ID' submitted for processing."
+        else
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "    ❌ Failed to submit claim batch. HTTP $HTTP_CODE"
+          echo "    Error: $BODY"
+        fi
+      else
+        echo "    - Skipping batch submission due to upload failures."
+      fi
+    done
+
+    echo ""
+    echo "============================================================"
+    echo "Sample file processing completed."
+    echo "============================================================"
+  fi
 fi
 
 # --- Refresh Content Understanding Cognitive Services account ---

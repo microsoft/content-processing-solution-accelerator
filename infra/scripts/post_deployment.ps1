@@ -1,7 +1,7 @@
 # Stop script on any error
 $ErrorActionPreference = "Stop"
 
-Write-Host "[Search] Fetching container app info from azd environment..."
+Write-Host "- Fetching container app info from azd environment..."
 
 # Load values from azd env
 $CONTAINER_WEB_APP_NAME = azd env get-value CONTAINER_WEB_APP_NAME
@@ -32,25 +32,25 @@ $FullPath = Resolve-Path $DataScriptPath
 
 # Output
 Write-Host ""
-Write-Host "[Info] Web App Details:"
-Write-Host "  [OK] Name: $CONTAINER_WEB_APP_NAME"
-Write-Host "  [URL] Endpoint: $CONTAINER_WEB_APP_FQDN"
-Write-Host "  [Link] Portal URL: $WEB_APP_PORTAL_URL"
+Write-Host "- Web App Details:"
+Write-Host "  - Name: $CONTAINER_WEB_APP_NAME"
+Write-Host "  - Endpoint: $CONTAINER_WEB_APP_FQDN"
+Write-Host "  - Portal URL: $WEB_APP_PORTAL_URL"
 
 Write-Host ""
-Write-Host "[Info] API App Details:"
-Write-Host "  [OK] Name: $CONTAINER_API_APP_NAME"
-Write-Host "  [URL] Endpoint: $CONTAINER_API_APP_FQDN"
-Write-Host "  [Link] Portal URL: $API_APP_PORTAL_URL"
+Write-Host "- API App Details:"
+Write-Host "  - Name: $CONTAINER_API_APP_NAME"
+Write-Host "  - Endpoint: $CONTAINER_API_APP_FQDN"
+Write-Host "  - Portal URL: $API_APP_PORTAL_URL"
 
 Write-Host ""
-Write-Host "[Info] Workflow App Details:"
-Write-Host "  [OK] Name: $CONTAINER_WORKFLOW_APP_NAME"
-Write-Host "  [Link] Portal URL: $WORKFLOW_APP_PORTAL_URL"
+Write-Host "- Workflow App Details:"
+Write-Host "  - Name: $CONTAINER_WORKFLOW_APP_NAME"
+Write-Host "  - Portal URL: $WORKFLOW_APP_PORTAL_URL"
 
 Write-Host ""
-Write-Host "[Package] Registering schemas and creating schema set..."
-Write-Host "  [Wait] Waiting for API to be ready..."
+Write-Host "- Registering schemas and creating schema set..."
+Write-Host "  - Waiting for API to be ready..."
 
 $MaxRetries = 10
 $RetryInterval = 15
@@ -61,7 +61,7 @@ for ($i = 1; $i -le $MaxRetries; $i++) {
     try {
         $response = Invoke-WebRequest -Uri "$ApiBaseUrl/schemavault/" -Method GET -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
-            Write-Host "  [OK] API is ready."
+            Write-Host "  - API is ready."
             $ApiReady = $true
             break
         }
@@ -238,6 +238,134 @@ if (-not $ApiReady) {
     Write-Host "Schema registration process completed."
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
+
+    # --- Step 4: Process sample file bundles ---
+    if ($SchemaSetId -and $Registered.Count -gt 0) {
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Step 4: Process sample file bundles"
+        Write-Host ("=" * 60)
+
+        $SamplesDir = Resolve-Path (Join-Path $ScriptDir "..\..\src\ContentProcessorAPI\samples")
+        $BundleFolders = @("claim_date_of_loss", "claim_hail")
+        $ClaimProcessorUrl = "$ApiBaseUrl/claimprocessor/claims"
+
+        foreach ($bundle in $BundleFolders) {
+            $bundleDir = Join-Path $SamplesDir $bundle
+            $bundleInfoPath = Join-Path $bundleDir "bundle_info.json"
+
+            if (-not (Test-Path $bundleInfoPath)) {
+                Write-Host "  Skipping '$bundle' - no bundle_info.json found."
+                continue
+            }
+
+            Write-Host ""
+            Write-Host "  Processing bundle: $bundle"
+
+            $bundleManifest = Get-Content $bundleInfoPath -Raw | ConvertFrom-Json
+
+            # Step 4a: Create claim batch with schemaset ID
+            Write-Host "    - Creating claim batch..."
+            try {
+                $claimResp = Invoke-RestMethod -Uri $ClaimProcessorUrl -Method PUT `
+                    -ContentType "application/json" `
+                    -Body (@{ schema_collection_id = $SchemaSetId } | ConvertTo-Json) `
+                    -TimeoutSec 30 -ErrorAction Stop
+                $claimId = $claimResp.claim_id
+                Write-Host "    - Claim batch created with ID: $claimId"
+            } catch {
+                Write-Host "    - Failed to create claim batch. Error: $_"
+                continue
+            }
+
+            # Step 4b: Upload each file with its mapped schema ID
+            Add-Type -AssemblyName System.Net.Http
+            $httpClient = New-Object System.Net.Http.HttpClient
+            $httpClient.Timeout = [TimeSpan]::FromSeconds(60)
+            $uploadSuccess = $true
+            foreach ($entry in $bundleManifest.files) {
+                $schemaClass = $entry.schema_class
+                $fileName = $entry.file_name
+                $filePath = Join-Path $bundleDir $fileName
+
+                if (-not (Test-Path $filePath)) {
+                    Write-Host "    - File '$fileName' not found. Skipping."
+                    continue
+                }
+
+                $schemaId = $Registered[$schemaClass]
+                if (-not $schemaId) {
+                    Write-Host "    - No schema ID found for '$schemaClass'. Skipping '$fileName'."
+                    continue
+                }
+
+                Write-Host "    - Uploading '$fileName' (schema: $schemaClass)..."
+
+                $dataPayload = @{
+                    Claim_Id    = $claimId
+                    Schema_Id   = $schemaId
+                    Metadata_Id = "sample-$bundle"
+                } | ConvertTo-Json -Compress
+
+                $fileBytes = [System.IO.File]::ReadAllBytes((Resolve-Path $filePath))
+                $mimeType = switch ([System.IO.Path]::GetExtension($fileName).ToLower()) {
+                    ".pdf"  { "application/pdf" }
+                    ".png"  { "image/png" }
+                    ".jpg"  { "image/jpeg" }
+                    ".jpeg" { "image/jpeg" }
+                    default { "application/octet-stream" }
+                }
+
+                try {
+                    $multipartContent = New-Object System.Net.Http.MultipartFormDataContent
+                    $jsonContent = [System.Net.Http.StringContent]::new($dataPayload, [System.Text.Encoding]::UTF8, "application/json")
+                    $jsonContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::Parse("form-data; name=`"data`"")
+                    $multipartContent.Add($jsonContent, "data")
+
+                    $fileContent = [System.Net.Http.ByteArrayContent]::new($fileBytes)
+                    $fileContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::Parse("form-data; name=`"file`"; filename=`"$fileName`"")
+                    $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse($mimeType)
+                    $multipartContent.Add($fileContent, "file", $fileName)
+
+                    $response = $httpClient.PostAsync("$ClaimProcessorUrl/$claimId/files", $multipartContent).Result
+                    $responseBody = $response.Content.ReadAsStringAsync().Result
+
+                    if ($response.IsSuccessStatusCode) {
+                        Write-Host "    - Uploaded '$fileName' successfully."
+                    } else {
+                        Write-Host "    - Failed to upload '$fileName'. HTTP Status: $($response.StatusCode)"
+                        Write-Host "    - Error: $responseBody"
+                        $uploadSuccess = $false
+                    }
+                } catch {
+                    Write-Host "    - Failed to upload '$fileName'. Error: $_"
+                    $uploadSuccess = $false
+                }
+            }
+            $httpClient.Dispose()
+
+            # Step 4c: Launch processing
+            if ($uploadSuccess) {
+                Write-Host "    - Submitting claim batch for processing..."
+                try {
+                    Invoke-RestMethod -Uri $ClaimProcessorUrl -Method POST `
+                        -ContentType "application/json" `
+                        -Body (@{ claim_process_id = $claimId } | ConvertTo-Json) `
+                        -TimeoutSec 30 -ErrorAction Stop | Out-Null
+                    Write-Host "    - Claim batch '$claimId' submitted for processing."
+                } catch {
+                    Write-Host "    - Failed to submit claim batch. Error: $_"
+                }
+            } else {
+                Write-Host "    - Skipping batch submission due to upload failures."
+            }
+        }
+
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Sample file processing completed."
+        Write-Host ("=" * 60)
+    }
 }
 
 # --- Configure Entra ID authentication (app registrations + EasyAuth) ---
