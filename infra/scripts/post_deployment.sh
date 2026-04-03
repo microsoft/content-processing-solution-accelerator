@@ -98,8 +98,8 @@ else
 
   # Read schema entries from manifest
   SCHEMA_COUNT=$(cat "$SCHEMA_INFO_FILE" | grep -o '"File"' | wc -l)
-  REGISTERED_IDS=""
-  REGISTERED_NAMES=""
+  REGISTERED_IDS=()
+  REGISTERED_NAMES=()
 
   for idx in $(seq 0 $((SCHEMA_COUNT - 1))); do
     # Parse entry fields using grep/sed (no python needed)
@@ -128,8 +128,8 @@ else
 
     if [ -n "$EXISTING_ID" ]; then
       echo "  Schema '$CLASS_NAME' already exists with ID: $EXISTING_ID"
-      REGISTERED_IDS="$REGISTERED_IDS $EXISTING_ID"
-      REGISTERED_NAMES="$REGISTERED_NAMES $CLASS_NAME"
+      REGISTERED_IDS+=("$EXISTING_ID")
+      REGISTERED_NAMES+=("$CLASS_NAME")
       continue
     fi
 
@@ -148,8 +148,8 @@ else
     if [ "$HTTP_CODE" = "200" ]; then
       SCHEMA_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
       echo "  Successfully registered: $DESCRIPTION's Schema Id - $SCHEMA_ID"
-      REGISTERED_IDS="$REGISTERED_IDS $SCHEMA_ID"
-      REGISTERED_NAMES="$REGISTERED_NAMES $CLASS_NAME"
+      REGISTERED_IDS+=("$SCHEMA_ID")
+      REGISTERED_NAMES+=("$CLASS_NAME")
     else
       echo "  Failed to upload '$FILE_NAME'. HTTP Status: $HTTP_CODE"
       echo "  Error Response: $BODY"
@@ -205,10 +205,9 @@ else
     ALREADY_IN_SET=$(curl -s "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
 
     # Iterate over registered schemas
-    IDX=0
-    for SCHEMA_ID in $REGISTERED_IDS; do
-      IDX=$((IDX + 1))
-      CLASS_NAME=$(echo "$REGISTERED_NAMES" | tr ' ' '\n' | sed -n "${IDX}p")
+    for i in "${!REGISTERED_IDS[@]}"; do
+      SCHEMA_ID="${REGISTERED_IDS[$i]}"
+      CLASS_NAME="${REGISTERED_NAMES[$i]}"
 
       if echo "$ALREADY_IN_SET" | grep -q "\"Id\"[[:space:]]*:[[:space:]]*\"$SCHEMA_ID\""; then
         echo "  Schema '$CLASS_NAME' ($SCHEMA_ID) already in schema set - skipped"
@@ -236,5 +235,6 @@ else
   echo ""
   echo "============================================================"
   echo "Schema registration process completed."
+  echo "  Schemas registered: ${#REGISTERED_IDS[@]}"
   echo "============================================================"
 fi
