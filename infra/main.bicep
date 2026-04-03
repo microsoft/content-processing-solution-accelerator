@@ -53,7 +53,7 @@ param contentUnderstandingLocation string = 'WestUS'
     ]
   }
 })
-param aiServiceLocation string
+param azureAiServiceLocation string
 
 @description('Optional. Type of GPT deployment to use: Standard | GlobalStandard.')
 @minLength(1)
@@ -77,8 +77,8 @@ param gptModelVersion string = '2025-11-13'
 @description('Optional. Capacity of the GPT deployment: (minimum 10).')
 param gptDeploymentCapacity int = 300
 
-@description('Optional. The public container image endpoint.')
-param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
+param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
 param imageTag string = 'latest_v2'
@@ -723,14 +723,14 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
     projectName: 'proj-${solutionSuffix}'
     projectDescription: 'proj-${solutionSuffix}'
     existingFoundryProjectResourceId: existingProjectResourceId
-    location: aiServiceLocation
+    location: azureAiServiceLocation
     sku: 'S0'
     allowProjectManagement: true
     managedIdentities: { systemAssigned: true }
     kind: 'AIServices'
     tags: {
       app: solutionSuffix
-      location: aiServiceLocation
+      location: azureAiServiceLocation
     }
     customSubDomainName: 'aif-${solutionSuffix}'
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }] : null
@@ -978,7 +978,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: 4
@@ -1039,7 +1039,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1180,7 +1180,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: '${publicContainerImageEndpoint}/contentprocessorweb:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorweb:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1244,7 +1244,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${publicContainerImageEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1615,7 +1615,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: 4
@@ -1691,7 +1691,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1817,7 +1817,7 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${publicContainerImageEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
