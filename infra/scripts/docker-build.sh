@@ -36,7 +36,7 @@ ENV_NAME=$(get_azd_env_value_or_default "AZURE_ENV_NAME" "" true)
 CONTAINER_APP_USER_IDENTITY_ID=$(get_azd_env_value_or_default "CONTAINER_APP_USER_IDENTITY_ID" "" true)
 AZURE_RESOURCE_GROUP=$(get_azd_env_value_or_default "AZURE_RESOURCE_GROUP" "" true)
 CONTAINER_APP_USER_PRINCIPAL_ID=$(get_azd_env_value_or_default "CONTAINER_APP_USER_PRINCIPAL_ID" "" true)
-AZURE_ENV_IMAGETAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGETAG" "latest_v2" false)
+AZURE_ENV_IMAGE_TAG=$(get_azd_env_value_or_default "AZURE_ENV_IMAGE_TAG" "latest_v2" false)
 CONTAINER_WEB_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_WEB_APP_NAME" "" true)
 CONTAINER_API_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_API_APP_NAME" "" true)
 CONTAINER_APP_NAME=$(get_azd_env_value_or_default "CONTAINER_APP_NAME" "" true)
@@ -48,7 +48,7 @@ echo "Using the following parameters:"
 echo "AZURE_SUBSCRIPTION_ID = $AZURE_SUBSCRIPTION_ID"
 echo "ENV_NAME = $ENV_NAME"
 echo "AZURE_RESOURCE_GROUP = $AZURE_RESOURCE_GROUP"
-echo "AZURE_ENV_IMAGETAG = $AZURE_ENV_IMAGETAG"
+echo "AZURE_ENV_IMAGE_TAG = $AZURE_ENV_IMAGE_TAG"
 
 # Ensure Azure login
 echo "Checking Azure login status..."
@@ -85,7 +85,7 @@ build_and_push_image() {
     BUILD_PATH="$2"
     CONTAINER_APP="$3"
 
-    IMAGE_URI="$ACR_NAME.azurecr.io/$IMAGE_NAME:$AZURE_ENV_IMAGETAG"
+    IMAGE_URI="$ACR_NAME.azurecr.io/$IMAGE_NAME:$AZURE_ENV_IMAGE_TAG"
     echo "Building image: $IMAGE_URI"
     docker build "$BUILD_PATH" --no-cache -t "$IMAGE_URI"
     
