@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "5004214855427889265"
+      "templateHash": "5358772599129171911"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -56,7 +56,7 @@
       },
       "minLength": 1
     },
-    "aiServiceLocation": {
+    "azureAiServiceLocation": {
       "type": "string",
       "allowedValues": [
         "australiaeast",
@@ -116,11 +116,11 @@
         "description": "Optional. Capacity of the GPT deployment: (minimum 10)."
       }
     },
-    "publicContainerImageEndpoint": {
+    "containerRegistryEndpoint": {
       "type": "string",
       "defaultValue": "cpscontainerreg.azurecr.io",
       "metadata": {
-        "description": "Optional. The public container image endpoint."
+        "description": "Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint)."
       }
     },
     "imageTag": {
@@ -35215,7 +35215,7 @@
             "value": "[variables('existingProjectResourceId')]"
           },
           "location": {
-            "value": "[parameters('aiServiceLocation')]"
+            "value": "[parameters('azureAiServiceLocation')]"
           },
           "sku": {
             "value": "S0"
@@ -35234,7 +35234,7 @@
           "tags": {
             "value": {
               "app": "[variables('solutionSuffix')]",
-              "location": "[parameters('aiServiceLocation')]"
+              "location": "[parameters('azureAiServiceLocation')]"
             }
           },
           "customSubDomainName": {
@@ -46496,7 +46496,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessor:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessor:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -48108,7 +48108,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorapi:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorapi:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -49809,7 +49809,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-web', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorweb:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorweb:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -51416,7 +51416,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -63631,7 +63631,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessor:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessor:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -65244,7 +65244,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorapi:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorapi:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -66919,7 +66919,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('publicContainerImageEndpoint'), parameters('imageTag'))]",
+                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
