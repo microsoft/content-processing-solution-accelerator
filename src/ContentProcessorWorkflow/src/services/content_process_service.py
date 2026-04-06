@@ -267,8 +267,17 @@ class ContentProcessService:
         poll_interval_seconds: float = 5.0,
         timeout_seconds: float = 600.0,
         on_poll: Callable[[dict], Awaitable[None] | None] | None = None,
+        error_confirmation_polls: int = 3,
     ) -> dict:
         """Poll Cosmos for status until a terminal state or timeout.
+
+        When an ``Error`` status is observed, the poller does not return
+        immediately.  Instead it re-polls up to *error_confirmation_polls*
+        additional times (with the same interval) to confirm the error is
+        persistent and not a transient state during a ContentProcessor
+        retry cycle.  If the status changes away from ``Error`` (e.g.
+        back to a step name or ``Retrying``), the normal polling loop
+        resumes.
 
         Args:
             process_id: The content process ID to poll.
@@ -276,6 +285,9 @@ class ContentProcessService:
             timeout_seconds: Maximum elapsed time before giving up.
             on_poll: Optional callback invoked on each iteration with
                 the current status dict.  Accepts sync or async callables.
+            error_confirmation_polls: Number of additional polls to
+                perform after first observing ``Error`` before accepting
+                it as terminal.  Defaults to 3.
 
         Returns:
             Final status dict with keys ``status``, ``process_id``,
@@ -283,6 +295,7 @@ class ContentProcessService:
         """
         elapsed = 0.0
         result: dict | None = None
+        consecutive_error_polls = 0
         while elapsed < timeout_seconds:
             result = await self.get_status(process_id)
             if result is None:
@@ -299,9 +312,26 @@ class ContentProcessService:
                     await poll_handler
 
             status = result.get("status", "processing")
-            if status in ("Completed", "Error"):
+            if status == "Completed":
                 result["terminal"] = True
                 return result
+
+            if status == "Error":
+                consecutive_error_polls += 1
+                if consecutive_error_polls > error_confirmation_polls:
+                    result["terminal"] = True
+                    return result
+                logger.info(
+                    "Process %s reported Error (confirmation %d/%d), "
+                    "re-polling to confirm retries are exhausted.",
+                    process_id,
+                    consecutive_error_polls,
+                    error_confirmation_polls,
+                )
+            else:
+                # Status changed away from Error (e.g. retry started),
+                # reset the confirmation counter.
+                consecutive_error_polls = 0
 
             await asyncio.sleep(poll_interval_seconds)
             elapsed += poll_interval_seconds
