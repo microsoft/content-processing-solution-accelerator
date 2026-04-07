@@ -245,15 +245,19 @@ echo "============================================================"
 echo "Refreshing Content Understanding Cognitive Services account..."
 echo "============================================================"
 
-CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME)
+CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>/dev/null || echo "")
 
-az cognitiveservices account update \
-  -g "$RESOURCE_GROUP" \
-  -n "$CU_ACCOUNT_NAME" \
-  --tags refresh=true
-
-if [ $? -eq 0 ]; then
-  echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
+if [ -z "$CU_ACCOUNT_NAME" ]; then
+  echo "  ⚠️ CONTENT_UNDERSTANDING_ACCOUNT_NAME not found in azd env. Skipping refresh."
 else
-  echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
+  echo "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
+  if az cognitiveservices account update \
+    -g "$RESOURCE_GROUP" \
+    -n "$CU_ACCOUNT_NAME" \
+    --tags refresh=true \
+    --output none; then
+    echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
+  else
+    echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
+  fi
 fi
