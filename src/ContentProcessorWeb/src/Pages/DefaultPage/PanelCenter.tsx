@@ -188,13 +188,13 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
     }
   }, [store.activeProcessId, store.selectedItem, store.selectionType])
 
-  // Fetch claim details when a claim is selected
+  // Fetch claim details when a claim is selected or its status changes (e.g., processing → Completed)
   useEffect(() => {
     if (store.selectionType === 'claim' && store.selectedClaim?.id) {
       setClaimComment('');
       dispatch(fetchClaimDetails({ claimId: store.selectedClaim.id }));
     }
-  }, [store.selectionType, store.selectedClaim?.id, dispatch])
+  }, [store.selectionType, store.selectedClaim?.id, store.selectedClaim?.status, dispatch])
 
   // Sync claim comment with API response
   useEffect(() => {

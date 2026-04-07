@@ -108,16 +108,25 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                     }));
                 });
 
-                // Auto-select first claim
+                // Preserve current selection on refresh, or auto-select first claim on initial load
                 if (claimRows.length > 0) {
-                    const firstClaim = claimRows[0].claim;
-                    setSelectedClaimId(firstClaim.id);
-                    setSelectedDocumentId(null);
-                    dispatch(
-                        setSelectedClaim({
-                            claim: firstClaim,
-                        })
-                    );
+                    const currentClaim = selectedClaimId
+                        ? claimRows.find(r => r.claim.id === selectedClaimId)
+                        : null;
+
+                    if (currentClaim) {
+                        // Update selected claim with fresh data (status may have changed)
+                        // Only dispatch if in claim mode (no document selected)
+                        if (!selectedDocumentId) {
+                            dispatch(setSelectedClaim({ claim: currentClaim.claim }));
+                        }
+                    } else {
+                        // Auto-select first claim (initial load or selected claim no longer exists)
+                        const firstClaim = claimRows[0].claim;
+                        setSelectedClaimId(firstClaim.id);
+                        setSelectedDocumentId(null);
+                        dispatch(setSelectedClaim({ claim: firstClaim }));
+                    }
                 }
             } else {
                 setClaims([]);
