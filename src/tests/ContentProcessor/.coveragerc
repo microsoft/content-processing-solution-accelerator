@@ -1,0 +1,34 @@
+# Coverage configuration for ContentProcessor
+# Excludes integration components to focus on core business logic
+
+[run]
+source = ../../ContentProcessor/src
+omit =
+    # Exclude main entry points (tested via integration)
+    */main.py
+    # Exclude queue handler base (abstract class requiring concrete implementations)
+    */libs/pipeline/queue_handler_base.py
+    # Exclude agent framework (external dependency compatibility issues)
+    */libs/agent_framework/*
+    # Exclude test files
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    # Standard exclusions
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    
+precision = 2
+show_missing = True
+
+[html]
+directory = htmlcov_core_logic
