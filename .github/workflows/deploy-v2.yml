@@ -1,4 +1,4 @@
-name: Deploy-Test-Cleanup (v2) Linux
+name: Deploy-Test-Cleanup (v2)
 on:
   push:
     branches:
@@ -19,7 +19,7 @@ on:
       - 'src/ContentProcessorWeb/config-overrides.js'
       - 'src/ContentProcessorWeb/nginx-custom.conf'
       - 'src/ContentProcessorWeb/env.sh'
-      - '.github/workflows/deploy-linux.yml'
+      - '.github/workflows/deploy-v2.yml'
   workflow_dispatch:
     inputs:
       azure_location:
@@ -89,17 +89,27 @@ on:
         required: false
         default: ''
         type: string
+      runner_os:
+        description: 'Deployment Environment'
+        required: false
+        type: choice
+        options:
+          - 'codespace'
+          - 'Local'
+        default: 'codespace'
         
   schedule:
     - cron: '0 9,21 * * *'  # Runs at 9:00 AM and 9:00 PM GMT
 permissions:
   contents: read
   actions: read
+  id-token: write
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
     outputs:
       validation_passed: ${{ steps.validate.outputs.passed }}
+      runner_os: ${{ steps.validate.outputs.runner_os }}
       azure_location: ${{ steps.validate.outputs.azure_location }}
       resource_group_name: ${{ steps.validate.outputs.resource_group_name }}
       waf_enabled: ${{ steps.validate.outputs.waf_enabled }}
@@ -125,9 +135,24 @@ jobs:
           INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ github.event.inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
           INPUT_EXISTING_WEBAPP_URL: ${{ github.event.inputs.existing_webapp_url }}
+          INPUT_RUNNER_OS: ${{ github.event.inputs.runner_os }}
         run: |
           echo "🔍 Validating workflow input parameters..."
           VALIDATION_FAILED=false
+
+          # Resolve runner_os from Deployment Environment selection
+          DEPLOY_ENV="${INPUT_RUNNER_OS:-codespace}"
+          if [[ "$DEPLOY_ENV" == "codespace" ]]; then
+            RUNNER_OS="ubuntu-latest"
+            echo "✅ Deployment Environment: 'codespace' → runner: ubuntu-latest"
+          elif [[ "$DEPLOY_ENV" == "Local" ]]; then
+            RUNNER_OS="windows-latest"
+            echo "✅ Deployment Environment: 'Local' → runner: windows-latest"
+          else
+            echo "❌ ERROR: Deployment Environment must be 'codespace' or 'Local', got: '$DEPLOY_ENV'"
+            VALIDATION_FAILED=true
+            RUNNER_OS="ubuntu-latest"
+          fi
           
           # Validate azure_location (Azure region format)
           LOCATION="${INPUT_AZURE_LOCATION:-australiaeast}"
@@ -251,6 +276,7 @@ jobs:
           
           # Output validated values
           echo "passed=true" >> $GITHUB_OUTPUT
+          echo "runner_os=$RUNNER_OS" >> $GITHUB_OUTPUT
           echo "azure_location=$LOCATION" >> $GITHUB_OUTPUT
           echo "resource_group_name=$INPUT_RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
           echo "waf_enabled=$WAF_ENABLED" >> $GITHUB_OUTPUT
@@ -267,7 +293,7 @@ jobs:
     if: needs.validate-inputs.outputs.validation_passed == 'true'
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
-      runner_os: ubuntu-latest
+      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
       azure_location: ${{ needs.validate-inputs.outputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
