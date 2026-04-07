@@ -238,3 +238,22 @@ else
   echo "  Schemas registered: ${#REGISTERED_IDS[@]}"
   echo "============================================================"
 fi
+
+# --- Refresh Content Understanding Cognitive Services account ---
+echo ""
+echo "============================================================"
+echo "Refreshing Content Understanding Cognitive Services account..."
+echo "============================================================"
+
+CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME)
+
+az cognitiveservices account update \
+  -g "$RESOURCE_GROUP" \
+  -n "$CU_ACCOUNT_NAME" \
+  --tags refresh=true
+
+if [ $? -eq 0 ]; then
+  echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
+else
+  echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
+fi

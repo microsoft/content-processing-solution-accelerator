@@ -1890,5 +1890,8 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 @description('The login server of the Azure Container Registry.')
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
 
+@description('The name of the Content Understanding AI Services account.')
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = avmAiServices_cu.outputs.name
+
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
