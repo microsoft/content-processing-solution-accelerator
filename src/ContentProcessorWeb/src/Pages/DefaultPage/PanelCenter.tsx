@@ -149,6 +149,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
     claimDetails: state.centerPanel.claimDetails,
     claimDetailsLoader: state.centerPanel.claimDetailsLoader,
     claimCommentSaving: state.centerPanel.claimCommentSaving,
+    refreshTrigger: state.leftPanel.refreshTrigger,
   }), shallowEqual
   );
 
@@ -186,7 +187,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
     if (store.selectionType === 'document' && (store.activeProcessId != null || store.activeProcessId !== '') && !status.includes(store.selectedItem.status) && store.selectedItem?.process_id === store.activeProcessId) {
       fetchContent();
     }
-  }, [store.activeProcessId, store.selectedItem, store.selectionType])
+  }, [store.activeProcessId, store.selectedItem, store.selectionType, store.refreshTrigger])
 
   // Fetch claim details when a claim is selected
   useEffect(() => {
@@ -194,7 +195,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
       setClaimComment('');
       dispatch(fetchClaimDetails({ claimId: store.selectedClaim.id }));
     }
-  }, [store.selectionType, store.selectedClaim?.id, dispatch])
+  }, [store.selectionType, store.selectedClaim?.id, dispatch, store.refreshTrigger])
 
   // Sync claim comment with API response
   useEffect(() => {

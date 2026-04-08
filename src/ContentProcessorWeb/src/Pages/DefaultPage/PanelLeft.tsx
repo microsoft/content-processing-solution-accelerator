@@ -13,7 +13,7 @@ import { ArrowClockwiseRegular, ArrowUploadRegular, ChevronDoubleLeft20Regular, 
 import { toast } from "react-toastify";
 
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { fetchSchemaData, fetchSchemasetData, fetchContentTableData, setRefreshGrid, fetchSwaggerData } from '../../store/slices/leftPanelSlice';
+import { fetchSchemaData, fetchSchemasetData, fetchContentTableData, setRefreshGrid, fetchSwaggerData, incrementRefreshTrigger } from '../../store/slices/leftPanelSlice';
 import { AppDispatch, RootState } from '../../store';
 import { startLoader, stopLoader } from "../../store/slices/loaderSlice";
 
@@ -80,6 +80,7 @@ const PanelLeft: React.FC<PanelLeftProps> = ({ togglePanel }) => {
     } finally {
       dispatch(stopLoader("1"));
       dispatch(setRefreshGrid(false));
+      dispatch(incrementRefreshTrigger());
     }
   }
 
