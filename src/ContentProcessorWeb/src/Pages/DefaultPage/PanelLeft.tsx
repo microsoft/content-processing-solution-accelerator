@@ -43,6 +43,7 @@ const PanelLeft: React.FC<PanelLeftProps> = ({ togglePanel }) => {
     page_size: state.leftPanel.gridData.page_size,
     pageSize: state.leftPanel.pageSize,
     isGridRefresh: state.leftPanel.isGridRefresh,
+    gridItems: state.leftPanel.gridData.items,
   }), shallowEqual);
 
   useEffect(() => {
@@ -70,6 +71,24 @@ const PanelLeft: React.FC<PanelLeftProps> = ({ togglePanel }) => {
       refreshGrid();
     }
   }, [store.isGridRefresh, dispatch]);
+
+  // Auto-poll grid data while any claim is still processing
+  useEffect(() => {
+    const hasProcessingItems = store.gridItems?.some(
+      (item: Record<string, unknown>) => {
+        const itemStatus = item.status as string;
+        return itemStatus && itemStatus !== 'Completed' && itemStatus !== 'Error';
+      }
+    );
+
+    if (!hasProcessingItems) return;
+
+    const intervalId = setInterval(() => {
+      dispatch(fetchContentTableData({ pageSize: store.pageSize, pageNumber: 1 }));
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [store.gridItems, store.pageSize, dispatch]);
 
   const refreshGrid = async () => {
     try {
