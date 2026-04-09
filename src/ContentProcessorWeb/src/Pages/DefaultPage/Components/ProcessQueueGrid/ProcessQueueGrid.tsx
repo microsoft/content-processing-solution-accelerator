@@ -18,9 +18,7 @@ import {
 import { Tooltip, Button } from "@fluentui/react-components";
 import {
     TableBody, TableCell, TableRow, Table,
-    TableHeader, TableHeaderCell, TableCellLayout, createTableColumn, useTableFeatures,
-    useTableSelection, useTableSort, TableColumnId, 
-    TableRowId
+    TableHeader, TableHeaderCell, TableCellLayout
 } from "@fluentui/react-components";
 
 import { useDispatch, useSelector, shallowEqual } from "react-redux";

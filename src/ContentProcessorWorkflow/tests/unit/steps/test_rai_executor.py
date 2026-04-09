@@ -22,7 +22,6 @@ from steps.rai.model.rai_response import RAIResponse
 # The @handler decorator in agent_framework validates type annotations at
 # import time, which fails in the test environment.  Patch it to a no-op
 # before importing the executor module.
-_orig_handler = sys.modules.get("agent_framework", MagicMock()).handler  # type: ignore[union-attr]
 
 with patch("agent_framework.handler", lambda fn: fn):
     from steps.rai.executor.rai_executor import RAIExecutor
