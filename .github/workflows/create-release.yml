@@ -4,11 +4,6 @@ on:
    push:
     branches:
       - main
-    paths:
-      - 'src/**'
-      - 'infra/**'
-      - 'azure.yaml'
-      - '.github/workflows/create-release.yml'
 
 permissions:
   contents: write
