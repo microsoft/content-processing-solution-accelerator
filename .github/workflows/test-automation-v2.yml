@@ -94,9 +94,9 @@ jobs:
         id: test1
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m gp --headed --html=report/report.html --self-contained-html
+            xvfb-run pytest -m gp --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --headed --html=report/report.html --self-contained-html
+            xvfb-run pytest --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -111,9 +111,9 @@ jobs:
         if: ${{ steps.test1.outcome == 'failure' }}
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m gp --headed --html=report/report.html --self-contained-html
+            xvfb-run pytest -m gp --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --headed --html=report/report.html --self-contained-html
+            xvfb-run pytest --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -128,9 +128,9 @@ jobs:
         if: ${{ steps.test2.outcome == 'failure' }}
         run: |
           if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest -m gp --headed --html=report/report.html --self-contained-html
+            xvfb-run pytest -m gp --html=report/report.html --self-contained-html
           else
-            xvfb-run pytest --headed --html=report/report.html --self-contained-html
+            xvfb-run pytest --html=report/report.html --self-contained-html
           fi
         working-directory: tests/e2e-test
 
@@ -140,7 +140,10 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: test-report
-          path: tests/e2e-test/report/*
+          path: |
+            tests/e2e-test/report/*
+            tests/e2e-test/tests/screenshots/*
+            tests/e2e-test/logs/*
 
       - name: Generate E2E Test Summary
         if: always()
