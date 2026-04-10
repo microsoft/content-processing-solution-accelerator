@@ -1916,10 +1916,10 @@ output CONTAINER_APP_NAME string = avmContainerApp.outputs.name
 @description('The name of the Container App used for Workflow.')
 output CONTAINER_WORKFLOW_APP_NAME string = avmContainerApp_Workflow.outputs.name
 
-@description('The user identity resource ID used fot the Container APP.')
+@description('The user identity resource ID used for the Container APP.')
 output CONTAINER_APP_USER_IDENTITY_ID string = avmContainerRegistryReader.outputs.resourceId
 
-@description('The user identity Principal ID used fot the Container APP.')
+@description('The user identity Principal ID used for the Container APP.')
 output CONTAINER_APP_USER_PRINCIPAL_ID string = avmContainerRegistryReader.outputs.principalId
 
 @description('The name of the Azure Container Registry.')
