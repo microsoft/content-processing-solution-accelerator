@@ -4,6 +4,7 @@ from __future__ import annotations
 
 """Shared pytest fixtures and configuration for the test suite."""
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -17,7 +18,7 @@ if str(_SRC_DIR) not in sys.path:
 # pick up our `src/sitecustomize.py` unless `PYTHONPATH=src` is set. Import it
 # explicitly after adding `src/` to `sys.path` so test collection works.
 try:
-    import sitecustomize  # noqa: F401
+    importlib.import_module("sitecustomize")
 except Exception:
     # Tests should still be able to run even if the compatibility hook is absent.
     pass

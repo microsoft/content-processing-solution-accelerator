@@ -34,7 +34,6 @@ import {
   saveClaimComment,
   fetchContentJsonData,
   setActiveProcessId,
-  setModifiedResult,
 } from '../../store/slices/centerPanelSlice';
 import { startLoader, stopLoader } from "../../store/slices/loaderSlice";
 import { setRefreshGrid } from "../../store/slices/leftPanelSlice";
