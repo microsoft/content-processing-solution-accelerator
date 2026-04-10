@@ -508,34 +508,29 @@ Now that your deployment is complete and tested, explore these resources:
 
 ---
 
-## Advanced: Deploy Local Code Changes
+## Advanced: Deploy Local Changes
 
-Use this method to quickly deploy code changes from your local machine to your existing Azure deployment without re-provisioning infrastructure.
+If you've made local modifications to the code and want to deploy them to Azure, follow these steps to swap the configuration files:
 
 > **Note:** To set up and run the application locally for development, see the [Local Development Setup Guide](./LocalDevelopmentSetup.md).
 
-### How it Works
-This process will:
-1. Rebuild the Docker containers locally using your modified source code.
-2. Push the new images to your Azure Container Registry (ACR).
-3. Restart the Azure Container Apps to pick up the new images.
+### Step 1: Rename Azure Configuration Files
 
-### Prerequisites
-- **Docker Desktop** must be installed and running.
-- You must have an active deployment environment selected (`azd env select <env-name>`).
+**In the root directory:**
+1. Rename `azure.yaml` to `azure_custom2.yaml`
+2. Rename `azure_custom.yaml` to `azure.yaml`
 
-### Deployment Steps
+### Step 2: Rename Infrastructure Files
 
-Run the build and push script for your operating system:
+**In the `infra` directory:**
+1. Rename `main.bicep` to `main_custom2.bicep`
+2. Rename `main_custom.bicep` to `main.bicep`
 
-**Linux/macOS:**
-```bash
-./infra/scripts/docker-build.sh
+### Step 3: Deploy Changes
+
+Run the deployment command:
+```shell
+azd up
 ```
 
-**Windows (PowerShell):**
-```powershell
-./infra/scripts/docker-build.ps1
-```
-
-> **Note:** These scripts will deploy your local code changes instead of pulling from the GitHub repository.
+> **Note:** These custom files are configured to deploy your local code changes instead of pulling from the GitHub repository.
