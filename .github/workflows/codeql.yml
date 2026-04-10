@@ -14,7 +14,7 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main", "dev", "demo" ]
+    branches: [ "main", "dev", "demo" ,"psl-codequality"]
     paths:
       - 'src/**/*.py'
       - 'src/**/*.js'
