@@ -239,7 +239,7 @@ jobs:
           azd env set AZURE_ENV_AI_SERVICE_LOCATION="$env:AZURE_ENV_OPENAI_LOCATION"
           azd env set AZURE_LOCATION="$env:AZURE_LOCATION"
           azd env set AZURE_RESOURCE_GROUP="$env:RESOURCE_GROUP_NAME"
-          azd env set AZURE_ENV_IMAGETAG="$env:IMAGE_TAG"
+          azd env set AZURE_ENV_IMAGE_TAG="$env:IMAGE_TAG"
 
           # Set ACR name only when building Docker image
           if ($env:BUILD_DOCKER_IMAGE -eq "true") {

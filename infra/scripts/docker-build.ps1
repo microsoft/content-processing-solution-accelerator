@@ -20,7 +20,7 @@ function Build-And-Push-Image {
         [string]$CONTAINER_APP_NAME
     )
 
-    $IMAGE_URI = "$ACR_NAME.azurecr.io/$($IMAGE_NAME):$AZURE_ENV_IMAGETAG"
+    $IMAGE_URI = "$ACR_NAME.azurecr.io/$($IMAGE_NAME):$AZURE_ENV_IMAGE_TAG"
 
     Write-Host "Building Docker image: $IMAGE_URI"
     docker build $BUILD_PATH --no-cache -t $IMAGE_URI
@@ -103,7 +103,7 @@ $ENV_NAME = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_NAME" -Required $true
 $CONTAINER_APP_USER_IDENTITY_ID = Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_USER_IDENTITY_ID" -Required $true
 $AZURE_RESOURCE_GROUP = Get-AzdEnvValueOrDefault -KeyName "AZURE_RESOURCE_GROUP" -Required $true
 $CONTAINER_APP_USER_PRINCIPAL_ID = Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_USER_PRINCIPAL_ID" -Required $true
-$AZURE_ENV_IMAGETAG = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_IMAGETAG" -DefaultValue "latest_v2"
+$AZURE_ENV_IMAGE_TAG = Get-AzdEnvValueOrDefault -KeyName "AZURE_ENV_IMAGE_TAG" -DefaultValue "latest_v2"
 $CONTAINER_WEB_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_WEB_APP_NAME" -Required $true
 $CONTAINER_API_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_API_APP_NAME" -Required $true
 $CONTAINER_APP_NAME=Get-AzdEnvValueOrDefault -KeyName "CONTAINER_APP_NAME" -Required $true
@@ -116,7 +116,7 @@ Write-Host "Using the following parameters:"
 Write-Host "AZURE_SUBSCRIPTION_ID = $AZURE_SUBSCRIPTION_ID"
 Write-Host "ENV_NAME = $ENV_NAME"
 Write-Host "AZURE_RESOURCE_GROUP = $AZURE_RESOURCE_GROUP"
-Write-Host "AZURE_ENV_IMAGETAG = $AZURE_ENV_IMAGETAG"
+Write-Host "AZURE_ENV_IMAGE_TAG = $AZURE_ENV_IMAGE_TAG"
 
 Ensure-AzLogin
 
