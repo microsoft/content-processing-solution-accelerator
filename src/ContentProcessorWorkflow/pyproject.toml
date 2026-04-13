@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "agent-framework==1.0.0b260107",
-    "aiohttp>=3.12.14",
+    "aiohttp>=3.13.4",
     "art>=6.5",
     "azure-ai-agents>=1.2.0b1",
     "azure-ai-inference>=1.0.0b9",
@@ -17,20 +17,27 @@ dependencies = [
     "azure-storage-blob>=12.20.0",
     "azure-storage-file-datalake>=12.21.0",
     "azure-storage-queue>=12.13.0",
-    "fastmcp>=2.11.3",
+    "fastmcp>=3.2.0",
     "jinja2>=3.1.6",
     "kafka-python>=2.3.0",
     "mcp>=1.13.1",
     "openai>=1.99.6",
     "psutil>=7.0.0",
+    "python-multipart>=0.0.22",
     "pytz>=2023.3",
     "sas-cosmosdb>=0.1.4",
     "sas-storage>=1.0.0",
     "tenacity>=8.2.3",
+    "authlib>=1.6.9",
+    "protobuf>=5.29.6",
+    "cryptography>=46.0.7",
+    "pyjwt>=2.12.0",
+    "pyasn1>=0.6.2",
 ]
 
 [dependency-groups]
 dev = [
+    "black>=26.3.1",
     "pre-commit>=4.0.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
