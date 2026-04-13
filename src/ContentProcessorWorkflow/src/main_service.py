@@ -370,8 +370,11 @@ async def run_queue_service(
         try:
             if app.queue_service:
                 await app.queue_service.stop_service()
-        except Exception:
-            pass
+        except Exception as cleanup_error:
+            logger.debug(
+                "Ignoring cleanup error while re-raising original failure: %s",
+                cleanup_error,
+            )
         raise
 
 
