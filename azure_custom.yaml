@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# Custom AZD configuration for Content Processing Solution Accelerator.
+# Use this file to build and deploy your own modified code using AZD.
+# This file works with infra/main_custom.bicep which uses placeholder container images
+# that AZD replaces with your custom-built images from source.
+#
+# Usage:
+#   1. Copy this file to azure.yaml (or rename it)
+#   2. Ensure infra/main_custom.bicep is referenced (rename to main.bicep or update infra path)
+#   3. Run: azd up
+#
+# For more information, see the Deployment Guide in docs/DeploymentGuide.md
+name: content-processing
+
+requiredVersions:
+  azd: '>= 1.18.0 != 1.23.9'
+
+metadata:
+  template: content-processing@1.0
+  name: content-processing@1.0
+
+# infra:
+#   path: infra
+#   module: main_custom
+
+services:
+  contentprocessor:
+    project: ./src/ContentProcessor
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      image: contentprocessor
+      registry: ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+      remoteBuild: true
+
+  contentprocessorapi:
+    project: ./src/ContentProcessorAPI
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      image: contentprocessorapi
+      registry: ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+      remoteBuild: true
+
+  contentprocessorweb:
+    project: ./src/ContentProcessorWeb
+    language: js
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      image: contentprocessorweb
+      registry: ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+      remoteBuild: true
+
+  contentprocessorworkflow:
+    project: ./src/ContentProcessorWorkflow
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      image: contentprocessorworkflow
+      registry: ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+      remoteBuild: true
+
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: sed -i 's/\r$//' ./infra/scripts/post_deployment.sh; bash ./infra/scripts/post_deployment.sh
+      interactive: true
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/post_deployment.ps1
+      interactive: true
