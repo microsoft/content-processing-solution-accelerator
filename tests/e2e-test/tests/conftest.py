@@ -17,6 +17,7 @@ from config.constants import URL
 SCREENSHOTS_DIR = os.path.join(os.path.dirname(__file__), "screenshots")
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
+
 @pytest.fixture
 def subtests(request):
     """Fixture to enable subtests for step-by-step reporting in HTML"""
@@ -69,6 +70,7 @@ def subtests(request):
 
     return SubTests(request)
 
+
 @pytest.fixture(scope="session")
 def login_logout():
     """Perform login and browser close once in a session"""
@@ -107,7 +109,6 @@ def pytest_runtest_setup(item):
     log_streams[item.nodeid] = (handler, stream)
 
 
-
 @pytest.hookimpl(tryfirst=True)
 def pytest_html_report_title(report):
     """Set custom HTML report title"""
@@ -132,25 +133,25 @@ def pytest_runtest_makereport(item, call):
                     test_name = item.name.replace(" ", "_").replace("/", "_")
                     screenshot_name = f"screenshot_{test_name}_{timestamp}.png"
                     screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_name)
-                    
+
                     # Take screenshot
                     page.screenshot(path=screenshot_path)
-                    
+
                     # Add screenshot link to report
                     if not hasattr(report, 'extra'):
                         report.extra = []
-                    
+
                     # Add screenshot as a link in the Links column
                     # Use relative path from report.html location
                     relative_path = os.path.relpath(
                         screenshot_path,
                         os.path.dirname(os.path.abspath("report.html"))
                     )
-                    
+
                     # pytest-html expects this format for extras
                     from pytest_html import extras
                     report.extra.append(extras.url(relative_path, name='Screenshot'))
-                    
+
                     logging.info("Screenshot saved: %s", screenshot_path)
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     logging.error("Failed to capture screenshot: %s", str(exc))
@@ -209,6 +210,7 @@ def pytest_runtest_makereport(item, call):
         log_streams.pop(item.nodeid, None)
     else:
         report.description = ""
+
 
 def pytest_collection_modifyitems(items):
     """Modify test items to use custom node IDs"""
