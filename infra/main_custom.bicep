@@ -1,8 +1,11 @@
-// ========== main.bicep ========== //
+// ========== main_custom.bicep ========== //
+// This is the custom Bicep template for the Content Processing Solution Accelerator.
+// Use this file with azure_custom.yaml to build and deploy your own modified code using AZD.
+// Container apps use placeholder images that AZD will replace with your custom-built images.
 targetScope = 'resourceGroup'
 
-metadata name = 'Content Processing Solution Accelerator'
-metadata description = 'Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance.'
+metadata name = 'Content Processing Solution Accelerator (Custom Deployment)'
+metadata description = 'Custom Bicep template to deploy the Content Processing Solution Accelerator with AZD service integration. Use this with azure_custom.yaml for building and deploying modified code.'
 
 // ========== Parameters ========== //
 @minLength(3)
@@ -967,7 +970,12 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -978,7 +986,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
         resources: {
           cpu: 4
@@ -1015,7 +1023,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
       maxReplicas: enableScalability ? 3 : 2
       minReplicas: enableScalability ? 2 : 1
     }
-    tags: tags
+    tags: union(tags, { 'azd-service-name': 'contentprocessor' })
   }
 }
 
@@ -1028,8 +1036,13 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
-    tags: tags
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
+    tags: union(tags, { 'azd-service-name': 'contentprocessorapi' })
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1039,7 +1052,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1151,8 +1164,13 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
-    tags: tags
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
+    tags: union(tags, { 'azd-service-name': 'contentprocessorweb' })
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1180,7 +1198,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: '${containerRegistryEndpoint}/contentprocessorweb:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1233,8 +1251,13 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
-    tags: tags
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
+    tags: union(tags, { 'azd-service-name': 'contentprocessorworkflow' })
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1244,7 +1267,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1604,8 +1627,13 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
-    tags: tags
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
+    tags: union(tags, { 'azd-service-name': 'contentprocessor' })
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1615,7 +1643,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
         resources: {
           cpu: 4
@@ -1679,8 +1707,13 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
-    tags: tags
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
+    tags: union(tags, { 'azd-service-name': 'contentprocessorapi' })
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1691,7 +1724,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1806,8 +1839,13 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
-    tags: tags
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
+    tags: union(tags, { 'azd-service-name': 'contentprocessorworkflow' })
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -1817,7 +1855,7 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1878,10 +1916,10 @@ output CONTAINER_APP_NAME string = avmContainerApp.outputs.name
 @description('The name of the Container App used for Workflow.')
 output CONTAINER_WORKFLOW_APP_NAME string = avmContainerApp_Workflow.outputs.name
 
-@description('The user identity resource ID used fot the Container APP.')
+@description('The user identity resource ID used for the Container APP.')
 output CONTAINER_APP_USER_IDENTITY_ID string = avmContainerRegistryReader.outputs.resourceId
 
-@description('The user identity Principal ID used fot the Container APP.')
+@description('The user identity Principal ID used for the Container APP.')
 output CONTAINER_APP_USER_PRINCIPAL_ID string = avmContainerRegistryReader.outputs.principalId
 
 @description('The name of the Azure Container Registry.')
@@ -1889,6 +1927,9 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 
 @description('The login server of the Azure Container Registry.')
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
+
+@description('The Azure Container Registry endpoint for AZD custom deployment.')
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = avmContainerRegistry.outputs.loginServer
 
 @description('The name of the Content Understanding AI Services account.')
 output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = avmAiServices_cu.outputs.name

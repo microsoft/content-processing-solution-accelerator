@@ -27,6 +27,7 @@ export interface LeftPanelState {
     deleteClaimsLoader: string[];
     isGridRefresh: boolean;
     swaggerJSON: Record<string, unknown> | null;
+    refreshTrigger: number;
 }
 
 interface GridData {
@@ -245,6 +246,7 @@ const initialState: LeftPanelState = {
     deleteFilesLoader: [],
     deleteClaimsLoader: [],
     swaggerJSON: null,
+    refreshTrigger: 0,
 };
 
 const leftPanelSlice = createSlice({
@@ -267,6 +269,9 @@ const leftPanelSlice = createSlice({
         },
         setRefreshGrid: (state, action: PayloadAction<boolean>) => {
             state.isGridRefresh = action.payload;
+        },
+        incrementRefreshTrigger: (state) => {
+            state.refreshTrigger += 1;
         },
     },
     extraReducers: (builder) => {
@@ -406,5 +411,5 @@ const leftPanelSlice = createSlice({
     },
 });
 
-export const { setSchemaSelectedOption, setSelectedGridRow, setSelectedClaim, setRefreshGrid } = leftPanelSlice.actions;
+export const { setSchemaSelectedOption, setSelectedGridRow, setSelectedClaim, setRefreshGrid, incrementRefreshTrigger } = leftPanelSlice.actions;
 export default leftPanelSlice.reducer;
