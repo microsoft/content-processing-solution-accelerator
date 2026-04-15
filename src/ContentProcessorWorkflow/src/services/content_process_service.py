@@ -10,6 +10,7 @@ Easy Auth sidecar issues for internal service-to-service traffic.
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import uuid
@@ -295,7 +296,7 @@ class ContentProcessService:
 
             if on_poll is not None:
                 poll_handler = on_poll(result)
-                if asyncio.iscoroutine(poll_handler):
+                if inspect.isawaitable(poll_handler):
                     await poll_handler
 
             status = result.get("status", "processing")

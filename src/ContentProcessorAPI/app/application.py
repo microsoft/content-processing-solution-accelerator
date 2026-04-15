@@ -60,6 +60,7 @@ class Application(Application_Base):
 
     def __init__(self):
         super().__init__(env_file_path=os.path.join(os.path.dirname(__file__), ".env"))
+        self.bootstrap()
 
     def initialize(self):
         """Build the FastAPI app, attach middleware, routers, and dependencies.

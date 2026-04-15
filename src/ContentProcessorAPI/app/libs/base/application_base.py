@@ -4,8 +4,10 @@
 """Abstract base for the application bootstrap sequence.
 
 Orchestrates the startup order: load .env → read Azure App Configuration →
-populate AppContext with configuration and credentials → configure logging →
-call the concrete ``initialize()`` implemented by the subclass.
+populate AppContext with configuration and credentials → configure logging.
+The concrete ``initialize()`` hook is invoked
+explicitly via ``bootstrap()``
+after construction is complete.
 """
 
 import inspect
@@ -53,7 +55,7 @@ class Application_Base(ABC):
         )
 
     def __init__(self, env_file_path: str | None = None, **data):
-        """Execute the full bootstrap sequence.
+        """Execute base bootstrap setup.
 
         Steps:
             1. Load ``.env`` from *env_file_path* (or derive from subclass location).
@@ -114,6 +116,8 @@ class Application_Base(ABC):
             ):
                 logging.getLogger(logger_name).setLevel(azure_level)
 
+    def bootstrap(self):
+        """Run subclass initialization after construction has completed."""
         self.initialize()
 
     def _load_env(self, env_file_path: str | None = None):
