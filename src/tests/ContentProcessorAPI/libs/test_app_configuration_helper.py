@@ -27,7 +27,11 @@ def test_app_configuration_helper_init(mock_client_class, mock_get_credential):
     
     assert helper.app_config_endpoint == endpoint
     assert helper.credential == mock_credential
-    mock_client_class.assert_called_once_with(endpoint, mock_credential)
+    mock_client_class.assert_called_once_with(
+        endpoint, 
+        mock_credential, 
+        credential_scopes=["https://azconfig.io/.default"]
+    )
     assert helper.app_config_client == mock_client
 
 

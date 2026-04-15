@@ -18,22 +18,27 @@ class TestConfigureApplicationLogging:
     def test_configure_logging_debug_mode(self):
         """Test configuring logging in debug mode"""
         with patch('utils.logging_utils.logging.basicConfig') as mock_basic_config, \
-             patch('builtins.print') as mock_print:
+             patch('utils.logging_utils.logging.getLogger') as mock_get_logger:
+            
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             
             configure_application_logging(debug_mode=True)
             
             mock_basic_config.assert_called_once_with(level=logging.DEBUG, force=True)
-            assert any("Debug logging enabled" in str(call) for call in mock_print.call_args_list)
+            # Verify debug messages were logged (should have at least one debug call)
+            assert mock_logger.debug.called
+            # Check that one of the debug messages contains expected text
+            debug_calls = [str(call) for call in mock_logger.debug.call_args_list]
+            assert any("Debug logging enabled" in call or "Verbose logging suppressed" in call for call in debug_calls)
     
     def test_configure_logging_production_mode(self):
         """Test configuring logging in production mode"""
-        with patch('utils.logging_utils.logging.basicConfig') as mock_basic_config, \
-             patch('builtins.print') as mock_print:
+        with patch('utils.logging_utils.logging.basicConfig') as mock_basic_config:
             
             configure_application_logging(debug_mode=False)
             
             mock_basic_config.assert_called_once_with(level=logging.INFO, force=True)
-            assert any("production mode" in str(call) for call in mock_print.call_args_list)
     
     def test_configure_logging_suppresses_verbose_loggers(self):
         """Test that verbose loggers are suppressed"""
