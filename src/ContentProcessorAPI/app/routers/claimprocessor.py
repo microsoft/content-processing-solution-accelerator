@@ -166,8 +166,10 @@ async def delete_claim_container(claim_id: str, request: Request = None):
     )
     try:
         claim_processor.delete_claim_container(claim_id=claim_id)
-    except Exception:
-        pass
+    except Exception as ex:
+        # Best-effort cleanup: continue deleting the claim-process record even if
+        # the backing claim container is already missing or cannot be deleted.
+        print(f"Failed to delete claim container for '{claim_id}': {ex}")
 
     batch_process_repository: ClaimBatchProcessRepository = app.app_context.get_service(
         ClaimBatchProcessRepository

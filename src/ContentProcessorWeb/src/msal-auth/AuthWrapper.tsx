@@ -6,7 +6,6 @@
  * until the user is authenticated and a token is available.
  */
 import React, { useEffect } from "react";
-
 import { InteractionStatus } from "@azure/msal-browser";
 
 import useAuth from './useAuth';

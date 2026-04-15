@@ -24,8 +24,8 @@ from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.application.application_context import AppContext
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
+from services.content_process_service import ContentProcessService
 from steps.rai.model import rai_response
-from utils.http_request import HttpRequestClient
 
 
 class RAIExecutor(Executor):
@@ -77,6 +77,21 @@ class RAIExecutor(Executor):
         result: Workflow_Output,
         ctx: WorkflowContext[Workflow_Output, Workflow_Output],
     ) -> None:
+        """Run Responsible-AI content analysis on extracted documents.
+
+        Steps:
+            1. Retrieve document-processing results from the prior executor.
+            2. Fetch extraction steps for each successfully processed file.
+            3. Concatenate all extracted text and send to the safety classifier.
+            4. Block the workflow if content is flagged as unsafe.
+
+        Args:
+            result: Workflow output accumulated by prior executors.
+            ctx: Workflow context carrying shared state across executors.
+
+        Raises:
+            RuntimeError: If content is deemed unsafe by the classifier.
+        """
 
         previous_output = next(
             filter(
@@ -164,8 +179,6 @@ class RAIExecutor(Executor):
             for file in processed_files
         )
 
-        print(f"[For Debuggging]:\n{document_text}\n[/For Debuggging]")
-
         model_response = await agent.run(
             ChatMessage(
                 role="user",
@@ -184,26 +197,13 @@ class RAIExecutor(Executor):
     async def fetch_processed_steps_result(self, process_id: str) -> dict | None:
         """Fetch the extraction steps for a processed document.
 
+        Uses direct blob storage access instead of HTTP.
+
         Args:
             process_id: Content-processing process identifier.
 
         Returns:
-            Parsed JSON list of step objects, or ``None`` on non-200 responses.
+            Parsed JSON list of step objects, or ``None`` if not found.
         """
-        base_endpoint = (
-            self.app_context.configuration.app_cps_content_process_endpoint or ""
-        ).rstrip("/")
-
-        fetch_processed_result_path = (
-            "/submit"
-            if base_endpoint.endswith("/contentprocessor")
-            else "/contentprocessor/processed"
-        )
-
-        async with HttpRequestClient() as http_client:
-            url = f"{base_endpoint}{fetch_processed_result_path}/{process_id}/steps"
-            response = await http_client.get(url)
-            if response.status == 200:
-                return response.json()
-            else:
-                return None
+        content_process_service = self.app_context.get_service(ContentProcessService)
+        return await content_process_service.get_steps(process_id)

@@ -114,7 +114,7 @@ Rules:
 | `describe` block  | PascalCase component/function name  | `describe('Header', …)`                 |
 | `it` block        | starts with "should …"             | `it('should show the logo', …)`          |
 | Helper function   | `create…` / `render…` / `mock…`    | `createMockStore`, `renderHeader`        |
-| Mock file         | `__mocks__/<module>.ts`             | `__mocks__/axios.ts`                     |
+| Mock file         | `__mocks__/<module>.ts`             | `__mocks__/httpUtility.ts`               |
 
 File naming must mirror the source module:
 ```
@@ -139,7 +139,7 @@ Focus on UNIT-TESTABLE code — pure logic and isolated components:
 
 **MEDIUM PRIORITY** (test with mocks):
 - **Components with Redux**: use `renderWithProviders` with a preloaded state
-- **Components with API calls**: mock `axios` / `httpUtility` to return controlled data
+- **Components with API calls**: mock `httpUtility` to return controlled data
 - **MSAL-protected components**: mock `useAuth` / `useMsal` hooks
 - **Components with router dependencies**: wrap in `<MemoryRouter>` with initial entries
 
@@ -229,7 +229,7 @@ import '@testing-library/jest-dom';
 
 Use these patterns in order of preference:
 
-### a) `jest.mock` — module-level mocks (axios, services, MSAL)
+### a) `jest.mock` — module-level mocks (services, MSAL)
 
 ```ts
 jest.mock('../../Services/httpUtility', () => ({

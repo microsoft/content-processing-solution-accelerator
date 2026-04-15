@@ -75,7 +75,7 @@ A new class needs to be created that defines the schema as a strongly typed Pyth
 
 > **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema classes should be placed into this folder
 
-**Sample Schemas:** The accelerator ships with 6 sample schemas — use any as a starting template:
+**Sample Schemas:** The accelerator ships with 4 sample schemas — use any as a starting template:
 
 | Schema                    | File                                                                              | Class Name                      | Auto-registered |
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------- | --------------- |
@@ -83,10 +83,8 @@ A new class needs to be created that defines the schema as a strongly typed Pyth
 | Police Report             | [policereport.py](/src/ContentProcessorAPI/samples/schemas/policereport.py)       | `PoliceReportDocument`          | ✅               |
 | Repair Estimate           | [repairestimate.py](/src/ContentProcessorAPI/samples/schemas/repairestimate.py)   | `RepairEstimateDocument`        | ✅               |
 | Damaged Vehicle Image     | [damagedcarimage.py](/src/ContentProcessorAPI/samples/schemas/damagedcarimage.py) | `DamagedVehicleImageAssessment` | ✅               |
-| Property Claim Form       | [propertyclaim.py](/src/ContentProcessorAPI/samples/schemas/propertyclaim.py)     | `PropertyLossDamageClaimForm`   | —               |
-| Invoice                   | [invoice.py](/src/ContentProcessorAPI/samples/schemas/invoice.py)                 | `Invoice`                       | —               |
 
-> **Note:** The first 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set. The Property Claim Form and Invoice schemas are available as additional templates — register them manually if needed.
+> **Note:** All 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set.
 
 Duplicate one of these files and update with a class definition that represents your document type.
 

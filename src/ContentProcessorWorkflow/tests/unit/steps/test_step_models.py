@@ -90,9 +90,7 @@ class TestClaimProcessManifest:
 
     def test_with_items(self):
         item = ClaimItem(claim_id="c1", schema_id="s1", metadata_id="m1")
-        cp = ClaimProcess(
-            claim_id="c1", schema_collection_id="sc1", items=[item]
-        )
+        cp = ClaimProcess(claim_id="c1", schema_collection_id="sc1", items=[item])
         assert len(cp.items) == 1
         assert cp.items[0].claim_id == "c1"
 

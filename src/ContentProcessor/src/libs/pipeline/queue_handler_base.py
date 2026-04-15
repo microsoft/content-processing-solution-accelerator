@@ -15,7 +15,6 @@ import logging
 from abc import ABC, abstractmethod
 
 from azure.storage.queue import QueueClient
-
 from libs.application.application_context import AppContext
 from libs.base.application_models import AppModelBase
 from libs.models.content_process import ContentProcess, Step_Outputs
@@ -122,6 +121,29 @@ class HandlerBase(AppModelBase, ABC):
                         )
 
                         self._current_message_context.data_pipeline.pipeline_status.active_step = self.handler_name
+
+                        # Update status to the currently running step BEFORE execution
+                        # so the UI reflects real-time progress.
+                        ContentProcess(
+                            process_id=self._current_message_context.data_pipeline.pipeline_status.process_id,
+                            processed_file_name=self._current_message_context.data_pipeline.files[
+                                0
+                            ].name,
+                            processed_file_mime_type=self._current_message_context.data_pipeline.files[
+                                0
+                            ].mime_type,
+                            status=step_name,
+                            imported_time=datetime.datetime.strptime(
+                                self._current_message_context.data_pipeline.pipeline_status.creation_time,
+                                "%Y-%m-%dT%H:%M:%S.%fZ",
+                            ),
+                            last_modified_time=datetime.datetime.now(datetime.UTC),
+                            last_modified_by=step_name,
+                        ).update_process_status_to_cosmos(
+                            connection_string=self.application_context.configuration.app_cosmos_connstr,
+                            database_name=self.application_context.configuration.app_cosmos_database,
+                            collection_name=self.application_context.configuration.app_cosmos_container_process,
+                        )
 
                         print(
                             f"Start Processing : {self.handler_name}"

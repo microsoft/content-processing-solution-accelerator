@@ -18,6 +18,7 @@ Provides:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import time
 from dataclasses import dataclass
@@ -162,6 +163,8 @@ class _WaitRetryAfterOrExponential:
                     if ra is not None:
                         return min(max(ra, self._min), self._max)
         except Exception:
+            # Intentionally ignore non-critical errors while inspecting Retry-After
+            # and fall back to exponential backoff below.
             pass
 
         attempt = max(retry_state.attempt_number, 1)
@@ -580,6 +583,7 @@ class HttpRequestClient:
                 try:
                     h.close()
                 except Exception:
+                    # Best-effort cleanup: do not let close() failures mask the main request result.
                     pass
 
     async def poll_until_done(
@@ -630,7 +634,7 @@ class HttpRequestClient:
 
             if on_poll is not None:
                 maybe_awaitable = on_poll(resp)
-                if asyncio.iscoroutine(maybe_awaitable):
+                if inspect.isawaitable(maybe_awaitable):
                     await maybe_awaitable
 
             if resp.status in done:

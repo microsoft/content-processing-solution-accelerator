@@ -6,18 +6,20 @@ This guide walks you through deploying the Content Processing Solution Accelerat
 
 🆘 **Need Help?** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for solutions to common problems.
 
+> **Note**: Some tenants may have additional security restrictions that run periodically and could impact the application (e.g., blocking public network access). If you experience issues or the application stops working, check if these restrictions are the cause. In such cases, consider deploying the WAF-supported version to ensure compliance. To configure, [Click here](#31-choose-deployment-type-optional).
+
 ## Step 1: Prerequisites & Setup
 
 ### 1.1 Azure Account Requirements
 
 Ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the following permissions:
 
-| **Required Permission/Role**  | **Scope**                         | **Purpose**                                 |
-| ----------------------------- | --------------------------------- | ------------------------------------------- |
-| **Contributor**               | Subscription or Resource Group    | Create and manage Azure resources           |
-| **User Access Administrator** | Subscription or Resource Group    | Manage user access and role assignments     |
-| **Role Based Access Control** | Subscription/Resource Group level | Configure RBAC permissions                  |
-| **Application Administrator** | Tenant                            | Create app registrations for authentication |
+| **Required Permission/Role** | **Scope** | **Purpose** |
+|------------------------------|-----------|-------------|
+| **Contributor** | Subscription or Resource Group | Create and manage Azure resources |
+| **User Access Administrator** | Subscription or Resource Group | Manage user access and role assignments |
+| **Role Based Access Control Admin** | Subscription/Resource Group level | Configure RBAC permissions |
+| **Application Administrator** | Tenant | Create app registrations for authentication |
 
 **🔍 How to Check Your Permissions:**
 
@@ -66,7 +68,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 
 **Recommended Configuration:**
 - **Default:** 300k tokens
-- **Optimal:** 300k tokens (recommended for multi-document claim processing)
+- **Optimal:** 500k tokens (recommended for multi-document claim processing)
 
 > **Note:** When you run `azd up`, the deployment will automatically show you regions with available quota, so this pre-check is optional but helpful for planning purposes. You can customize these settings later in [Step 3.3: Advanced Configuration](#33-advanced-configuration-optional).
 
@@ -274,6 +276,11 @@ azd auth login --tenant-id <tenant-id>
 
 ### 4.2 Start Deployment
 
+**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
+```bash 
+azd config set provision.preflight off
+```
+
 ```shell
 azd up
 ```
@@ -289,15 +296,6 @@ azd up
 
 **⚠️ Deployment Issues:** If you encounter errors or timeouts, try a different region as there may be capacity constraints. For detailed error solutions, see our [Troubleshooting Guide](./TroubleShootingSteps.md).
 
-### 4.3 Get Application URL
-
-After successful deployment:
-1. The terminal will display the Name, Endpoint (Application URL), and Azure Portal URL for the Web and API Azure Container Apps. The solution deploys four container apps: Content Processor (background worker), Content Process API, Claim Process Monitor Web, and Content Process Workflow (claim processor).
-  
-    ![](./images/cp-post-deployment.png)
-
-2. Copy the **Web App Endpoint** to access the application.
-
 ⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
 
 ## Step 5: Post-Deployment Configuration
@@ -306,22 +304,61 @@ After successful deployment:
 
  > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
 
-Schema registration happens **automatically** as part of the `azd up` post-provisioning hook. After infrastructure is deployed, the hook:
+Schema registration happens **automatically** as part of the `azd up` post-provisioning hook — no manual steps required. After infrastructure is deployed, the hook:
 
 1. Waits for the API container app to be ready
 2. Registers the sample schema files (auto claim, damaged car image, police report, repair estimate)
 3. Creates an **"Auto Claim"** schema set
 4. Adds all registered schemas into the schema set
 
-You should see output like this in the terminal:
+After successful deployment, the terminal displays container app details and schema registration output:
 
-![schema file registration](./images/SchemaFileRegistration.png)  
+```
+🧭 Web App Details:
+  ✅ Name: ca-<env>-web
+  🌐 Endpoint: ca-<env>-web.<region>.azurecontainerapps.io
+  🔗 Portal URL: https://portal.azure.com/#resource/...
 
-> **If registration was skipped** (e.g. the API wasn't ready in time), you can run it manually:
-> ```bash
-> cd src/ContentProcessorAPI/samples/schemas
-> python register_schema.py https://<< API Service Endpoint>> schema_info.json
-> ```
+🧭 API App Details:
+  ✅ Name: ca-<env>-api
+  🌐 Endpoint: ca-<env>-api.<region>.azurecontainerapps.io
+  🔗 Portal URL: https://portal.azure.com/#resource/...
+
+🧭 Workflow App Details:
+  ✅ Name: ca-<env>-wkfl
+  🔗 Portal URL: https://portal.azure.com/#resource/...
+
+📦 Registering schemas and creating schema set...
+  ⏳ Waiting for API to be ready...
+  ✅ API is ready.
+============================================================
+Step 1: Register schemas
+============================================================
+✓ Successfully registered: Auto Insurance Claim Form's Schema Id - <id>
+✓ Successfully registered: Damaged Vehicle Image Assessment's Schema Id - <id>
+✓ Successfully registered: Police Report Document's Schema Id - <id>
+✓ Successfully registered: Repair Estimate Document's Schema Id - <id>
+
+============================================================
+Step 2: Create schema set
+============================================================
+✓ Created schema set 'Auto Claim' with ID: <id>
+
+============================================================
+Step 3: Add schemas to schema set
+============================================================
+  ✓ Added 'AutoInsuranceClaimForm' (<id>) to schema set
+  ✓ Added 'DamagedVehicleImageAssessment' (<id>) to schema set
+  ✓ Added 'PoliceReportDocument' (<id>) to schema set
+  ✓ Added 'RepairEstimateDocument' (<id>) to schema set
+
+============================================================
+Schema registration process completed.
+  Schema set ID: <id>
+  Schemas added: 4
+============================================================
+  ✅ Schema registration complete.
+```
 
 ### 5.2 Configure Authentication (Required)
 
@@ -332,18 +369,18 @@ You should see output like this in the terminal:
 
 ### 5.3 Verify Deployment
 
-1. Access your application using the URL from [Step 4.3](#43-get-application-url).
+1. Access your application using the **Web App Endpoint** from the deployment output.
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
 
 ### 5.4 Test the Application
 
 **Quick Test Steps:**
-1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `autoclaim/` or `autoclaim_gap1/` folders for auto claim documents.
+1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
 2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
 3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
 
-📖 **Detailed Instructions:** See the complete [Sample Workflow](./SampleWorkflow.md) guide for step-by-step testing procedures.
+📖 **Detailed Instructions:** See the complete [Golden Path Workflows](./GoldenPathWorkflows.md) guide for step-by-step testing procedures.
 
 ## Step 6: Clean Up (Optional)
 
@@ -471,34 +508,29 @@ Now that your deployment is complete and tested, explore these resources:
 
 ---
 
-## Advanced: Deploy Local Code Changes
+## Advanced: Deploy Local Changes
 
-Use this method to quickly deploy code changes from your local machine to your existing Azure deployment without re-provisioning infrastructure.
+If you've made local modifications to the code and want to deploy them to Azure, follow these steps to swap the configuration files:
 
 > **Note:** To set up and run the application locally for development, see the [Local Development Setup Guide](./LocalDevelopmentSetup.md).
 
-### How it Works
-This process will:
-1. Rebuild the Docker containers locally using your modified source code.
-2. Push the new images to your Azure Container Registry (ACR).
-3. Restart the Azure Container Apps to pick up the new images.
+### Step 1: Rename Azure Configuration Files
 
-### Prerequisites
-- **Docker Desktop** must be installed and running.
-- You must have an active deployment environment selected (`azd env select <env-name>`).
+**In the root directory:**
+1. Rename `azure.yaml` to `azure_custom2.yaml`
+2. Rename `azure_custom.yaml` to `azure.yaml`
 
-### Deployment Steps
+### Step 2: Rename Infrastructure Files
 
-Run the build and push script for your operating system:
+**In the `infra` directory:**
+1. Rename `main.bicep` to `main_custom2.bicep`
+2. Rename `main_custom.bicep` to `main.bicep`
 
-**Linux/macOS:**
-```bash
-./infra/scripts/docker-build.sh
+### Step 3: Deploy Changes
+
+Run the deployment command:
+```shell
+azd up
 ```
 
-**Windows (PowerShell):**
-```powershell
-./infra/scripts/docker-build.ps1
-```
-
-> **Note:** These scripts will deploy your local code changes instead of pulling from the GitHub repository.
+> **Note:** These custom files are configured to deploy your local code changes instead of pulling from the GitHub repository.

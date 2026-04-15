@@ -18,7 +18,8 @@ cd ../../
 
 echo "Installing dependencies for ContentProcessorWeb..."
 cd ./src/ContentProcessorWeb
-yarn install
+export HOME="${HOME:-/home/vscode}"
+pnpm install --store-dir "$HOME/.local/share/pnpm/store"
 
 cd ../../
 

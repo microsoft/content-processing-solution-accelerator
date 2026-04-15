@@ -5,11 +5,20 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from steps.gap_analysis.executor.gap_executor import GapExecutor
+with patch.dict(
+    sys.modules,
+    {
+        "repositories.claim_processes": MagicMock(Claim_Processes=object),
+        "services.content_process_service": MagicMock(ContentProcessService=object),
+    },
+):
+    with patch("agent_framework.handler", lambda fn: fn):
+        from steps.gap_analysis.executor.gap_executor import GapExecutor
 
 
 class TestReadTextFile:

@@ -106,8 +106,12 @@ def parse_claim_task_parameters_from_queue_content(
         try:
             content = decoded.decode("utf-8")
         except UnicodeDecodeError:
+            # Decoded bytes are not UTF-8; keep original content and let the
+            # JSON validation path below raise a clear payload-format error.
             pass
     except Exception:
+        # Not valid base64 (common for plain JSON payloads); keep original
+        # content and continue normal JSON parsing.
         pass
 
     content = content.strip()
@@ -410,18 +414,27 @@ class ClaimProcessingQueueService:
             if self.main_queue:
                 self.main_queue.close()
         except Exception:
-            pass
+            logger.debug(
+                "Ignoring error while closing main queue client during shutdown.",
+                exc_info=True,
+            )
 
         try:
             if self.dead_letter_queue:
                 self.dead_letter_queue.close()
         except Exception:
-            pass
+            logger.debug(
+                "Ignoring dead-letter queue close error during shutdown.",
+                exc_info=True,
+            )
 
         try:
             self.queue_service.close()
         except Exception:
-            pass
+            logger.debug(
+                "Ignoring error while closing queue service client during shutdown.",
+                exc_info=True,
+            )
 
     async def force_stop(self):
         """Alias for ``stop_service()`` (stop already cancels worker tasks)."""
@@ -510,8 +523,15 @@ class ClaimProcessingQueueService:
                     process_id,
                     target_worker_id,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                # Best-effort kill path: preserve behavior by not failing the
+                # request, but record unexpected cancellation/await errors.
+                logger.warning(
+                    "Unexpected error while finalizing cancellation for process_id=%s worker_id=%s: %s",
+                    process_id,
+                    target_worker_id,
+                    exc,
+                )
 
         return True
 
@@ -997,36 +1017,49 @@ class ClaimProcessingQueueService:
             # Use the step-based workflow runner (src/steps/claim_processor.py).
             claim_processor = self.app_context.get_service(ClaimProcessor)
 
+            workflow_error: Exception | None = None
             try:
                 await claim_processor.run(input_data=claim_process_id)
+            except Exception as e:
+                workflow_error = e
+            finally:
+                pass
 
-                execution_time = time.time() - message_start_time
+            execution_time = time.time() - message_start_time
+
+            # Cancel the visibility-renewal loop BEFORE touching the queue
+            # message.  If the renew loop fires ``update_message`` while we
+            # are about to ``delete_message``, the pop_receipt can become
+            # stale and the delete silently fails — leaving the message in
+            # the queue for duplicate processing.
+            if renew_task is not None:
+                renew_task.cancel()
+                await asyncio.gather(renew_task, return_exceptions=True)
+                renew_task = None
+
+            if workflow_error is None:
                 await self._handle_successful_processing(
                     queue_message, claim_process_id, execution_time, worker_id=worker_id
                 )
-            except WorkflowExecutorFailedException as e:
-                execution_time = time.time() - message_start_time
+            elif isinstance(workflow_error, WorkflowExecutorFailedException):
                 await self._handle_failed_no_retry(
                     queue_message,
                     claim_process_id,
-                    f"Workflow executor failed: {e}",
+                    f"Workflow executor failed: {workflow_error}",
                     execution_time,
                     claim_process_id_for_cleanup=claim_process_id,
                     worker_id=worker_id,
                     force_dead_letter=True,
                 )
-            except Exception as e:
-                execution_time = time.time() - message_start_time
+            else:
                 await self._handle_failed_no_retry(
                     queue_message,
                     claim_process_id,
-                    f"Unhandled exception: {e}",
+                    f"Unhandled exception: {workflow_error}",
                     execution_time,
                     claim_process_id_for_cleanup=claim_process_id,
                     worker_id=worker_id,
                 )
-            finally:
-                claim_processor = None
 
         except asyncio.CancelledError:
             # When cancelled, we assume stop_process has already deleted the message
@@ -1056,8 +1089,15 @@ class ClaimProcessingQueueService:
                     claim_process_id_for_cleanup=None,
                     worker_id=worker_id,
                 )
-            except Exception:
-                pass
+            except Exception as dead_letter_error:
+                # Intentionally swallow to keep worker loop alive in this last-resort path.
+                # We still log the failure for diagnostics/alerting.
+                logger.exception(
+                    "[worker %s] failed while handling fallback failure path for message_id=%s: %s",
+                    worker_id,
+                    getattr(queue_message, "id", "<unknown>"),
+                    dead_letter_error,
+                )
         finally:
             if renew_task is not None:
                 renew_task.cancel()
@@ -1267,7 +1307,11 @@ class ClaimProcessingQueueService:
                             visibility_timeout=max(60, retry_delay_s),
                         )
             except Exception:
-                pass
+                logger.exception(
+                    "Failed to extend visibility timeout after DLQ send failure; message may be retried sooner than expected (message_id=%s worker_id=%s)",
+                    getattr(queue_message, "id", None),
+                    worker_id,
+                )
             return
 
         # Cleanup:

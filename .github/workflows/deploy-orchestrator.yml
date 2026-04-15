@@ -42,8 +42,8 @@ on:
         required: false
         default: 'GoldenPath-Testing'
         type: string
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
-        description: 'Log Analytics Workspace ID (Optional)'
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID:
+        description: 'Log Analytics Workspace Resource ID (Optional)'
         required: false
         default: ''
         type: string
@@ -64,9 +64,7 @@ on:
 
 env:
   AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
-permissions:
-  contents: read
-  actions: read
+
 jobs:
   docker-build:
     uses: ./.github/workflows/job-docker-build.yml
@@ -88,7 +86,7 @@ jobs:
       EXP: ${{ inputs.EXP }}
       build_docker_image: ${{ inputs.build_docker_image }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+      AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
       docker_image_tag: ${{ needs.docker-build.outputs.IMAGE_TAG }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
@@ -102,25 +100,6 @@ jobs:
     with:
       CP_WEB_URL: ${{ needs.deploy.outputs.CONTAINER_WEB_APPURL || inputs.existing_webapp_url }}
       TEST_SUITE: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.run_e2e_tests || 'GoldenPath-Testing' }}
-    secrets: inherit
-
-  send-notification:
-    if: "!cancelled()"
-    needs: [docker-build, deploy, e2e-test]
-    uses: ./.github/workflows/job-send-notification.yml
-    with:
-      trigger_type: ${{ inputs.trigger_type }}
-      waf_enabled: ${{ inputs.waf_enabled }}
-      EXP: ${{ inputs.EXP }}
-      run_e2e_tests: ${{ inputs.run_e2e_tests }}
-      existing_webapp_url: ${{ inputs.existing_webapp_url }}
-      deploy_result: ${{ needs.deploy.result }}
-      e2e_test_result: ${{ needs.e2e-test.result }}
-      CONTAINER_WEB_APPURL: ${{ needs.deploy.outputs.CONTAINER_WEB_APPURL }}
-      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
-      QUOTA_FAILED: ${{ needs.deploy.outputs.QUOTA_FAILED }}
-      TEST_SUCCESS: ${{ needs.e2e-test.outputs.TEST_SUCCESS }}
-      TEST_REPORT_URL: ${{ needs.e2e-test.outputs.TEST_REPORT_URL }}
     secrets: inherit
 
   cleanup-deployment:
@@ -137,4 +116,24 @@ jobs:
       AZURE_ENV_OPENAI_LOCATION: ${{ needs.deploy.outputs.AZURE_ENV_OPENAI_LOCATION }}
       ENV_NAME: ${{ needs.deploy.outputs.ENV_NAME }}
       IMAGE_TAG: ${{ needs.deploy.outputs.IMAGE_TAG }}
+    secrets: inherit
+
+  send-notification:
+    if: "!cancelled()"
+    needs: [docker-build, deploy, e2e-test, cleanup-deployment]
+    uses: ./.github/workflows/job-send-notification.yml
+    with:
+      trigger_type: ${{ inputs.trigger_type }}
+      waf_enabled: ${{ inputs.waf_enabled }}
+      EXP: ${{ inputs.EXP }}
+      run_e2e_tests: ${{ inputs.run_e2e_tests }}
+      existing_webapp_url: ${{ inputs.existing_webapp_url }}
+      deploy_result: ${{ needs.deploy.result }}
+      e2e_test_result: ${{ needs.e2e-test.result }}
+      cleanup_result: ${{ needs.cleanup-deployment.result }}
+      CONTAINER_WEB_APPURL: ${{ needs.deploy.outputs.CONTAINER_WEB_APPURL }}
+      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
+      QUOTA_FAILED: ${{ needs.deploy.outputs.QUOTA_FAILED }}
+      TEST_SUCCESS: ${{ needs.e2e-test.outputs.TEST_SUCCESS }}
+      TEST_REPORT_URL: ${{ needs.e2e-test.outputs.TEST_REPORT_URL }}
     secrets: inherit

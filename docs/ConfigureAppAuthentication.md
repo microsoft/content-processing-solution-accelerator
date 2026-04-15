@@ -2,15 +2,14 @@
 
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 
-> **Note:** The solution deploys four container apps:
-> | Container App | Authentication |
-> |---|---|
-> | `ca-<randomname>-web` | Requires Entra ID authentication (configured below) |
-> | `ca-<randomname>-api` | Requires Entra ID authentication (configured below) |
-> | `ca-<randomname>-app` | Internal only — no external ingress, uses managed identity |
-> | `ca-<randomname>-wkfl` | Internal only — no external ingress, uses managed identity |
->
-> Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues using managed identity — they do not expose public endpoints.
+> **Note:** The solution deploys four container apps. Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues using managed identity — they do not expose public endpoints.
+
+| Container App | Authentication |
+|---|---|
+| `ca-<randomname>-web` | Requires Entra ID authentication (configured below) |
+| `ca-<randomname>-api` | Requires Entra ID authentication (configured below) |
+| `ca-<randomname>-app` | Internal only — no external ingress, uses managed identity |
+| `ca-<randomname>-wkfl` | Internal only — no external ingress, uses managed identity |
 
 ## Prerequisites
 

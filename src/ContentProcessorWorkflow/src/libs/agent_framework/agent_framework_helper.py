@@ -125,7 +125,7 @@ class AgentFrameworkHelper:
     # Type-specific overloads for better IntelliSense (Type Hint)
     @overload
     @staticmethod
-    def create_client(
+    def create_client(  # noqa: E704
         client_type: type[ClientType.AzureOpenAIChatCompletion],
         *,
         api_key: str | None = None,
@@ -142,11 +142,12 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
-    ) -> "AzureOpenAIChatClient": ...
+    ) -> "AzureOpenAIChatClient":
+        pass
 
     @overload
     @staticmethod
-    def create_client(
+    def create_client(  # noqa: E704
         client_type: type[ClientType.AzureOpenAIChatCompletionWithRetry],
         *,
         api_key: str | None = None,
@@ -164,11 +165,12 @@ class AgentFrameworkHelper:
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
         retry_config: RateLimitRetryConfig | None = None,
-    ) -> AzureOpenAIChatClientWithRetry: ...
+    ) -> AzureOpenAIChatClientWithRetry:
+        pass
 
     @overload
     @staticmethod
-    def create_client(
+    def create_client(  # noqa: E704
         client_type: type[ClientType.AzureOpenAIAssistant],
         *,
         deployment_name: str | None = None,
@@ -187,11 +189,12 @@ class AgentFrameworkHelper:
         async_client: object | None = None,
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
-    ) -> "AzureOpenAIAssistantsClient": ...
+    ) -> "AzureOpenAIAssistantsClient":
+        raise NotImplementedError
 
     @overload
     @staticmethod
-    def create_client(
+    def create_client(  # noqa: E704
         client_type: type[ClientType.AzureOpenAIResponse],
         *,
         api_key: str | None = None,
@@ -208,11 +211,12 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
-    ) -> "AzureOpenAIResponsesClient": ...
+    ) -> "AzureOpenAIResponsesClient":
+        pass
 
     @overload
     @staticmethod
-    def create_client(
+    def create_client(  # noqa: E704
         client_type: type[ClientType.AzureOpenAIResponseWithRetry],
         *,
         api_key: str | None = None,
@@ -230,11 +234,12 @@ class AgentFrameworkHelper:
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
         retry_config: RateLimitRetryConfig | None = None,
-    ) -> AzureOpenAIResponseClientWithRetry: ...
+    ) -> AzureOpenAIResponseClientWithRetry:
+        raise NotImplementedError
 
     @overload
     @staticmethod
-    def create_client(
+    def create_client(  # noqa: E704
         client_type: type[ClientType.AzureOpenAIAgent],
         *,
         project_client: object | None = None,
@@ -246,7 +251,8 @@ class AgentFrameworkHelper:
         async_credential: object | None = None,
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
-    ) -> "AzureAIAgentClient": ...
+    ) -> "AzureAIAgentClient":
+        pass
 
     @staticmethod
     def create_client(

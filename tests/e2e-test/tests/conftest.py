@@ -1,60 +1,103 @@
 """
-Pytest configuration for browser-based testing with Playwright and HTML report customization.
+Pytest configuration and fixtures for KM Generic Golden Path tests
 """
-
+import os
 import io
-import atexit
 import logging
-from pathlib import Path
+import atexit
+from datetime import datetime
 
 import pytest
-from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
 
 from config.constants import URL
 
-# Global dictionary to store log streams for each test
-LOG_STREAMS = {}
+# Create screenshots directory if it doesn't exist
+SCREENSHOTS_DIR = os.path.join(os.path.dirname(__file__), "screenshots")
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
-# Get logger for this module
-logger = logging.getLogger(__name__)
+
+@pytest.fixture
+def subtests(request):
+    """Fixture to enable subtests for step-by-step reporting in HTML"""
+    class SubTests:
+        """SubTests class for managing subtest contexts"""
+        def __init__(self, request):
+            self.request = request
+            self._current_subtest = None
+
+        def test(self, msg=None):
+            """Create a new subtest context"""
+            return SubTestContext(self, msg)
+
+    class SubTestContext:
+        """Context manager for individual subtests"""
+        def __init__(self, parent, msg):
+            self.parent = parent
+            self.msg = msg
+            self.logger = logging.getLogger()
+            self.stream = None
+            self.handler = None
+
+        def __enter__(self):
+            # Create a dedicated log stream for this subtest
+            self.stream = io.StringIO()
+            self.handler = logging.StreamHandler(self.stream)
+            self.handler.setLevel(logging.INFO)
+            self.logger.addHandler(self.handler)
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            # Flush logs
+            if self.handler:
+                self.handler.flush()
+                log_output = self.stream.getvalue()
+                self.logger.removeHandler(self.handler)
+
+                # Create a report entry for this subtest
+                if hasattr(self.parent.request.node, 'user_properties'):
+                    self.parent.request.node.user_properties.append(
+                        ("subtest", {
+                            "msg": self.msg,
+                            "logs": log_output,
+                            "passed": exc_type is None
+                        })
+                    )
+
+            # Don't suppress exceptions - let them propagate
+            return False
+
+    return SubTests(request)
 
 
 @pytest.fixture(scope="session")
 def login_logout():
-    """
-    Fixture to launch the browser, log in, and yield the page object.
-    Closes the browser after the session ends.
-    """
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False, args=["--start-maximized"])
+    """Perform login and browser close once in a session"""
+    with sync_playwright() as playwright_instance:
+        browser = playwright_instance.chromium.launch(
+            headless=False,
+            args=["--start-maximized"]
+        )
         context = browser.new_context(no_viewport=True)
-        context.set_default_timeout(80000)
+        context.set_default_timeout(150000)
         page = context.new_page()
-
+        # Navigate to the login URL
         page.goto(URL, wait_until="domcontentloaded")
-
-        # Uncomment and complete the following to enable login
-        # login_page = LoginPage(page)
-        # load_dotenv()
-        # login_page.authenticate(os.getenv("user_name"), os.getenv("pass_word"))
+        # Wait for the login form to appear
+        page.wait_for_timeout(6000)
 
         yield page
-
+        # Perform close the browser
         browser.close()
 
 
-@pytest.hookimpl(tryfirst=True)
-def pytest_html_report_title(report):
-    """Customize HTML report title."""
-    report.title = "Test Automation Content Processing"
+log_streams = {}
 
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
-    """
-    Pytest hook to set up a log capture for each test.
-    """
+    """Prepare StringIO for capturing logs"""
     stream = io.StringIO()
     handler = logging.StreamHandler(stream)
     handler.setLevel(logging.INFO)
@@ -62,69 +105,153 @@ def pytest_runtest_setup(item):
     logger = logging.getLogger()
     logger.addHandler(handler)
 
-    LOG_STREAMS[item.nodeid] = (handler, stream)
+    # Save handler and stream
+    log_streams[item.nodeid] = (handler, stream)
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_html_report_title(report):
+    """Set custom HTML report title"""
+    report.title = "Content_Processing_Test_Automation_Report"
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """
-    Pytest hook to add captured logs to the test report.
-    """
+    """Generate test report with logs, subtest details, and screenshots on failure"""
     outcome = yield
     report = outcome.get_result()
 
-    handler, stream = LOG_STREAMS.get(item.nodeid, (None, None))
+    # Capture screenshot on failure
+    if report.when == "call" and report.failed:
+        # Get the page fixture if it exists
+        if "login_logout" in item.fixturenames:
+            page = item.funcargs.get("login_logout")
+            if page:
+                try:
+                    # Generate screenshot filename with timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    test_name = item.name.replace(" ", "_").replace("/", "_")
+                    screenshot_name = f"screenshot_{test_name}_{timestamp}.png"
+                    screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot_name)
+
+                    # Take screenshot
+                    page.screenshot(path=screenshot_path)
+
+                    # Add screenshot link to report
+                    if not hasattr(report, 'extra'):
+                        report.extra = []
+
+                    # Add screenshot as a link in the Links column
+                    # Use relative path from report.html location
+                    relative_path = os.path.relpath(
+                        screenshot_path,
+                        os.path.dirname(os.path.abspath("report.html"))
+                    )
+
+                    # pytest-html expects this format for extras
+                    from pytest_html import extras
+                    report.extra.append(extras.url(relative_path, name='Screenshot'))
+
+                    logging.info("Screenshot saved: %s", screenshot_path)
+                except Exception as exc:  # pylint: disable=broad-exception-caught
+                    logging.error("Failed to capture screenshot: %s", str(exc))
+
+    handler, stream = log_streams.get(item.nodeid, (None, None))
 
     if handler and stream:
+        # Make sure logs are flushed
         handler.flush()
         log_output = stream.getvalue()
 
+        # Only remove the handler, don't close the stream yet
         logger = logging.getLogger()
         logger.removeHandler(handler)
 
-        report.description = f"<pre>{log_output.strip()}</pre>"
+        # Check if there are subtests
+        subtests_html = ""
+        if hasattr(item, 'user_properties'):
+            item_subtests = [
+                prop[1] for prop in item.user_properties if prop[0] == "subtest"
+            ]
+            if item_subtests:
+                subtests_html = (
+                    "<div style='margin-top: 10px;'>"
+                    "<strong>Step-by-Step Details:</strong>"
+                    "<ul style='list-style: none; padding-left: 0;'>"
+                )
+                for idx, subtest in enumerate(item_subtests, 1):
+                    status = "✅ PASSED" if subtest.get('passed') else "❌ FAILED"
+                    status_color = "green" if subtest.get('passed') else "red"
+                    subtests_html += (
+                        f"<li style='margin: 10px 0; padding: 10px; "
+                        f"border-left: 3px solid {status_color}; "
+                        f"background-color: #f9f9f9;'>"
+                    )
+                    subtests_html += (
+                        f"<div style='font-weight: bold; color: {status_color};'>"
+                        f"{status} - {subtest.get('msg', f'Step {idx}')}</div>"
+                    )
+                    if subtest.get('logs'):
+                        subtests_html += (
+                            f"<pre style='margin: 5px 0; padding: 5px; "
+                            f"background-color: #fff; border: 1px solid #ddd; "
+                            f"font-size: 11px;'>{subtest.get('logs').strip()}</pre>"
+                        )
+                    subtests_html += "</li>"
+                subtests_html += "</ul></div>"
 
-        LOG_STREAMS.pop(item.nodeid, None)
+        # Combine main log output with subtests
+        if subtests_html:
+            report.description = f"<pre>{log_output.strip()}</pre>{subtests_html}"
+        else:
+            report.description = f"<pre>{log_output.strip()}</pre>"
+
+        # Clean up references
+        log_streams.pop(item.nodeid, None)
     else:
         report.description = ""
 
 
 def pytest_collection_modifyitems(items):
-    """
-    Modify test node IDs based on the test's parameterized 'prompt' value.
-    """
+    """Modify test items to use custom node IDs"""
     for item in items:
-        if hasattr(item, "callspec"):
-            prompt = item.callspec.params.get("prompt")
-            if prompt:
-                item._nodeid = prompt
+        if hasattr(item, 'callspec'):
+            # Check for 'description' parameter first (for Golden Path tests)
+            description = item.callspec.params.get("description")
+            if description:
+                # pylint: disable=protected-access
+                item._nodeid = f"Golden Path - KM Generic - {description}"
+            # Fallback to 'prompt' parameter for other tests
+            else:
+                prompt = item.callspec.params.get("prompt")
+                if prompt:
+                    # This controls how the test name appears in the report
+                    # pylint: disable=protected-access
+                    item._nodeid = prompt
 
 
 def rename_duration_column():
-    """
-    Modify the HTML report to rename 'Duration' column to 'Execution Time'.
-    Runs automatically after the test session.
-    """
-    report_path = Path("report.html")
-    if not report_path.exists():
-        logger.info("Report file not found, skipping column rename.")
+    """Rename Duration column to Execution Time in HTML report"""
+    report_path = os.path.abspath("report.html")
+    if not os.path.exists(report_path):
+        print("Report file not found, skipping column rename.")
         return
 
-    with report_path.open("r", encoding="utf-8") as file:
-        soup = BeautifulSoup(file, "html.parser")
+    with open(report_path, 'r', encoding='utf-8') as report_file:
+        soup = BeautifulSoup(report_file, 'html.parser')
 
-    headers = soup.select("table#results-table thead th")
-    for th in headers:
-        if th.text.strip() == "Duration":
-            th.string = "Execution Time"
-            logger.info("Renamed 'Duration' column to 'Execution Time'")
+    # Find and rename the header
+    headers = soup.select('table#results-table thead th')
+    for header_th in headers:
+        if header_th.text.strip() == 'Duration':
+            header_th.string = 'Execution Time'
             break
     else:
-        logger.info("'Duration' column not found in report.")
+        print("'Duration' column not found in report.")
 
-    with report_path.open("w", encoding="utf-8") as file:
-        file.write(str(soup))
+    with open(report_path, 'w', encoding='utf-8') as report_file:
+        report_file.write(str(soup))
 
 
-# Register HTML report column modification
+# Register this function to run after everything is done
 atexit.register(rename_duration_column)

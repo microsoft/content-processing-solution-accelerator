@@ -1,5 +1,9 @@
 # Content processing solution accelerator
 
+> [!WARNING]
+> **Important Update**
+> We've made major updates to Agentic Content Processing that include breaking changes. If you need the previous version, you can still find it in the [v1 branch](https://github.com/microsoft/content-processing-solution-accelerator/tree/cps-v1).
+
 Process multi-document claims by extracting data from each document, applying schemas with confidence scoring, and generating AI-powered summaries and gap analysis across the entire claim. Upload multiple files — invoices, forms, images, contracts — to a single claim, and the solution automatically processes each document through a multi-modal content extraction pipeline, then orchestrates cross-document summarization and gap identification using an Agent Framework Workflow Engine.
 
 The core content processing engine supports text, images, tables and graphs with schema-based transformation and confidence scoring. These capabilities can be applied to numerous use cases including: insurance claims processing, contract review, invoice processing, ID verification, and logistics shipment record processing.
@@ -88,7 +92,6 @@ graph TB
 
     subgraph Config["🔧 Configuration & Infrastructure"]
         APPCONFIG["<b>App Configuration</b>"]
-        KV["<b>Key Vault</b>"]
         ACR["<b>Container Registry</b>"]
         CAE["<b>Container App Environment</b>"]
         LOG["<b>Log Analytics</b>"]
@@ -219,6 +222,8 @@ If you'd like to customize the solution accelerator, here are some common areas 
 
 [Claim Processing Workflow (Agent Framework)](./docs/ClaimProcessWorkflow.md)
 
+[Golden Path Workflows (end-to-end walkthroughs)](./docs/GoldenPathWorkflows.md)
+
 <br/>
 
 ### Key features
@@ -272,6 +277,8 @@ Follow the quick deploy steps on the deployment guide to deploy this solution 
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 
 <br/>
+
+> **Note**: Some tenants may have additional security restrictions that run periodically and could impact the application (e.g., blocking public network access). If you experience issues or the application stops working, check if these restrictions are the cause. In such cases, consider deploying the WAF-supported version to ensure compliance. To configure, [Click here](./docs/DeploymentGuide.md#31-choose-deployment-type-optional).
 
 > ⚠️ **Important: Check Azure OpenAI Quota Availability**
  <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/quota_check.md) before you deploy the solution.
@@ -335,7 +342,7 @@ The analyst creates a claim in the system and uploads all documents. The workflo
 
 The analyst reviews the AI-generated summary for a quick overview, checks gap analysis results for flagged issues and discrepancies, and drills into individual document extractions when needed. What previously required hours of manual cross-referencing is now orchestrated in minutes.
 
-> **Sample data included:** The `autoclaim/` folder provides a complete claim package (claim form + police report + repair estimate + damage photo). The `autoclaim_gap1/` folder provides an incomplete claim (missing police report and repair estimate) to demonstrate gap detection. See [Sample Workflow](./docs/SampleWorkflow.md) for a step-by-step walkthrough.
+> **Sample data included:** The `claim_date_of_loss/` folder provides a complete claim package (claim form + police report + repair estimate + damage photo). The `claim_hail/` folder provides a claim with a subset of documents (claim form + repair estimate + damage photo) to demonstrate gap detection. See [Golden Path Workflows](./docs/GoldenPathWorkflows.md) for a step-by-step walkthrough.
 
 ⚠️ The sample data used in this repository is synthetic and generated using Azure OpenAI service. The data is intended for use as sample data only.
 
@@ -357,10 +364,23 @@ The analyst reviews the AI-generated summary for a quick overview, checks gap an
 - **No-code gap rules** <br/>
   Gap analysis rules are defined in a YAML DSL that domain experts can modify without writing code — add required document checks, adjust severity levels, or define new discrepancy rules across industries.
 
-- **Confidence scoring** <br/>
-  Extraction and schema mapping are scored for accuracy, so analysts can focus human review on low-confidence results while high-confidence data flows through automatically.
+- **Confidence-driven human-in-the-loop** <br/>
+  Extraction and schema mapping are scored for accuracy using dual confidence signals (OCR-level and model log-probability), so analysts can focus human review on low-confidence results while high-confidence data flows through automatically.
 
-- **Verifiable Approvals** <br/>
+- **Verifiable review & audit trail** <br/>
+  Review AI-generated extractions, summaries, and gap analysis results side-by-side with source documents. Annotate changes, add comments, and compare processing steps for transparency and audit readiness.
+
+- **Responsible AI safety gate** <br/>
+  A built-in RAI executor screens every document's extracted content against 10 safety categories — including self-harm, violence, prompt injection, and discriminatory content — before further processing, helping ensure only safe content reaches downstream workflows.
+
+- **Schema-driven extensibility** <br/>
+  Define custom Pydantic schemas to extract structured data from any document type. The same extraction pipeline generalizes across industries — insurance, logistics, legal, finance — without code changes.
+
+- **Production-ready orchestration** <br/>
+  The Agent Framework Workflow Engine provides DAG-based execution with event streaming, retry logic, dead-letter queues, and graceful shutdown — designed for reliable, scalable processing in production environments.
+
+- **API-first integration** <br/>
+  All capabilities — claim lifecycle, content processing, schema management — are exposed through REST APIs, enabling integration with existing line-of-business systems, RPA workflows, and custom applications.
 
 </details>
 
@@ -372,9 +392,7 @@ Supporting documentation
 
 ### Security guidelines
 
-This template uses Azure Key Vault to store all connections to communicate between resources.
-
-This template also uses [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for local development and deployment.
+This template uses [Azure App Configuration](https://learn.microsoft.com/azure/azure-app-configuration/overview) for centralized configuration management and [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for secure service-to-service authentication — no connection strings or secrets are stored in application code.
 
 To ensure continued best practices in your own repository, we recommend that anyone creating solutions based on our templates ensure that the [Github secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) setting is enabled.
 

@@ -7,6 +7,7 @@ Used by the content-processing router to persist uploaded documents and
 retrieve them during downstream pipeline stages.
 """
 
+from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobServiceClient
 
 from app.utils.azure_credential_utils import get_azure_credential
@@ -124,7 +125,8 @@ class StorageBlobHelper:
         container_client = self._get_container_client(container_name)
         try:
             container_client.delete_blob(blob_name)
-        except Exception:
+        except ResourceNotFoundError:
+            # Blob already absent; continue with folder cleanup checks.
             pass
 
         blobs = container_client.list_blobs()

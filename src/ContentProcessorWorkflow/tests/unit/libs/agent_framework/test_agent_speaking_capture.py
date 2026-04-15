@@ -132,9 +132,7 @@ class TestCallbacks:
             stream_calls.append(data)
 
         async def _run():
-            mw = AgentSpeakingCaptureMiddleware(
-                on_stream_response_complete=on_stream
-            )
+            mw = AgentSpeakingCaptureMiddleware(on_stream_response_complete=on_stream)
 
             # Non-streaming — callback should NOT fire
             ctx = _make_context(is_streaming=False)

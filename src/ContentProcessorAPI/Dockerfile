@@ -7,6 +7,7 @@ RUN tdnf update -y && tdnf install -y \
 	tar \
 	ca-certificates \
 	curl \
+	gawk \
 	shadow-utils \
 	&& tdnf clean all \
 	&& curl -LsSf https://astral.sh/uv/install.sh | sh \

@@ -34,6 +34,16 @@ param location string
 })
 param contentUnderstandingLocation string = 'WestUS'
 
+@allowed([
+  'australiaeast'
+  'centralus'
+  'eastasia'
+  'eastus2'
+  'japaneast'
+  'northeurope'
+  'southeastasia'
+  'uksouth'
+])
 @description('Required. Location for the Azure AI Services deployment.')
 @metadata({
   azd: {
@@ -43,7 +53,7 @@ param contentUnderstandingLocation string = 'WestUS'
     ]
   }
 })
-param aiServiceLocation string
+param azureAiServiceLocation string
 
 @description('Optional. Type of GPT deployment to use: Standard | GlobalStandard.')
 @minLength(1)
@@ -67,8 +77,8 @@ param gptModelVersion string = '2025-11-13'
 @description('Optional. Capacity of the GPT deployment: (minimum 10).')
 param gptDeploymentCapacity int = 300
 
-@description('Optional. The public container image endpoint.')
-param publicContainerImageEndpoint string = 'cpscontainerreg.azurecr.io'
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
+param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
 param imageTag string = 'latest_v2'
@@ -229,7 +239,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
     enableTelemetry: enableTelemetry
     computerName: take(jumpboxVmName, 15)
     osType: 'Windows'
-    vmSize: empty(vmSize) ? 'Standard_DS2_v2' : vmSize
+    vmSize: empty(vmSize) ? 'Standard_D2s_v5' : vmSize
     adminUsername: empty(vmAdminUsername) ? 'JumpboxAdminUser' : vmAdminUsername
     adminPassword: empty(vmAdminPassword) ? 'JumpboxAdminP@ssw0rd1234!' : vmAdminPassword
     managedIdentities: {
@@ -713,14 +723,14 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
     projectName: 'proj-${solutionSuffix}'
     projectDescription: 'proj-${solutionSuffix}'
     existingFoundryProjectResourceId: existingProjectResourceId
-    location: aiServiceLocation
+    location: azureAiServiceLocation
     sku: 'S0'
     allowProjectManagement: true
     managedIdentities: { systemAssigned: true }
     kind: 'AIServices'
     tags: {
       app: solutionSuffix
-      location: aiServiceLocation
+      location: azureAiServiceLocation
     }
     customSubDomainName: 'aif-${solutionSuffix}'
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }] : null
@@ -776,40 +786,50 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
     // WAF related parameters
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
     //publicNetworkAccess: 'Enabled' // Always enabled for AI Services
-    privateEndpoints: (enablePrivateNetworking && empty(existingProjectResourceId))
-      ? [
-          {
-            name: 'pep-aiservices-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-aiservices-${solutionSuffix}'
-            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'ai-services-dns-zone-cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-openai'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-aiservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
-                }
-                {
-                  name: 'ai-services-dns-zone-contentunderstanding'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
-          }
-        ]
-      : []
   }
 }
 
-module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.13.2' = {
+module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
+  name: take('avm.res.network.private-endpoint.${solutionSuffix}', 64)
+  params: {
+    name: 'pep-aiservices-${solutionSuffix}'
+    location: location
+    tags: tags
+    customNetworkInterfaceName: 'nic-aiservices-${solutionSuffix}'
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aiservices-${solutionSuffix}-cognitiveservices-connection'
+        properties: {
+          privateLinkServiceId: avmAiServices.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'ai-services-dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-openai'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-aiservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-contentunderstanding'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
+        }
+      ]
+    }
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+  }
+}
+
+module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.1' = {
   name: take('avm.res.cognitive-services.account.content-understanding.${solutionSuffix}', 64)
 
   params: {
@@ -848,28 +868,42 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.13.2' = 
     ]
 
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
-    privateEndpoints: (enablePrivateNetworking)
-      ? [
-          {
-            name: 'pep-aicu-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-aicu-${solutionSuffix}'
-            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'aicu-dns-zone-cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-                {
-                  name: 'aicu-dns-zone-contentunderstanding'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
-                }
-              ]
-            }
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
-          }
-        ]
-      : []
+  }
+}
+
+module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.private-endpoint.aicu-${solutionSuffix}', 64)
+  params: {
+    name: 'pep-aicu-${solutionSuffix}'
+    location: location
+    tags: tags
+    customNetworkInterfaceName: 'nic-aicu-${solutionSuffix}'
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aicu-${solutionSuffix}-cognitiveservices-connection'
+        properties: {
+          privateLinkServiceId: avmAiServices_cu.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'aicu-dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-aiservices'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
+        }
+        {
+          name: 'aicu-dns-zone-contentunderstanding'
+          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
+        }
+      ]
+    }
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
   }
 }
 
@@ -944,7 +978,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: 4
@@ -1005,7 +1039,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1146,7 +1180,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: '${publicContainerImageEndpoint}/contentprocessorweb:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorweb:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1210,7 +1244,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${publicContainerImageEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1581,7 +1615,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${publicContainerImageEndpoint}/contentprocessor:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
 
         resources: {
           cpu: 4
@@ -1631,6 +1665,10 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
         : []
     }
   }
+  dependsOn: [
+    cognitiveServicePrivateEndpoint
+    contentUnderstandingPrivateEndpoint
+  ]
 }
 
 module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' = {
@@ -1653,7 +1691,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${publicContainerImageEndpoint}/contentprocessorapi:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1754,6 +1792,9 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
       ]
     }
   }
+  dependsOn: [
+    cognitiveServicePrivateEndpoint
+  ]
 }
 
 // ========== Container App Workflow Update ========== //
@@ -1776,7 +1817,7 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${publicContainerImageEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1848,6 +1889,9 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 
 @description('The login server of the Azure Container Registry.')
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
+
+@description('The name of the Content Understanding AI Services account.')
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = avmAiServices_cu.outputs.name
 
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name

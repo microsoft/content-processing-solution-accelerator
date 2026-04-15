@@ -1,7 +1,7 @@
 ## Check Quota Availability Before Deployment
 
 Before deploying the accelerator, **ensure sufficient quota availability** for the required model.
-> **For Global Standard | GPT-5.1 — the capacity to at least 300K tokens for optimal multi-document claim processing.**
+> **For Global Standard | GPT-5.1 — the capacity to at least 300K tokens (default). 500K tokens recommended for optimal multi-document claim processing.**
 
 ### Login if you have not done so already
 ```

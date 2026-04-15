@@ -214,12 +214,14 @@ class TestOnPollBehaviour:
         if r.status == 500 and not status:
             status = "Failed"
 
-        upserted.append({
-            "process_id": current_process_id,
-            "file_name": file_name,
-            "mime_type": content_type,
-            "status": status,
-        })
+        upserted.append(
+            {
+                "process_id": current_process_id,
+                "file_name": file_name,
+                "mime_type": content_type,
+                "status": status,
+            }
+        )
         return process_id
 
     @staticmethod

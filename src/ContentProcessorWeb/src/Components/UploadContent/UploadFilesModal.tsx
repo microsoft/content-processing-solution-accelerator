@@ -337,7 +337,7 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
     setFileErrors({})
     setUploadCompleted(false);
     setFileSchemas({});
-  }
+  };
   const onCloseHandler = () => {
     resetState();
     onClose();

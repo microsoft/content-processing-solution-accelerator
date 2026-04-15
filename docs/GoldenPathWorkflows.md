@@ -22,7 +22,7 @@ This is the primary v2 workflow — it walks through the full claim lifecycle fr
 - Solution deployed and validated successfully (`azd up` completed)
 - Auto Claim schema set registered (registered automatically during deployment)
 - Authentication configured ([App Authentication Configuration](./ConfigureAppAuthentication.md))
-- Sample data downloaded from the [samples directory](../src/ContentProcessorAPI/samples) — use the `autoclaim/` or `autoclaim_gap1/` folders
+- Sample data downloaded from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders
 
 ### 🚀 Step-by-Step Process
 
@@ -38,10 +38,10 @@ Upload all relevant documents for the claim — at minimum an auto claim form, p
 
 | Document                  | Schema to Select          | Sample Source                  |
 | ------------------------- | ------------------------- | ------------------------------ |
-| Auto insurance claim form | Auto Insurance Claim Form | `autoclaim/` folder            |
-| Police report             | Police Report             | `autoclaim/` folder            |
-| Repair estimate           | Repair Estimate           | `autoclaim/` folder            |
-| Damaged vehicle photos    | Damaged Vehicle Image     | `autoclaim/` folder (PNG/JPEG) |
+| Auto insurance claim form | Auto Insurance Claim Form | `claim_date_of_loss/` folder            |
+| Police report             | Police Report             | `claim_date_of_loss/` folder            |
+| Repair estimate           | Repair Estimate           | `claim_date_of_loss/` folder            |
+| Damaged vehicle photos    | Damaged Vehicle Image     | `claim_date_of_loss/` folder (PNG/JPEG) |
 
 For each document:
 1. Click **"Import Content"**
@@ -49,7 +49,7 @@ For each document:
 3. Upload the file (PDF, PNG, or JPEG)
 4. Repeat for each document type
 
-> **Tip**: Use the `autoclaim_gap1/` folder for a sample set that intentionally has missing documents — useful for verifying gap analysis rules.
+> **Tip**: Use the `claim_hail/` folder for a sample set with fewer documents (no police report) — useful for verifying gap analysis rules.
 
 #### Step 3 — Validate Document Processing Results
 

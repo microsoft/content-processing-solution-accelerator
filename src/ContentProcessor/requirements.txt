@@ -11,7 +11,7 @@ charset-normalizer==3.4.4
 click==8.3.1
 colorama==0.4.6
 coverage==7.13.1
-cryptography==46.0.3
+cryptography==46.0.5
 dnspython==2.8.0
 idna==3.11
 iniconfig==2.3.0
@@ -23,7 +23,7 @@ numpy==2.4.1
 packaging==25.0
 pandas==2.3.3
 pdf2image==1.17.0
-pillow==12.1.0
+pillow==12.1.1
 pluggy==1.6.0
 poppler-utils==0.1.0
 pycparser==2.23

@@ -44,8 +44,13 @@ class AppConfigurationHelper:
         if self.app_config_endpoint is None:
             raise ValueError("App Configuration Endpoint is not set.")
 
+        # The SDK incorrectly derives the credential scope from the endpoint URL
+        # instead of using the canonical audience "https://azconfig.io/.default",
+        # which causes a 403 when authenticating via Entra ID.
         self.app_config_client = AzureAppConfigurationClient(
-            self.app_config_endpoint, self.credential
+            self.app_config_endpoint,
+            self.credential,
+            credential_scopes=["https://azconfig.io/.default"],
         )
 
     def read_configuration(self):

@@ -93,7 +93,7 @@ Once configuration is complete:
 - [Technical Architecture](./TechnicalArchitecture.md) — Understand the system design and components
 - [Create Custom Schemas](./CustomizeSchemaData.md) — Add your own document schemas
 - [API Integration](API.md) — Explore programmatic document processing
-- [Sample Workflow](./SampleWorkflow.md) — Step-by-step testing procedures
+- [Golden Path Workflows](./GoldenPathWorkflows.md) — Step-by-step testing procedures
 
 ## Need Help?
 

@@ -118,7 +118,6 @@ describe('centerPanelSlice', () => {
         });
 
         it('should set cError and clear contentData on rejected', () => {
-            const error = new Error('Server error');
             const action = {
                 type: fetchContentJsonData.rejected.type,
                 error: { message: 'Server error' },

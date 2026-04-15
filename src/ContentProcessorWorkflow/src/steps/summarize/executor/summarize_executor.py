@@ -24,9 +24,9 @@ from libs.agent_framework.agent_builder import AgentBuilder
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.application.application_context import AppContext
 from repositories.claim_processes import Claim_Processes
+from services.content_process_service import ContentProcessService
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
-from utils.http_request import HttpRequestClient
 
 
 class SummarizeExecutor(Executor):
@@ -144,8 +144,6 @@ class SummarizeExecutor(Executor):
                                 ][0]["markdown"],
                             )
                             processed_files.append(extracted_file)
-                else:
-                    pass
 
             elif document["mime_type"] in ["image/png", "image/jpg", "image/jpeg"]:
                 process_id = document.get("process_id")
@@ -163,9 +161,6 @@ class SummarizeExecutor(Executor):
                                 ]["content"],
                             )
                             processed_files.append(extracted_file)
-
-                else:
-                    pass
 
         agent_framework_helper = self.app_context.get_service(AgentFrameworkHelper)
         agent_client = await agent_framework_helper.get_client_async("default")
@@ -188,10 +183,12 @@ class SummarizeExecutor(Executor):
         model_response = await agent.run(
             ChatMessage(
                 role="user",
-                text="Now summarize the following document extracts: : \n\n".join([
-                    f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
-                    for file in processed_files
-                ]),
+                text="Now summarize the following document extracts: : \n\n".join(
+                    [
+                        f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
+                        for file in processed_files
+                    ]
+                ),
             )
         )
 
@@ -211,26 +208,13 @@ class SummarizeExecutor(Executor):
     async def fetch_processed_steps_result(self, process_id: str) -> dict | None:
         """Fetch the extraction steps for a processed document.
 
+        Uses direct blob storage access instead of HTTP.
+
         Args:
             process_id: Content-processing process identifier.
 
         Returns:
-            Parsed JSON list of step objects, or ``None`` on non-200 responses.
+            Parsed JSON list of step objects, or ``None`` if not found.
         """
-        base_endpoint = (
-            self.app_context.configuration.app_cps_content_process_endpoint or ""
-        ).rstrip("/")
-
-        fetch_processed_result_path = (
-            "/submit"
-            if base_endpoint.endswith("/contentprocessor")
-            else "/contentprocessor/processed"
-        )
-
-        async with HttpRequestClient() as http_client:
-            url = f"{base_endpoint}{fetch_processed_result_path}/{process_id}/steps"
-            response = await http_client.get(url)
-            if response.status == 200:
-                return response.json()
-            else:
-                return None
+        content_process_service = self.app_context.get_service(ContentProcessService)
+        return await content_process_service.get_steps(process_id)
