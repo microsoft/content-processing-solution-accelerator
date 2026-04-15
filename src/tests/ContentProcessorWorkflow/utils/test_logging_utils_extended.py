@@ -226,31 +226,31 @@ class TestLogErrorWithContext:
         logger.error.assert_called_once()
         call_args = str(logger.error.call_args)
         assert "TestOperation" in call_args or "ValueError" in call_args
-    
+
     def test_log_error_with_context_and_kwargs(self):
         """Test logging error with additional context"""
         logger = Mock()
         exception = RuntimeError("Processing failed")
-        
+
         log_error_with_context(
-            logger, 
-            exception, 
+            logger,
+            exception,
             context="DataProcessing",
             user_id="user123",
             request_id="req456"
         )
-        
+
         logger.error.assert_called_once()
-    
+
     def test_log_error_with_http_response_error(self):
         """Test logging HttpResponseError with context"""
         logger = Mock()
         response = Mock()
         response.status_code = 500
-        
+
         error = HttpResponseError(message="Server error", response=response)
         error.status_code = 500
-        
+
         log_error_with_context(logger, error, context="APICall")
-        
+
         logger.error.assert_called_once()
