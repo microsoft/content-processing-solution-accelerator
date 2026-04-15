@@ -780,7 +780,6 @@ Enable detailed logging by setting these environment variables in your `.env` fi
 
 ```bash
 APP_LOGGING_LEVEL=DEBUG
-APP_LOGGING_ENABLE=True
 ```
 
 ## Related Documentation

@@ -1005,6 +1005,10 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
         ]
       }
     ]
@@ -1064,6 +1068,10 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
           }
         ]
         probes: [
@@ -1269,6 +1277,10 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
           }
         ]
       }
@@ -1642,6 +1654,10 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
         ]
       }
     ]
@@ -1716,6 +1732,10 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
           }
         ]
         probes: [
@@ -1842,6 +1862,10 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
           }
         ]
       }
