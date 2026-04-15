@@ -17,6 +17,7 @@ from enum import Enum
 
 from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
+from opentelemetry import trace
 from pymongo.results import UpdateResult
 
 from app.libs.base.typed_fastapi import TypedFastAPI
@@ -208,6 +209,13 @@ async def Submit_File_With_MetaData(
 
     content_processor.enqueue_message(submit_queue_message)
 
+    # Add process tracking to the current request span
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("process_id", process_id)
+        span.set_attribute("document_name", safe_filename)
+        span.set_attribute("schema_id", schema_id)
+
     track_event_if_configured("FileSubmitted", {
         "process_id": process_id,
         "file_name": safe_filename,
@@ -286,6 +294,11 @@ async def get_status(
     track_event_if_configured("ProcessStatusQueried", {
         "process_id": process_id,
     })
+
+    # Add process tracking to the current request span
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("process_id", process_id)
 
     if process_status is None:
         return JSONResponse(
@@ -497,6 +510,12 @@ async def update_process_result(
             },
         )
     else:
+        # Add process tracking to the current request span
+        span = trace.get_current_span()
+        if span.is_recording():
+            span.set_attribute("process_id", process_id)
+            span.set_attribute("update_type", type(content_update_request).__name__)
+
         track_event_if_configured("ProcessResultUpdated", {
             "process_id": process_id,
             "update_type": type(content_update_request).__name__,

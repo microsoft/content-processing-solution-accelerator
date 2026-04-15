@@ -50,6 +50,7 @@ from urllib.parse import urlparse
 
 from azure.core.exceptions import AzureError, ResourceNotFoundError
 from azure.storage.queue import QueueClient, QueueMessage, QueueServiceClient
+from opentelemetry import trace
 from sas.storage import StorageBlobHelper
 
 from libs.application.application_context import AppContext
@@ -1017,13 +1018,28 @@ class ClaimProcessingQueueService:
             # Use the step-based workflow runner (src/steps/claim_processor.py).
             claim_processor = self.app_context.get_service(ClaimProcessor)
 
+            # Add claim_process_id tracking to the current span
+            current_span = trace.get_current_span()
+            if current_span.is_recording():
+                current_span.set_attribute("claim_process_id", claim_process_id)
+
+            logger.info(
+                "Workflow started: claim_process_id=%s",
+                claim_process_id,
+            )
+
             workflow_error: Exception | None = None
-            try:
-                await claim_processor.run(input_data=claim_process_id)
-            except Exception as e:
-                workflow_error = e
-            finally:
-                pass
+            tracer = trace.get_tracer(__name__)
+            with tracer.start_as_current_span(
+                "workflow.claim_process",
+                attributes={"claim_process_id": claim_process_id},
+            ):
+                try:
+                    await claim_processor.run(input_data=claim_process_id)
+                except Exception as e:
+                    workflow_error = e
+                finally:
+                    pass
 
             execution_time = time.time() - message_start_time
 

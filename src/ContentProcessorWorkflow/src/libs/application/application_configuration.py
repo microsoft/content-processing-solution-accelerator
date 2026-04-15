@@ -180,6 +180,9 @@ class Configuration(_configuration_base):
         alias="APP_RAI_ENABLED",
         description="Enable Responsible AI (RAI) analysis in the workflow",
     )
+    applicationinsights_connection_string: str = Field(
+        default="", alias="APPLICATIONINSIGHTS_CONNECTION_STRING"
+    )
 
     # Add your custom configuration here:
     # Example configurations (uncomment and modify as needed):

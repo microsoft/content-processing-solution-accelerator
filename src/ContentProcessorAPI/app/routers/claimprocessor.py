@@ -15,6 +15,7 @@ from enum import Enum
 
 from fastapi import APIRouter, Body, File, Request, UploadFile
 from fastapi.responses import JSONResponse
+from opentelemetry import trace
 from sas.cosmosdb.base.repository_base import SortDirection
 from sas.cosmosdb.mongo.repository import SortField
 
@@ -358,6 +359,11 @@ async def start_claim_process(
     track_event_if_configured("ClaimProcessSubmitted", {
         "claim_id": data.claim_process_id,
     })
+
+    # Add claim tracking to the current request span
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("claim_process_id", data.claim_process_id)
 
     return JSONResponse(
         status_code=202,
