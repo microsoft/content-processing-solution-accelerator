@@ -20,8 +20,6 @@ from sas.cosmosdb.mongo.repository import SortField
 
 from app.libs.base.typed_fastapi import TypedFastAPI
 from app.libs.logging.event_utils import track_event_if_configured
-
-logger = logging.getLogger(__name__)
 from app.routers.logics.claimbatchpocessor import (
     ClaimBatchProcessor,
     ClaimBatchProcessRepository,
@@ -42,6 +40,8 @@ from .models.contentprocessor.claim import (
     ClaimCreateRequest,
     ClaimItem,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/claimprocessor",

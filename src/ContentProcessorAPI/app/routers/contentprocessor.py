@@ -21,8 +21,6 @@ from pymongo.results import UpdateResult
 
 from app.libs.base.typed_fastapi import TypedFastAPI
 from app.libs.logging.event_utils import track_event_if_configured
-
-logger = logging.getLogger(__name__)
 from app.routers.logics.claimbatchpocessor import ClaimBatchProcessRepository
 from app.utils.mime_types import MimeTypesDetection
 from app.utils.upload_validation import (
@@ -50,6 +48,8 @@ from .models.contentprocessor.model import (
     Status,
     Steps,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/contentprocessor",
