@@ -462,39 +462,39 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "azure-appconfiguration", specifier = ">=1.7.2" },
-    { name = "azure-identity", specifier = ">=1.25.1" },
-    { name = "azure-storage-blob", specifier = ">=12.28.0" },
-    { name = "azure-storage-queue", specifier = ">=12.15.0" },
-    { name = "certifi", specifier = ">=2026.1.4" },
-    { name = "cryptography", specifier = ">=46.0.7" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.128.0" },
-    { name = "h11", specifier = ">=0.16.0" },
-    { name = "opentelemetry-api", specifier = ">=1.39.1" },
-    { name = "poppler-utils", specifier = ">=0.1.0" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pydantic-settings", specifier = ">=2.12.0" },
-    { name = "pygments", specifier = ">=2.19.2" },
-    { name = "pyjwt", specifier = ">=2.12.0" },
-    { name = "pymongo", specifier = ">=4.16.0" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "python-multipart", specifier = ">=0.0.22" },
-    { name = "sas-cosmosdb", specifier = ">=0.1.4" },
-    { name = "starlette", specifier = ">=0.49.1" },
+    { name = "azure-appconfiguration", specifier = "==1.7.2" },
+    { name = "azure-identity", specifier = "==1.25.1" },
+    { name = "azure-storage-blob", specifier = "==12.28.0" },
+    { name = "azure-storage-queue", specifier = "==12.15.0" },
+    { name = "certifi", specifier = "==2026.1.4" },
+    { name = "cryptography", specifier = "==46.0.7" },
+    { name = "fastapi", extras = ["standard"], specifier = "==0.128.0" },
+    { name = "h11", specifier = "==0.16.0" },
+    { name = "opentelemetry-api", specifier = "==1.39.1" },
+    { name = "poppler-utils", specifier = "==0.1.0" },
+    { name = "pydantic", specifier = "==2.12.5" },
+    { name = "pydantic-settings", specifier = "==2.12.0" },
+    { name = "pygments", specifier = "==2.19.2" },
+    { name = "pyjwt", specifier = "==2.12.0" },
+    { name = "pymongo", specifier = "==4.16.0" },
+    { name = "python-dotenv", specifier = "==1.2.1" },
+    { name = "python-multipart", specifier = "==0.0.22" },
+    { name = "sas-cosmosdb", specifier = "==0.1.4" },
+    { name = "starlette", specifier = "==0.50.0" },
     { name = "urllib3", specifier = "~=2.6.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = "==0.40.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "black", specifier = ">=26.3.1" },
-    { name = "coverage", specifier = ">=7.13.1" },
-    { name = "pre-commit", specifier = ">=4.5.1" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-asyncio", specifier = ">=0.25.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "pytest-mock", specifier = ">=3.15.1" },
-    { name = "ruff", specifier = ">=0.14.11" },
+    { name = "black", specifier = "==26.3.1" },
+    { name = "coverage", specifier = "==7.13.1" },
+    { name = "pre-commit", specifier = "==4.5.1" },
+    { name = "pytest", specifier = "==9.0.2" },
+    { name = "pytest-asyncio", specifier = "==1.3.0" },
+    { name = "pytest-cov", specifier = "==7.0.0" },
+    { name = "pytest-mock", specifier = "==3.15.1" },
+    { name = "ruff", specifier = "==0.14.11" },
 ]
 
 [[package]]
@@ -1661,11 +1661,11 @@ wheels = [
 
 [[package]]
 name = "pyjwt"
-version = "2.12.1"
+version = "2.12.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c2/27/a3b6e5bf6ff856d2509292e95c8f57f0df7017cf5394921fc4e4ef40308a/pyjwt-2.12.1.tar.gz", hash = "sha256:c74a7a2adf861c04d002db713dd85f84beb242228e671280bf709d765b03672b", size = 102564, upload-time = "2026-03-13T19:27:37.25Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/10/e8192be5f38f3e8e7e046716de4cae33d56fd5ae08927a823bb916be36c1/pyjwt-2.12.0.tar.gz", hash = "sha256:2f62390b667cd8257de560b850bb5a883102a388829274147f1d724453f8fb02", size = 102511, upload-time = "2026-03-12T17:15:30.831Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/7a/8dd906bd22e79e47397a61742927f6747fe93242ef86645ee9092e610244/pyjwt-2.12.1-py3-none-any.whl", hash = "sha256:28ca37c070cad8ba8cd9790cd940535d40274d22f80ab87f3ac6a713e6e8454c", size = 29726, upload-time = "2026-03-13T19:27:35.677Z" },
+    { url = "https://files.pythonhosted.org/packages/15/70/70f895f404d363d291dcf62c12c85fdd47619ad9674ac0f53364d035925a/pyjwt-2.12.0-py3-none-any.whl", hash = "sha256:9bb459d1bdd0387967d287f5656bf7ec2b9a26645d1961628cda1764e087fd6e", size = 29700, upload-time = "2026-03-12T17:15:29.257Z" },
 ]
 
 [package.optional-dependencies]
@@ -1790,11 +1790,11 @@ wheels = [
 
 [[package]]
 name = "python-multipart"
-version = "0.0.26"
+version = "0.0.22"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/88/71/b145a380824a960ebd60e1014256dbb7d2253f2316ff2d73dfd8928ec2c3/python_multipart-0.0.26.tar.gz", hash = "sha256:08fadc45918cd615e26846437f50c5d6d23304da32c341f289a617127b081f17", size = 43501, upload-time = "2026-04-10T14:09:59.473Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/01/979e98d542a70714b0cb2b6728ed0b7c46792b695e3eaec3e20711271ca3/python_multipart-0.0.22.tar.gz", hash = "sha256:7340bef99a7e0032613f56dc36027b959fd3b30a787ed62d310e951f7c3a3a58", size = 37612, upload-time = "2026-01-25T10:15:56.219Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/22/f1925cdda983ab66fc8ec6ec8014b959262747e58bdca26a4e3d1da29d56/python_multipart-0.0.26-py3-none-any.whl", hash = "sha256:c0b169f8c4484c13b0dcf2ef0ec3a4adb255c4b7d18d8e420477d2b1dd03f185", size = 28847, upload-time = "2026-04-10T14:09:58.131Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/d0/397f9626e711ff749a95d96b7af99b9c566a9bb5129b8e4c10fc4d100304/python_multipart-0.0.22-py3-none-any.whl", hash = "sha256:2b2cd894c83d21bf49d702499531c7bafd057d730c201782048f7945d82de155", size = 24579, upload-time = "2026-01-25T10:15:54.811Z" },
 ]
 
 [[package]]
