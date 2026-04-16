@@ -1,0 +1,16 @@
+{
+  "MD001": false,
+  "MD013": false,
+  "MD033": {
+    "allowed_elements": [
+      "br",
+      "details",
+      "summary",
+      "div",
+      "a",
+      "b",
+      "h2",
+      "img"
+    ]
+  }
+}

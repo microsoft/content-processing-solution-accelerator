@@ -1,4 +1,10 @@
-// msalConfig.ts
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * MSAL configuration, login scopes, token request scopes,
+ * and Microsoft Graph endpoint used for authentication.
+ */
 import { Configuration, LogLevel } from '@azure/msal-browser';
 
 export const msalConfig: Configuration = {
@@ -9,7 +15,7 @@ export const msalConfig: Configuration = {
     postLogoutRedirectUri: process.env.REACT_APP_POST_REDIRECT_URL as string,
   },
   cache: {
-    cacheLocation: 'localStorage', // Use localStorage for persistent cache
+    cacheLocation: 'localStorage',
     storeAuthStateInCookie: false,
   },
   system: {
@@ -17,9 +23,6 @@ export const msalConfig: Configuration = {
       loggerCallback: (level, message, containsPii) => {
         if (containsPii) return;
         if (level === LogLevel.Error) console.error(message);
-        // if (level === LogLevel.Info) console.info(message);
-        // if (level === LogLevel.Verbose) console.debug(message);
-        // if (level === LogLevel.Warning) console.warn(message);
       },
     },
   },
@@ -28,10 +31,8 @@ export const msalConfig: Configuration = {
 const loginScope = process.env.REACT_APP_WEB_SCOPE as string;
 const tokenScope = process.env.REACT_APP_API_SCOPE as string;
 
-// console.log("loginScope", loginScope);
-// console.log("tokenScope", tokenScope);
 export const loginRequest = {
-  scopes: ["user.read", loginScope],  // Define the scope you need
+  scopes: ["user.read", loginScope],
 };
 
 export const graphConfig = {
@@ -40,4 +41,4 @@ export const graphConfig = {
 
 export const tokenRequest = {
   scopes: [tokenScope],
-}
+};

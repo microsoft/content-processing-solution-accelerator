@@ -9,7 +9,9 @@ on:
       - 'src/**/requirements.txt'
       - 'src/**/pyproject.toml'
       - '.github/workflows/pylint.yml'
-
+permissions:
+  contents: read
+  actions: read
 jobs:
   build:
     runs-on: ubuntu-latest

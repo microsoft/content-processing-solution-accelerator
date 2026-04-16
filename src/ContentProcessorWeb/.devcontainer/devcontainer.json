@@ -30,8 +30,16 @@
     },
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
+    // Mount node_modules and pnpm store on container-managed volumes.
+    // This avoids file-operation issues on Windows-mounted workspaces (9p/DrvFS)
+    // and makes installs much faster.
+    "mounts": [
+        "type=volume,source=contentprocessorweb-node_modules,target=/workspaces/ContentProcessorWeb/node_modules",
+        "type=volume,source=contentprocessorweb-pnpm-store,target=/home/node/.pnpm-store"
+    ],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "yarn install",
+    // The mounted volumes can come in as root-owned on some hosts, so fix permissions first.
+    "postCreateCommand": "sudo mkdir -p /home/node/.pnpm-store /workspaces/ContentProcessorWeb/node_modules && sudo chown -R node:node /home/node/.pnpm-store /workspaces/ContentProcessorWeb/node_modules && pnpm install",
     // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
     "remoteUser": "node"
 }

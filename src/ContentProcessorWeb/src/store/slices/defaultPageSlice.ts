@@ -1,22 +1,31 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
-interface defaultPageState {
-    isLeftPanelCollapse: boolean;
-    isCenterPanelCollapse: boolean;
-    isRightPanelCollapse: boolean;
+/**
+ * Redux slice managing panel collapse state for the Default Page layout
+ * (left, center, and right panels).
+ */
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+export interface DefaultPageState {
+    readonly isLeftPanelCollapse: boolean;
+    readonly isCenterPanelCollapse: boolean;
+    readonly isRightPanelCollapse: boolean;
 }
 
-const initialState: defaultPageState = {
+type PanelTarget = 'Left' | 'Right' | 'Center' | 'All';
+
+const initialState: DefaultPageState = {
     isLeftPanelCollapse: false,
     isCenterPanelCollapse: false,
-    isRightPanelCollapse: false
+    isRightPanelCollapse: false,
 };
 
 const defaultPageSlice = createSlice({
     name: 'Default Page',
     initialState,
     reducers: {
-        updatePanelCollapse: (state, action) => {
+        updatePanelCollapse: (state, action: PayloadAction<PanelTarget>) => {
             switch (action.payload) {
                 case 'Left':
                     state.isLeftPanelCollapse = !state.isLeftPanelCollapse;
@@ -29,20 +38,16 @@ const defaultPageSlice = createSlice({
                     break;
                 case 'All':
                     state.isLeftPanelCollapse = true;
+                    state.isCenterPanelCollapse = true;
                     state.isRightPanelCollapse = true;
-                    state.isLeftPanelCollapse = true;
                     break;
                 default:
                     state.isLeftPanelCollapse = false;
+                    state.isCenterPanelCollapse = false;
                     state.isRightPanelCollapse = false;
-                    state.isLeftPanelCollapse = false;
                     break;
             }
         },
-
-    },
-    extraReducers: (builder) => {
-
     },
 });
 

@@ -1,0 +1,12 @@
+schemaVersion: 1.0.0
+providers:
+- provider: InventoryAsCode
+  version: 1.0.0
+  metadata:
+    isProduction: false
+    accountableOwners:
+      service: a9bcb401-8662-46a7-82e0-6fa1ae1cecaa
+    routing:
+      defaultAreaPath:
+        org: csactosol
+        path: CSA CTO Engineering

@@ -1,14 +1,23 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Unit tests for AppConfigurationHelper."""
+
+from __future__ import annotations
+
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
 from azure.appconfiguration import ConfigurationSetting
-from app.libs.app_configuration.helper import AppConfigurationHelper
+
+from app.libs.azure.app_configuration.helper import AppConfigurationHelper
 
 
 @pytest.fixture
 def mock_app_config_client():
     with patch(
-        "app.libs.app_configuration.helper.AzureAppConfigurationClient"
+        "app.libs.azure.app_configuration.helper.AzureAppConfigurationClient"
     ) as MockClient:
         yield MockClient
 
@@ -16,7 +25,7 @@ def mock_app_config_client():
 @pytest.fixture
 def mock_credential():
     with patch(
-        "app.libs.app_configuration.helper.DefaultAzureCredential"
+        "app.libs.azure.app_configuration.helper.get_azure_credential"
     ) as MockCredential:
         yield MockCredential
 

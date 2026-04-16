@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Pipeline execution status tracking model.
+
+Maintains the ordered step list, completed/remaining step bookkeeping,
+and accumulated ``StepResult`` objects for a single processing run.
+"""
+
 import datetime
 from typing import List, Optional
 
@@ -12,6 +18,18 @@ from libs.pipeline.entities.pipeline_step_result import StepResult
 
 
 class PipelineStatus(PipelineMessageBase):
+    """Tracks execution progress through an ordered list of pipeline steps.
+
+    Attributes:
+        completed: Whether all steps have finished.
+        process_id: Unique processing run identifier.
+        active_step: Currently executing step name.
+        steps: Ordered list of all step names.
+        remaining_steps: Steps not yet completed.
+        completed_steps: Steps that have finished.
+        process_results: Accumulated per-step result objects.
+    """
+
     completed: bool = Field(default=False, alias="Completed")
     process_id: Optional[str] = Field(default=None, alias="ProcessId")
     metadata_id: Optional[str] = Field(default=None, alias="MetadataId")

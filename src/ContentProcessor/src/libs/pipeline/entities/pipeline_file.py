@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Pipeline file metadata and blob-storage I/O helpers.
+
+Defines ``FileDetails`` which tracks an individual file artifact's
+identity, type, and provides upload/download operations against
+Azure Blob Storage.
+"""
+
 import datetime
 from enum import Enum
 from typing import Optional
@@ -12,6 +19,8 @@ from libs.base.application_models import AppModelBase
 
 
 class ArtifactType(str, Enum):
+    """Classification of pipeline file artifacts by processing stage."""
+
     Undefined = "undefined"
     ConvertedContent = "converted_content"
     ExtractedContent = "extracted_content"

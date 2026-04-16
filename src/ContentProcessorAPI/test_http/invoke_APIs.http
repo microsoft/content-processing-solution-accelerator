@@ -1,122 +1,367 @@
 
-@url = "http://localhost:8000"
-@port = "8000"
+#@baseUrl = http://localhost:8000
+@baseUrl = https://containerapp-cpsapi.proudbeach-01741a45.westus2.azurecontainerapps.io
 #######################
 # Variables
 #######################
 #@service_url = "https://cps-processorapi.gentleforest-27265674.eastus2.azurecontainerapps.io"
 
+# Replace these with schema IDs from `/schemavault/`.
+@schemaIdClaim = 0f886aad-6317-4806-bc8a-e7ad1fda64d5
+@schemaIdPoliceReport = 84c6889f-1a43-43ed-93b3-4cf44e8a44dd
+@schemaIdRepairEstimate = efcd50a4-c3e6-49cd-a88c-be342a269d39
+@schemaIdDamagePhoto = 5fb7d528-3ea4-42a8-8a19-ab347ddd9ce0
+
 ####################
 # Container App - Startup, liveness, health check probe api
 ####################
-GET http://localhost:8000/startup
+GET {{baseUrl}}/startup
 
 #############################
 # Get All Registered Schemas
 ##############################
-GET http://localhost:8000/schemavault/ HTTP/1.1
+GET {{baseUrl}}/schemavault/ HTTP/1.1
 
+###############################
+# Get All Registered Schema Sets
+###############################
+GET {{baseUrl}}/schemasetvault/ HTTP/1.1
+
+#################################
+# Batch Upload (recommended flow)
+#################################
+# 1) Create a batch (/batches)
+# 2) Upload each file independently to /submit with batch_id + batch_item_id
+
+# @name createBatch
+PUT {{baseUrl}}/claimprocessor/claims HTTP/1.1
+Content-Type: application/json
+
+{
+  "schema_collection_id": "2e11a95f-fbcb-4628-a67e-5e0152477f54",
+  "metadata_id": "Batch Meta 001"
+}
+
+###
+GET {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/manifest HTTP/1.1
+###
+
+DELETE {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}} HTTP/1.1
+
+###
+DELETE {{baseUrl}}/claimprocessor/claims/64425e64-d08d-4fdd-b86a-cf389f6dcff7 HTTP/1.1
+################################################################################################################################################
+Upload Batch Case 1 - autocliam with 4 items (claim form, police report, repair estimate, damage photo)
 #########################################
-# Register Schema file with information
-#########################################
-POST http://localhost:8000/schemavault/ HTTP/1.1
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+# Upload File to existing claim
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="realestatecontract.py"
-Content-Type: text/x-python
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchFileBoundary
 
-< ../samples/realestatecontract.py
-------WebKitFormBoundary7MA4YWxkTrZu0gW
+------CPSBatchFileBoundary
+Content-Disposition: form-data; name="file"; filename="Contoso Auto Claim Example.pdf"
+Content-Type: application/pdf
+
+< ../samples/autoclaim/Contoso Auto Claim Example.pdf
+------CPSBatchFileBoundary
 Content-Disposition: form-data; name="data"
 Content-Type: application/json
 
 {
-  "ClassName": "RealEstateContract",
-  "Description": "RealEstateContract Schema"
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdClaim}}"
 }
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
+------CPSBatchFileBoundary--
 
-##########################################
-# Update Schema file with information
-##########################################
-PUT http://localhost:8000/schemavault/ HTTP/1.1
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="propertyclaim.py"
-Content-Type: text/x-python
+###
+# Upload 2nd File to existing batch
+##################################
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchFileBoundary
 
-< ../samples/schemas/propertyclaim.py
-------WebKitFormBoundary7MA4YWxkTrZu0gW
+------CPSBatchFileBoundary
+Content-Disposition: form-data; name="file"; filename="GA-20251128-CR.pdf"
+Content-Type: application/pdf
+
+< ../samples/autoclaim/GA-20251128-CR.pdf
+------CPSBatchFileBoundary
 Content-Disposition: form-data; name="data"
 Content-Type: application/json
 
 {
-  "SchemaId": "8b61565b-6951-443d-9b55-a032b42081e1",
-  "ClassName": "PropertyLossDamageClaimForm"
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdPoliceReport}}"
 }
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
+------CPSBatchFileBoundary--
 
-########################################
-# Get Schema file by ID
-########################################
 
-GET http://localhost:8000/schemavault/schemas/ed53f68c-ba59-411a-8f13-fa4c173663cb
 
-########################################
-# Delete Schema file by ID
-########################################
+###
+# Upload 3rd batch item
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchItemBoundary1
 
-DELETE http://localhost:8000/schemavault/ HTTP/1.1
+------CPSBatchItemBoundary1
+Content-Disposition: form-data; name="file"; filename="RepairEstimate.pdf.pdf"
+Content-Type: application/pdf
+
+< ../samples/autoclaim/RepairEstimate.pdf
+------CPSBatchItemBoundary1
+Content-Disposition: form-data; name="data"
 Content-Type: application/json
 
 {
-  "SchemaId": "646832ce-477d-44fb-861b-69432b738f68"
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdRepairEstimate}}"
 }
 
+------CPSBatchItemBoundary1--
+
+###
+
+# Upload 4th batch item
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchItemBoundary2
+
+------CPSBatchItemBoundary2
+Content-Disposition: form-data; name="file"; filename="CamryDamage.png"
+Content-Type: image/png
+
+< ../samples/autoclaim/CamryDamage.png
+------CPSBatchItemBoundary2
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdDamagePhoto}}"
+}
+
+------CPSBatchItemBoundary2--
+
+
+################################################################################################################################################
+Upload Batch Case 2 - autocliam_gap1 with 3 items (claim form, two damage photos)
+#########################################
+# Upload File to exiisting batch
+##################################
+#Upload Claim Document
+##################################
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchItemBoundary
+
+------CPSBatchItemBoundary
+Content-Disposition: form-data; name="file"; filename="Claim.pdf"
+Content-Type: application/pdf
+
+< ../samples/autoclaim_gap1/Claim.pdf
+------CPSBatchItemBoundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdClaim}}"
+}
+
+------CPSBatchItemBoundary--
+##################################
+# Upload Damage Photo 1
+##################################
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchItemBoundary
+
+------CPSBatchItemBoundary
+Content-Disposition: form-data; name="file"; filename="Rear.png"
+Content-Type: image/png
+
+< ../samples/autoclaim_gap1/Rear.png
+------CPSBatchItemBoundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdDamagePhoto}}"
+}
+
+------CPSBatchItemBoundary--
+##################################
+# Upload Damage Photo 2
+##################################
+POST {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/files HTTP/1.1
+Content-Type: multipart/form-data; boundary=----CPSBatchItemBoundary
+
+------CPSBatchItemBoundary
+Content-Disposition: form-data; name="file"; filename="Rearandside.png"
+Content-Type: image/png
+
+< ../samples/autoclaim_gap1/Rearandside.png
+------CPSBatchItemBoundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Claim_Id": "{{createBatch.response.body.$.claim_id}}",
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdDamagePhoto}}"
+}
+
+------CPSBatchItemBoundary--
+
+########################
+# Launch Claim Processing with Claim ID
+########################
+POST {{baseUrl}}/claimprocessor/claims HTTP/1.1
+Content-Type: application/json
+
+{
+  "claim_process_id": "{{createBatch.response.body.$.claim_id}}"
+}
+
+##################################
+# Check Claim Processing Status
+##################################
+GET {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}}/status HTTP/1.1
+
+###############################
+# Get Processed Claim Detail
+###############################
+GET {{baseUrl}}/claimprocessor/claims/{{createBatch.response.body.$.claim_id}} HTTP/1.1
+
+################################
+# Show All Claim Processes (paginated) - No Summary, No Gap Analysis results for saving traffic
+################################
+POST {{baseUrl}}/claimprocessor/claims/processed HTTP/1.1
+Content-Type: application/json
+
+{
+  "page_size" : 100,
+  "page_number" : 1
+}
+
+####################################
+# Delete Claim Processed Result
+####################################
+DELETE {{baseUrl}}/claimprocessor/claims/661a19a6-6b5c-43c7-a6c7-4e7c6c4c64d0 HTTP/1.1
+
+#########################################################################
+#v1  APIs
 #################################
-# Upload File for processing
+# Upload File for processing - claim form
 #################################
-POST http://localhost:8000/contentprocessor/submit HTTP/1.1
+# @name v1_submit
+POST {{baseUrl}}/contentprocessor/submit HTTP/1.1
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="inv.bmp"
-Content-Type: image/bmp
+Content-Disposition: form-data; name="file"; filename="Contoso Auto Claim Example.pdf"
+Content-Type: application/pdf
 
-< ../samples/invoices/inv.bmp
+< ../samples/autoclaim/Contoso Auto Claim Example.pdf
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
 Content-Disposition: form-data; name="data"
 Content-Type: application/json
 
 {
   "Metadata_Id": "Meta 001",
-  "Schema_Id": "abdd6744-b794-42fa-92c9-e517160f671d"
+  "Schema_Id": "{{schemaIdClaim}}"
 }
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+##########
+# @name process_monitor
 
+GET {{baseUrl}}/contentprocessor/status/{{v1_submit.response.body.$.process_id}} HTTP/1.1
+
+#################################
+# Upload File for processing - police report
+#################################
+POST http://localhost:8000/contentprocessor/submit HTTP/1.1
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gk
+
+------WebKitFormBoundary7MA4YWxkTrZu0gk
+Content-Disposition: form-data; name="file"; filename="GA-20251128-CR.pdf"
+Content-Type: application/pdf
+
+< ../samples/autoclaim/GA-20251128-CR.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gk
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdPoliceReport}}"
+}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gk--
+
+#################################
+# Upload File for processing - Repair Estimation
+#################################
+POST http://localhost:8000/contentprocessor/submit HTTP/1.1
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gl
+
+------WebKitFormBoundary7MA4YWxkTrZu0gl
+Content-Disposition: form-data; name="file"; filename="RepairEstimate.pdf"
+Content-Type: application/pdf
+
+< ../samples/autoclaim/RepairEstimate.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gl
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdRepairEstimate}}"
+}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gl--
+
+#################################
+# Upload File for processing - Damage Photos
+#################################
+POST http://localhost:8000/contentprocessor/submit HTTP/1.1
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gm
+
+------WebKitFormBoundary7MA4YWxkTrZu0gm
+Content-Disposition: form-data; name="file"; filename="CamryDamage.png"
+Content-Type: image/png
+
+< ../samples/autoclaim/CamryDamage.png
+------WebKitFormBoundary7MA4YWxkTrZu0gm
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{
+  "Metadata_Id": "Meta 001",
+  "Schema_Id": "{{schemaIdDamagePhoto}}"
+}
+------WebKitFormBoundary7MA4YWxkTrZu0gm--
 
 #################################
 # Get Status of processing
 #################################
-GET http://localhost:8000/contentprocessor/status/1a7886d1-5766-406a-b14f-26c08dd1e7cf HTTP/1.1
-
+GET {{baseUrl}}/contentprocessor/status/d0407558-eed8-4f29-83fc-ee26f8e14e55 HTTP/1.1
 
 #################################
 # Get Processed Data
 #################################
-GET http://localhost:8000/contentprocessor/processed/bef078e4-b8cf-4288-ab13-035bf0592040 HTTP/1.1
+GET http://localhost:8000/contentprocessor/processed/d50bbfd1-64af-421a-bbcf-48be23ff1d28 HTTP/1.1
 
 #################################
 # Get Processed Step Data
 #################################
-GET http://localhost:8000/contentprocessor/processed/34af490c-f27c-4c04-83e8-5747c6e4a33d/steps HTTP/1.1
-
-
+GET http://localhost:8000/contentprocessor/processed/af251bef-0da8-4022-8d79-a7f723b1cba0/steps HTTP/1.1
 
 ###############################
 # Download Origital file
@@ -145,6 +390,7 @@ Content-Type: application/json
   "process_id" : "e8b7af31-1033-42cf-b7c4-c3d2f27a59d7",
   "comment" : "Good morning Brittnee!"
 }
+
 
 #################################
 # Modify Processed Result
@@ -211,3 +457,4 @@ Content-Type: application/json
     "returns_vendor_signature": null
   }
 }
+#################################

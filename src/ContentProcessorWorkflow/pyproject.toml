@@ -1,0 +1,80 @@
+[project]
+name = "processor"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agent-framework==1.0.0b260107",
+    "aiohttp==3.13.5",
+    "art==6.5",
+    "azure-ai-agents==1.2.0b5",
+    "azure-ai-inference==1.0.0b9",
+    "azure-ai-projects==2.0.0b3",
+    "azure-appconfiguration==1.7.2",
+    "azure-core==1.38.0",
+    "azure-identity==1.26.0b1",
+    "azure-storage-blob==12.28.0",
+    "azure-storage-file-datalake==12.23.0",
+    "azure-storage-queue==12.15.0",
+    "fastmcp==3.2.3",
+    "jinja2==3.1.6",
+    "kafka-python==2.3.0",
+    "mcp==1.25.0",
+    "openai==2.15.0",
+    "psutil==7.2.1",
+    "python-multipart==0.0.26",
+    "pytz==2025.2",
+    "sas-cosmosdb==0.1.4",
+    "sas-storage==1.0.0",
+    "tenacity==9.1.2",
+    "authlib==1.6.9",
+    "protobuf==6.33.6",
+    "cryptography==46.0.7",
+    "pyjwt==2.12.1",
+    "pyasn1==0.6.3",
+]
+
+[dependency-groups]
+dev = [
+    "black==26.3.1",
+    "pre-commit==4.5.1",
+    "pytest==9.0.2",
+    "pytest-cov==7.0.0",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "src/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"

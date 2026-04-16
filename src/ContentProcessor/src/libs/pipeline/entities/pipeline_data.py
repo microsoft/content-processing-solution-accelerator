@@ -1,9 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Top-level pipeline data envelope.
+
+The ``DataPipeline`` model is the canonical bag of state that flows
+through every pipeline step, carrying file references, processing
+status, and step results.
+"""
+
 import json
-from typing import List, Optional
 import uuid
+from typing import List, Optional
+
 from pydantic import Field
 
 from libs.azure_helper.storage_blob import StorageBlobHelper
@@ -15,6 +23,14 @@ from libs.pipeline.entities.pipeline_step_result import StepResult
 
 
 class DataPipeline(AppModelBase):
+    """Canonical pipeline payload that flows through every step.
+
+    Attributes:
+        process_id: Unique identifier for this processing run.
+        pipeline_status: Mutable status tracking object.
+        files: Ordered list of file artifacts produced during processing.
+    """
+
     process_id: str
     pipeline_status: PipelineStatus = Field(
         default_factory=None, alias="PipelineStatus"
@@ -23,9 +39,9 @@ class DataPipeline(AppModelBase):
 
     @staticmethod
     def get_object(json_string: str) -> "DataPipeline":
+        """Deserialize a JSON string into a DataPipeline instance."""
         try:
             return DataPipeline(**json.loads(json_string))
-            # return DataPipeline(**json_string)
         except Exception as e:
             raise ValueError(
                 f"Failed to parse the json string to PipelineStatus object. {str(e)}"

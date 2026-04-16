@@ -1,5 +1,8 @@
 .gridContainer {
-    height: 100vh;
+    height: 100%;
+    overflow: hidden;
+    margin-left: -8px;
+    width: calc(100% + 8px);
 
     .gridTable {
         min-width: 100%;
@@ -9,43 +12,87 @@
 
         .gridTableBody {
             height: 100%;
+            overflow-y: auto;
         }
     }
 
-    .col1 {
-        min-width: 100px !important;
+    // Expand button column
+    .colExpand {
+        min-width: 22px !important;
+        max-width: 22px !important;
     }
 
+    // File name column
+    .col1 {
+        min-width: 100px !important;
+        flex: 1;
+    }
+
+    // Imported date column
     .col2 {
         min-width: 55px !important;
         max-width: 85px !important;
     }
 
+    // Status column
     .col3 {
         min-width: 45px !important;
         max-width: 70px !important;
     }
 
+    // Process time column
     .col4 {
         min-width: 35px !important;
         max-width: 85px !important;
     }
 
+    // Entity score column
     .col5 {
         min-width: 35px !important;
         max-width: 85px !important;
     }
 
+    // Schema score column
     .col6 {
         min-width: 55px !important;
         max-width: 105px !important;
         box-sizing: border-box;
     }
 
+    // Actions/Delete column
     .col7 {
-        min-width: 30px !important;
-        max-width: 35px !important;
+        min-width: 50px !important;
+        max-width: 60px !important;
         box-sizing: border-box;
+    }
+
+    // Claim row styling
+    .claimRow {
+        cursor: pointer;
+        background-color: var(--colorNeutralBackground1);
+        
+        &:hover {
+            background-color: var(--colorNeutralBackground1Hover);
+        }
+    }
+
+    // Document row styling (child rows)
+    .documentRow {
+        cursor: pointer;
+        background-color: var(--colorNeutralBackground2);
+        
+        &:hover {
+            background-color: var(--colorNeutralBackground2Hover);
+        }
+    }
+
+    // Selected row styling
+    .selectedRow {
+        background-color: var(--colorBrandBackground2) !important;
+    }
+
+    .selectedDocRow {
+        background-color: var(--colorBrandBackground2Pressed) !important;
     }
 
     .roundedBtn {
