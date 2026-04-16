@@ -198,7 +198,7 @@ For full details, see [Claim Processing Workflow (Agent Framework)](./docs/Claim
 
 <br/>
 
-### How to customize
+## Guidance
 
 If you'd like to customize the solution accelerator, here are some common areas to start:
 
@@ -214,7 +214,7 @@ If you'd like to customize the solution accelerator, here are some common areas 
 
 <br/>
 
-### Additional resources
+## Resources
 
 [Technical Architecture](./docs/TechnicalArchitecture.md)
 
@@ -226,7 +226,7 @@ If you'd like to customize the solution accelerator, here are some common areas 
 
 <br/>
 
-### Key features
+## Features
 
 <details open>
   <summary>Click to learn more about the key features this solution enables</summary>
@@ -264,7 +264,7 @@ If you'd like to customize the solution accelerator, here are some common areas 
 Quick deploy
 </h2>
 
-### How to install or deploy
+## Getting Started
 
 Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription.
 
