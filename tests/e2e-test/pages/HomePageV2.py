@@ -491,7 +491,7 @@ class HomePageV2(BasePage):
         logger.info("Starting Source Document pane validation...")
 
         logger.info("Validating Source Document pane has content...")
-        source_doc_pane = self.page.locator(
+        self.page.locator(
             "//div[contains(text(),'Source Document')]/ancestor::div[1]/following-sibling::*"
         )
 
@@ -1139,7 +1139,7 @@ class HomePageV2(BasePage):
             "repair_estimate.pdf": "Auto Insurance Claim Form",
         }
 
-        dialog = self.open_import_dialog_with_files()
+        self.open_import_dialog_with_files()
 
         # Select mismatched schemas for each file
         files = self.get_testdata_files()
@@ -1195,7 +1195,6 @@ class HomePageV2(BasePage):
 
         # Try to remove the first file using the delete/remove button next to it
         logger.info("Attempting to remove first file from the list...")
-        file_labels = dialog.locator("strong")
         first_file_name = os.path.basename(files[0])
 
         # Look for a delete/remove button near the first file entry

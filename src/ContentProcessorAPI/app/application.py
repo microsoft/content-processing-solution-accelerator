@@ -51,6 +51,7 @@ class UserIdMiddleware(BaseHTTPMiddleware):
         span.set_attribute("enduser.id", user_id)
         return await call_next(request)
 
+
 logger = logging.getLogger(__name__)
 
 # PyMongo emits a compatibility warning when it detects Azure Cosmos DB (Mongo API).
