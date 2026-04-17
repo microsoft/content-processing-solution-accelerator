@@ -183,7 +183,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
       }
     }
     // Only fetch for document selection
-    if (store.selectionType === 'document' && (store.activeProcessId != null || store.activeProcessId !== '') && !status.includes(store.selectedItem.status as string) && store.selectedItem?.process_id === store.activeProcessId) {
+    if (store.selectionType === 'document' && (store.activeProcessId != null && store.activeProcessId !== '') && !status.includes(store.selectedItem.status as string) && store.selectedItem?.process_id === store.activeProcessId) {
       fetchContent();
     }
   }, [store.activeProcessId, store.selectedItem, store.selectionType, store.refreshTrigger])
@@ -291,7 +291,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
     try {
       dispatch(startLoader("1"));
       dispatch(setUpdateComments(comment))
-      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': store.modified_result as unknown as string, 'comments': comment, 'savedComments': store.comments }))
+      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': JSON.stringify(store.modified_result), 'comments': comment, 'savedComments': store.comments }))
       if (result?.type === 'SaveContentJSON-Comments/fulfilled') {
         dispatch(setRefreshGrid(true));
       }
