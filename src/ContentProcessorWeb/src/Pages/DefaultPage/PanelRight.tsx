@@ -21,7 +21,7 @@ const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLe
 /** Props for the {@link PanelRight} component. */
 interface PanelRightProps {
   /** Callback to collapse/expand a named panel. */
-  readonly togglePanel: (panel: 'Left' | 'Right' | 'Center' | 'All') => void;
+  readonly togglePanel: (panel: string) => void;
 }
 
 /**

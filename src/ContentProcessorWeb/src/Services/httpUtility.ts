@@ -44,22 +44,22 @@ export const handleApiThunk = async <T>(
   rejectWithValue: (reason: string) => unknown,
   errorMessage = 'Request failed',
   endpoint?: string
-): Promise<T> => {
+): Promise<T | unknown> => {
   try {
     const response = await apiCall;
     const endpointName = endpoint ? endpoint.split('/').filter(Boolean).pop() : 'unknown';
     console.log(`API Response [${endpointName}]:`, response);
     if (response.status === 200 || response.status === 202) {
-      return response.data as T;
+      return response.data;
     } else {
-      return rejectWithValue(`${errorMessage}. Status: ${response.status}`) as T;
+      return rejectWithValue(`${errorMessage}. Status: ${response.status}`);
     }
   } catch (error: unknown) {
     const apiError = error as ApiError;
     if (apiError.status === 415 || apiError.status === 404) {
-      return rejectWithValue(apiError.data?.message || `Unexpected error: ${errorMessage}`) as T;
+      return rejectWithValue(apiError.data?.message || `Unexpected error: ${errorMessage}`);
     }
-    return rejectWithValue(apiError.message || `Unexpected error: ${errorMessage}`) as T;
+    return rejectWithValue(apiError.message || `Unexpected error: ${errorMessage}`);
   }
 };
 

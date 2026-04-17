@@ -92,18 +92,15 @@ const ProcessSteps: React.FC = () => {
 
   return (
     <Accordion collapsible>
-      {!status.includes(store.selectedItem.status as string) && store.processStepsData?.map((step, index) => {
-        const stepName = step.step_name as string;
-        const processedTime = step.processed_time as string;
-        return (
-        <AccordionItem key={index} value={stepName}>
+      {!status.includes(store.selectedItem.status) && store.processStepsData?.map((step, index) => (
+        <AccordionItem key={index} value={step.step_name}>
           <AccordionHeader onClick={() => handleExpand(index)}> {loadingStates[index] && <Spinner size="tiny" style={{ position: 'absolute', left: '10px' }} label="" />}
-            <span style={{ fontWeight: 'bold', textTransform: 'capitalize'}}>{stepName}</span>
+            <span style={{ fontWeight: 'bold', textTransform: 'capitalize'}}>{step.step_name}</span>
             <span style={{ color: 'green', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-              {renderProcessTimeInSeconds(processedTime)} <CheckmarkCircleFilled style={{ marginLeft: '4px' }} />
+              {renderProcessTimeInSeconds(step.processed_time)} <CheckmarkCircleFilled style={{ marginLeft: '4px' }} />
             </span>
           </AccordionHeader>
-          <div ref={(el) => { childRefs.current[index] = el; }}>
+          <div ref={(el) => (childRefs.current[index] = el)}>
             <AccordionPanel >
               <JsonEditor
                 key={`json-editor-${index}`}
@@ -112,7 +109,7 @@ const ProcessSteps: React.FC = () => {
                 restrictEdit={true}
                 restrictDelete={true}
                 restrictAdd={true}
-                rootName={stepName.toLowerCase()}
+                rootName={step.step_name.toLowerCase()}
                 collapseAnimationTime={300}
                 theme={[{
                   styles: {
@@ -129,8 +126,7 @@ const ProcessSteps: React.FC = () => {
             </AccordionPanel>
           </div>
         </AccordionItem>
-        );
-      })}
+      ))}
     </Accordion>
 
   );

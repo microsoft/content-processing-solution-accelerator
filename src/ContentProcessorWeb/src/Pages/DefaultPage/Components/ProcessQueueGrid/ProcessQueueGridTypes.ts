@@ -6,8 +6,8 @@
  * data structures (claims, documents, grid rows).
  */
 
-import type { JSX } from "react";
 import { TableRowData as RowStateBase } from "@fluentui/react-components";
+import { ListChildComponentProps } from "react-window";
 
 /** A single processed document within a claim batch. */
 export interface ProcessedDocument {
@@ -93,6 +93,12 @@ export interface TableRowData extends RowStateBase<Item> {
     onKeyDown: (e: React.KeyboardEvent) => void;
     selected: boolean;
     appearance: "brand" | "none";
+}
+
+export interface ReactWindowRenderFnProps extends ListChildComponentProps {
+    data: TableRowData[];
+    style: React.CSSProperties;
+    index: number;
 }
 
 /** Props for the {@link ProcessQueueGrid} component. */
