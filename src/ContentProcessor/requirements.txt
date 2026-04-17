@@ -28,7 +28,7 @@ pluggy==1.6.0
 poppler-utils==0.1.0
 pycparser==3.0
 pydantic==2.13.1
-pydantic-core==2.45.0
+pydantic-core==2.46.1
 pydantic-settings==2.13.1
 pygments==2.20.0
 pyjwt==2.12.1
