@@ -291,7 +291,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
     try {
       dispatch(startLoader("1"));
       dispatch(setUpdateComments(comment))
-      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': JSON.stringify(store.modified_result), 'comments': comment, 'savedComments': store.comments }))
+      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': store.modified_result as unknown as string, 'comments': comment, 'savedComments': store.comments }))
       if (result?.type === 'SaveContentJSON-Comments/fulfilled') {
         dispatch(setRefreshGrid(true));
       }
