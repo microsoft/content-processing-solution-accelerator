@@ -118,7 +118,8 @@
       "webpack-dev-server": "^5.2.1",
       "yaml": "^2.0.0",
       "svgo": "^2.8.1",
-      "jsonpath": "^1.3.0"
+      "jsonpath": "^1.3.0",
+      "follow-redirects": "^1.16.0"
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
