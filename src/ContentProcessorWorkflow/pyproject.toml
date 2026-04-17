@@ -28,7 +28,7 @@ dependencies = [
     "sas-cosmosdb==0.1.4",
     "sas-storage==1.0.0",
     "tenacity==9.1.2",
-    "authlib==1.6.9",
+    "authlib==1.6.11",
     "protobuf==6.33.6",
     "cryptography==46.0.7",
     "pyjwt==2.12.1",
@@ -39,7 +39,7 @@ dependencies = [
 dev = [
     "black==26.3.1",
     "pre-commit==4.5.1",
-    "pytest==9.0.2",
+    "pytest==9.0.3",
     "pytest-cov==7.0.0",
 ]
 
