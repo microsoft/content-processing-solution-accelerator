@@ -88,7 +88,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
     useEffect(() => {
         if (!store.gridLoader) {
             if (store.gridData.items && store.gridData.items.length > 0) {
-                const claimRows: ClaimRowData[] = (store.gridData.items as unknown as ClaimItem[]).map((item: ClaimItem) => ({
+                const claimRows: ClaimRowData[] = store.gridData.items.map((item: ClaimItem) => ({
                     claim: item,
                     isExpanded: false,
                     isSelected: false,
@@ -113,7 +113,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                     setSelectedDocumentId(null);
                     dispatch(
                         setSelectedClaim({
-                            claim: firstClaim as unknown as Record<string, unknown>,
+                            claim: firstClaim,
                         })
                     );
                 }
@@ -149,7 +149,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
         // Dispatch the claim selection
         dispatch(
             setSelectedClaim({
-                claim: claim as unknown as Record<string, unknown>,
+                claim: claim,
             })
         );
     };
@@ -160,7 +160,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
         dispatch(
             setSelectedGridRow({
                 processId: document.process_id,
-                item: document as unknown as Record<string, unknown>,
+                item: document,
             })
         );
     };

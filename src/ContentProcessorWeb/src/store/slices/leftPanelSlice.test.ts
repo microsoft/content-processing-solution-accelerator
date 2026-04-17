@@ -49,7 +49,6 @@ const getInitialState = (): LeftPanelState => ({
     deleteFilesLoader: [],
     deleteClaimsLoader: [],
     swaggerJSON: null,
-    refreshTrigger: 0,
 });
 
 // ── Initial State ──────────────────────────────────────────────────────

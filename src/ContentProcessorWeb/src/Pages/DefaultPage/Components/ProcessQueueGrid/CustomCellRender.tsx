@@ -167,8 +167,8 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
           <MenuItem
             icon={<DeleteIcon />}
             onClick={() => {
-              setSelectedDeleteItem?.(item);
-              toggleDialog?.();
+              setSelectedDeleteItem(item);
+              toggleDialog();
             }}
             style={{ maxWidth: 'auto', minWidth: 'auto' }}
           >
@@ -190,11 +190,11 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
     case 'schemaScore':
       return calculateSchemaScore(valueText || '', lastModifiedBy || '', status || '');
     case 'text':
-      return renderText(text ?? '', 'center');
+      return renderText(text, 'center');
     case 'date':
-      return renderText(text ?? '', 'date');
+      return renderText(text, 'date');
     case 'deleteButton':
-      return item ? renderDeleteButton(item, deleteBtnStatus || { disabled: false, message: '' }) : <div>Invalid Type</div>;
+      return renderDeleteButton(item, deleteBtnStatus || {});
     default:
       return <div>Invalid Type</div>;
   }

@@ -11,11 +11,12 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogSurface,
-  DialogBody,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
+} from "@fluentui/react-dialog";
+import { Button } from "@fluentui/react-button";
+import {
   ProgressBar,
   makeStyles,
   Combobox,
@@ -342,9 +343,8 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
     onClose();
   };
   return (
-    <Dialog open={open} modalType="modal" >
+    <Dialog open={open} modalType="alert" >
       <DialogSurface className={styles.dialogSurface}>
-        <DialogBody style={{ display: "flex", flexDirection: "column", overflow: "hidden", flex: 1 }}>
         <DialogTitle>Import Content</DialogTitle>
         <DialogContent className={styles.dialogContent}>
           <div className="dialogBody">
@@ -439,7 +439,6 @@ const UploadFilesModal: React.FC<UploadFilesModalProps> = ({ open, onClose }) =>
             {uploading ? "Importing..." : "Import"}
           </Button>
         </DialogActions>
-        </DialogBody>
       </DialogSurface>
     </Dialog>
   );
