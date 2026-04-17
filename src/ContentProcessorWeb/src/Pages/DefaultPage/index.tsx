@@ -33,7 +33,7 @@ const Page: React.FC = () => {
     isCenterPanelCollapse: state.defaultPage.isCenterPanelCollapse,
   }), shallowEqual);
 
-  const togglePanel = (panel: string) => {
+  const togglePanel = (panel: 'Left' | 'Right' | 'Center' | 'All') => {
     dispatch(updatePanelCollapse(panel))
   }
   return (
