@@ -81,7 +81,7 @@ class TestApplicationBaseExtended:
             mock_app_config_instance = Mock()
             mock_app_config.return_value = mock_app_config_instance
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            ConcreteApplication(env_file_path=str(env_file))
 
             mock_app_config.assert_called_once()
             mock_app_config_instance.read_and_set_environmental_variables.assert_called_once()
@@ -101,7 +101,7 @@ class TestApplicationBaseExtended:
 
             mock_cred.return_value = Mock()
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            ConcreteApplication(env_file_path=str(env_file))
 
             # Verify logging was configured
             mock_logging.assert_called_once()
@@ -122,7 +122,7 @@ class TestApplicationBaseExtended:
 
             mock_cred.return_value = Mock()
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            ConcreteApplication(env_file_path=str(env_file))
 
             # Verify logging was NOT configured
             mock_logging.assert_not_called()
@@ -158,7 +158,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AgentFrameworkSettings'), \
              patch('libs.base.application_base.load_dotenv') as mock_load_dotenv:
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            ConcreteApplication(env_file_path=str(env_file))
 
             # Verify load_dotenv was called at least once
             assert mock_load_dotenv.call_count >= 1
@@ -257,7 +257,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AppConfigurationHelper') as mock_app_config, \
              patch('libs.base.application_base.AgentFrameworkSettings'):
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            ConcreteApplication(env_file_path=str(env_file))
 
             # AppConfigurationHelper should not be called with empty endpoint
             mock_app_config.assert_not_called()

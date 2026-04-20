@@ -221,7 +221,7 @@ class TestCredentialUtilEdgeCases:
             'AZURE_TENANT_ID': 'test-tenant-id',
             'AZURE_CLIENT_SECRET': 'test-secret'
         }), \
-             patch('utils.credential_util.DefaultAzureCredential') as mock_cred:
+            patch('utils.credential_util.DefaultAzureCredential') as mock_cred:
 
             mock_cred.return_value = Mock()
 

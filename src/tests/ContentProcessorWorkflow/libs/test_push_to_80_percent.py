@@ -26,7 +26,7 @@ class TestApplicationBaseComplete:
             mock_env_config.return_value.app_config_endpoint = ""
 
             # Test with explicit path
-            _app = TestApp(env_file_path="/custom/path/.env")
+            TestApp(env_file_path="/custom/path/.env")
 
             # Should have loaded from explicit path
             mock_load_dotenv.assert_called_with(dotenv_path="/custom/path/.env")
@@ -53,7 +53,7 @@ class TestApplicationBaseComplete:
             mock_env_config.return_value.app_config_endpoint = "https://myconfig.azconfig.io"
             mock_config.return_value.app_logging_enable = False
 
-            _app = TestApp()
+            TestApp()
 
             # Should have created AppConfigurationHelper
             assert mock_app_config.called
@@ -85,7 +85,7 @@ class TestApplicationBaseComplete:
             config_instance.app_logging_level = "DEBUG"
             mock_config.return_value = config_instance
 
-            _app = TestApp()
+            TestApp()
 
             # Should have configured logging
             mock_logging.assert_called_once()
@@ -120,7 +120,7 @@ class TestCredentialUtilComplete:
             'WEBSITE_SITE_NAME': 'my-webapp',
             'MSI_ENDPOINT': 'http://localhost:8081/msi/token'
         }), \
-             patch('utils.credential_util.get_azure_credential') as mock_get_cred:
+            patch('utils.credential_util.get_azure_credential') as mock_get_cred:
 
             mock_get_cred.return_value = Mock()
 
@@ -139,7 +139,7 @@ class TestCredentialUtilComplete:
             'AZURE_CLIENT_ID': 'client-id-123',
             'IDENTITY_ENDPOINT': 'http://localhost:8081/token'
         }), \
-             patch('utils.credential_util.get_azure_credential') as mock_get_cred:
+            patch('utils.credential_util.get_azure_credential') as mock_get_cred:
 
             mock_get_cred.return_value = Mock()
 
