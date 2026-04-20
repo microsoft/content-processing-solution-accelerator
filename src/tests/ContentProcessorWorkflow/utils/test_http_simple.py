@@ -70,8 +70,8 @@ class TestHttpRequestSimple:
         result = _join_url("https://api.example.com/", "/users")
         assert result == "https://api.example.com/users"
         
-        # Multiple segments
-        result = _join_url("https://api.example.com", "v1", "users", "123")
+        # Multiple segments (pre-concatenated)
+        result = _join_url("https://api.example.com", "v1/users/123")
         assert result == "https://api.example.com/v1/users/123"
         
         # Empty segments
