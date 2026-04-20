@@ -9,7 +9,6 @@ class TestApplicationBaseComplete:
     def test_application_base_with_explicit_env_path(self):
         """Test ApplicationBase with explicit env file path"""
         from libs.base.application_base import ApplicationBase
-        from libs.application.application_context import AppContext
 
         class TestApp(ApplicationBase):
             def initialize(self):
@@ -27,7 +26,7 @@ class TestApplicationBaseComplete:
             mock_env_config.return_value.app_config_endpoint = ""
 
             # Test with explicit path
-            app = TestApp(env_file_path="/custom/path/.env")
+            _app = TestApp(env_file_path="/custom/path/.env")
 
             # Should have loaded from explicit path
             mock_load_dotenv.assert_called_with(dotenv_path="/custom/path/.env")
@@ -44,7 +43,7 @@ class TestApplicationBaseComplete:
                 pass
 
         with patch('libs.base.application_base.load_dotenv'), \
-             patch('libs.base.application_base.DefaultAzureCredential') as mock_cred, \
+             patch('libs.base.application_base.DefaultAzureCredential'), \\
              patch('libs.base.application_base.Configuration') as mock_config, \
              patch('libs.base.application_base.AgentFrameworkSettings'), \
              patch('libs.base.application_base._envConfiguration') as mock_env_config, \
@@ -54,7 +53,7 @@ class TestApplicationBaseComplete:
             mock_env_config.return_value.app_config_endpoint = "https://myconfig.azconfig.io"
             mock_config.return_value.app_logging_enable = False
 
-            app = TestApp()
+            _app = TestApp()
 
             # Should have created AppConfigurationHelper
             assert mock_app_config.called
@@ -86,7 +85,7 @@ class TestApplicationBaseComplete:
             config_instance.app_logging_level = "DEBUG"
             mock_config.return_value = config_instance
 
-            app = TestApp()
+            _app = TestApp()
 
             # Should have configured logging
             mock_logging.assert_called_once()

@@ -10,7 +10,7 @@ class TestPipelineData:
         from libs.pipeline.entities.pipeline_data import DataPipeline
         from libs.pipeline.entities.pipeline_status import PipelineStatus
 
-       # Create with required fields
+        # Create with required fields
         with patch('libs.pipeline.entities.pipeline_data.datetime') as mock_dt:
             mock_dt.now.return_value.isoformat.return_value = "2026-03-24T00:00:00"
 

@@ -1,4 +1,5 @@
 """Extended tests for application_context.py to improve coverage"""
+import pytest
 from unittest.mock import Mock
 from libs.application.application_context import (
     ServiceLifetime,

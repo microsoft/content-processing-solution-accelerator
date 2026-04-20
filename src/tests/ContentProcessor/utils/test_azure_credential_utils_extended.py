@@ -1,4 +1,5 @@
 """Extended tests for azure_credential_utils.py to improve coverage"""
+import pytest
 from unittest.mock import Mock, patch
 from libs.utils.azure_credential_utils import (
     get_azure_credential,

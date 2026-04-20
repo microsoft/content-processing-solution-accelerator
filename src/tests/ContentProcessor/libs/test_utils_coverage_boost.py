@@ -1,5 +1,4 @@
 """Targeted tests for small utility gaps to reach 80%"""
-from unittest.mock import patch
 
 
 class TestBase64Util:

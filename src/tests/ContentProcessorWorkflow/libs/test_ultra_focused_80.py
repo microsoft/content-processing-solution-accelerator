@@ -20,7 +20,7 @@ class TestApplicationContextMissedLines:
             cleanup_method=None
         )
 
-        assert descriptor.service_type ==TestService
+        assert descriptor.service_type == TestService
         assert descriptor.lifetime == ServiceLifetime.SINGLETON
         assert descriptor.is_async is False
 
@@ -83,7 +83,7 @@ class TestApplicationBaseMissedLines:
     def test_load_env_returns_path(self):
         """Test that _load_env returns the loaded path"""
         from libs.base.application_base import ApplicationBase
-        import os
+
 
         class TestApp(ApplicationBase):
             def initialize(self):
@@ -102,7 +102,7 @@ class TestApplicationBaseMissedLines:
             mock_config.return_value.app_logging_enable = False
 
             # Create app with no explicit env path
-            app = TestApp()
+            _app = TestApp()
 
             # Should have called load_dotenv
             assert mock_load.called

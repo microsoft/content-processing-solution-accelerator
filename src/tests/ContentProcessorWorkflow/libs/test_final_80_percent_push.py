@@ -1,4 +1,5 @@
 """Targeted tests to reach 80% coverage for ContentProcessorWorkflow"""
+import pytest
 from unittest.mock import Mock, patch
 
 
@@ -10,7 +11,7 @@ class TestApplicationContextEdgeCases:
         from libs.application.application_context import AppContext
 
         context = AppContext()
-        _scope = context._scopes.get("default", None)
+
 
         class UnregisteredService:
             pass
