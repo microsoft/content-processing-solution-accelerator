@@ -17,7 +17,7 @@ from services.content_process_models import (
 
 class TestArtifactType:
     """Test ArtifactType enum"""
-    
+
     def test_artifact_type_values(self):
         """Test all artifact type enum values"""
         assert ArtifactType.Undefined == "undefined"
@@ -31,7 +31,7 @@ class TestArtifactType:
 
 class TestPipelineStep:
     """Test PipelineStep enum"""
-    
+
     def test_pipeline_step_values(self):
         """Test all pipeline step enum values"""
         assert PipelineStep.Transform == "transform"
@@ -43,7 +43,7 @@ class TestPipelineStep:
 
 class TestProcessFile:
     """Test ProcessFile model"""
-    
+
     def test_process_file_creation(self):
         """Test creating a ProcessFile instance"""
         file = ProcessFile(
@@ -55,7 +55,7 @@ class TestProcessFile:
             artifact_type=ArtifactType.SourceContent,
             processed_by="system"
         )
-        
+
         assert file.process_id == "proc-123"
         assert file.id == "file-456"
         assert file.name == "test.pdf"
@@ -63,7 +63,7 @@ class TestProcessFile:
         assert file.mime_type == "application/pdf"
         assert file.artifact_type == ArtifactType.SourceContent
         assert file.processed_by == "system"
-    
+
     def test_process_file_serialization(self):
         """Test ProcessFile JSON serialization"""
         file = ProcessFile(
@@ -75,7 +75,7 @@ class TestProcessFile:
             artifact_type=ArtifactType.SourceContent,
             processed_by="system"
         )
-        
+
         data = file.model_dump()
         assert data["process_id"] == "proc-123"
         assert data["artifact_type"] == "source_content"
@@ -83,7 +83,7 @@ class TestProcessFile:
 
 class TestPipelineStatus:
     """Test PipelineStatus model"""
-    
+
     def test_pipeline_status_creation(self):
         """Test creating a PipelineStatus instance"""
         now = datetime.now()
@@ -98,7 +98,7 @@ class TestPipelineStatus:
             remaining_steps=["evaluate"],
             completed_steps=["extract"]
         )
-        
+
         assert status.process_id == "proc-123"
         assert status.schema_id == "schema-1"
         assert status.metadata_id == "meta-1"
@@ -107,7 +107,7 @@ class TestPipelineStatus:
         assert status.steps == ["extract", "map"]
         assert status.remaining_steps == ["evaluate"]
         assert status.completed_steps == ["extract"]
-    
+
     def test_pipeline_status_defaults(self):
         """Test PipelineStatus default values"""
         now = datetime.now()
@@ -117,7 +117,7 @@ class TestPipelineStatus:
             metadata_id="meta-1",
             creation_time=now
         )
-        
+
         assert status.completed is False
         assert status.last_updated_time is None
         assert status.steps == []
@@ -127,11 +127,11 @@ class TestPipelineStatus:
 
 class TestContentProcessMessage:
     """Test ContentProcessMessage model"""
-    
+
     def test_content_process_message_creation(self):
         """Test creating a ContentProcessMessage instance"""
         now = datetime.now()
-        
+
         file = ProcessFile(
             process_id="proc-123",
             id="file-456",
@@ -141,29 +141,29 @@ class TestContentProcessMessage:
             artifact_type=ArtifactType.SourceContent,
             processed_by="system"
         )
-        
+
         status = PipelineStatus(
             process_id="proc-123",
             schema_id="schema-1",
             metadata_id="meta-1",
             creation_time=now
         )
-        
+
         message = ContentProcessMessage(
             process_id="proc-123",
             files=[file],
             pipeline_status=status
         )
-        
+
         assert message.process_id == "proc-123"
         assert len(message.files) == 1
         assert message.files[0].name == "test.pdf"
         assert message.pipeline_status.schema_id == "schema-1"
-    
+
     def test_content_process_message_defaults(self):
         """Test ContentProcessMessage default values"""
         now = datetime.now()
-        
+
         # pipeline_status requires certain fields, so we provide them
         status = PipelineStatus(
             process_id="proc-123",
@@ -171,12 +171,12 @@ class TestContentProcessMessage:
             metadata_id="meta-1",
             creation_time=now
         )
-        
+
         message = ContentProcessMessage(
             process_id="proc-123",
             pipeline_status=status
         )
-        
+
         assert message.process_id == "proc-123"
         assert message.files == []
         assert message.pipeline_status.process_id == "proc-123"
@@ -184,11 +184,11 @@ class TestContentProcessMessage:
 
 class TestContentProcessRecord:
     """Test ContentProcessRecord model"""
-    
+
     def test_content_process_record_creation(self):
         """Test creating a ContentProcessRecord instance"""
         now = datetime.now()
-        
+
         record = ContentProcessRecord(
             id="rec-123",
             process_id="proc-123",
@@ -202,7 +202,7 @@ class TestContentProcessRecord:
             result={"key": "value"},
             confidence={"score": 0.9}
         )
-        
+
         assert record.id == "rec-123"
         assert record.process_id == "proc-123"
         assert record.processed_file_name == "test.pdf"
@@ -211,21 +211,21 @@ class TestContentProcessRecord:
         assert record.entity_score == 0.95
         assert record.schema_score == 0.90
         assert record.result == {"key": "value"}
-    
+
     def test_content_process_record_defaults(self):
         """Test ContentProcessRecord default values"""
         record = ContentProcessRecord(id="rec-123")
-        
+
         assert record.process_id == ""
         assert record.processed_file_name is None
         assert record.processed_file_mime_type is None
         assert record.entity_score == 0.0
         assert record.schema_score == 0.0
-    
+
     def test_to_cosmos_dict(self):
         """Test ContentProcessRecord.to_cosmos_dict method"""
         now = datetime.now()
-        
+
         record = ContentProcessRecord(
             id="rec-123",
             process_id="proc-123",
@@ -233,16 +233,16 @@ class TestContentProcessRecord:
             imported_time=now,
             status="completed"
         )
-        
+
         cosmos_dict = record.to_cosmos_dict()
-        
+
         assert cosmos_dict["id"] == "rec-123"
         assert cosmos_dict["process_id"] == "proc-123"
         assert cosmos_dict["processed_file_name"] == "test.pdf"
         assert cosmos_dict["status"] == "completed"
         # imported_time should remain as datetime object, not converted to string
         assert isinstance(cosmos_dict.get("imported_time"), datetime)
-    
+
     def test_extra_fields_allowed(self):
         """Test that ContentProcessRecord allows extra fields"""
         record = ContentProcessRecord(
@@ -250,7 +250,7 @@ class TestContentProcessRecord:
             process_id="proc-123",
             extra_field="extra_value"
         )
-        
+
         # Extra fields should be preserved in model_dump
         data = record.model_dump()
         assert data.get("extra_field") == "extra_value"
