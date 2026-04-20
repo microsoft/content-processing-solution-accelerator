@@ -3,7 +3,6 @@ Test configuration for ContentProcessor tests.
 """
 import sys
 import os
-import pytest
 
 # Add ContentProcessor src to path
 contentprocessor_path = os.path.abspath(

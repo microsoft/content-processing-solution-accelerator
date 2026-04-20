@@ -5,8 +5,7 @@
 
 import os
 import sys
-from unittest.mock import MagicMock, patch, call
-import pytest
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ContentProcessorAPI")))
 
@@ -26,13 +25,13 @@ def test_cosmos_mongodb_helper_init(mock_certifi, mock_mongo_client):
     mock_container = MagicMock()
     mock_db.create_collection.return_value = mock_container
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper(
         connection_string="mongodb://test",
         db_name="test_db",
         container_name="test_container"
     )
-    
+
     assert helper.client == mock_client
     assert helper.db == mock_db
     assert helper.container == mock_container
@@ -50,15 +49,15 @@ def test_insert_document(mock_certifi, mock_mongo_client):
     mock_db.list_collection_names.return_value = ["test_container"]
     mock_container = MagicMock()
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper("mongodb://test", "test_db", "test_container")
-    
+
     document = {"key": "value"}
     mock_result = MagicMock()
     mock_container.insert_one.return_value = mock_result
-    
+
     result = helper.insert_document(document)
-    
+
     assert result == mock_result
     mock_container.insert_one.assert_called_once_with(document)
 
@@ -75,9 +74,9 @@ def test_find_document(mock_certifi, mock_mongo_client):
     mock_db.list_collection_names.return_value = ["test_container"]
     mock_container = MagicMock()
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper("mongodb://test", "test_db", "test_container")
-    
+
     mock_cursor = MagicMock()
     mock_cursor.sort.return_value = mock_cursor
     mock_cursor.skip.return_value = mock_cursor
@@ -85,16 +84,16 @@ def test_find_document(mock_certifi, mock_mongo_client):
     mock_container.find.return_value = mock_cursor
     mock_items = [{"id": 1}, {"id": 2}]
     mock_cursor.__iter__.return_value = iter(mock_items)
-    
+
     query = {"key": "value"}
-    result = helper.find_document(
+    _result = helper.find_document(
         query=query,
         sort_fields=[("field", 1)],
         skip=10,
         limit=5,
         projection=["field1"]
     )
-    
+
     mock_container.find.assert_called_once_with(query, ["field1"])
     mock_cursor.sort.assert_called_once_with([("field", 1)])
     mock_cursor.skip.assert_called_once_with(10)
@@ -113,14 +112,14 @@ def test_count_documents(mock_certifi, mock_mongo_client):
     mock_db.list_collection_names.return_value = ["test_container"]
     mock_container = MagicMock()
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper("mongodb://test", "test_db", "test_container")
-    
+
     mock_container.count_documents.return_value = 42
-    
+
     result = helper.count_documents({"key": "value"})
     assert result == 42
-    
+
     result = helper.count_documents()
     mock_container.count_documents.assert_called_with({})
 
@@ -137,15 +136,15 @@ def test_update_document(mock_certifi, mock_mongo_client):
     mock_db.list_collection_names.return_value = ["test_container"]
     mock_container = MagicMock()
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper("mongodb://test", "test_db", "test_container")
-    
+
     mock_result = MagicMock()
     mock_container.update_one.return_value = mock_result
-    
+
     update = {"field": "new_value"}
     result = helper.update_document("test_id", update)
-    
+
     assert result == mock_result
     mock_container.update_one.assert_called_once_with({"Id": "test_id"}, {"$set": update})
 
@@ -162,12 +161,12 @@ def test_delete_document(mock_certifi, mock_mongo_client):
     mock_db.list_collection_names.return_value = ["test_container"]
     mock_container = MagicMock()
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper("mongodb://test", "test_db", "test_container")
-    
+
     mock_result = MagicMock()
     mock_container.delete_one.return_value = mock_result
-    
+
     result = helper.delete_document("test_id")
     mock_container.delete_one.assert_called_once_with({"Id": "test_id"})
 
@@ -184,15 +183,15 @@ def test_update_document_by_query(mock_certifi, mock_mongo_client):
     mock_db.list_collection_names.return_value = ["test_container"]
     mock_container = MagicMock()
     mock_db.__getitem__.return_value = mock_container
-    
+
     helper = CosmosMongDBHelper("mongodb://test", "test_db", "test_container")
-    
+
     mock_result = MagicMock()
     mock_container.update_one.return_value = mock_result
-    
+
     query = {"key": "value"}
     update = {"field": "new_value"}
     result = helper.update_document_by_query(query, update)
-    
+
     assert result == mock_result
     mock_container.update_one.assert_called_once_with(query, {"$set": update})

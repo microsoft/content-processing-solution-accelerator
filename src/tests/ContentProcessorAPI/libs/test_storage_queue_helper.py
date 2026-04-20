@@ -6,7 +6,6 @@
 import os
 import sys
 from unittest.mock import MagicMock, patch
-import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ContentProcessorAPI")))
 
@@ -29,12 +28,12 @@ def test_storage_queue_helper_init(mock_queue_client_class, mock_get_credential)
     mock_queue_client = MagicMock()
     mock_queue_client_class.return_value = mock_queue_client
     mock_queue_client.get_queue_properties.return_value = MagicMock()
-    
+
     helper = StorageQueueHelper(
         account_url="https://test.queue.core.windows.net",
         queue_name="test-queue"
     )
-    
+
     assert helper.queue_client == mock_queue_client
 
 
@@ -47,13 +46,13 @@ def test_drop_message(mock_queue_client_class, mock_get_credential):
     mock_queue_client = MagicMock()
     mock_queue_client_class.return_value = mock_queue_client
     mock_queue_client.get_queue_properties.return_value = MagicMock()
-    
+
     helper = StorageQueueHelper(
         account_url="https://test.queue.core.windows.net",
         queue_name="test-queue"
     )
-    
+
     message = QueueTestMessage(content="test", id=1)
     helper.drop_message(message)
-    
+
     mock_queue_client.send_message.assert_called_once()

@@ -2,8 +2,6 @@
 Test configuration for ContentProcessorWorkflow tests.
 """
 import sys
-import os
-import pytest
 from pathlib import Path
 
 # Add ContentProcessorWorkflow src to path

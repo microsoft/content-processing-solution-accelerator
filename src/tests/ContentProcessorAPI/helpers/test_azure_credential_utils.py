@@ -42,7 +42,7 @@ def test_get_azure_credential_non_dev_env(
     mock_getenv.return_value = "prod"
     mock_managed_credential = MagicMock()
     mock_managed_identity_credential.return_value = mock_managed_credential
-    
+
     credential = azure_credential_utils.get_azure_credential(client_id="test-client-id")
 
     mock_getenv.assert_called_once_with("APP_ENV", "prod")

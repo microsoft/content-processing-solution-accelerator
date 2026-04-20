@@ -3,7 +3,6 @@ Test configuration for ContentProcessorAPI tests.
 """
 import sys
 import os
-import pytest
 
 # Add ContentProcessorAPI to path
 contentprocessorapi_path = os.path.abspath(

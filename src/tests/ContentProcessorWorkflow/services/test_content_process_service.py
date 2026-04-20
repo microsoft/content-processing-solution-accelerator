@@ -135,7 +135,7 @@ class TestContentProcessService:
             mock_uuid.return_value = Mock(hex="123456")
             mock_uuid.return_value.__str__ = Mock(return_value="proc-123")
 
-            _process_id = await content_process_service.submit(
+            await content_process_service.submit(
                 file_bytes, filename, mime_type, schema_id, metadata_id
             )
 

@@ -4,7 +4,6 @@
 """Unit tests for content_process_models.py"""
 
 from datetime import datetime
-import pytest
 from services.content_process_models import (
     ArtifactType,
     PipelineStep,
