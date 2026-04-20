@@ -235,7 +235,7 @@ def test_get_container_client_with_container_name_arg(mock_blob_service, mock_ge
     mock_container_client.exists.return_value = True
 
     helper = StorageBlobHelper("https://test.blob.core.windows.net", "parent")
-    result = helper._get_container_client("sub-folder")
+    helper._get_container_client("sub-folder")
 
     mock_service_client.get_container_client.assert_called_with("parent/sub-folder")
 

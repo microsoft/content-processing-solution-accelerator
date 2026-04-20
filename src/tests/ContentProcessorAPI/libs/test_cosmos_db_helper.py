@@ -211,7 +211,7 @@ def test_init_with_indexes(mock_certifi, mock_mongo_client):
     mock_db.__getitem__.return_value = mock_container
     mock_container.index_information.return_value = {}
 
-    helper = CosmosMongDBHelper(
+    CosmosMongDBHelper(
         connection_string="mongodb://test",
         db_name="test_db",
         container_name="test_container",

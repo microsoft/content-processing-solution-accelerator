@@ -22,6 +22,6 @@ def test_configuration_reads_alias_env_vars(monkeypatch) -> None:
 
 def test_configuration_boolean_parsing(monkeypatch) -> None:
     # pydantic-settings parses common truthy strings.
-    monkeypatch.setenv("APP_LOGGING_ENABLE", "true")
+    monkeypatch.setenv("APP_RAI_ENABLED", "false")
     cfg = Configuration()
-    assert cfg.app_logging_enable is True
+    assert cfg.app_rai_enabled is False
