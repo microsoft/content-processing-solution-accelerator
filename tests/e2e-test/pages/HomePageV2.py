@@ -491,9 +491,6 @@ class HomePageV2(BasePage):
         logger.info("Starting Source Document pane validation...")
 
         logger.info("Validating Source Document pane has content...")
-        self.page.locator(
-            "//div[contains(text(),'Source Document')]/ancestor::div[1]/following-sibling::*"
-        )
 
         # Verify "No document available" is NOT shown
         no_data = self.page.locator(self.SOURCE_DOC_NO_DATA)
