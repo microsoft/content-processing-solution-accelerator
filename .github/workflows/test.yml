@@ -37,6 +37,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: write
 jobs:
   backend_tests:
     runs-on: ubuntu-latest
@@ -73,7 +74,19 @@ jobs:
         if: env.skip_backend_tests == 'false'
         run: |
           cd src/tests/ContentProcessor
-          python -m pytest . --ignore=libs/test_models_and_entities.py --ignore=libs/test_utils_coverage_boost.py --ignore=libs/test_final_push_80.py --cov-config=.coveragerc --cov=../../ContentProcessor/src --cov-report=xml --cov-report=term --cov-fail-under=80
+          python -m pytest . --ignore=libs/test_models_and_entities.py --ignore=libs/test_utils_coverage_boost.py --ignore=libs/test_final_push_80.py --cov-config=.coveragerc --cov=../../ContentProcessor/src --cov-report=xml --cov-report=term --cov-fail-under=80 --junitxml=pytest.xml
+
+      - name: Pytest Coverage Comment
+        if: |
+          always() &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.fork == false &&
+          env.skip_backend_tests == 'false'
+        uses: MishaKav/pytest-coverage-comment@26f986d2599c288bb62f623d29c2da98609e9cd4  # v1.6.0
+        with:
+          pytest-xml-coverage-path: src/tests/ContentProcessor/coverage.xml
+          junitxml-path: src/tests/ContentProcessor/pytest.xml
+          report-only-changed-files: true
 
       - name: Skip Backend Tests
         if: env.skip_backend_tests == 'true'
