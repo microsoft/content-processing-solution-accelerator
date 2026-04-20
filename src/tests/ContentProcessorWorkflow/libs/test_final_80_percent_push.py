@@ -12,7 +12,6 @@ class TestApplicationContextEdgeCases:
 
         context = AppContext()
 
-
         class UnregisteredService:
             pass
 
@@ -20,6 +19,7 @@ class TestApplicationContextEdgeCases:
         with pytest.raises(Exception):  # KeyError or custom exception
             if hasattr(context, 'create_scope'):
                 import asyncio
+
                 async def test():
                     async with await context.create_scope() as scope:
                         scope.get_service(UnregisteredService)
@@ -221,7 +221,7 @@ class TestCredentialUtilEdgeCases:
             'AZURE_TENANT_ID': 'test-tenant-id',
             'AZURE_CLIENT_SECRET': 'test-secret'
         }), \
-             patch('utils.credential_util.DefaultAzureCredential') as mock_cred:
+            patch('utils.credential_util.DefaultAzureCredential') as mock_cred:
 
             mock_cred.return_value = Mock()
 

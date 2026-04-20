@@ -38,7 +38,7 @@ class TestApplicationBaseExtended:
             mock_cred_instance = Mock()
             mock_cred.return_value = mock_cred_instance
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             assert app.application_context is not None
             assert isinstance(app.application_context, AppContext)
@@ -60,7 +60,7 @@ class TestApplicationBaseExtended:
             mock_getfile.return_value = str(test_file)
             mock_cred.return_value = Mock()
 
-            _app = ConcreteApplication()
+            app = ConcreteApplication()
 
             assert app.application_context is not None
             assert app.initialized is True
@@ -81,7 +81,7 @@ class TestApplicationBaseExtended:
             mock_app_config_instance = Mock()
             mock_app_config.return_value = mock_app_config_instance
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             mock_app_config.assert_called_once()
             mock_app_config_instance.read_and_set_environmental_variables.assert_called_once()
@@ -101,7 +101,7 @@ class TestApplicationBaseExtended:
 
             mock_cred.return_value = Mock()
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             # Verify logging was configured
             mock_logging.assert_called_once()
@@ -122,7 +122,7 @@ class TestApplicationBaseExtended:
 
             mock_cred.return_value = Mock()
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             # Verify logging was NOT configured
             mock_logging.assert_not_called()
@@ -140,7 +140,7 @@ class TestApplicationBaseExtended:
             mock_llm_instance = Mock()
             mock_llm_settings.return_value = mock_llm_instance
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             assert app.application_context.llm_settings == mock_llm_instance
             mock_llm_settings.assert_called_once_with(
@@ -158,7 +158,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AgentFrameworkSettings'), \
              patch('libs.base.application_base.load_dotenv') as mock_load_dotenv:
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             # Verify load_dotenv was called at least once
             assert mock_load_dotenv.call_count >= 1
@@ -177,7 +177,7 @@ class TestApplicationBaseExtended:
             test_env = tmp_path / ".env"
             test_env.write_text("APP_LOGGING_ENABLE=false\n")
 
-            _app = ConcreteApplication(env_file_path=str(test_env))
+            app = ConcreteApplication(env_file_path=str(test_env))
 
             location = app._get_derived_class_location()
 
@@ -196,7 +196,7 @@ class TestApplicationBaseExtended:
             mock_cred_instance = Mock()
             mock_cred.return_value = mock_cred_instance
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             assert app.application_context.credential == mock_cred_instance
 
@@ -211,7 +211,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AppConfigurationHelper'), \
              patch('libs.base.application_base.AgentFrameworkSettings'):
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             assert app.application_context.configuration is not None
 
@@ -224,7 +224,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AppConfigurationHelper'), \
              patch('libs.base.application_base.AgentFrameworkSettings'):
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             assert app.running is False
             app.run()
@@ -241,7 +241,7 @@ class TestApplicationBaseExtended:
 
             # initialized flag is set in ConcreteApplication.__init__ which calls super().__init__
             # But the initialize() method sets initialized=True
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             # The initialize() method should have been called in ConcreteApplication.__init__
             assert app.initialized is True
@@ -257,7 +257,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AppConfigurationHelper') as mock_app_config, \
              patch('libs.base.application_base.AgentFrameworkSettings'):
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             # AppConfigurationHelper should not be called with empty endpoint
             mock_app_config.assert_not_called()
@@ -274,7 +274,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AppConfigurationHelper') as mock_app_config, \
              patch('libs.base.application_base.AgentFrameworkSettings'):
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            app = ConcreteApplication(env_file_path=str(env_file))
 
             # AppConfigurationHelper should not be called
             mock_app_config.assert_not_called()

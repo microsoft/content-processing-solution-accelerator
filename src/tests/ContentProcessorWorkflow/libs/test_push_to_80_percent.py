@@ -26,7 +26,7 @@ class TestApplicationBaseComplete:
             mock_env_config.return_value.app_config_endpoint = ""
 
             # Test with explicit path
-            _app = TestApp(env_file_path="/custom/path/.env")
+            app = TestApp(env_file_path="/custom/path/.env")
 
             # Should have loaded from explicit path
             mock_load_dotenv.assert_called_with(dotenv_path="/custom/path/.env")
@@ -43,7 +43,7 @@ class TestApplicationBaseComplete:
                 pass
 
         with patch('libs.base.application_base.load_dotenv'), \
-             patch('libs.base.application_base.DefaultAzureCredential'), \\
+             patch('libs.base.application_base.DefaultAzureCredential'), \
              patch('libs.base.application_base.Configuration') as mock_config, \
              patch('libs.base.application_base.AgentFrameworkSettings'), \
              patch('libs.base.application_base._envConfiguration') as mock_env_config, \
@@ -53,7 +53,7 @@ class TestApplicationBaseComplete:
             mock_env_config.return_value.app_config_endpoint = "https://myconfig.azconfig.io"
             mock_config.return_value.app_logging_enable = False
 
-            _app = TestApp()
+            app = TestApp()
 
             # Should have created AppConfigurationHelper
             assert mock_app_config.called
@@ -85,7 +85,7 @@ class TestApplicationBaseComplete:
             config_instance.app_logging_level = "DEBUG"
             mock_config.return_value = config_instance
 
-            _app = TestApp()
+            app = TestApp()
 
             # Should have configured logging
             mock_logging.assert_called_once()

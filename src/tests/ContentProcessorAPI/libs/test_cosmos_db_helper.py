@@ -86,7 +86,7 @@ def test_find_document(mock_certifi, mock_mongo_client):
     mock_cursor.__iter__.return_value = iter(mock_items)
 
     query = {"key": "value"}
-    _result = helper.find_document(
+    helper.find_document(
         query=query,
         sort_fields=[("field", 1)],
         skip=10,
@@ -167,7 +167,7 @@ def test_delete_document(mock_certifi, mock_mongo_client):
     mock_result = MagicMock()
     mock_container.delete_one.return_value = mock_result
 
-    _result = helper.delete_document("test_id")
+    helper.delete_document(\"test_id\")
     mock_container.delete_one.assert_called_once_with({"Id": "test_id"})
 
 

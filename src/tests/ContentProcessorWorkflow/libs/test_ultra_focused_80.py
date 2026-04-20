@@ -58,7 +58,7 @@ class TestLoggingUtilsMissedLines:
 
         logger = Mock()
         safe_log(logger, "info", "User {user} performed {action} on {resource}",
-                user="alice", action="update", resource="document")
+                 user="alice", action="update", resource="document")
 
         assert logger.info.called
         call_str = str(logger.info.call_args)
@@ -102,7 +102,7 @@ class TestApplicationBaseMissedLines:
             mock_config.return_value.app_logging_enable = False
 
             # Create app with no explicit env path
-            _app = TestApp()
+            app = TestApp()
 
             # Should have called load_dotenv
             assert mock_load.called
@@ -119,7 +119,7 @@ class TestCredentialUtilMissedLines:
             'KUBERNETES_SERVICE_HOST': 'kubernetes.default.svc',
             'IDENTITY_ENDPOINT': 'http://169.254.169.254/metadata/identity'
         }), \
-             patch('utils.credential_util.get_azure_credential') as mock_cred:
+            patch('utils.credential_util.get_azure_credential') as mock_cred:
 
             mock_cred.return_value = Mock()
 
