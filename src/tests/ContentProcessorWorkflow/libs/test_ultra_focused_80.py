@@ -117,8 +117,7 @@ class TestCredentialUtilMissedLines:
         with patch.dict('os.environ', {
             'KUBERNETES_SERVICE_HOST': 'kubernetes.default.svc',
             'IDENTITY_ENDPOINT': 'http://169.254.169.254/metadata/identity'
-        }), \
-            patch('utils.credential_util.get_azure_credential') as mock_cred:
+        }), patch('utils.credential_util.get_azure_credential') as mock_cred:
 
             mock_cred.return_value = Mock()
 

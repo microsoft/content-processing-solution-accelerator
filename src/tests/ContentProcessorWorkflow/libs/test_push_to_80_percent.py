@@ -119,8 +119,7 @@ class TestCredentialUtilComplete:
         with patch.dict('os.environ', {
             'WEBSITE_SITE_NAME': 'my-webapp',
             'MSI_ENDPOINT': 'http://localhost:8081/msi/token'
-        }), \
-            patch('utils.credential_util.get_azure_credential') as mock_get_cred:
+        }), patch('utils.credential_util.get_azure_credential') as mock_get_cred:
 
             mock_get_cred.return_value = Mock()
 
@@ -138,8 +137,7 @@ class TestCredentialUtilComplete:
         with patch.dict('os.environ', {
             'AZURE_CLIENT_ID': 'client-id-123',
             'IDENTITY_ENDPOINT': 'http://localhost:8081/token'
-        }), \
-            patch('utils.credential_util.get_azure_credential') as mock_get_cred:
+        }), patch('utils.credential_util.get_azure_credential') as mock_get_cred:
 
             mock_get_cred.return_value = Mock()
 

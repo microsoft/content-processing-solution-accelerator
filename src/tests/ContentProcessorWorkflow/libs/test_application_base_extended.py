@@ -274,7 +274,7 @@ class TestApplicationBaseExtended:
              patch('libs.base.application_base.AppConfigurationHelper') as mock_app_config, \
              patch('libs.base.application_base.AgentFrameworkSettings'):
 
-            _app = ConcreteApplication(env_file_path=str(env_file))
+            ConcreteApplication(env_file_path=str(env_file))
 
             # AppConfigurationHelper should not be called
             mock_app_config.assert_not_called()
