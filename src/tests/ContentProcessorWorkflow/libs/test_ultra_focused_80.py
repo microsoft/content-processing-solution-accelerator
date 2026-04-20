@@ -84,7 +84,6 @@ class TestApplicationBaseMissedLines:
         """Test that _load_env returns the loaded path"""
         from libs.base.application_base import ApplicationBase
 
-
         class TestApp(ApplicationBase):
             def initialize(self):
                 pass
@@ -102,7 +101,7 @@ class TestApplicationBaseMissedLines:
             mock_config.return_value.app_logging_enable = False
 
             # Create app with no explicit env path
-            app = TestApp()
+            _app = TestApp()
 
             # Should have called load_dotenv
             assert mock_load.called
@@ -119,7 +118,7 @@ class TestCredentialUtilMissedLines:
             'KUBERNETES_SERVICE_HOST': 'kubernetes.default.svc',
             'IDENTITY_ENDPOINT': 'http://169.254.169.254/metadata/identity'
         }), \
-            patch('utils.credential_util.get_azure_credential') as mock_cred:
+             patch('utils.credential_util.get_azure_credential') as mock_cred:
 
             mock_cred.return_value = Mock()
 

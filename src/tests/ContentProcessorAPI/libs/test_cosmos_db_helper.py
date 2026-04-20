@@ -167,7 +167,7 @@ def test_delete_document(mock_certifi, mock_mongo_client):
     mock_result = MagicMock()
     mock_container.delete_one.return_value = mock_result
 
-    helper.delete_document(\"test_id\")
+    helper.delete_document("test_id")
     mock_container.delete_one.assert_called_once_with({"Id": "test_id"})
 
 
