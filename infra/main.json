@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "5358772599129171911"
+      "templateHash": "5718783598601616074"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -35187,8 +35187,8 @@
         "avmContainerApp_API",
         "avmContainerApp_Workflow",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "virtualNetwork"
       ]
     },
@@ -45022,9 +45022,9 @@
       },
       "dependsOn": [
         "avmAiServices_cu",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "virtualNetwork"
       ]
     },
@@ -46521,6 +46521,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessor"
                   }
                 ]
               }
@@ -48061,6 +48069,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
       ]
@@ -48133,6 +48142,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorAPI"
                   }
                 ],
                 "probes": [
@@ -49734,6 +49751,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
       ]
@@ -51441,6 +51459,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorWorkflow"
                   }
                 ]
               }
@@ -52978,6 +53004,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
       ]
@@ -63656,6 +63683,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessor"
                   }
                 ]
               }
@@ -65194,6 +65229,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
         "avmContainerRegistryReader",
@@ -65269,6 +65305,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorAPI"
                   }
                 ],
                 "probes": [
@@ -66870,6 +66914,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
         "avmContainerRegistryReader",
@@ -66944,6 +66989,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorWorkflow"
                   }
                 ]
               }
@@ -68481,6 +68534,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
@@ -68557,6 +68611,13 @@
         "description": "The login server of the Azure Container Registry."
       },
       "value": "[reference('avmContainerRegistry').outputs.loginServer.value]"
+    },
+    "CONTENT_UNDERSTANDING_ACCOUNT_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Content Understanding AI Services account."
+      },
+      "value": "[reference('avmAiServices_cu').outputs.name.value]"
     },
     "AZURE_RESOURCE_GROUP": {
       "type": "string",

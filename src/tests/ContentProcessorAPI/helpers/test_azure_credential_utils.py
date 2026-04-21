@@ -7,6 +7,8 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ContentProcessorAPI")))
 
 import app.utils.azure_credential_utils as azure_credential_utils  # noqa: E402
@@ -48,3 +50,43 @@ def test_get_azure_credential_non_dev_env(
     mock_managed_identity_credential.assert_called_once_with(client_id="test-client-id")
     mock_default_azure_credential.assert_not_called()
     assert credential == mock_managed_credential
+
+
+@pytest.mark.asyncio
+@patch("app.utils.azure_credential_utils.os.getenv")
+@patch("app.utils.azure_credential_utils.AioDefaultAzureCredential")
+@patch("app.utils.azure_credential_utils.AioManagedIdentityCredential")
+async def test_get_azure_credential_async_dev_env(
+    mock_aio_managed, mock_aio_default, mock_getenv
+):
+    """Test get_azure_credential_async in dev environment."""
+    mock_getenv.return_value = "dev"
+    mock_cred = MagicMock()
+    mock_aio_default.return_value = mock_cred
+
+    credential = await azure_credential_utils.get_azure_credential_async()
+
+    mock_getenv.assert_called_once_with("APP_ENV", "prod")
+    mock_aio_default.assert_called_once()
+    mock_aio_managed.assert_not_called()
+    assert credential == mock_cred
+
+
+@pytest.mark.asyncio
+@patch("app.utils.azure_credential_utils.os.getenv")
+@patch("app.utils.azure_credential_utils.AioDefaultAzureCredential")
+@patch("app.utils.azure_credential_utils.AioManagedIdentityCredential")
+async def test_get_azure_credential_async_non_dev_env(
+    mock_aio_managed, mock_aio_default, mock_getenv
+):
+    """Test get_azure_credential_async in non-dev environment."""
+    mock_getenv.return_value = "prod"
+    mock_cred = MagicMock()
+    mock_aio_managed.return_value = mock_cred
+
+    credential = await azure_credential_utils.get_azure_credential_async(client_id="test-id")
+
+    mock_getenv.assert_called_once_with("APP_ENV", "prod")
+    mock_aio_managed.assert_called_once_with(client_id="test-id")
+    mock_aio_default.assert_not_called()
+    assert credential == mock_cred

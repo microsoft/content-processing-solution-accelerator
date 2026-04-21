@@ -9,5 +9,5 @@ from libs.application.application_configuration import Configuration
 
 def test_configuration_defaults():
     cfg = Configuration()
-    assert cfg.app_logging_enable is False
+    assert cfg.azure_package_logging_level == "WARNING"
     assert cfg.storage_queue_name == "processes-queue"
