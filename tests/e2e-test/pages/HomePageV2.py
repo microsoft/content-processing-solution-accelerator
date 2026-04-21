@@ -163,12 +163,17 @@ class HomePageV2(BasePage):
         versions or modalType='alert' use 'alertdialog'.
         """
         dialog = self.page.get_by_role("dialog", name="Import Content")
-        if dialog.count() > 0:
-            return dialog.first
         alertdialog = self.page.get_by_role("alertdialog", name="Import Content")
-        if alertdialog.count() > 0:
-            return alertdialog.first
-        raise Exception("Import Content dialog not found with role 'dialog' or 'alertdialog'")
+        import_dialog = dialog.or_(alertdialog).first
+
+        try:
+            expect(import_dialog).to_be_visible(timeout=5000)
+        except Exception as exc:
+            raise Exception(
+                "Import Content dialog not found with role 'dialog' or 'alertdialog'"
+            ) from exc
+
+        return import_dialog
 
     def select_schema_for_file(self, file_name, schema_name):
         """
@@ -832,7 +837,9 @@ class HomePageV2(BasePage):
         validation_msg = self.page.locator(
             "//div[contains(text(),'Please Select') or contains(text(),'Please select')]"
         )
-        dialog = self.page.get_by_role("dialog").or_(self.page.get_by_role("alertdialog"))
+        dialog = self.page.get_by_role("dialog", name="Import Content").or_(
+            self.page.get_by_role("alertdialog", name="Import Content")
+        )
 
         if validation_msg.count() > 0 and validation_msg.first.is_visible():
             logger.info("✓ Validation message is visible")
