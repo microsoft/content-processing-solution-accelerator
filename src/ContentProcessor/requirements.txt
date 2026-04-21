@@ -3,6 +3,8 @@ azure-ai-inference==1.0.0b9
 azure-appconfiguration==1.8.0
 azure-core==1.39.0
 azure-identity==1.26.0b1
+azure-monitor-events-extension==0.1.0
+azure-monitor-opentelemetry==1.6.10
 azure-storage-blob==12.29.0b1
 azure-storage-queue==12.16.0b1
 certifi==2026.2.25
@@ -24,12 +26,11 @@ packaging==26.0
 pandas==3.0.2
 pdf2image==1.17.0
 pillow==12.1.1
-pillow==12.1.1
 pluggy==1.6.0
 poppler-utils==0.1.0
 pycparser==3.0
-pydantic==2.12.5
-pydantic-core==2.45.0
+pydantic==2.13.1
+pydantic-core==2.46.1
 pydantic-settings==2.13.1
 pygments==2.20.0
 pyjwt==2.12.1

@@ -56,3 +56,23 @@ def test_drop_message(mock_queue_client_class, mock_get_credential):
     helper.drop_message(message)
 
     mock_queue_client.send_message.assert_called_once()
+
+
+@patch("app.libs.azure.storage_queue.helper.get_azure_credential")
+@patch("app.libs.azure.storage_queue.helper.QueueClient")
+def test_invalidate_queue_creates_when_not_found(mock_queue_client_class, mock_get_credential):
+    """Test _invalidate_queue creates the queue when ResourceNotFoundError is raised."""
+    from azure.core.exceptions import ResourceNotFoundError
+
+    mock_credential = MagicMock()
+    mock_get_credential.return_value = mock_credential
+    mock_queue_client = MagicMock()
+    mock_queue_client_class.return_value = mock_queue_client
+    mock_queue_client.get_queue_properties.side_effect = ResourceNotFoundError("not found")
+
+    StorageQueueHelper(
+        account_url="https://test.queue.core.windows.net",
+        queue_name="test-queue"
+    )
+
+    mock_queue_client.create_queue.assert_called_once()
