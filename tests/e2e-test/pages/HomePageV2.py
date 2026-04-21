@@ -186,9 +186,6 @@ class HomePageV2(BasePage):
         schema_dropdowns = dialog.get_by_placeholder("Select Schema")
         file_labels = dialog.locator("strong")
 
-        # Wait for file labels to appear (React state update may be async)
-        file_labels.first.wait_for(state="visible", timeout=10000)
-
         # Find the index of this file among all listed files
         count = file_labels.count()
         target_index = -1
