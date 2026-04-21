@@ -182,7 +182,7 @@ jobs:
           echo "✅ All input parameters validated successfully!"
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure Parameters Based on WAF Setting
         shell: bash
