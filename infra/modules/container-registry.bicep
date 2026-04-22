@@ -16,7 +16,7 @@ param publicNetworkAccess string = 'Enabled'
 @description('Optional. Zone redundancy setting for the Azure Container Registry.')
 param zoneRedundancy string = 'Disabled'
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
@@ -41,7 +41,7 @@ param backendSubnetResourceId string = ''
 @description('Optional. Private DNS zone resource ID for Container Registry.')
 param privateDnsZoneResourceId string = ''
 
-module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.9.3' = {
+module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' = {
   name: acrName
   params: {
     name: acrName
@@ -61,9 +61,10 @@ module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.9.3
         ]
       : null
     // WAF aligned configuration for Private Networking - Network access restrictions
+    // Network rule set features require Premium SKU; default action is always set ('Deny' for private networking, otherwise 'Allow'), while additional restrictions are only set when private networking is enabled
     networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
-    networkRuleSetIpRules: enablePrivateNetworking ? [] : []
-    exportPolicyStatus: enablePrivateNetworking ? 'disabled' : 'enabled'
+    networkRuleSetIpRules: enablePrivateNetworking ? [] : null
+    exportPolicyStatus: enablePrivateNetworking ? 'disabled' : null
     privateEndpoints: enablePrivateNetworking
       ? [
           {

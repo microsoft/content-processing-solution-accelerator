@@ -11,12 +11,13 @@ dependencies = [
     "azure-ai-agents==1.2.0b5",
     "azure-ai-inference==1.0.0b9",
     "azure-ai-projects==2.0.0b3",
-    "azure-appconfiguration==1.7.2",
+    "azure-appconfiguration==1.8.0",
     "azure-core==1.38.0",
     "azure-identity==1.26.0b1",
-    "azure-storage-blob==12.28.0",
+    "azure-monitor-opentelemetry==1.8.7",
+    "azure-storage-blob==12.29.0b1",
     "azure-storage-file-datalake==12.23.0",
-    "azure-storage-queue==12.15.0",
+    "azure-storage-queue==12.16.0b1",
     "fastmcp==3.2.3",
     "jinja2==3.1.6",
     "kafka-python==2.3.0",
@@ -40,7 +41,7 @@ dev = [
     "black==26.3.1",
     "pre-commit==4.5.1",
     "pytest==9.0.3",
-    "pytest-cov==7.0.0",
+    "pytest-cov==7.1.0",
 ]
 
 [tool.ruff]

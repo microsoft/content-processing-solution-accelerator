@@ -9,8 +9,12 @@ pipeline step handlers and starts them as concurrent queue consumers.
 """
 
 import asyncio
+import logging
 import os
 import sys
+
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry.sdk.resources import Resource
 
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.azure_helper.content_understanding import AzureContentUnderstandingHelper
@@ -18,6 +22,8 @@ from libs.base.application_main import AppMainBase
 from libs.process_host import handler_type_loader
 from libs.process_host.handler_process_host import HandlerHostManager
 from libs.utils.azure_credential_utils import get_azure_credential
+
+logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "libs"))
 
@@ -43,13 +49,15 @@ class Application(AppMainBase):
         self._initialize_application()
 
     def _initialize_application(self):
-        """Wire up Azure credentials and register shared services.
+        """Wire up Azure credentials, telemetry, and register shared services.
 
         Steps:
-            1. Set Azure credential on the application context.
-            2. Register AgentFrameworkHelper and initialize it with LLM settings.
-            3. Register an async factory for AzureContentUnderstandingHelper.
+            1. Configure Azure Monitor telemetry if connection string is available.
+            2. Set Azure credential on the application context.
+            3. Register AgentFrameworkHelper and initialize it with LLM settings.
+            4. Register an async factory for AzureContentUnderstandingHelper.
         """
+        self._configure_telemetry()
         self.application_context.set_credential(get_azure_credential())
 
         self.application_context.add_singleton(
@@ -65,6 +73,21 @@ class Application(AppMainBase):
                 self.application_context.configuration.app_content_understanding_endpoint
             ),
         )
+
+    def _configure_telemetry(self):
+        """Configure Azure Monitor for OpenTelemetry if connection string is set."""
+        connection_string = self.application_context.configuration.applicationinsights_connection_string
+        if connection_string:
+            configure_azure_monitor(
+                connection_string=connection_string,
+                resource=Resource.create({"service.name": "ContentProcessor"}),
+                logger_name="libs",
+            )
+            logger.info("Application Insights configured for ContentProcessor")
+        else:
+            logger.warning(
+                "No Application Insights connection string found. Telemetry disabled."
+            )
 
     async def run(self, test_mode: bool = False):
         """Load pipeline step handlers and start them as concurrent processes.

@@ -66,7 +66,7 @@ param sku string = 'S0'
 @description('Optional. Location for all Resources.')
 param location string = resourceGroup().location
 
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
@@ -83,15 +83,15 @@ param customSubDomainName string?
 @description('Optional. A collection of rules governing the accessibility from specific network locations.')
 param networkAcls object?
 
-import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointSingleServiceType[]?
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
@@ -107,7 +107,7 @@ param apiProperties object?
 @description('Optional. Allow only Azure AD authentication. Should be enabled for security reasons.')
 param disableLocalAuth bool = true
 
-import { customerManagedKeyType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { customerManagedKeyType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The customer managed key definition.')
 param customerManagedKey customerManagedKeyType?
 
@@ -127,7 +127,7 @@ param restrictOutboundNetworkAccess bool = true
 @description('Optional. The storage accounts for this resource.')
 param userOwnedStorage array?
 
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The managed identity definition for this resource.')
 param managedIdentities managedIdentityAllType?
 
@@ -159,7 +159,7 @@ var identity = !empty(managedIdentities)
   : null
   
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.cognitiveservices-account.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -177,14 +177,14 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-resource cMKKeyVault 'Microsoft.KeyVault/vaults@2025-05-01' existing = if (!empty(customerManagedKey.?keyVaultResourceId)) {
+resource cMKKeyVault 'Microsoft.KeyVault/vaults@2026-02-01' existing = if (!empty(customerManagedKey.?keyVaultResourceId)) {
   name: last(split(customerManagedKey.?keyVaultResourceId!, '/'))
   scope: resourceGroup(
     split(customerManagedKey.?keyVaultResourceId!, '/')[2],
     split(customerManagedKey.?keyVaultResourceId!, '/')[4]
   )
 
-  resource cMKKey 'keys@2025-05-01' existing = if (!empty(customerManagedKey.?keyVaultResourceId) && !empty(customerManagedKey.?keyName)) {
+  resource cMKKey 'keys@2026-02-01' existing = if (!empty(customerManagedKey.?keyVaultResourceId) && !empty(customerManagedKey.?keyName)) {
     name: customerManagedKey.?keyName!
   }
 }
@@ -199,7 +199,7 @@ resource cMKUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentiti
 
 var useExistingService = !empty(existingFoundryProjectResourceId)
 
-resource cognitiveServiceNew 'Microsoft.CognitiveServices/accounts@2025-07-01-preview' = if(!useExistingService) {
+resource cognitiveServiceNew 'Microsoft.CognitiveServices/accounts@2025-12-01' = if(!useExistingService) {
   name: name
   kind: kind
   identity: identity
@@ -249,7 +249,7 @@ resource cognitiveServiceNew 'Microsoft.CognitiveServices/accounts@2025-07-01-pr
 
 var existingCognitiveServiceDetails = split(existingFoundryProjectResourceId, '/')
 
-resource cognitiveServiceExisting 'Microsoft.CognitiveServices/accounts@2025-07-01-preview' existing = if(useExistingService) {
+resource cognitiveServiceExisting 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = if(useExistingService) {
   name: existingCognitiveServiceDetails[8]
   scope: resourceGroup(existingCognitiveServiceDetails[2], existingCognitiveServiceDetails[4])
 }
@@ -316,7 +316,7 @@ output systemAssignedMIPrincipalId string? = useExistingService ? cognitiveServi
 @description('The location the resource was deployed into.')
 output location string = useExistingService ? cognitiveServiceExisting.location : cognitiveService.location
 
-import { secretsOutputType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { secretsOutputType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('A hashtable of references to the secrets exported to the provided Key Vault. The key of each reference is each secret\'s name.')
 output exportedSecrets secretsOutputType = useExistingService ? existing_cognitive_service_dependencies.outputs.exportedSecrets : cognitive_service_dependencies.outputs.exportedSecrets
 
