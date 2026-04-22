@@ -6,5 +6,6 @@ do
     echo $key=$value
     # Use sed to replace only the exact matches of the key
     find /usr/share/nginx/html -type f -exec sed -i "s|\b${key}\b|${value}|g" '{}' +
+    sed -i "s|\b${key}\b|${value}|g" /etc/nginx/nginx.conf
 done
 echo 'done'
