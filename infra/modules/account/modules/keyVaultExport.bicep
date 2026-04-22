@@ -2,7 +2,7 @@
 //   Parameters   //
 // ============== //
 
-@description('Required. The name of the Key Vault to set the ecrets in.')
+@description('Required. The name of the Key Vault to set the secrets in.')
 param keyVaultName string
 
 import { secretToSetType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
