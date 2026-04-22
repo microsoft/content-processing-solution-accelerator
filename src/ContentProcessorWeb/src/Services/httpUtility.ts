@@ -10,6 +10,20 @@
 
 const api: string = process.env.REACT_APP_API_BASE_URL as string;
 
+const isAuthEnabled = (): boolean =>
+  process.env.REACT_APP_AUTH_ENABLED?.toLowerCase() !== 'false';
+
+const isUsableToken = (token: string | null): token is string => {
+  if (!token) return false;
+  const value = token.trim();
+  if (!value) return false;
+  if (value.toLowerCase() === 'null' || value.toLowerCase() === 'undefined') {
+    return false;
+  }
+  if (value.startsWith('APP_')) return false;
+  return true;
+};
+
 interface FetchResponse<T> {
   data: T | null;
   status: number;
@@ -73,10 +87,13 @@ const fetchWithAuth = async <T>(
   const token = localStorage.getItem('token');
 
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${token}`,
     'Accept': 'application/json',
     'Cache-Control': 'no-cache',
   };
+
+  if (isAuthEnabled() && isUsableToken(token)) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   let processedBody: BodyInit | null = null;
   if (body instanceof FormData) {
@@ -132,11 +149,14 @@ const fetchHeadersWithAuth = async <T>(
   const token = localStorage.getItem('token');
 
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'Cache-Control': 'no-cache',
   };
+
+  if (isAuthEnabled() && isUsableToken(token)) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   if (body instanceof FormData) {
     delete headers['Content-Type'];

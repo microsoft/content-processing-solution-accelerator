@@ -91,7 +91,7 @@ steps:
             --image $(acrLoginServer)/$(imageRepository):$(Build.BuildId) \
             --cpu 4.0 \
             --memory 8.0Gi \
-            --set-env-vars APP_API_BASE_URL=$cpsApiBaseUrl APP_WEB_CLIENT_ID=$(appWebClientId) APP_WEB_AUTHORITY=$(appWebAuthority) APP__WEB_SCOPE=$(appWebScope) APP_API_SCOPE=$(appApiScope) APP_AUTH_ENABLED=false
+            --set-env-vars APP_API_BASE_URL=$cpsApiBaseUrl APP_WEB_CLIENT_ID=$(appWebClientId) APP_WEB_AUTHORITY=$(appWebAuthority) APP_WEB_SCOPE=$(appWebScope) APP_API_SCOPE=$(appApiScope) APP_AUTH_ENABLED=false
         else
         # Create the container app with the new image and registry settings
           az containerapp create \
@@ -104,7 +104,7 @@ steps:
             --registry-server $(acrLoginServer) \
             --registry-identity $managedIdentityResourceId \
             --ingress external \ 
-            --env-vars APP_API_BASE_URL=$cpsApiBaseUrl APP_WEB_CLIENT_ID=$(appWebClientId) APP_WEB_AUTHORITY=$(appWebAuthority) APP__WEB_SCOPE=$(appWebScope) APP_API_SCOPE=$(appApiScope) APP_AUTH_ENABLED=false
+            --env-vars APP_API_BASE_URL=$cpsApiBaseUrl APP_WEB_CLIENT_ID=$(appWebClientId) APP_WEB_AUTHORITY=$(appWebAuthority) APP_WEB_SCOPE=$(appWebScope) APP_API_SCOPE=$(appApiScope) APP_AUTH_ENABLED=false
 
         fi
     displayName: 'Deploy container to Azure Container App'

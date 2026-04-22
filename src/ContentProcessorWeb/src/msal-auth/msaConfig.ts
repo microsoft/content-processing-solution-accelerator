@@ -7,6 +7,16 @@
  */
 import { Configuration, LogLevel } from '@azure/msal-browser';
 
+const isUsableScope = (scope?: string): scope is string => {
+  if (!scope) return false;
+  const value = scope.trim();
+  if (!value) return false;
+  // Guard against unresolved placeholders from env substitution.
+  if (value.startsWith('APP_')) return false;
+  if (value.startsWith('<') && value.endsWith('>')) return false;
+  return true;
+};
+
 export const msalConfig: Configuration = {
   auth: {
     clientId: process.env.REACT_APP_WEB_CLIENT_ID as string,
@@ -31,8 +41,19 @@ export const msalConfig: Configuration = {
 const loginScope = process.env.REACT_APP_WEB_SCOPE as string;
 const tokenScope = process.env.REACT_APP_API_SCOPE as string;
 
+const loginScopes = ['user.read'];
+if (isUsableScope(loginScope)) {
+  loginScopes.push(loginScope);
+}
+
+const tokenScopes = isUsableScope(tokenScope)
+  ? [tokenScope]
+  : isUsableScope(loginScope)
+    ? [loginScope]
+    : ['user.read'];
+
 export const loginRequest = {
-  scopes: ["user.read", loginScope],
+  scopes: loginScopes,
 };
 
 export const graphConfig = {
@@ -40,5 +61,5 @@ export const graphConfig = {
 };
 
 export const tokenRequest = {
-  scopes: [tokenScope],
+  scopes: tokenScopes,
 };

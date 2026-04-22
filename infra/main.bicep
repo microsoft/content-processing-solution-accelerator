@@ -1119,7 +1119,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
         }
       ]
     }
-    ingressExternal: true
+    ingressExternal: !enablePrivateNetworking
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
     corsPolicy: {
@@ -1771,7 +1771,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
         }
       ]
     }
-    ingressExternal: true
+    ingressExternal: !enablePrivateNetworking
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
     corsPolicy: {
