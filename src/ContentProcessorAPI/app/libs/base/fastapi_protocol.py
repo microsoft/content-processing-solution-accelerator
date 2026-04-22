@@ -24,7 +24,7 @@ class FastAPIWithContext(Protocol):
     app_context: AppContext
 
     def include_router(self, *args, **kwargs) -> None:
-        ...
+        pass
 
 
 def add_app_context_to_fastapi(

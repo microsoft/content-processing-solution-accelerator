@@ -16,7 +16,11 @@ import asyncio
 import logging
 import os
 
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry.sdk.resources import Resource
 from sas.storage.blob.async_helper import AsyncStorageBlobHelper
+
+from utils.telemetry_filter import install_noise_filter
 
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.agent_framework.mem0_async_memory import Mem0AsyncMemoryManager
@@ -78,6 +82,7 @@ class ClaimsQueueWorkerService(ApplicationBase):
 
         # Configure logging based on debug_mode from constructor
         self._configure_logging()
+        self._configure_telemetry()
         self.initialize()
 
     def _configure_logging(self):
@@ -94,6 +99,25 @@ class ClaimsQueueWorkerService(ApplicationBase):
         if self.debug_mode:
             logger.debug("Debug logging enabled - level set to DEBUG")
             logger.debug("Verbose third-party logging suppressed to reduce noise")
+
+    def _configure_telemetry(self):
+        """Configure Azure Monitor for OpenTelemetry if connection string is set."""
+        connection_string = self.application_context.configuration.applicationinsights_connection_string
+        if connection_string:
+            configure_azure_monitor(
+                connection_string=connection_string,
+                resource=Resource.create({"service.name": "ContentProcessorWorkflow"}),
+                logger_name="utils",
+            )
+            install_noise_filter(
+                noisy_names=frozenset({
+                    "QueueClient.receive_messages",
+                    "MessagesOperations.dequeue",
+                    "GET /msi/token",
+                }),
+                noisy_suffixes=("/claim-process-queue",),
+            )
+            logger.info("Application Insights configured for ContentProcessorWorkflow")
 
     def initialize(self):
         """Bootstrap the application context and register services.
@@ -370,8 +394,11 @@ async def run_queue_service(
         try:
             if app.queue_service:
                 await app.queue_service.stop_service()
-        except Exception:
-            pass
+        except Exception as cleanup_error:
+            logger.debug(
+                "Ignoring cleanup error while re-raising original failure: %s",
+                cleanup_error,
+            )
         raise
 
 

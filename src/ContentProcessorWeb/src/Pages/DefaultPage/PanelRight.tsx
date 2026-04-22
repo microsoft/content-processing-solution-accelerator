@@ -14,7 +14,6 @@ import { bundleIcon, ChevronDoubleLeft20Filled, ChevronDoubleLeft20Regular } fro
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchContentFileData } from '../../store/slices/rightPanelSlice';
-import { updatePanelCollapse } from "../../store/slices/defaultPageSlice";
 
 import PanelToolbar from "../../Hooks/usePanelHooks";
 import DocumentViewer from '../../Components/DocumentViewer/DocumentViewer';
@@ -22,7 +21,7 @@ const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLe
 /** Props for the {@link PanelRight} component. */
 interface PanelRightProps {
   /** Callback to collapse/expand a named panel. */
-  readonly togglePanel: (panel: string) => void;
+  readonly togglePanel: (panel: 'Left' | 'Right' | 'Center' | 'All') => void;
 }
 
 /**

@@ -1,0 +1,47 @@
+# Coverage configuration for ContentProcessorWorkflow
+# Excludes HTTP client library wrapper to focus on core business logic
+#
+# USAGE:
+# Run with pytest ignoring agent_framework and service integration tests:
+#   pytest utils/ libs/application/ libs/azure/ libs/base/ --cov-config=.coveragerc --cov-report=term --cov-report=html
+#
+# Or with explicit ignore patterns:
+#   pytest --ignore=libs/agent_framework --ignore=repositories --ignore=services --ignore=steps --cov-config=.coveragerc --cov-report=term
+
+[run]
+source = ../../ContentProcessorWorkflow/src
+omit =
+    # Exclude async HTTP client library wrapper (requires integration tests)
+    */utils/http_request.py
+    # Exclude main entry points (tested via integration)
+    */main.py
+    */main_service.py
+    # Exclude agent framework (external dependency, version incompatibility)
+    */libs/agent_framework/*
+    # Exclude queue service (requires full integration test setup)
+    */services/queue_service.py
+    # Exclude repositories and steps (require agent_framework)
+    */repositories/*
+    */steps/*
+    # Exclude test files
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    # Standard exclusions
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    
+precision = 2
+show_missing = True
+
+[html]
+directory = htmlcov_core_logic
