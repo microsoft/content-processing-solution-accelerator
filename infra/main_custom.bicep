@@ -1010,6 +1010,14 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessor'
+          }
         ]
       }
     ]
@@ -1074,6 +1082,14 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorAPI'
           }
         ]
         probes: [
@@ -1289,6 +1305,14 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorWorkflow'
           }
         ]
       }
@@ -1667,6 +1691,14 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessor'
+          }
         ]
       }
     ]
@@ -1746,6 +1778,14 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorAPI'
           }
         ]
         probes: [
@@ -1877,6 +1917,14 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorWorkflow'
           }
         ]
       }

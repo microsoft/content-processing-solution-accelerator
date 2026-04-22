@@ -3,6 +3,8 @@ azure-ai-inference==1.0.0b9
 azure-appconfiguration==1.8.0
 azure-core==1.39.0
 azure-identity==1.26.0b1
+azure-monitor-events-extension==0.1.0
+azure-monitor-opentelemetry==1.6.10
 azure-storage-blob==12.29.0b1
 azure-storage-queue==12.16.0b1
 certifi==2026.2.25

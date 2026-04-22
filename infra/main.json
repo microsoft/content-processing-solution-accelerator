@@ -47780,6 +47780,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessor"
                   }
                 ]
               }
@@ -49333,6 +49341,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
       ]
@@ -49405,6 +49414,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorAPI"
                   }
                 ],
                 "probes": [
@@ -51019,6 +51036,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
       ]
@@ -52739,6 +52757,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorWorkflow"
                   }
                 ]
               }
@@ -54289,6 +54315,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
       ]
@@ -65019,6 +65046,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessor"
                   }
                 ]
               }
@@ -66570,6 +66605,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
         "avmContainerRegistryReader",
@@ -66645,6 +66681,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorAPI"
                   }
                 ],
                 "probes": [
@@ -68259,6 +68303,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
         "avmContainerRegistryReader",
@@ -68333,6 +68378,14 @@
                   {
                     "name": "AZURE_LOGGING_PACKAGES",
                     "value": ""
+                  },
+                  {
+                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                    "value": "[if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, '')]"
+                  },
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "value": "ContentProcessorWorkflow"
                   }
                 ]
               }
@@ -69883,6 +69936,7 @@
         }
       },
       "dependsOn": [
+        "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
         "avmContainerRegistryReader"
