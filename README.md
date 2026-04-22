@@ -198,11 +198,25 @@ flowchart TB
 
 For detailed technical information, see the component documentation:
 
-[Technical Architecture](./docs/TechnicalArchitecture.md) · [Document Processing Pipeline (4-stage extraction)](./docs/ProcessingPipelineApproach.md) · [Claim Processing Workflow (Agent Framework)](./docs/ClaimProcessWorkflow.md) · [Golden Path Workflows (end-to-end walkthroughs)](./docs/GoldenPathWorkflows.md)
+[Technical Architecture](./docs/TechnicalArchitecture.md)
+
+[Document Processing Pipeline (4-stage extraction)](./docs/ProcessingPipelineApproach.md)
+
+[Claim Processing Workflow (Agent Framework)](./docs/ClaimProcessWorkflow.md)
+
+[Golden Path Workflows (end-to-end walkthroughs)](./docs/GoldenPathWorkflows.md)
 
 If you'd like to customize the solution accelerator, here are some common areas to start:
 
-[Adding your own Schemas and Data](./docs/CustomizeSchemaData.md) · [Modifying System Processing Prompts](./docs/CustomizeSystemPrompts.md) · [Gap Analysis Ruleset Guide (YAML DSL — no-code rule authoring)](./docs/GapAnalysisRulesetGuide.md) · [API Reference for Content Processing & Claim Management](./docs/API.md) · [Customizing the Claim Processing Workflow](./docs/ClaimProcessWorkflow.md)
+[Adding your own Schemas and Data](./docs/CustomizeSchemaData.md) 
+
+[Modifying System Processing Prompts](./docs/CustomizeSystemPrompts.md) 
+
+[Gap Analysis Ruleset Guide (YAML DSL — no-code rule authoring)](./docs/GapAnalysisRulesetGuide.md) 
+
+[API Reference for Content Processing & Claim Management](./docs/API.md)
+
+[Customizing the Claim Processing Workflow](./docs/ClaimProcessWorkflow.md)
 
 ---
 
@@ -396,15 +410,6 @@ Check out similar solution accelerators
 | [Conversation&nbsp;knowledge&nbsp;mining](https://github.com/microsoft/Conversation-Knowledge-Mining-Solution-Accelerator) | Derive insights from volumes of conversational data using generative AI. It offers key phrase extraction, topic modeling, and interactive chat experiences through an intuitive web interface. |
 | [Document&nbsp;generation](https://github.com/microsoft/document-generation-solution-accelerator) | Identify relevant documents, summarize unstructured information, and generate document templates. |
 
-
-<br/>
-
-💡 Want to get familiar with Microsoft's AI and Data Engineering best practices? Check out our playbooks to learn more
-
-| Playbook | Description |
-|:---|:---|
-| [AI&nbsp;playbook](https://learn.microsoft.com/en-us/ai/playbook/) | The Artificial Intelligence (AI) Playbook provides enterprise software engineers with solutions, capabilities, and code developed to solve real-world AI problems. |
-| [Data&nbsp;playbook](https://learn.microsoft.com/en-us/data-engineering/playbook/understanding-data-playbook) | The data playbook provides enterprise software engineers with solutions which contain code developed to solve real-world problems. Everything in the playbook is developed with, and validated by, some of Microsoft's largest and most influential customers and partners. |
 
 <br/>
 
