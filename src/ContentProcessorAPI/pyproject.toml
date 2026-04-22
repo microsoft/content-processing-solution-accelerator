@@ -12,7 +12,7 @@ dependencies = [
     "certifi==2026.2.25",
     "fastapi[standard]==0.135.2",
     "poppler-utils==0.1.0",
-    "pydantic==2.13.1",
+    "pydantic==2.13.3",
     "pydantic-settings==2.13.1",
     "pygments==2.20.0",
     "pymongo==4.16.0",
