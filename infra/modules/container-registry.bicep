@@ -61,7 +61,7 @@ module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.12.
         ]
       : null
     // WAF aligned configuration for Private Networking - Network access restrictions
-    // Network rule set features require Premium SKU; only set when private networking is enabled
+    // Network rule set features require Premium SKU; default action is always set ('Deny' for private networking, otherwise 'Allow'), while additional restrictions are only set when private networking is enabled
     networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
     networkRuleSetIpRules: enablePrivateNetworking ? [] : null
     exportPolicyStatus: enablePrivateNetworking ? 'disabled' : null
