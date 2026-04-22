@@ -156,6 +156,25 @@ class HomePageV2(BasePage):
         logger.info(f"Found {len(files)} files in testdata folder: {[os.path.basename(f) for f in files]}")
         return files
 
+    def _get_import_dialog(self):
+        """
+        Locate the Import Content dialog using both 'dialog' and 'alertdialog' roles.
+        Fluent UI v9 with modalType='modal' renders as role='dialog', while older
+        versions or modalType='alert' use 'alertdialog'.
+        """
+        dialog = self.page.get_by_role("dialog", name="Import Content")
+        alertdialog = self.page.get_by_role("alertdialog", name="Import Content")
+        import_dialog = dialog.or_(alertdialog).first
+
+        try:
+            expect(import_dialog).to_be_visible(timeout=5000)
+        except Exception as exc:
+            raise Exception(
+                "Import Content dialog not found with role 'dialog' or 'alertdialog'"
+            ) from exc
+
+        return import_dialog
+
     def select_schema_for_file(self, file_name, schema_name):
         """
         Select a schema from the dropdown for a specific file in the import dialog.
@@ -166,13 +185,11 @@ class HomePageV2(BasePage):
         """
         logger.info(f"Selecting schema '{schema_name}' for file '{file_name}'...")
 
+        dialog = self._get_import_dialog()
+
         # Get all schema comboboxes and file labels in the import dialog
-        schema_dropdowns = self.page.get_by_role(
-            "alertdialog", name="Import Content"
-        ).get_by_placeholder("Select Schema")
-        file_labels = self.page.get_by_role(
-            "alertdialog", name="Import Content"
-        ).locator("strong")
+        schema_dropdowns = dialog.get_by_placeholder("Select Schema")
+        file_labels = dialog.locator("strong")
 
         # Find the index of this file among all listed files
         count = file_labels.count()
@@ -184,6 +201,8 @@ class HomePageV2(BasePage):
                 break
 
         if target_index == -1:
+            dialog_text = dialog.inner_text()
+            logger.error(f"File '{file_name}' not found. Dialog content:\n{dialog_text[:500]}")
             raise Exception(f"File '{file_name}' not found in import dialog")
 
         # Click on the schema dropdown for this file
@@ -249,7 +268,7 @@ class HomePageV2(BasePage):
 
         logger.info("Validating upload success...")
         expect(
-            self.page.get_by_role("alertdialog", name="Import Content")
+            self._get_import_dialog()
             .locator("path")
             .nth(1)
         ).to_be_visible()
@@ -491,9 +510,6 @@ class HomePageV2(BasePage):
         logger.info("Starting Source Document pane validation...")
 
         logger.info("Validating Source Document pane has content...")
-        source_doc_pane = self.page.locator(
-            "//div[contains(text(),'Source Document')]/ancestor::div[1]/following-sibling::*"
-        )
 
         # Verify "No document available" is NOT shown
         no_data = self.page.locator(self.SOURCE_DOC_NO_DATA)
@@ -821,7 +837,9 @@ class HomePageV2(BasePage):
         validation_msg = self.page.locator(
             "//div[contains(text(),'Please Select') or contains(text(),'Please select')]"
         )
-        dialog = self.page.get_by_role("alertdialog")
+        dialog = self.page.get_by_role("dialog", name="Import Content").or_(
+            self.page.get_by_role("alertdialog", name="Import Content")
+        )
 
         if validation_msg.count() > 0 and validation_msg.first.is_visible():
             logger.info("✓ Validation message is visible")
@@ -867,7 +885,7 @@ class HomePageV2(BasePage):
 
         # Validate the selected collection info message
         logger.info("Validating 'Selected Collection: Auto Claim' message...")
-        dialog = self.page.get_by_role("alertdialog", name="Import Content")
+        dialog = self._get_import_dialog()
         expect(dialog).to_be_visible()
         logger.info("✓ Import Content dialog is visible")
 
@@ -938,7 +956,7 @@ class HomePageV2(BasePage):
             logger.info("✓ Unsupported file error message is visible")
         else:
             # Check if Import button remains disabled
-            dialog = self.page.get_by_role("alertdialog", name="Import Content")
+            dialog = self._get_import_dialog()
             import_btn = dialog.locator("//button[normalize-space()='Import']")
             expect(import_btn).to_be_disabled()
             logger.info("✓ Import button remains disabled for unsupported file")
@@ -1063,7 +1081,7 @@ class HomePageV2(BasePage):
 
         self.page.wait_for_timeout(5000)
 
-        dialog = self.page.get_by_role("alertdialog", name="Import Content")
+        dialog = self._get_import_dialog()
         logger.info("Import dialog opened with files ready for schema selection")
         return dialog
 
@@ -1139,7 +1157,7 @@ class HomePageV2(BasePage):
             "repair_estimate.pdf": "Auto Insurance Claim Form",
         }
 
-        dialog = self.open_import_dialog_with_files()
+        self.open_import_dialog_with_files()
 
         # Select mismatched schemas for each file
         files = self.get_testdata_files()
@@ -1161,7 +1179,7 @@ class HomePageV2(BasePage):
 
         logger.info("Validating upload success (system accepts mismatched schemas)...")
         expect(
-            self.page.get_by_role("alertdialog", name="Import Content")
+            self._get_import_dialog()
             .locator("path")
             .nth(1)
         ).to_be_visible()
@@ -1195,7 +1213,6 @@ class HomePageV2(BasePage):
 
         # Try to remove the first file using the delete/remove button next to it
         logger.info("Attempting to remove first file from the list...")
-        file_labels = dialog.locator("strong")
         first_file_name = os.path.basename(files[0])
 
         # Look for a delete/remove button near the first file entry

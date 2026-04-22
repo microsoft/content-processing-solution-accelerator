@@ -98,7 +98,8 @@ class Configuration(_configuration_base):
 
     Attribute groups:
         Logging
-            ``app_logging_enable``, ``app_logging_level`` — control the
+            ``app_logging_level``, ``azure_package_logging_level``,
+            ``azure_logging_packages`` — control the
             application-wide Python logging configuration.
         Cosmos DB
             ``app_cosmos_connstr``, ``app_cosmos_database``,
@@ -115,11 +116,14 @@ class Configuration(_configuration_base):
     """
 
     # Application Logging Configuration
-    app_logging_enable: bool = Field(
-        default=False, description="Enable application logging"
-    )
     app_logging_level: str = Field(
         default="DEBUG", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
+    )
+    azure_package_logging_level: str = Field(
+        default="WARNING", description="Log level for Azure SDK packages"
+    )
+    azure_logging_packages: str = Field(
+        default="", description="Comma-separated Azure package logger names"
     )
 
     # Sample Configuration
@@ -175,6 +179,9 @@ class Configuration(_configuration_base):
         default=True,
         alias="APP_RAI_ENABLED",
         description="Enable Responsible AI (RAI) analysis in the workflow",
+    )
+    applicationinsights_connection_string: str = Field(
+        default="", alias="APPLICATIONINSIGHTS_CONNECTION_STRING"
     )
 
     # Add your custom configuration here:
