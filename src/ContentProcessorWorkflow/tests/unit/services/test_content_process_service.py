@@ -142,8 +142,68 @@ class TestPollStatus:
             record.processed_file_name = "test.pdf"
             svc._process_repo.get_async.return_value = record
 
-            result = await svc.poll_status("p1", poll_interval_seconds=0.01)
+            result = await svc.poll_status(
+                "p1",
+                poll_interval_seconds=0.01,
+                error_confirmation_polls=3,
+            )
             assert result["status"] == "Error"
+            assert result["terminal"] is True
+            # Should have been called 1 (initial) + 3 (confirmation) = 4 times
+            assert svc._process_repo.get_async.call_count == 4
+
+        asyncio.run(_run())
+
+    def test_error_recovers_to_retrying(self):
+        """When Error is seen but status changes to Retrying, polling continues."""
+
+        async def _run():
+            svc = _make_service()
+            # Error -> Retrying -> extract -> Completed
+            statuses = iter(["Error", "Retrying", "extract", "Completed"])
+
+            async def _get_async(pid):
+                s = next(statuses)
+                rec = MagicMock()
+                rec.status = s
+                rec.processed_file_name = "test.pdf"
+                return rec
+
+            svc._process_repo.get_async.side_effect = _get_async
+
+            result = await svc.poll_status(
+                "p1",
+                poll_interval_seconds=0.01,
+                error_confirmation_polls=3,
+            )
+            assert result["status"] == "Completed"
+            assert result["terminal"] is True
+
+        asyncio.run(_run())
+
+    def test_error_recovers_to_step_name(self):
+        """When Error is seen but status changes to a step name, polling continues."""
+
+        async def _run():
+            svc = _make_service()
+            # Error -> map (retry started) -> Completed
+            statuses = iter(["Error", "map", "Completed"])
+
+            async def _get_async(pid):
+                s = next(statuses)
+                rec = MagicMock()
+                rec.status = s
+                rec.processed_file_name = "test.pdf"
+                return rec
+
+            svc._process_repo.get_async.side_effect = _get_async
+
+            result = await svc.poll_status(
+                "p1",
+                poll_interval_seconds=0.01,
+                error_confirmation_polls=3,
+            )
+            assert result["status"] == "Completed"
             assert result["terminal"] is True
 
         asyncio.run(_run())
