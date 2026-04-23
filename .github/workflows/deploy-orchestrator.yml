@@ -37,6 +37,11 @@ on:
         required: false
         default: false
         type: boolean
+      use_user_auth:
+        description: 'Use interactive user (device-code) authentication instead of service principal (manual dispatches only)'
+        required: false
+        default: false
+        type: boolean
       run_e2e_tests:
         description: 'Run End-to-End Tests'
         required: false
@@ -71,6 +76,7 @@ jobs:
     with:
       trigger_type: ${{ inputs.trigger_type }}
       build_docker_image: ${{ inputs.build_docker_image }}
+      use_user_auth: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.use_user_auth }}
     secrets: inherit
 
   deploy:
@@ -91,6 +97,7 @@ jobs:
       docker_image_tag: ${{ needs.docker-build.outputs.IMAGE_TAG }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
       cleanup_resources: ${{ inputs.cleanup_resources }}
+      use_user_auth: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.use_user_auth }}
     secrets: inherit
 
   e2e-test:
@@ -116,6 +123,7 @@ jobs:
       AZURE_ENV_OPENAI_LOCATION: ${{ needs.deploy.outputs.AZURE_ENV_OPENAI_LOCATION }}
       ENV_NAME: ${{ needs.deploy.outputs.ENV_NAME }}
       IMAGE_TAG: ${{ needs.deploy.outputs.IMAGE_TAG }}
+      use_user_auth: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.use_user_auth }}
     secrets: inherit
 
   send-notification:

@@ -34,6 +34,11 @@ on:
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
         required: false
         type: string
+      use_user_auth:
+        description: 'Use interactive user (device-code) authentication instead of service principal'
+        required: false
+        type: boolean
+        default: false
     outputs:
       CONTAINER_WEB_APPURL:
         description: "Container Web App URL"
@@ -199,18 +204,49 @@ jobs:
       - name: Setup Azure Developer CLI (Windows)
         uses: Azure/setup-azd@v2
 
-      - name: Login to Azure
+      - name: Login to Azure (Service Principal)
+        if: ${{ !inputs.use_user_auth }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to AZD
+      - name: Login to Azure (User — device code)
+        if: ${{ inputs.use_user_auth }}
+        shell: bash
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          echo "::warning title=Action Required::Open https://microsoft.com/devicelogin and enter the code printed below to authenticate this job (deploy-windows)."
+          echo "=========================================================================="
+          echo "⚠️  ACTION REQUIRED — deploy-windows job is waiting for interactive sign-in (az)"
+          echo "   Watch the live logs and authenticate at https://microsoft.com/devicelogin"
+          echo "=========================================================================="
+          az login --use-device-code --tenant "$AZURE_TENANT_ID"
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+
+      - name: Login to AZD (Service Principal)
+        if: ${{ !inputs.use_user_auth }}
         id: login-azure
         shell: bash
         run: |
           azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider "github" --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Login to AZD (User — device code)
+        if: ${{ inputs.use_user_auth }}
+        id: login-azd-user
+        shell: bash
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          echo "::warning title=Action Required::Authenticate azd at https://microsoft.com/devicelogin (deploy-windows)."
+          echo "=========================================================================="
+          echo "⚠️  ACTION REQUIRED — deploy-windows job is waiting for interactive sign-in (azd)"
+          echo "   Watch the live logs and authenticate at https://microsoft.com/devicelogin"
+          echo "=========================================================================="
+          azd auth login --use-device-code --tenant-id "$AZURE_TENANT_ID"
 
       - name: Deploy using azd up and extract values (Windows)
         id: get_output_windows

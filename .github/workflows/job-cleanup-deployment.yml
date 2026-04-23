@@ -40,6 +40,11 @@ on:
         description: 'Docker Image Tag'
         required: true
         type: string
+      use_user_auth:
+        description: 'Use interactive user (device-code) authentication instead of service principal'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   cleanup-deployment:
@@ -199,12 +204,28 @@ jobs:
           echo ""
           echo "✅ All input parameters validated successfully!"
 
-      - name: Login to Azure
+      - name: Login to Azure (Service Principal)
+        if: ${{ !inputs.use_user_auth }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure (User — device code)
+        if: ${{ inputs.use_user_auth }}
+        shell: bash
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          echo "::warning title=Action Required::Open https://microsoft.com/devicelogin and enter the code printed below to authenticate this job (cleanup)."
+          echo "=========================================================================="
+          echo "⚠️  ACTION REQUIRED — cleanup-deployment job is waiting for interactive sign-in"
+          echo "   Watch the live logs and authenticate at https://microsoft.com/devicelogin"
+          echo "=========================================================================="
+          az login --use-device-code --tenant "$AZURE_TENANT_ID"
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
       - name: Delete Resource Group (Optimized Cleanup)
         id: delete_rg

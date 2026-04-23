@@ -66,6 +66,11 @@ on:
         required: false
         default: ''
         type: string
+      use_user_auth:
+        description: 'Use interactive user (device-code) authentication instead of service principal'
+        required: false
+        default: false
+        type: boolean
     outputs:
       RESOURCE_GROUP_NAME:
         description: "Resource Group Name"
@@ -316,12 +321,28 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Login to Azure
+      - name: Login to Azure (Service Principal)
+        if: ${{ !inputs.use_user_auth }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure (User — device code)
+        if: ${{ inputs.use_user_auth }}
+        shell: bash
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          echo "::warning title=Action Required::Open https://microsoft.com/devicelogin and enter the code printed below to authenticate this job (azure-setup)."
+          echo "=========================================================================="
+          echo "⚠️  ACTION REQUIRED — azure-setup job is waiting for interactive sign-in"
+          echo "   Watch the live logs and authenticate at https://microsoft.com/devicelogin"
+          echo "=========================================================================="
+          az login --use-device-code --tenant "$AZURE_TENANT_ID"
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
       
       - name: Run Quota Check
         id: quota-check
@@ -538,6 +559,7 @@ jobs:
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+      use_user_auth: ${{ inputs.use_user_auth }}
     secrets: inherit
 
   deploy-windows:
@@ -556,4 +578,5 @@ jobs:
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+      use_user_auth: ${{ inputs.use_user_auth }}
     secrets: inherit
