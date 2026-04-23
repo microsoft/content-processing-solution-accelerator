@@ -966,7 +966,7 @@ module caeDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.0' = if (enabl
     ]
     virtualNetworkLinks: [
       {
-        name: take('vnetlink-${virtualNetworkResourceName}-cae', 64)
+        name: take('vnetlink-vnet-${solutionSuffix}-cae', 64)
         virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
       }
     ]
