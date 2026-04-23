@@ -76,7 +76,6 @@ jobs:
     with:
       trigger_type: ${{ inputs.trigger_type }}
       build_docker_image: ${{ inputs.build_docker_image }}
-      use_user_auth: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.use_user_auth }}
     secrets: inherit
 
   deploy:
