@@ -914,8 +914,14 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.3' = {
     name: 'cae-${solutionSuffix}'
     location: location
     tags: {
+      ...resourceGroup().tags
+      ...tags
+      TemplateName: 'Content Processing'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+      CreatedBy: createdBy
+      DeploymentName: deployment().name
       app: solutionSuffix
-      location: location
+
     }
     managedIdentities: { systemAssigned: true }
     appLogsConfiguration: enableMonitoring
