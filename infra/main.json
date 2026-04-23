@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "306303044487815506"
+      "templateHash": "18378296288333564754"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -45045,7 +45045,7 @@
             "value": "[parameters('location')]"
           },
           "tags": {
-            "value": "[shallowMerge(createArray(resourceGroup().tags, parameters('tags'), createObject('TemplateName', 'Content Processing', 'Type', if(parameters('enablePrivateNetworking'), 'WAF', 'Non-WAF'), 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'app', variables('solutionSuffix'))))]"
+            "value": "[shallowMerge(createArray(resourceGroup().tags, parameters('tags')))]"
           },
           "managedIdentities": {
             "value": {

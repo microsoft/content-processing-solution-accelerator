@@ -916,12 +916,6 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.3' = {
     tags: {
       ...resourceGroup().tags
       ...tags
-      TemplateName: 'Content Processing'
-      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
-      CreatedBy: createdBy
-      DeploymentName: deployment().name
-      app: solutionSuffix
-
     }
     managedIdentities: { systemAssigned: true }
     appLogsConfiguration: enableMonitoring
