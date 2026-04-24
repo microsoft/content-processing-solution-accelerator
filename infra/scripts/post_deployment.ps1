@@ -239,3 +239,9 @@ if (-not $ApiReady) {
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
 }
+
+# --- Configure Entra ID authentication (app registrations + EasyAuth) ---
+$authScript = Join-Path $PSScriptRoot "configure_auth.ps1"
+if (Test-Path $authScript) {
+  try { & $authScript } catch { Write-Host "⚠️ Auth configuration had errors: $_" }
+}
