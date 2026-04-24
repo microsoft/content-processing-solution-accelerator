@@ -261,3 +261,11 @@ else
     echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
   fi
 fi
+
+
+# --- Configure Entra ID authentication (app registrations + EasyAuth) ---
+SCRIPT_DIR_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR_SELF/configure_auth.sh" ]; then
+  sed -i 's/\r$//' "$SCRIPT_DIR_SELF/configure_auth.sh"
+  bash "$SCRIPT_DIR_SELF/configure_auth.sh" || echo "⚠️ Auth configuration had errors — see output above."
+fi
