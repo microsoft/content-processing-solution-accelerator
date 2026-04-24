@@ -360,12 +360,50 @@ Schema registration process completed.
   ✅ Schema registration complete.
 ```
 
-### 5.2 Configure Authentication (Required)
+### 5.2 Configure Authentication (Automatic)
 
-**This step is mandatory for application access:**
+Starting with this release, authentication is configured **automatically** as part of the `azd up` post-provisioning hook. The hook:
 
-1. Follow [App Authentication Configuration](./ConfigureAppAuthentication.md).
-2. Wait up to 10 minutes for authentication changes to take effect.
+1. Creates two Entra ID app registrations (`<env>-web-app`, `<env>-api-app`) with the correct redirect URIs, exposed scopes, and required permissions
+2. Grants admin consent (best effort — see note below)
+3. Mints client secrets and stores them in Container Apps secrets
+4. Enables the Microsoft identity provider on both the Web and API container apps
+5. Restricts the API to only accept tokens from the Web app (`allowedApplications`)
+6. Sets the `APP_WEB_CLIENT_ID`, `APP_WEB_SCOPE`, `APP_API_SCOPE`, and `APP_AUTH_ENABLED` environment variables on the Web container
+
+You will see an **`🔐 Configuring Entra ID authentication`** section in the `azd up` output, ending with a summary of both client IDs and scopes.
+
+> **Note:** EasyAuth can take up to 10 minutes to fully propagate. If the Web app returns 500/401 immediately after deployment, wait a few minutes and retry.
+
+#### When automatic configuration is not possible
+
+Automatic configuration requires permission to:
+- Create Entra ID app registrations (**Application Administrator** or equivalent)
+- Grant admin consent for delegated permissions (**Cloud Application Administrator** or **Global Administrator**)
+
+If your identity cannot grant admin consent, the script prints a clear manual action message like:
+
+```
+⚠️ Admin consent failed. Sign-in may fail until a tenant admin runs:
+     az ad app permission admin-consent --id <web-client-id>
+   Or visit: https://login.microsoftonline.com/<tenant>/adminconsent?client_id=<web-client-id>
+```
+
+In that case, share the command/URL with your tenant administrator.
+
+#### Skipping automatic auth configuration
+
+If your tenant blocks programmatic app registration, or you prefer to configure authentication manually, disable the automation before running `azd up`:
+
+```bash
+azd env set AZURE_SKIP_AUTH_SETUP true
+```
+
+Then follow the manual instructions: [App Authentication Configuration (manual)](./ConfigureAppAuthentication.md).
+
+#### Re-running
+
+The automation is idempotent: re-running `azd up` reuses the existing app registrations (IDs are persisted in `AZURE_AUTH_WEB_CLIENT_ID` / `AZURE_AUTH_API_CLIENT_ID` in the azd environment) and does not rotate client secrets.
 
 ### 5.3 Verify Deployment
 
