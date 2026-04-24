@@ -23,7 +23,14 @@ echo "============================================================"
 ENV_NAME="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || echo "")"
 RESOURCE_GROUP="$(azd env get-value AZURE_RESOURCE_GROUP)"
 SUBSCRIPTION_ID="$(azd env get-value AZURE_SUBSCRIPTION_ID)"
-TENANT_ID="$(azd env get-value AZURE_TENANT_ID 2>/dev/null || az account show --query tenantId -o tsv)"
+TENANT_ID="$(az account show --query tenantId -o tsv)"
+if [[ -z "$TENANT_ID" ]]; then
+  TENANT_ID="$(azd env get-value AZURE_TENANT_ID 2>/dev/null || true)"
+fi
+if [[ -z "$TENANT_ID" ]]; then
+  echo "❌ Could not resolve Azure tenant id. Run 'az login' or set AZURE_TENANT_ID." >&2
+  exit 1
+fi
 
 WEB_NAME="$(azd env get-value CONTAINER_WEB_APP_NAME)"
 WEB_FQDN="$(azd env get-value CONTAINER_WEB_APP_FQDN)"
@@ -275,23 +282,21 @@ ensure_ca_secret_from_app_reg "$WEB_CLIENT_ID" "$WEB_NAME"
 echo ""
 echo "➡️  Step 5/6: Enabling EasyAuth on Web + API container apps"
 
-OPENID_ISSUER="https://login.microsoftonline.com/${TENANT_ID}/v2.0"
-
 configure_easyauth_app() {
   local ca_name="$1"
   local client_id="$2"
-  local audience="$3"
+  # Note: --tenant-id and --issuer are mutually exclusive; tenant-id derives
+  # the v2.0 issuer automatically. Do not override --allowed-token-audiences;
+  # EasyAuth issues ID tokens with aud=<client_id>, which is the default.
   az containerapp auth microsoft update -n "$ca_name" -g "$RESOURCE_GROUP" \
     --client-id "$client_id" \
     --client-secret-name "$CA_SECRET_NAME" \
     --tenant-id "$TENANT_ID" \
-    --issuer "$OPENID_ISSUER" \
-    --allowed-token-audiences "$audience" \
     --yes --output none
 }
 
-configure_easyauth_app "$API_NAME" "$API_CLIENT_ID" "$API_IDENTIFIER_URI"
-configure_easyauth_app "$WEB_NAME" "$WEB_CLIENT_ID" "$WEB_IDENTIFIER_URI"
+configure_easyauth_app "$API_NAME" "$API_CLIENT_ID"
+configure_easyauth_app "$WEB_NAME" "$WEB_CLIENT_ID"
 
 # Make sure auth is enabled and (temporarily) permissive so we can still push
 # env vars / verify deployment. Final lockdown happens at the end.
@@ -318,31 +323,43 @@ az containerapp update -n "$WEB_NAME" -g "$RESOURCE_GROUP" \
   --output none
 echo "  ✓ Web env vars: APP_WEB_CLIENT_ID / APP_WEB_SCOPE / APP_API_SCOPE / APP_AUTH_ENABLED"
 
-# Patch API authConfig: restrict to Web client id
-# (equivalent to portal "Allow requests from specific client applications")
-API_AUTHCONFIG_URL="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.App/containerApps/${API_NAME}/authConfigs/current?api-version=2024-03-01"
-
-CURRENT_AUTH_JSON="$(az rest --method get --url "$API_AUTHCONFIG_URL")"
-PATCHED_AUTH_JSON="$(echo "$CURRENT_AUTH_JSON" | python3 -c "
-import json, sys
-doc = json.load(sys.stdin)
-props = doc.setdefault('properties', {})
+# Patch both authConfigs:
+#   - API: add Web client id to allowedApplications
+#   - Both: reset allowedAudiences to only the clientId, normalize openIdIssuer
+patch_authconfig() {
+  local ca_name="$1"
+  local client_id="$2"
+  local add_web_allowed="$3"   # "true" / "false"
+  local url="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.App/containerApps/${ca_name}/authConfigs/current?api-version=2024-03-01"
+  local cur patched
+  cur="$(az rest --method get --url "$url")"
+  patched="$(echo "$cur" | ADD_WEB="$add_web_allowed" WEB_CLIENT_ID="$WEB_CLIENT_ID" CLIENT_ID="$client_id" TENANT_ID="$TENANT_ID" python3 -c "
+import json, os, sys
+d = json.load(sys.stdin)
+props = d.setdefault('properties', {})
 idp = props.setdefault('identityProviders', {})
 aad = idp.setdefault('azureActiveDirectory', {})
+reg = aad.setdefault('registration', {})
+reg['openIdIssuer'] = f\"https://login.microsoftonline.com/{os.environ['TENANT_ID']}/v2.0\"
 val = aad.setdefault('validation', {})
+val['allowedAudiences'] = [os.environ['CLIENT_ID']]
 policy = val.setdefault('defaultAuthorizationPolicy', {})
 allowed = set(policy.get('allowedApplications') or [])
-allowed.add('${WEB_CLIENT_ID}')
+if os.environ['ADD_WEB'] == 'true':
+    allowed.add(os.environ['WEB_CLIENT_ID'])
 policy['allowedApplications'] = sorted(allowed)
-print(json.dumps(doc))
+print(json.dumps(d))
 ")"
+  echo "$patched" > /tmp/authconfig_patch.json
+  retry az rest --method put --url "$url" \
+    --headers "Content-Type=application/json" \
+    --body @/tmp/authconfig_patch.json >/dev/null
+  rm -f /tmp/authconfig_patch.json
+}
 
-echo "$PATCHED_AUTH_JSON" > /tmp/api_authconfig.json
-retry az rest --method put --url "$API_AUTHCONFIG_URL" \
-  --headers "Content-Type=application/json" \
-  --body @/tmp/api_authconfig.json >/dev/null
-rm -f /tmp/api_authconfig.json
-echo "  ✓ API 'allowed applications' now includes Web client id"
+patch_authconfig "$API_NAME" "$API_CLIENT_ID" "true"
+patch_authconfig "$WEB_NAME" "$WEB_CLIENT_ID" "false"
+echo "  ✓ authConfigs normalized (issuer, audiences, allowedApplications)"
 
 # Final lockdown
 az containerapp auth update -n "$WEB_NAME" -g "$RESOURCE_GROUP" \

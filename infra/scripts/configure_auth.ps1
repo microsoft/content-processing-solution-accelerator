@@ -25,8 +25,9 @@ function Azd-Get($key, $default = "") {
 $EnvName        = Azd-Get "AZURE_ENV_NAME" "cps"
 $ResourceGroup  = Azd-Get "AZURE_RESOURCE_GROUP"
 $SubscriptionId = Azd-Get "AZURE_SUBSCRIPTION_ID"
-$TenantId       = Azd-Get "AZURE_TENANT_ID"
-if (-not $TenantId) { $TenantId = (az account show --query tenantId -o tsv) }
+$TenantId = (az account show --query tenantId -o tsv)
+if (-not $TenantId) { $TenantId = Azd-Get "AZURE_TENANT_ID" "" }
+if (-not $TenantId) { throw "Could not resolve Azure tenant id. Run 'az login' or set AZURE_TENANT_ID." }
 
 $WebName = Azd-Get "CONTAINER_WEB_APP_NAME"
 $WebFqdn = Azd-Get "CONTAINER_WEB_APP_FQDN"
@@ -217,18 +218,18 @@ Write-Host ""
 Write-Host "➡️  Step 5/6: Enabling EasyAuth on Web + API container apps"
 $Issuer = "https://login.microsoftonline.com/$TenantId/v2.0"
 
-function Configure-EasyAuth($CaName, $ClientId, $Audience) {
+function Configure-EasyAuth($CaName, $ClientId) {
+  # Note: --tenant-id and --issuer are mutually exclusive. Do not override
+  # --allowed-token-audiences; EasyAuth issues ID tokens with aud=<client_id>.
   az containerapp auth microsoft update -n $CaName -g $ResourceGroup `
     --client-id $ClientId `
     --client-secret-name $CaSecretName `
     --tenant-id $TenantId `
-    --issuer $Issuer `
-    --allowed-token-audiences $Audience `
     --yes --output none
 }
 
-Configure-EasyAuth $ApiName $ApiClientId $ApiIdentifierUri
-Configure-EasyAuth $WebName $WebClientId $WebIdentifierUri
+Configure-EasyAuth $ApiName $ApiClientId
+Configure-EasyAuth $WebName $WebClientId
 
 az containerapp auth update -n $WebName -g $ResourceGroup --enabled true --unauthenticated-client-action AllowAnonymous --output none
 az containerapp auth update -n $ApiName -g $ResourceGroup --enabled true --unauthenticated-client-action AllowAnonymous --output none
@@ -243,25 +244,33 @@ az containerapp update -n $WebName -g $ResourceGroup `
   --output none
 Write-Host "  ✓ Web env vars updated"
 
-$authUrl = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.App/containerApps/$ApiName/authConfigs/current?api-version=2024-03-01"
-$current = az rest --method get --url $authUrl | ConvertFrom-Json
-if (-not $current.properties) { $current | Add-Member -MemberType NoteProperty -Name properties -Value (@{}) }
-if (-not $current.properties.identityProviders) { $current.properties | Add-Member -MemberType NoteProperty -Name identityProviders -Value (@{}) }
-if (-not $current.properties.identityProviders.azureActiveDirectory) { $current.properties.identityProviders | Add-Member -MemberType NoteProperty -Name azureActiveDirectory -Value (@{}) }
-$aad = $current.properties.identityProviders.azureActiveDirectory
-if (-not $aad.validation) { $aad | Add-Member -MemberType NoteProperty -Name validation -Value (@{}) }
-if (-not $aad.validation.defaultAuthorizationPolicy) { $aad.validation | Add-Member -MemberType NoteProperty -Name defaultAuthorizationPolicy -Value (@{}) }
-$policy = $aad.validation.defaultAuthorizationPolicy
-$allowed = @()
-if ($policy.allowedApplications) { $allowed = @($policy.allowedApplications) }
-if ($allowed -notcontains $WebClientId) { $allowed += $WebClientId }
-$policy.allowedApplications = $allowed
+function Patch-AuthConfig($CaName, $ClientId, $AddWebAllowed) {
+  $url = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.App/containerApps/$CaName/authConfigs/current?api-version=2024-03-01"
+  $current = az rest --method get --url $url | ConvertFrom-Json
+  if (-not $current.properties) { $current | Add-Member -MemberType NoteProperty -Name properties -Value (@{}) }
+  if (-not $current.properties.identityProviders) { $current.properties | Add-Member -MemberType NoteProperty -Name identityProviders -Value (@{}) }
+  if (-not $current.properties.identityProviders.azureActiveDirectory) { $current.properties.identityProviders | Add-Member -MemberType NoteProperty -Name azureActiveDirectory -Value (@{}) }
+  $aad = $current.properties.identityProviders.azureActiveDirectory
+  if (-not $aad.registration) { $aad | Add-Member -MemberType NoteProperty -Name registration -Value (@{}) }
+  $aad.registration.openIdIssuer = "https://login.microsoftonline.com/$TenantId/v2.0"
+  if (-not $aad.validation) { $aad | Add-Member -MemberType NoteProperty -Name validation -Value (@{}) }
+  $aad.validation.allowedAudiences = @($ClientId)
+  if (-not $aad.validation.defaultAuthorizationPolicy) { $aad.validation | Add-Member -MemberType NoteProperty -Name defaultAuthorizationPolicy -Value (@{}) }
+  $policy = $aad.validation.defaultAuthorizationPolicy
+  $allowed = @()
+  if ($policy.allowedApplications) { $allowed = @($policy.allowedApplications) }
+  if ($AddWebAllowed -and ($allowed -notcontains $WebClientId)) { $allowed += $WebClientId }
+  $policy.allowedApplications = $allowed
 
-$tmp = New-TemporaryFile
-$current | ConvertTo-Json -Depth 20 | Out-File -FilePath $tmp -Encoding utf8
-Retry { az rest --method put --url $authUrl --headers "Content-Type=application/json" --body "@$tmp" | Out-Null }
-Remove-Item $tmp
-Write-Host "  ✓ API 'allowed applications' includes Web client id"
+  $tmp = New-TemporaryFile
+  $current | ConvertTo-Json -Depth 20 | Out-File -FilePath $tmp -Encoding utf8
+  Retry { az rest --method put --url $url --headers "Content-Type=application/json" --body "@$tmp" | Out-Null }
+  Remove-Item $tmp
+}
+
+Patch-AuthConfig $ApiName $ApiClientId $true
+Patch-AuthConfig $WebName $WebClientId $false
+Write-Host "  ✓ authConfigs normalized (issuer, audiences, allowedApplications)"
 
 az containerapp auth update -n $WebName -g $ResourceGroup --unauthenticated-client-action RedirectToLoginPage --output none
 az containerapp auth update -n $ApiName -g $ResourceGroup --unauthenticated-client-action Return401 --output none
