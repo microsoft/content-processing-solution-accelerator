@@ -254,7 +254,7 @@ function Patch-AuthConfig($CaName, $ClientId, $AddWebAllowed) {
   if (-not $aad.registration) { $aad | Add-Member -MemberType NoteProperty -Name registration -Value (@{}) }
   $aad.registration.openIdIssuer = "https://login.microsoftonline.com/$TenantId/v2.0"
   if (-not $aad.validation) { $aad | Add-Member -MemberType NoteProperty -Name validation -Value (@{}) }
-  $aad.validation.allowedAudiences = @($ClientId)
+  $aad.validation.allowedAudiences = @($ClientId, "api://$ClientId")
   if (-not $aad.validation.defaultAuthorizationPolicy) { $aad.validation | Add-Member -MemberType NoteProperty -Name defaultAuthorizationPolicy -Value (@{}) }
   $policy = $aad.validation.defaultAuthorizationPolicy
   $allowed = @()

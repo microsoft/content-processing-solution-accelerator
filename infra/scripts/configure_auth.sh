@@ -342,7 +342,7 @@ aad = idp.setdefault('azureActiveDirectory', {})
 reg = aad.setdefault('registration', {})
 reg['openIdIssuer'] = f\"https://login.microsoftonline.com/{os.environ['TENANT_ID']}/v2.0\"
 val = aad.setdefault('validation', {})
-val['allowedAudiences'] = [os.environ['CLIENT_ID']]
+val['allowedAudiences'] = [os.environ['CLIENT_ID'], 'api://' + os.environ['CLIENT_ID']]
 policy = val.setdefault('defaultAuthorizationPolicy', {})
 allowed = set(policy.get('allowedApplications') or [])
 if os.environ['ADD_WEB'] == 'true':
