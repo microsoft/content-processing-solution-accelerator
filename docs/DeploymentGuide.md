@@ -405,6 +405,12 @@ Then follow the manual instructions: [App Authentication Configuration (manual)]
 
 The automation is idempotent: re-running `azd up` reuses the existing app registrations (IDs are persisted in `AZURE_AUTH_WEB_CLIENT_ID` / `AZURE_AUTH_API_CLIENT_ID` in the azd environment) and does not rotate client secrets.
 
+#### WAF (Well-Architected Framework) deployments
+
+The automation is fully compatible with the WAF / production profile (`main.waf.parameters.json`, which enables `enablePrivateNetworking`, `enableRedundancy`, and `enableScalability`). The Web and API container apps keep external ingress in the default WAF profile, so the redirect URIs registered by the script (`https://<fqdn>/.auth/login/aad/callback`) remain the correct public entry points. All script operations use the Azure management plane (Graph + ARM) and are unaffected by the private networking applied to backend resources such as Storage, Cosmos DB, and ACR.
+
+> If you further customize the WAF deployment to make the Web or API container app ingress **internal-only**, automatic configuration still runs, but end-user access to the sign-in page will require reaching the private endpoint (e.g., via the deployed jumpbox or a VPN).
+
 ### 5.3 Verify Deployment
 
 1. Access your application using the **Web App Endpoint** from the deployment output.
