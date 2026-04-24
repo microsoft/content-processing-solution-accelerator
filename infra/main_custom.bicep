@@ -917,8 +917,8 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
     name: 'cae-${solutionSuffix}'
     location: location
     tags: {
-      app: solutionSuffix
-      location: location
+      ...resourceGroup().tags
+      ...tags
     }
     managedIdentities: { systemAssigned: true }
     appLogsConfiguration: enableMonitoring
