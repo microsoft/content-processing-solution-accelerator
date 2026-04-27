@@ -195,6 +195,33 @@ try {
   Write-Host "     Or: https://login.microsoftonline.com/$TenantId/adminconsent?client_id=$WebClientId"
 }
 
+# Belt-and-suspenders: explicitly grant the API user_impersonation scope to
+# the Web SP. `az ad app permission admin-consent` often skips custom-API
+# delegated permissions, leaving MSAL.js silent token acquisition broken
+# (which causes the SPA to render a blank page after sign-in).
+$WebSpId = az ad sp show --id $WebClientId --query id -o tsv 2>$null
+$ApiSpId = az ad sp show --id $ApiClientId --query id -o tsv 2>$null
+if ($WebSpId -and $ApiSpId) {
+  $existing = az rest --method get `
+    --url "https://graph.microsoft.com/v1.0/servicePrincipals/$WebSpId/oauth2PermissionGrants" `
+    --query "value[?resourceId=='$ApiSpId'] | [0].id" -o tsv 2>$null
+  if (-not $existing -or $existing -eq "null") {
+    $body = "{`"clientId`":`"$WebSpId`",`"consentType`":`"AllPrincipals`",`"resourceId`":`"$ApiSpId`",`"scope`":`"user_impersonation`"}"
+    try {
+      az rest --method POST `
+        --url "https://graph.microsoft.com/v1.0/oauth2PermissionGrants" `
+        --headers "Content-Type=application/json" `
+        --body $body --output none
+      Write-Host "  ✓ API user_impersonation scope granted to Web SP"
+    } catch {
+      Write-Host "  ⚠️  Could not auto-grant API user_impersonation; SPA may show blank page until granted manually."
+      $ConsentOk = $false
+    }
+  } else {
+    Write-Host "  ↺ API user_impersonation scope already granted"
+  }
+}
+
 # --- Step 4: Container App secrets ------------------------------------------
 Write-Host ""
 Write-Host "➡️  Step 4/6: Client secrets"
@@ -240,7 +267,7 @@ Write-Host ""
 Write-Host "➡️  Step 6/6: Wiring env vars and caller allowlist"
 
 az containerapp update -n $WebName -g $ResourceGroup `
-  --set-env-vars "APP_WEB_CLIENT_ID=$WebClientId" "APP_WEB_SCOPE=$WebScopeValue" "APP_API_SCOPE=$ApiScopeValue" "APP_AUTH_ENABLED=true" `
+  --set-env-vars "APP_WEB_CLIENT_ID=$WebClientId" "APP_WEB_SCOPE=$WebScopeValue" "APP_API_SCOPE=$ApiScopeValue" "APP_WEB_AUTHORITY=https://login.microsoftonline.com/$TenantId" "APP_AUTH_ENABLED=true" `
   --output none
 Write-Host "  ✓ Web env vars updated"
 
@@ -262,6 +289,19 @@ function Patch-AuthConfig($CaName, $ClientId, $AddWebAllowed) {
   if ($AddWebAllowed -and ($allowed -notcontains $WebClientId)) { $allowed += $WebClientId }
   $policy.allowedApplications = $allowed
 
+  if (-not $current.properties.platform) { $current.properties | Add-Member -MemberType NoteProperty -Name platform -Value (@{}) }
+  $current.properties.platform.enabled = $true
+  if (-not $current.properties.globalValidation) { $current.properties | Add-Member -MemberType NoteProperty -Name globalValidation -Value ([pscustomobject]@{}) }
+  $gv = $current.properties.globalValidation
+  if ($gv.PSObject.Properties.Name -notcontains 'requireAuthentication') { $gv | Add-Member -MemberType NoteProperty -Name requireAuthentication -Value $true } else { $gv.requireAuthentication = $true }
+  if ($AddWebAllowed) {
+    if ($gv.PSObject.Properties.Name -notcontains 'unauthenticatedClientAction') { $gv | Add-Member -MemberType NoteProperty -Name unauthenticatedClientAction -Value 'Return401' } else { $gv.unauthenticatedClientAction = 'Return401' }
+    if ($gv.PSObject.Properties.Name -contains 'redirectToProvider') { $gv.PSObject.Properties.Remove('redirectToProvider') }
+  } else {
+    if ($gv.PSObject.Properties.Name -notcontains 'unauthenticatedClientAction') { $gv | Add-Member -MemberType NoteProperty -Name unauthenticatedClientAction -Value 'RedirectToLoginPage' } else { $gv.unauthenticatedClientAction = 'RedirectToLoginPage' }
+    if ($gv.PSObject.Properties.Name -notcontains 'redirectToProvider') { $gv | Add-Member -MemberType NoteProperty -Name redirectToProvider -Value 'azureactivedirectory' } else { $gv.redirectToProvider = 'azureactivedirectory' }
+  }
+
   $tmp = New-TemporaryFile
   $current | ConvertTo-Json -Depth 20 | Out-File -FilePath $tmp -Encoding utf8
   Retry { az rest --method put --url $url --headers "Content-Type=application/json" --body "@$tmp" | Out-Null }
@@ -272,9 +312,19 @@ Patch-AuthConfig $ApiName $ApiClientId $true
 Patch-AuthConfig $WebName $WebClientId $false
 Write-Host "  ✓ authConfigs normalized (issuer, audiences, allowedApplications)"
 
-az containerapp auth update -n $WebName -g $ResourceGroup --unauthenticated-client-action RedirectToLoginPage --output none
-az containerapp auth update -n $ApiName -g $ResourceGroup --unauthenticated-client-action Return401 --output none
 Write-Host "  ✓ Unauthenticated requests: Web → login, API → 401"
+
+# Restart active revisions so containers pick up newly-set client secrets.
+# (`az containerapp secret set` does NOT trigger a new revision on its own.)
+function Restart-ActiveRevision($CaName) {
+  $rev = az containerapp revision list -n $CaName -g $ResourceGroup --query "[?properties.active] | [0].name" -o tsv 2>$null
+  if ($rev -and $rev -ne "null") {
+    az containerapp revision restart -n $CaName -g $ResourceGroup --revision $rev --output none 2>$null
+  }
+}
+Restart-ActiveRevision $WebName
+Restart-ActiveRevision $ApiName
+Write-Host "  ✓ Restarted Web + API container revisions to apply secrets"
 
 Write-Host ""
 Write-Host "============================================================"

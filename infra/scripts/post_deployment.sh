@@ -297,12 +297,9 @@ else
 
         # Look up schema ID from registered schemas
         SCHEMA_ID=""
-        RIDX=0
-        for RID in $REGISTERED_IDS; do
-          RIDX=$((RIDX + 1))
-          RNAME=$(echo "$REGISTERED_NAMES" | tr ' ' '\n' | sed -n "${RIDX}p")
-          if [ "$RNAME" = "$SCHEMA_CLASS" ]; then
-            SCHEMA_ID="$RID"
+        for i in "${!REGISTERED_IDS[@]}"; do
+          if [ "${REGISTERED_NAMES[$i]}" = "$SCHEMA_CLASS" ]; then
+            SCHEMA_ID="${REGISTERED_IDS[$i]}"
             break
           fi
         done
