@@ -245,6 +245,33 @@ else
   echo "  ✓ Admin consent granted"
 fi
 
+# Belt-and-suspenders: explicitly grant the API scope to the Web SP.
+# `az ad app permission admin-consent` is unreliable for app-to-app delegated
+# permissions exposed by a freshly-created custom API — the consent often only
+# covers Microsoft Graph permissions and silently skips the API. Without the
+# API grant, MSAL.js acquireTokenSilent() fails on the SPA and the page is blank.
+WEB_SP_ID="$(az ad sp show --id "$WEB_CLIENT_ID" --query id -o tsv 2>/dev/null || true)"
+API_SP_ID="$(az ad sp show --id "$API_CLIENT_ID" --query id -o tsv 2>/dev/null || true)"
+if [[ -n "$WEB_SP_ID" && -n "$API_SP_ID" ]]; then
+  EXISTING_GRANT="$(az rest --method get \
+    --url "https://graph.microsoft.com/v1.0/servicePrincipals/${WEB_SP_ID}/oauth2PermissionGrants" \
+    --query "value[?resourceId=='${API_SP_ID}'] | [0].id" -o tsv 2>/dev/null || true)"
+  if [[ -z "$EXISTING_GRANT" || "$EXISTING_GRANT" == "null" ]]; then
+    if az rest --method POST \
+      --url "https://graph.microsoft.com/v1.0/oauth2PermissionGrants" \
+      --headers "Content-Type=application/json" \
+      --body "{\"clientId\":\"${WEB_SP_ID}\",\"consentType\":\"AllPrincipals\",\"resourceId\":\"${API_SP_ID}\",\"scope\":\"user_impersonation\"}" \
+      --output none 2>/dev/null; then
+      echo "  ✓ API user_impersonation scope granted to Web SP"
+    else
+      echo "  ⚠️  Could not auto-grant API user_impersonation; SPA may show blank page until granted manually."
+      CONSENT_OK=false
+    fi
+  else
+    echo "  ↺ API user_impersonation scope already granted"
+  fi
+fi
+
 # -----------------------------------------------------------------------------
 # Step 4: Client secrets + Container App secrets
 # -----------------------------------------------------------------------------
@@ -314,14 +341,17 @@ echo ""
 echo "➡️  Step 6/6: Wiring env vars and caller allowlist"
 
 # Update Web container env vars (other values left untouched)
+# Also overwrite APP_WEB_AUTHORITY to fix a pre-existing bicep bug that produces
+# a malformed authority URL (double slash before tenant id).
 az containerapp update -n "$WEB_NAME" -g "$RESOURCE_GROUP" \
   --set-env-vars \
     "APP_WEB_CLIENT_ID=$WEB_CLIENT_ID" \
     "APP_WEB_SCOPE=$WEB_SCOPE_VALUE" \
     "APP_API_SCOPE=$API_SCOPE_VALUE" \
+    "APP_WEB_AUTHORITY=https://login.microsoftonline.com/$TENANT_ID" \
     "APP_AUTH_ENABLED=true" \
   --output none
-echo "  ✓ Web env vars: APP_WEB_CLIENT_ID / APP_WEB_SCOPE / APP_API_SCOPE / APP_AUTH_ENABLED"
+echo "  ✓ Web env vars: APP_WEB_CLIENT_ID / APP_WEB_SCOPE / APP_API_SCOPE / APP_WEB_AUTHORITY / APP_AUTH_ENABLED"
 
 # Patch both authConfigs:
 #   - API: add Web client id to allowedApplications
@@ -329,7 +359,7 @@ echo "  ✓ Web env vars: APP_WEB_CLIENT_ID / APP_WEB_SCOPE / APP_API_SCOPE / AP
 patch_authconfig() {
   local ca_name="$1"
   local client_id="$2"
-  local add_web_allowed="$3"   # "true" / "false"
+  local add_web_allowed="$3"   # "true" (API side) / "false" (Web side)
   local url="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.App/containerApps/${ca_name}/authConfigs/current?api-version=2024-03-01"
   local cur patched
   cur="$(az rest --method get --url "$url")"
@@ -337,6 +367,8 @@ patch_authconfig() {
 import json, os, sys
 d = json.load(sys.stdin)
 props = d.setdefault('properties', {})
+props['platform'] = props.get('platform') or {}
+props['platform']['enabled'] = True
 idp = props.setdefault('identityProviders', {})
 aad = idp.setdefault('azureActiveDirectory', {})
 reg = aad.setdefault('registration', {})
@@ -348,6 +380,14 @@ allowed = set(policy.get('allowedApplications') or [])
 if os.environ['ADD_WEB'] == 'true':
     allowed.add(os.environ['WEB_CLIENT_ID'])
 policy['allowedApplications'] = sorted(allowed)
+gv = props.setdefault('globalValidation', {})
+gv['requireAuthentication'] = True
+if os.environ['ADD_WEB'] == 'true':
+    gv['unauthenticatedClientAction'] = 'Return401'
+    gv.pop('redirectToProvider', None)
+else:
+    gv['unauthenticatedClientAction'] = 'RedirectToLoginPage'
+    gv['redirectToProvider'] = 'azureactivedirectory'
 print(json.dumps(d))
 ")"
   echo "$patched" > /tmp/authconfig_patch.json
@@ -361,12 +401,24 @@ patch_authconfig "$API_NAME" "$API_CLIENT_ID" "true"
 patch_authconfig "$WEB_NAME" "$WEB_CLIENT_ID" "false"
 echo "  ✓ authConfigs normalized (issuer, audiences, allowedApplications)"
 
-# Final lockdown
-az containerapp auth update -n "$WEB_NAME" -g "$RESOURCE_GROUP" \
-  --unauthenticated-client-action RedirectToLoginPage --output none
-az containerapp auth update -n "$API_NAME" -g "$RESOURCE_GROUP" \
-  --unauthenticated-client-action Return401 --output none
+# Final lockdown handled in patch_authconfig globalValidation above.
 echo "  ✓ Unauthenticated requests: Web → login, API → 401"
+
+# Restart active revisions so containers pick up newly-set client secrets.
+# (`az containerapp secret set` does NOT trigger a new revision on its own.)
+restart_active_revision() {
+  local ca_name="$1"
+  local rev
+  rev="$(az containerapp revision list -n "$ca_name" -g "$RESOURCE_GROUP" \
+    --query "[?properties.active] | [0].name" -o tsv 2>/dev/null || true)"
+  if [[ -n "$rev" && "$rev" != "null" ]]; then
+    az containerapp revision restart -n "$ca_name" -g "$RESOURCE_GROUP" \
+      --revision "$rev" --output none 2>/dev/null || true
+  fi
+}
+restart_active_revision "$WEB_NAME"
+restart_active_revision "$API_NAME"
+echo "  ✓ Restarted Web + API container revisions to apply secrets"
 
 echo ""
 echo "============================================================"
