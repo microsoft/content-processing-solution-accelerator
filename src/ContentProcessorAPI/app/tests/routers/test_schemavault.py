@@ -44,6 +44,11 @@ class _FakeAppContext:
     def create_scope(self):
         return _FakeScopeContextManager(_FakeScope(self._schemas))
 
+    def get_service(self, service_type):
+        if service_type is Schemas:
+            return self._schemas
+        raise KeyError(service_type)
+
 
 @pytest.fixture
 def client_and_schemas():
@@ -199,3 +204,184 @@ def test_unregister_schema_error(client_and_schemas):
         json={"SchemaId": "missing"},
     )
     assert response.status_code == 500
+
+
+# ---------------------------------------------------------------------------
+# JSON-schema upload path (declarative format, replaces executable .py)
+# ---------------------------------------------------------------------------
+
+
+def _minimal_json_schema_bytes(title: str = "InvoiceSchema") -> bytes:
+    return json.dumps({
+        "type": "object",
+        "title": title,
+        "properties": {"invoice_id": {"type": "string"}},
+    }).encode("utf-8")
+
+
+def test_register_schema_accepts_json(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+    mock_schemas.Add.return_value = {
+        "Id": "test-id",
+        "ClassName": "InvoiceSchema",
+        "Description": "desc",
+        "FileName": "invoice.json",
+        "ContentType": "application/json",
+        "Format": "json",
+    }
+
+    files = {
+        "file": (
+            "invoice.json",
+            _minimal_json_schema_bytes(),
+            "application/json",
+        ),
+        "data": (
+            None,
+            json.dumps({"ClassName": "ignored", "Description": "desc"}),
+            "application/json",
+        ),
+    }
+
+    response = client.post("/schemavault/", files=files)
+    assert response.status_code == 200, response.text
+
+    add_args, _ = mock_schemas.Add.call_args
+    schema_obj = add_args[1]
+    # Schema's title wins over the request body's ClassName.
+    assert schema_obj.ClassName == "InvoiceSchema"
+    assert schema_obj.Format == "json"
+    assert schema_obj.FileName == "invoice.json"
+
+
+def test_register_schema_rejects_invalid_json(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+    mock_schemas.Add.reset_mock()
+
+    files = {
+        "file": ("schema.json", b"{not json", "application/json"),
+        "data": (
+            None,
+            json.dumps({"ClassName": "X", "Description": "Y"}),
+            "application/json",
+        ),
+    }
+
+    response = client.post("/schemavault/", files=files)
+    assert response.status_code == 400
+    assert "errors" in response.json()["detail"]
+    assert mock_schemas.Add.call_count == 0
+
+
+def test_register_schema_rejects_json_without_object_root(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+    mock_schemas.Add.reset_mock()
+
+    files = {
+        "file": (
+            "schema.json",
+            json.dumps({"type": "array"}).encode("utf-8"),
+            "application/json",
+        ),
+        "data": (
+            None,
+            json.dumps({"ClassName": "X", "Description": "Y"}),
+            "application/json",
+        ),
+    }
+
+    response = client.post("/schemavault/", files=files)
+    assert response.status_code == 400
+    assert mock_schemas.Add.call_count == 0
+
+
+def test_register_schema_falls_back_to_filename_for_classname(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+    mock_schemas.Add.return_value = {
+        "Id": "test-id",
+        "ClassName": "fallback",
+        "Description": "desc",
+        "FileName": "auto-claim.json",
+        "ContentType": "application/json",
+        "Format": "json",
+    }
+
+    schema_bytes = json.dumps({
+        "type": "object",
+        "properties": {"x": {"type": "string"}},
+    }).encode("utf-8")
+
+    files = {
+        "file": ("auto-claim.json", schema_bytes, "application/json"),
+        "data": (
+            None,
+            json.dumps({"ClassName": "fallback", "Description": "desc"}),
+            "application/json",
+        ),
+    }
+
+    response = client.post("/schemavault/", files=files)
+    assert response.status_code == 200, response.text
+    schema_obj = mock_schemas.Add.call_args[0][1]
+    # When the JSON has no title, the request-body ClassName is used as
+    # the fallback (after sanitisation to a Python identifier).
+    assert schema_obj.ClassName == "fallback"
+    assert schema_obj.Format == "json"
+
+
+def test_register_schema_still_accepts_py(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+    mock_schemas.Add.return_value = {
+        "Id": "test-id",
+        "ClassName": "Legacy",
+        "Description": "desc",
+        "FileName": "legacy.py",
+        "ContentType": "text/x-python",
+        "Format": "python",
+    }
+
+    files = {
+        "file": ("legacy.py", b"class Legacy: pass\n", "text/x-python"),
+        "data": (
+            None,
+            json.dumps({"ClassName": "Legacy", "Description": "desc"}),
+            "application/json",
+        ),
+    }
+
+    response = client.post("/schemavault/", files=files)
+    assert response.status_code == 200, response.text
+    schema_obj = mock_schemas.Add.call_args[0][1]
+    assert schema_obj.Format == "python"
+
+
+def test_update_schema_accepts_json(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+    mock_schemas.Update.return_value = {
+        "Id": "test-id",
+        "ClassName": "InvoiceSchema",
+        "Description": "",
+        "FileName": "invoice.json",
+        "ContentType": "application/json",
+        "Format": "json",
+    }
+
+    files = {
+        "file": (
+            "invoice.json",
+            _minimal_json_schema_bytes(),
+            "application/json",
+        ),
+        "data": (
+            None,
+            json.dumps({"SchemaId": "test-id", "ClassName": "x"}),
+            "application/json",
+        ),
+    }
+
+    response = client.put("/schemavault/", files=files)
+    assert response.status_code == 200, response.text
+    args, _ = mock_schemas.Update.call_args
+    # Update is called with (file, schema_id, class_name, storage_format).
+    assert args[2] == "InvoiceSchema"
+    assert args[3] == "json"

@@ -268,7 +268,84 @@ This means your field descriptions in the schema class **directly influence extr
 
 ---
 
-## Related Documentation
+## Authoring Schemas as JSON (recommended)
+
+The schema vault now also accepts **JSON Schema** documents (Draft 2020-12)
+in addition to the legacy executable `.py` format. JSON schemas are treated
+strictly as data: the worker parses them and materialises a Pydantic model
+in memory without executing any uploaded code, eliminating an entire class
+of remote-code-execution risk in the schema-management path.
+
+### Why JSON?
+
+| | Legacy `.py` | JSON Schema |
+| --- | --- | --- |
+| Format | Executable Pydantic class | Declarative JSON document |
+| Worker behaviour | Imports and runs uploaded Python | Parses JSON, builds model in memory |
+| Authoring | Hand-written Python | Pydantic-compatible JSON |
+| Side-effects on import | Possible | Impossible |
+
+Both formats are accepted today; JSON is the recommended path for new
+schemas and is required to be opted into per upload by using a `.json`
+file extension.
+
+### Authoring with the conversion helper
+
+If you have an existing Pydantic-based `.py` schema, the repo ships a
+helper that emits the equivalent JSON Schema:
+
+```bash
+python scripts/py_schema_to_json.py \
+    src/ContentProcessorAPI/samples/schemas/autoclaim.py \
+    AutoInsuranceClaimForm
+```
+
+This writes `autoclaim.json` next to the source file. Under the hood it
+calls `Model.model_json_schema()` from Pydantic v2 — the same call the
+worker uses today to build the LLM prompt. The output is therefore
+already aligned with the contract the pipeline expects.
+
+The accelerator ships a golden conversion of the auto-claim sample at
+[/src/ContentProcessorAPI/samples/schemas/autoclaim.json](/src/ContentProcessorAPI/samples/schemas/autoclaim.json)
+that you can reference.
+
+### Upload via API
+
+`POST /schemavault/` accepts either format. For JSON, send the file as
+`application/json`:
+
+```http
+POST /schemavault/
+Content-Type: multipart/form-data
+- data: { "ClassName": "InvoiceSchema", "Description": "Invoice extraction" }
+- file: invoice.json   (application/json)
+```
+
+When uploading JSON:
+
+- The schema must be a JSON object with `"type": "object"` and a
+  `"properties"` block.
+- The schema's `title` (if present) becomes the `ClassName` recorded in
+  Cosmos. If the JSON has no `title`, the request body's `ClassName` is
+  used as a fallback.
+- Two project-specific extension keywords are accepted:
+  - `x-cps-extract-prompt` — optional override for the LLM extraction
+    prompt for that field.
+  - `x-cps-required-on-save` — marks a field that must be present in
+    the LLM output before persistence.
+  Any other `x-…` keyword is rejected.
+- The schema must be ≤ 1 MB.
+
+### Constraints relative to the legacy Python schemas
+
+JSON schemas are pure data. They cannot carry custom validation logic
+written in Python (e.g. `field_validator`). For most extraction
+schemas this is not a limitation — the existing samples don't use
+custom validators — but if you depend on imperative validation, keep
+authoring those schemas in Python locally and run the resulting JSON
+through the API.
+
+
 
 - [Modifying System Processing Prompts](./CustomizeSystemPrompts.md) — Customize extraction and mapping prompts
 - [Gap Analysis Ruleset Guide](./GapAnalysisRulesetGuide.md) — Define gap rules that reference your document types

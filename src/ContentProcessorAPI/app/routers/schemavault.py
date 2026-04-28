@@ -12,6 +12,11 @@ from fastapi import APIRouter, Body, File, HTTPException, Request, Response, Upl
 from fastapi.responses import StreamingResponse
 
 from app.libs.base.typed_fastapi import TypedFastAPI
+from app.routers.logics.schema_validator import (
+    SchemaValidationError,
+    derive_class_name,
+    validate_json_schema,
+)
 from app.routers.logics.schemavault import Schemas
 from app.routers.models.schmavault.model import (
     Schema,
@@ -27,6 +32,47 @@ router = APIRouter(
     tags=["schemavault"],
     responses={404: {"description": "Not found"}},
 )
+
+#: Filename extensions accepted by the schema-vault upload routes.
+#: ``.py`` is the legacy Python class format (executed by the worker via
+#: ``remote_module_loader``). ``.json`` is the declarative JSON Schema
+#: format introduced as part of the migration away from executable
+#: schemas; it is parsed as data and never executed.
+_ALLOWED_EXTENSIONS: tuple[str, ...] = (".py", ".json")
+_MAX_UPLOAD_BYTES: int = 1 * 1024 * 1024
+
+
+def _validate_upload(file: UploadFile) -> tuple[str, str]:
+    """Common upload checks for ``POST`` and ``PUT`` schema endpoints.
+
+    Returns a ``(safe_filename, extension)`` tuple. Raises ``HTTPException``
+    with the appropriate status on any failure.
+    """
+    try:
+        safe_filename = sanitize_filename(file.filename)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Filename is too long.")
+
+    extension = os.path.splitext(safe_filename)[1].lower()
+    if extension not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                "Unsupported schema file type. "
+                "Only .py and .json schema files are supported."
+            ),
+        )
+
+    size_bytes = get_upload_size_bytes(file)
+    if size_bytes is None:
+        raise HTTPException(status_code=400, detail="Unable to determine upload size.")
+
+    if size_bytes > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413, detail="Schema file is too large (max 1 MB)."
+        )
+
+    return safe_filename, extension
 
 
 @router.get(
@@ -61,25 +107,34 @@ async def Get_All_Registered_Schema(
     response_model=Schema,
     summary="Register a schema",
     description="""
-    Registers a new schema file (`.py`) and stores its metadata in the Schema Vault.
+    Registers a new schema file (`.py` or `.json`) and stores its metadata
+    in the Schema Vault.
 
     The request must be sent as `multipart/form-data` with:
     - a JSON part (named `data`)
     - a file part (named `file`)
 
     Constraints:
-    - Only `.py` files are accepted.
+    - Accepted extensions: `.py` (legacy executable Python class) and
+      `.json` (declarative JSON Schema; recommended).
     - Max size: 1 MB.
 
+    For `.json` uploads:
+    - Must be a valid JSON Schema (Draft 2020-12) with `type: "object"`
+      and a `properties` block.
+    - The `ClassName` field in the request body is ignored if the JSON
+      document declares a `title`; otherwise the filename stem is used.
+
     ## Parameters
-    - **ClassName** (body): Schema class name contained in the uploaded file.
+    - **ClassName** (body): Schema class name. Used for `.py` uploads and
+      as a fallback for `.json` uploads without a `title`.
     - **Description** (body): Human-readable description.
-    - **file** (form): `.py` schema file (max 1 MB).
+    - **file** (form): `.py` or `.json` schema file (max 1 MB).
 
     ## Example Request Body
     multipart/form-data
     - `data`: `{ "ClassName": "InvoiceSchema", "Description": "Extract invoice fields" }`
-    - `file`: `<schema.py>`
+    - `file`: `<schema.py>` or `<schema.json>`
     """,
 )
 async def Register_Schema(
@@ -87,40 +142,45 @@ async def Register_Schema(
     file: UploadFile = File(...),
     request: Request = None,
 ) -> Schema:
-    """Register a new schema file (.py) into the vault."""
+    """Register a new schema file into the vault."""
     app: TypedFastAPI = request.app  # type: ignore
 
     schemas: Schemas = app.app_context.get_service(Schemas)
-    try:
-        safe_filename = sanitize_filename(file.filename)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Filename is too long.")
 
-    extension = os.path.splitext(safe_filename)[1].lower()
-    if extension != ".py":
-        raise HTTPException(
-            status_code=415,
-            detail="Unsupported schema file type. Only .py schema files are supported.",
-        )
+    safe_filename, extension = _validate_upload(file)
 
-    size_bytes = get_upload_size_bytes(file)
-    if size_bytes is None:
-        raise HTTPException(status_code=400, detail="Unable to determine upload size.")
+    # Determine the storage format and final ClassName based on extension.
+    # For ``.json`` schemas we additionally validate the document up front so
+    # that no blob or Cosmos record is ever written for an invalid schema.
+    if extension == ".json":
+        raw = file.file.read()
+        file.file.seek(0)
+        try:
+            document = validate_json_schema(raw)
+        except SchemaValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Invalid JSON schema.", "errors": exc.errors},
+            ) from exc
 
-    # Schemas are small config artifacts; keep a conservative cap.
-    if size_bytes > 1 * 1024 * 1024:
-        raise HTTPException(
-            status_code=413, detail="Schema file is too large (max 1 MB)."
-        )
+        fallback = os.path.splitext(safe_filename)[0]
+        class_name = derive_class_name(document, fallback=data.ClassName or fallback)
+        storage_format = "json"
+        content_type = file.content_type or "application/json"
+    else:
+        class_name = data.ClassName
+        storage_format = "python"
+        content_type = file.content_type or "text/x-python"
 
     return schemas.Add(
         file,
         Schema(
             Id=str(uuid.uuid4()),
-            ClassName=data.ClassName,
+            ClassName=class_name,
             Description=data.Description,
             FileName=safe_filename,
-            ContentType=file.content_type,
+            ContentType=content_type,
+            Format=storage_format,
         ),
     )
 
@@ -130,25 +190,27 @@ async def Register_Schema(
     response_model=Schema,
     summary="Update a schema",
     description="""
-    Updates an existing registered schema (`.py` file) and associated metadata.
+    Updates an existing registered schema (`.py` or `.json` file) and
+    associated metadata.
 
     The request must be sent as `multipart/form-data` with:
     - a JSON part (named `data`)
     - a file part (named `file`)
 
     Constraints:
-    - Only `.py` files are accepted.
+    - Accepted extensions: `.py` and `.json`.
     - Max size: 1 MB.
 
     ## Parameters
     - **SchemaId** (body): Schema ID to update.
-    - **ClassName** (body): Updated class name.
-    - **file** (form): New `.py` schema file (max 1 MB).
+    - **ClassName** (body): Updated class name (fallback for `.json`
+      schemas without a `title`).
+    - **file** (form): New `.py` or `.json` schema file (max 1 MB).
 
     ## Example Request Body
     multipart/form-data
     - `data`: `{ "SchemaId": "<schema_id>", "ClassName": "InvoiceSchema" }`
-    - `file`: `<schema.py>`
+    - `file`: `<schema.py>` or `<schema.json>`
     """,
 )
 async def Update_Schema(
@@ -158,29 +220,28 @@ async def Update_Schema(
 ) -> Schema:
     """Update an existing schema with a new file."""
     app: TypedFastAPI = request.app  # type: ignore
-    try:
-        safe_filename = sanitize_filename(file.filename)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Filename is too long.")
 
-    extension = os.path.splitext(safe_filename)[1].lower()
-    if extension != ".py":
-        raise HTTPException(
-            status_code=415,
-            detail="Unsupported schema file type. Only .py schema files are supported.",
-        )
+    safe_filename, extension = _validate_upload(file)
 
-    size_bytes = get_upload_size_bytes(file)
-    if size_bytes is None:
-        raise HTTPException(status_code=400, detail="Unable to determine upload size.")
-
-    if size_bytes > 1 * 1024 * 1024:
-        raise HTTPException(
-            status_code=413, detail="Schema file is too large (max 1 MB)."
-        )
+    if extension == ".json":
+        raw = file.file.read()
+        file.file.seek(0)
+        try:
+            document = validate_json_schema(raw)
+        except SchemaValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Invalid JSON schema.", "errors": exc.errors},
+            ) from exc
+        fallback = os.path.splitext(safe_filename)[0]
+        class_name = derive_class_name(document, fallback=data.ClassName or fallback)
+        storage_format = "json"
+    else:
+        class_name = data.ClassName
+        storage_format = "python"
 
     schemas: Schemas = app.app_context.get_service(Schemas)
-    return schemas.Update(file, data.SchemaId, data.ClassName)
+    return schemas.Update(file, data.SchemaId, class_name, storage_format)
 
 
 @router.delete(

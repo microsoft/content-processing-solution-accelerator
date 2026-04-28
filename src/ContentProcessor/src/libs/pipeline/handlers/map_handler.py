@@ -29,6 +29,7 @@ from libs.pipeline.entities.pipeline_step_result import StepResult
 from libs.pipeline.entities.schema import Schema
 from libs.pipeline.queue_handler_base import HandlerBase
 from libs.utils.remote_module_loader import load_schema_from_blob
+from libs.utils.remote_schema_loader import load_schema_from_blob_json
 
 logger = logging.getLogger(__name__)
 
@@ -151,13 +152,25 @@ class MapHandler(HandlerBase):
             schema_id=context.data_pipeline.pipeline_status.schema_id,
         )
 
-        # Load the schema class for structured output
-        schema_class = load_schema_from_blob(
-            account_url=self.application_context.configuration.app_storage_blob_url,
-            container_name=f"{self.application_context.configuration.app_cps_configuration}/Schemas/{context.data_pipeline.pipeline_status.schema_id}",
-            blob_name=selected_schema.FileName,
-            module_name=selected_schema.ClassName,
-        )
+        # Load the schema class for structured output. JSON schemas are
+        # materialised as in-memory Pydantic models without executing any
+        # uploaded code; legacy ``.py`` schemas continue to use the
+        # remote-module loader so existing deployments keep working.
+        schema_format = getattr(selected_schema, "Format", "python") or "python"
+        if schema_format == "json":
+            schema_class = load_schema_from_blob_json(
+                account_url=self.application_context.configuration.app_storage_blob_url,
+                container_name=f"{self.application_context.configuration.app_cps_configuration}/Schemas/{context.data_pipeline.pipeline_status.schema_id}",
+                blob_name=selected_schema.FileName,
+                model_name=selected_schema.ClassName,
+            )
+        else:
+            schema_class = load_schema_from_blob(
+                account_url=self.application_context.configuration.app_storage_blob_url,
+                container_name=f"{self.application_context.configuration.app_cps_configuration}/Schemas/{context.data_pipeline.pipeline_status.schema_id}",
+                blob_name=selected_schema.FileName,
+                module_name=selected_schema.ClassName,
+            )
 
         # Invoke Model with Agent Framework SDK
 
