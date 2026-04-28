@@ -136,10 +136,22 @@ else
     echo "  Registering new schema '$CLASS_NAME'..."
     DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
 
+    # Pick MIME type by extension. Both .json (recommended) and .py (legacy)
+    # are accepted by the API.
+    EXT="${FILE_NAME##*.}"
+    case "$EXT" in
+      json) CONTENT_TYPE="application/json" ;;
+      py)   CONTENT_TYPE="text/x-python" ;;
+      *)
+        echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Skipping..."
+        continue
+        ;;
+    esac
+
     RESPONSE=$(curl -s -w "\n%{http_code}" \
       -X POST "$SCHEMAVAULT_URL" \
       -F "data=$DATA_PAYLOAD" \
-      -F "file=@$SCHEMA_FILE;type=text/x-python" \
+      -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
       --connect-timeout 60)
 
     HTTP_CODE=$(echo "$RESPONSE" | tail -1)

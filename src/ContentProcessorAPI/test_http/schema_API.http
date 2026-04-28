@@ -6,10 +6,10 @@
 # @name listSchemas
 GET {{baseUrl}}{{schemavault}}/
 
-### Register a schema (.py) into the vault
+### Register a schema (.json) into the vault
 # Sends multipart/form-data with fields:
 # - data: JSON string { ClassName, Description }
-# - file: schema file
+# - file: schema file (.json recommended; .py still accepted for legacy)
 #
 # @name registerSchema
 POST {{baseUrl}}{{schemavault}}/
@@ -24,10 +24,10 @@ Content-Type: application/json
 	"Description": "Uploaded from VS Code REST Client"
 }
 ------schema-boundary
-Content-Disposition: form-data; name="file"; filename="autoclaim.py"
-Content-Type: text/x-python
+Content-Disposition: form-data; name="file"; filename="autoclaim.json"
+Content-Type: application/json
 
-< ../samples/schemas/autoclaim.py
+< ../samples/schemas/autoclaim.json
 ------schema-boundary--
 
 ### Update an existing schema (re-upload file + new ClassName)
@@ -46,10 +46,10 @@ Content-Type: application/json
 	"ClassName": "DamagedVehicleImageAssessment"
 }
 ------schema-boundary
-Content-Disposition: form-data; name="file"; filename="damagedcarimage.py"
-Content-Type: text/x-python
+Content-Disposition: form-data; name="file"; filename="damagedcarimage.json"
+Content-Type: application/json
 
-< ../samples/schemas/damagedcarimage.py
+< ../samples/schemas/damagedcarimage.json
 ------schema-boundary--
 
 ### Download the registered schema file

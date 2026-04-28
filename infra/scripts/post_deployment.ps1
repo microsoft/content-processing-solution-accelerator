@@ -124,6 +124,18 @@ if (-not $ApiReady) {
 
         Write-Host "  Registering new schema '$ClassName'..."
 
+        # Pick MIME type by extension. Both .json (recommended) and .py
+        # (legacy) are accepted by the API.
+        $extension = [System.IO.Path]::GetExtension($SchemaFile).ToLowerInvariant()
+        switch ($extension) {
+            '.json' { $contentType = 'application/json' }
+            '.py'   { $contentType = 'text/x-python' }
+            default {
+                Write-Host "  Unsupported schema extension '$extension' for '$SchemaFile'. Skipping..."
+                continue
+            }
+        }
+
         # Build multipart form data
         $dataPayload = @{ ClassName = $ClassName; Description = $Description } | ConvertTo-Json -Compress
         $fileBytes   = [System.IO.File]::ReadAllBytes($SchemaFile)
@@ -137,7 +149,7 @@ if (-not $ApiReady) {
             $dataPayload,
             "--$boundary",
             "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-            "Content-Type: text/x-python$LF",
+            "Content-Type: $contentType$LF",
             [System.Text.Encoding]::UTF8.GetString($fileBytes),
             "--$boundary--$LF"
         ) -join $LF

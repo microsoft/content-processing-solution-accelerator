@@ -17,8 +17,8 @@ Arguments:
 Manifest format (see schema_info.json):
     {
         "schemas": [
-            { "File": "autoclaim.py",   "ClassName": "...", "Description": "..." },
-            { "File": "invoice.json",   "ClassName": "...", "Description": "..." },
+            { "File": "autoclaim.json", "ClassName": "...", "Description": "..." },
+            { "File": "legacy.py",     "ClassName": "...", "Description": "..." },
             ...
         ],
         "schemaset": {

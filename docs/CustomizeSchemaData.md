@@ -15,9 +15,9 @@ Before processing documents, schemas must be **registered** in the system and gr
 ```mermaid
 flowchart TB
     subgraph Step1["<b>Step 1: Register Schemas</b> (one per document type)<br/>POST /schemavault/ × N"]
-        S1["🗎 AutoInsuranceClaimForm<br/><i>autoclaim.py</i><br/>Schema ID: abc123"]
-        S2["🗎 PoliceReportDocument<br/><i>policereport.py</i><br/>Schema ID: def456"]
-        S3["🗎 RepairEstimateDocument<br/><i>repairestimate.py</i><br/>Schema ID: ghi789"]
+        S1["🗎 AutoInsuranceClaimForm<br/><i>autoclaim.json</i><br/>Schema ID: abc123"]
+        S2["🗎 PoliceReportDocument<br/><i>policereport.json</i><br/>Schema ID: def456"]
+        S3["🗎 RepairEstimateDocument<br/><i>repairestimate.json</i><br/>Schema ID: ghi789"]
         S4["🗎 ...<br/><i>more schemas</i>"]
     end
 
@@ -79,10 +79,10 @@ A new class needs to be created that defines the schema as a strongly typed Pyth
 
 | Schema                    | File                                                                              | Class Name                      | Auto-registered |
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------- | --------------- |
-| Auto Insurance Claim Form | [autoclaim.py](/src/ContentProcessorAPI/samples/schemas/autoclaim.py)             | `AutoInsuranceClaimForm`        | ✅               |
-| Police Report             | [policereport.py](/src/ContentProcessorAPI/samples/schemas/policereport.py)       | `PoliceReportDocument`          | ✅               |
-| Repair Estimate           | [repairestimate.py](/src/ContentProcessorAPI/samples/schemas/repairestimate.py)   | `RepairEstimateDocument`        | ✅               |
-| Damaged Vehicle Image     | [damagedcarimage.py](/src/ContentProcessorAPI/samples/schemas/damagedcarimage.py) | `DamagedVehicleImageAssessment` | ✅               |
+| Auto Insurance Claim Form | [autoclaim.json](/src/ContentProcessorAPI/samples/schemas/autoclaim.json)             | `AutoInsuranceClaimForm`        | ✅               |
+| Police Report             | [policereport.json](/src/ContentProcessorAPI/samples/schemas/policereport.json)       | `PoliceReportDocument`          | ✅               |
+| Repair Estimate           | [repairestimate.json](/src/ContentProcessorAPI/samples/schemas/repairestimate.json)   | `RepairEstimateDocument`        | ✅               |
+| Damaged Vehicle Image     | [damagedcarimage.json](/src/ContentProcessorAPI/samples/schemas/damagedcarimage.json) | `DamagedVehicleImageAssessment` | ✅               |
 
 > **Note:** All 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set.
 
@@ -177,10 +177,10 @@ For bulk registration, use the provided script with a JSON manifest. The script 
 ```json
 {
   "schemas": [
-    { "File": "autoclaim.py",       "ClassName": "AutoInsuranceClaimForm",       "Description": "Auto Insurance Claim Form" },
-    { "File": "damagedcarimage.py", "ClassName": "DamagedVehicleImageAssessment","Description": "Damaged Vehicle Image Assessment" },
-    { "File": "policereport.py",    "ClassName": "PoliceReportDocument",         "Description": "Police Report Document" },
-    { "File": "repairestimate.py",  "ClassName": "RepairEstimateDocument",       "Description": "Repair Estimate Document" }
+    { "File": "autoclaim.json",       "ClassName": "AutoInsuranceClaimForm",       "Description": "Auto Insurance Claim Form" },
+    { "File": "damagedcarimage.json", "ClassName": "DamagedVehicleImageAssessment","Description": "Damaged Vehicle Image Assessment" },
+    { "File": "policereport.json",    "ClassName": "PoliceReportDocument",         "Description": "Police Report Document" },
+    { "File": "repairestimate.json",  "ClassName": "RepairEstimateDocument",       "Description": "Repair Estimate Document" }
   ],
   "schemaset": {
     "Name": "Auto Claim",
