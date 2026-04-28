@@ -25,6 +25,7 @@ dependencies = [
     "protobuf==6.33.6",
     "pyjwt==2.12.1",
     "pyasn1==0.6.3",
+    "jsonschema==4.25.1",
 ]
 
 

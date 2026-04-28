@@ -17,7 +17,7 @@ Arguments:
 Manifest format (see schema_info.json):
     {
         "schemas": [
-            { "File": "autoclaim.py", "ClassName": "...", "Description": "..." },
+            { "File": "autoclaim.json", "ClassName": "...", "Description": "..." },
             ...
         ],
         "schemaset": {
@@ -25,6 +25,9 @@ Manifest format (see schema_info.json):
             "Description": "Claim schema set for auto claims processing"
         }
     }
+
+Only ``.json`` schema files are accepted; the legacy ``.py`` format was
+removed as part of the schemavault RCE remediation.
 """
 
 from __future__ import annotations
@@ -75,11 +78,23 @@ def _register_schema(
         print(f"  Description: {existing.get('Description')}")
         return schema_id
 
-    print(f"Registering new schema '{class_name}'...")
+    # Only JSON Schema descriptors (.json) are accepted. The legacy
+    # ``.py`` (executable Pydantic class) format was removed because
+    # the worker would ``exec`` uploaded code, exposing an RCE primitive.
+    extension = schema_path.suffix.lower()
+    if extension != ".json":
+        print(
+            f"Error: Unsupported schema extension '{extension}' for "
+            f"'{schema_path.name}'. Only .json schemas are accepted. Skipping..."
+        )
+        return None
+    content_type = "application/json"
+
+    print(f"Registering new schema '{class_name}' ({extension})...")
     data_payload = json.dumps({"ClassName": class_name, "Description": description})
 
     with open(schema_path, "rb") as f:
-        files = {"file": (schema_path.name, f, "text/x-python")}
+        files = {"file": (schema_path.name, f, content_type)}
         data = {"data": data_payload}
         resp = requests.post(schemavault_url, files=files, data=data, timeout=60)
 

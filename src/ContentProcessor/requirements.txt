@@ -16,6 +16,7 @@ dnspython==2.8.0
 idna==3.11
 iniconfig==2.3.0
 isodate==0.7.2
+jsonschema==4.25.1
 mongomock==4.3.0
 msal==1.34.0
 msal-extensions==1.3.1
