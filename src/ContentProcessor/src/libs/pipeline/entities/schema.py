@@ -25,11 +25,11 @@ class Schema(BaseModel):
         Description: Human-readable description.
         FileName: Blob filename containing the schema artifact.
         ContentType: Target content type this schema handles.
-        Format: Storage format of the schema artifact. ``"python"`` (legacy)
-            indicates a ``.py`` Pydantic class; ``"json"`` indicates a
-            JSON Schema descriptor that the worker materialises in-memory
-            without executing any uploaded code. Defaults to ``"python"``
-            so existing Cosmos records keep their current behaviour.
+        Format: Storage format of the schema artifact. Always
+            ``"json"`` — declarative JSON Schema descriptors are the
+            only supported format. The legacy ``"python"`` value is
+            tolerated when reading historical Cosmos records but the
+            worker will refuse to process them.
     """
 
     Id: str
@@ -37,7 +37,7 @@ class Schema(BaseModel):
     Description: str
     FileName: str
     ContentType: str
-    Format: Literal["python", "json"] = Field(default="python")
+    Format: Literal["python", "json"] = Field(default="json")
     Created_On: Optional[datetime.datetime] = Field(default=None)
     Updated_On: Optional[datetime.datetime] = Field(default=None)
 

@@ -72,7 +72,7 @@ class Schemas(BaseModel):
         file: UploadFile,
         schema_id: str,
         class_name: str,
-        storage_format: str = "python",
+        storage_format: str = "json",
     ) -> Schema:
         """Replace the schema file in blob storage and update Cosmos metadata."""
         schemas = self.mongoHelper.find_document(query={"Id": schema_id})

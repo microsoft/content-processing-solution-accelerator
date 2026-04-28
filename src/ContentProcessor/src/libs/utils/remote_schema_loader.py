@@ -3,7 +3,6 @@
 
 """Materialise a Pydantic model from a JSON Schema descriptor.
 
-This is the *safe* counterpart of :mod:`libs.utils.remote_module_loader`.
 A JSON schema descriptor is treated strictly as data:
 
 1. Bytes are downloaded from blob storage.

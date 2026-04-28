@@ -124,17 +124,14 @@ if (-not $ApiReady) {
 
         Write-Host "  Registering new schema '$ClassName'..."
 
-        # Pick MIME type by extension. Both .json (recommended) and .py
-        # (legacy) are accepted by the API.
+        # Only JSON Schema descriptors are accepted. The legacy .py format
+        # was removed as part of the schemavault RCE remediation.
         $extension = [System.IO.Path]::GetExtension($SchemaFile).ToLowerInvariant()
-        switch ($extension) {
-            '.json' { $contentType = 'application/json' }
-            '.py'   { $contentType = 'text/x-python' }
-            default {
-                Write-Host "  Unsupported schema extension '$extension' for '$SchemaFile'. Skipping..."
-                continue
-            }
+        if ($extension -ne '.json') {
+            Write-Host "  Unsupported schema extension '$extension' for '$SchemaFile'. Only .json is accepted. Skipping..."
+            continue
         }
+        $contentType = 'application/json'
 
         # Build multipart form data
         $dataPayload = @{ ClassName = $ClassName; Description = $Description } | ConvertTo-Json -Compress

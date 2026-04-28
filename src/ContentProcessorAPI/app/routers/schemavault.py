@@ -34,11 +34,11 @@ router = APIRouter(
 )
 
 #: Filename extensions accepted by the schema-vault upload routes.
-#: ``.py`` is the legacy Python class format (executed by the worker via
-#: ``remote_module_loader``). ``.json`` is the declarative JSON Schema
-#: format introduced as part of the migration away from executable
-#: schemas; it is parsed as data and never executed.
-_ALLOWED_EXTENSIONS: tuple[str, ...] = (".py", ".json")
+#: Only ``.json`` (declarative JSON Schema) is supported. The legacy
+#: ``.py`` (executable Pydantic class) format was removed because the
+#: worker would ``exec`` uploaded code, exposing an RCE primitive
+#: against any caller able to register a schema.
+_ALLOWED_EXTENSIONS: tuple[str, ...] = (".json",)
 _MAX_UPLOAD_BYTES: int = 1 * 1024 * 1024
 
 
@@ -58,8 +58,8 @@ def _validate_upload(file: UploadFile) -> tuple[str, str]:
         raise HTTPException(
             status_code=415,
             detail=(
-                "Unsupported schema file type. "
-                "Only .py and .json schema files are supported."
+                "Unsupported schema file type. Only .json schema files "
+                "are accepted; legacy .py uploads are disabled."
             ),
         )
 
@@ -149,28 +149,19 @@ async def Register_Schema(
 
     safe_filename, extension = _validate_upload(file)
 
-    # Determine the storage format and final ClassName based on extension.
-    # For ``.json`` schemas we additionally validate the document up front so
-    # that no blob or Cosmos record is ever written for an invalid schema.
-    if extension == ".json":
-        raw = file.file.read()
-        file.file.seek(0)
-        try:
-            document = validate_json_schema(raw)
-        except SchemaValidationError as exc:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": "Invalid JSON schema.", "errors": exc.errors},
-            ) from exc
+    raw = file.file.read()
+    file.file.seek(0)
+    try:
+        document = validate_json_schema(raw)
+    except SchemaValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Invalid JSON schema.", "errors": exc.errors},
+        ) from exc
 
-        fallback = os.path.splitext(safe_filename)[0]
-        class_name = derive_class_name(document, fallback=data.ClassName or fallback)
-        storage_format = "json"
-        content_type = file.content_type or "application/json"
-    else:
-        class_name = data.ClassName
-        storage_format = "python"
-        content_type = file.content_type or "text/x-python"
+    fallback = os.path.splitext(safe_filename)[0]
+    class_name = derive_class_name(document, fallback=data.ClassName or fallback)
+    content_type = file.content_type or "application/json"
 
     return schemas.Add(
         file,
@@ -180,7 +171,7 @@ async def Register_Schema(
             Description=data.Description,
             FileName=safe_filename,
             ContentType=content_type,
-            Format=storage_format,
+            Format="json",
         ),
     )
 
@@ -223,25 +214,20 @@ async def Update_Schema(
 
     safe_filename, extension = _validate_upload(file)
 
-    if extension == ".json":
-        raw = file.file.read()
-        file.file.seek(0)
-        try:
-            document = validate_json_schema(raw)
-        except SchemaValidationError as exc:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": "Invalid JSON schema.", "errors": exc.errors},
-            ) from exc
-        fallback = os.path.splitext(safe_filename)[0]
-        class_name = derive_class_name(document, fallback=data.ClassName or fallback)
-        storage_format = "json"
-    else:
-        class_name = data.ClassName
-        storage_format = "python"
+    raw = file.file.read()
+    file.file.seek(0)
+    try:
+        document = validate_json_schema(raw)
+    except SchemaValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Invalid JSON schema.", "errors": exc.errors},
+        ) from exc
+    fallback = os.path.splitext(safe_filename)[0]
+    class_name = derive_class_name(document, fallback=data.ClassName or fallback)
 
     schemas: Schemas = app.app_context.get_service(Schemas)
-    return schemas.Update(file, data.SchemaId, class_name, storage_format)
+    return schemas.Update(file, data.SchemaId, class_name, "json")
 
 
 @router.delete(

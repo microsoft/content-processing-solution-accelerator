@@ -136,17 +136,14 @@ else
     echo "  Registering new schema '$CLASS_NAME'..."
     DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
 
-    # Pick MIME type by extension. Both .json (recommended) and .py (legacy)
-    # are accepted by the API.
+    # Only JSON Schema descriptors are accepted. The legacy .py format
+    # was removed as part of the schemavault RCE remediation.
     EXT="${FILE_NAME##*.}"
-    case "$EXT" in
-      json) CONTENT_TYPE="application/json" ;;
-      py)   CONTENT_TYPE="text/x-python" ;;
-      *)
-        echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Skipping..."
-        continue
-        ;;
-    esac
+    if [ "$EXT" != "json" ]; then
+      echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Only .json is accepted. Skipping..."
+      continue
+    fi
+    CONTENT_TYPE="application/json"
 
     RESPONSE=$(curl -s -w "\n%{http_code}" \
       -X POST "$SCHEMAVAULT_URL" \

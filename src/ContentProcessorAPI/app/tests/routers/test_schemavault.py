@@ -93,15 +93,10 @@ def test_get_registered_schema_file_by_schema_id_500_error(client_and_schemas):
     assert response.json() == {"detail": "Internal Server Error"}
 
 
-def test_register_schema_accepts_py_and_sanitizes_filename(client_and_schemas):
+def test_register_schema_rejects_py(client_and_schemas):
+    """Legacy .py uploads must be refused outright (RCE remediation)."""
     client, mock_schemas = client_and_schemas
-    mock_schemas.Add.return_value = {
-        "Id": "test-id",
-        "ClassName": "TestClass",
-        "Description": "Test description",
-        "FileName": "invoice.py",
-        "ContentType": "text/x-python",
-    }
+    mock_schemas.Add.reset_mock()
 
     files = {
         "file": ("C:/fakepath/invoice.py", b"class Invoice: pass\n", "text/x-python"),
@@ -113,15 +108,11 @@ def test_register_schema_accepts_py_and_sanitizes_filename(client_and_schemas):
     }
 
     response = client.post("/schemavault/", files=files)
-    assert response.status_code == 200
-
-    # Ensure Add() is called with Schema.FileName sanitized to just the basename
-    add_args, _ = mock_schemas.Add.call_args
-    schema_obj = add_args[1]
-    assert schema_obj.FileName == "invoice.py"
+    assert response.status_code == 415
+    assert mock_schemas.Add.call_count == 0
 
 
-def test_register_schema_rejects_non_py(client_and_schemas):
+def test_register_schema_rejects_unsupported_extension(client_and_schemas):
     client, mock_schemas = client_and_schemas
     mock_schemas.Add.reset_mock()
 
@@ -143,17 +134,18 @@ def test_update_schema_success(client_and_schemas):
     client, mock_schemas = client_and_schemas
     mock_schemas.Update.return_value = {
         "Id": "test-id",
-        "ClassName": "Updated",
+        "ClassName": "InvoiceSchema",
         "Description": "desc",
-        "FileName": "updated.py",
-        "ContentType": "text/x-python",
+        "FileName": "updated.json",
+        "ContentType": "application/json",
+        "Format": "json",
     }
 
     files = {
-        "file": ("updated.py", b"class Updated: pass\n", "text/x-python"),
+        "file": ("updated.json", _minimal_json_schema_bytes(), "application/json"),
         "data": (
             None,
-            json.dumps({"SchemaId": "test-id", "ClassName": "Updated"}),
+            json.dumps({"SchemaId": "test-id", "ClassName": "InvoiceSchema"}),
             "application/json",
         ),
     }
@@ -163,7 +155,23 @@ def test_update_schema_success(client_and_schemas):
     mock_schemas.Update.assert_called_once()
 
 
-def test_update_schema_rejects_non_py(client_and_schemas):
+def test_update_schema_rejects_py(client_and_schemas):
+    client, mock_schemas = client_and_schemas
+
+    files = {
+        "file": ("updated.py", b"class Updated: pass\n", "text/x-python"),
+        "data": (
+            None,
+            json.dumps({"SchemaId": "test-id", "ClassName": "X"}),
+            "application/json",
+        ),
+    }
+
+    response = client.put("/schemavault/", files=files)
+    assert response.status_code == 415
+
+
+def test_update_schema_rejects_unsupported_extension(client_and_schemas):
     client, mock_schemas = client_and_schemas
 
     files = {
@@ -327,32 +335,6 @@ def test_register_schema_falls_back_to_filename_for_classname(client_and_schemas
     # the fallback (after sanitisation to a Python identifier).
     assert schema_obj.ClassName == "fallback"
     assert schema_obj.Format == "json"
-
-
-def test_register_schema_still_accepts_py(client_and_schemas):
-    client, mock_schemas = client_and_schemas
-    mock_schemas.Add.return_value = {
-        "Id": "test-id",
-        "ClassName": "Legacy",
-        "Description": "desc",
-        "FileName": "legacy.py",
-        "ContentType": "text/x-python",
-        "Format": "python",
-    }
-
-    files = {
-        "file": ("legacy.py", b"class Legacy: pass\n", "text/x-python"),
-        "data": (
-            None,
-            json.dumps({"ClassName": "Legacy", "Description": "desc"}),
-            "application/json",
-        ),
-    }
-
-    response = client.post("/schemavault/", files=files)
-    assert response.status_code == 200, response.text
-    schema_obj = mock_schemas.Add.call_args[0][1]
-    assert schema_obj.Format == "python"
 
 
 def test_update_schema_accepts_json(client_and_schemas):

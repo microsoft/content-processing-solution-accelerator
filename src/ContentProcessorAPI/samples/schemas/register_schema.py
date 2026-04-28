@@ -18,7 +18,6 @@ Manifest format (see schema_info.json):
     {
         "schemas": [
             { "File": "autoclaim.json", "ClassName": "...", "Description": "..." },
-            { "File": "legacy.py",     "ClassName": "...", "Description": "..." },
             ...
         ],
         "schemaset": {
@@ -27,8 +26,8 @@ Manifest format (see schema_info.json):
         }
     }
 
-Both ``.py`` (legacy executable Python class) and ``.json`` (declarative
-JSON Schema, recommended) files are accepted in the ``File`` field.
+Only ``.json`` schema files are accepted; the legacy ``.py`` format was
+removed as part of the schemavault RCE remediation.
 """
 
 from __future__ import annotations
@@ -79,20 +78,17 @@ def _register_schema(
         print(f"  Description: {existing.get('Description')}")
         return schema_id
 
-    # Pick the right MIME type based on the file extension. Both ``.py``
-    # (legacy executable Python class) and ``.json`` (declarative JSON
-    # Schema) are accepted by ``POST /schemavault/``.
+    # Only JSON Schema descriptors (.json) are accepted. The legacy
+    # ``.py`` (executable Pydantic class) format was removed because
+    # the worker would ``exec`` uploaded code, exposing an RCE primitive.
     extension = schema_path.suffix.lower()
-    if extension == ".json":
-        content_type = "application/json"
-    elif extension == ".py":
-        content_type = "text/x-python"
-    else:
+    if extension != ".json":
         print(
             f"Error: Unsupported schema extension '{extension}' for "
-            f"'{schema_path.name}'. Expected .py or .json. Skipping..."
+            f"'{schema_path.name}'. Only .json schemas are accepted. Skipping..."
         )
         return None
+    content_type = "application/json"
 
     print(f"Registering new schema '{class_name}' ({extension})...")
     data_payload = json.dumps({"ClassName": class_name, "Description": description})
