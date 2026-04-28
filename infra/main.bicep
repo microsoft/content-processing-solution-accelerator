@@ -1209,7 +1209,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
           }
           {
             name: 'APP_WEB_AUTHORITY'
-            value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
+            value: '${environment().authentication.loginEndpoint}${tenant().tenantId}'
           }
           {
             name: 'APP_WEB_SCOPE'

@@ -310,6 +310,7 @@ Schema registration happens **automatically** as part of the `azd up` post-provi
 2. Registers the sample schema files (auto claim, damaged car image, police report, repair estimate)
 3. Creates an **"Auto Claim"** schema set
 4. Adds all registered schemas into the schema set
+5. Processes sample file bundles (`claim_date_of_loss/` and `claim_hail/`) — creates claim batches, uploads files with their mapped schemas, and submits them for processing
 
 After successful deployment, the terminal displays container app details and schema registration output:
 
@@ -357,15 +358,81 @@ Schema registration process completed.
   Schema set ID: <id>
   Schemas added: 4
 ============================================================
-  ✅ Schema registration complete.
+
+============================================================
+Step 4: Process sample file bundles
+============================================================
+
+  📂 Processing bundle: claim_date_of_loss
+    ✅ Claim batch created with ID: <id>
+    ✅ Uploaded 'claim_form.pdf' successfully.
+    ✅ Uploaded 'damage_photo.png' successfully.
+    ✅ Uploaded 'police_report.pdf' successfully.
+    ✅ Uploaded 'repair_estimate.pdf' successfully.
+    ✅ Claim batch '<id>' submitted for processing.
+
+  📂 Processing bundle: claim_hail
+    ✅ Claim batch created with ID: <id>
+    ✅ Uploaded 'claim_form.pdf' successfully.
+    ✅ Uploaded 'damage_photo.png' successfully.
+    ✅ Uploaded 'repair_estimate.pdf' successfully.
+    ✅ Claim batch '<id>' submitted for processing.
+
+============================================================
+Sample file processing completed.
+============================================================
 ```
 
-### 5.2 Configure Authentication (Required)
+### 5.2 Configure Authentication (Automatic)
 
-**This step is mandatory for application access:**
+Starting with this release, authentication is configured **automatically** as part of the `azd up` post-provisioning hook. The hook:
 
-1. Follow [App Authentication Configuration](./ConfigureAppAuthentication.md).
-2. Wait up to 10 minutes for authentication changes to take effect.
+1. Creates two Entra ID app registrations (`<env>-web-app`, `<env>-api-app`) with the correct redirect URIs, exposed scopes, and required permissions
+2. Grants admin consent (best effort — see note below)
+3. Mints client secrets and stores them in Container Apps secrets
+4. Enables the Microsoft identity provider on both the Web and API container apps
+5. Restricts the API to only accept tokens from the Web app (`allowedApplications`)
+6. Sets the `APP_WEB_CLIENT_ID`, `APP_WEB_SCOPE`, `APP_API_SCOPE`, and `APP_AUTH_ENABLED` environment variables on the Web container
+
+You will see an **`🔐 Configuring Entra ID authentication`** section in the `azd up` output, ending with a summary of both client IDs and scopes.
+
+> **Note:** EasyAuth can take up to 10 minutes to fully propagate. If the Web app returns 500/401 immediately after deployment, wait a few minutes and retry.
+
+#### When automatic configuration is not possible
+
+Automatic configuration requires permission to:
+- Create Entra ID app registrations (**Application Administrator** or equivalent)
+- Grant admin consent for delegated permissions (**Cloud Application Administrator** or **Global Administrator**)
+
+If your identity cannot grant admin consent, the script prints a clear manual action message like:
+
+```
+⚠️ Admin consent failed. Sign-in may fail until a tenant admin runs:
+     az ad app permission admin-consent --id <web-client-id>
+   Or visit: https://login.microsoftonline.com/<tenant>/adminconsent?client_id=<web-client-id>
+```
+
+In that case, share the command/URL with your tenant administrator.
+
+#### Skipping automatic auth configuration
+
+If your tenant blocks programmatic app registration, or you prefer to configure authentication manually, disable the automation before running `azd up`:
+
+```bash
+azd env set AZURE_SKIP_AUTH_SETUP true
+```
+
+Then follow the manual instructions: [App Authentication Configuration (manual)](./ConfigureAppAuthentication.md).
+
+#### Re-running
+
+The automation is idempotent: re-running `azd up` reuses the existing app registrations (IDs are persisted in `AZURE_AUTH_WEB_CLIENT_ID` / `AZURE_AUTH_API_CLIENT_ID` in the azd environment) and does not rotate client secrets.
+
+#### WAF (Well-Architected Framework) deployments
+
+The automation is fully compatible with the WAF / production profile (`main.waf.parameters.json`, which enables `enablePrivateNetworking`, `enableRedundancy`, and `enableScalability`). The Web and API container apps keep external ingress in the default WAF profile, so the redirect URIs registered by the script (`https://<fqdn>/.auth/login/aad/callback`) remain the correct public entry points. All script operations use the Azure management plane (Graph + ARM) and are unaffected by the private networking applied to backend resources such as Storage, Cosmos DB, and ACR.
+
+> If you further customize the WAF deployment to make the Web or API container app ingress **internal-only**, automatic configuration still runs, but end-user access to the sign-in page will require reaching the private endpoint (e.g., via the deployed jumpbox or a VPN).
 
 ### 5.3 Verify Deployment
 
@@ -375,10 +442,12 @@ Schema registration process completed.
 
 ### 5.4 Test the Application
 
+> **Note:** The post-deployment hook automatically uploads and processes two sample claim bundles (`claim_date_of_loss` and `claim_hail`). You can verify the results in the web app immediately after deployment.
+
 **Quick Test Steps:**
-1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
-2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
-3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
+1. **Check Processed Results**: Open the web app — you should see the two sample claim batches already processed with extracted data.
+2. **Review**: Click a processed claim row to verify the extracted data against the source document.
+3. **Upload More (Optional)**: To test additional uploads, get sample files from the [samples directory](../src/ContentProcessorAPI/samples), select the **"Auto Claim"** schema set, and upload via Import Content.
 
 📖 **Detailed Instructions:** See the complete [Golden Path Workflows](./GoldenPathWorkflows.md) guide for step-by-step testing procedures.
 
