@@ -934,7 +934,8 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
       }
     ]
     enableTelemetry: enableTelemetry
-    publicNetworkAccess: 'Enabled' // Always enabled for Container Apps Environment
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    internal: enablePrivateNetworking ? true : false
 
     // <========== WAF related parameters
 
@@ -944,6 +945,34 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
     infrastructureSubnetResourceId: (enablePrivateNetworking)
       ? virtualNetwork!.outputs.containersSubnetResourceId // Use the container app subnet
       : null // Use the container app subnet
+  }
+}
+
+// ========== Private DNS Zone for internal Container App Environment ========== //
+// When the CAE is internal, its FQDN is resolvable only within the VNet via this zone.
+module caeDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.0' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.private-dns-zone.cae.${solutionSuffix}', 64)
+  params: {
+    name: avmContainerAppEnv.outputs.defaultDomain
+    tags: tags
+    enableTelemetry: enableTelemetry
+    a: [
+      {
+        name: '*'
+        aRecords: [
+          {
+            ipv4Address: avmContainerAppEnv.outputs.staticIp
+          }
+        ]
+        ttl: 300
+      }
+    ]
+    virtualNetworkLinks: [
+      {
+        name: take('vnetlink-vnet-${solutionSuffix}-cae', 64)
+        virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+      }
+    ]
   }
 }
 
@@ -1145,7 +1174,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
         }
       ]
     }
-    ingressExternal: true
+    ingressExternal: enablePrivateNetworking ? false : true
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
     corsPolicy: {
@@ -1219,6 +1248,10 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
         env: [
           {
             name: 'APP_API_BASE_URL'
+            value: enablePrivateNetworking ? '/api' : 'https://${avmContainerApp_API.outputs.fqdn}'
+          }
+          {
+            name: 'APP_BACKEND_API_URL'
             value: 'https://${avmContainerApp_API.outputs.fqdn}'
           }
           {
@@ -1841,7 +1874,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
         }
       ]
     }
-    ingressExternal: true
+    ingressExternal: enablePrivateNetworking ? false : true
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
     corsPolicy: {
