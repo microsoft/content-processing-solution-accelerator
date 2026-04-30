@@ -7485,13 +7485,6 @@
                 "description": "Optional. Storage account boot diagnostic base URI."
               }
             },
-            "proximityPlacementGroupResourceId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Optional. Resource ID of a proximity placement group."
-              }
-            },
             "virtualMachineScaleSetResourceId": {
               "type": "string",
               "defaultValue": "",
@@ -8082,7 +8075,6 @@
                 },
                 "applicationProfile": "[if(not(empty(parameters('galleryApplications'))), createObject('galleryApplications', parameters('galleryApplications')), null())]",
                 "availabilitySet": "[if(not(empty(parameters('availabilitySetResourceId'))), createObject('id', parameters('availabilitySetResourceId')), null())]",
-                "proximityPlacementGroup": "[if(not(empty(parameters('proximityPlacementGroupResourceId'))), createObject('id', parameters('proximityPlacementGroupResourceId')), null())]",
                 "virtualMachineScaleSet": "[if(not(empty(parameters('virtualMachineScaleSetResourceId'))), createObject('id', parameters('virtualMachineScaleSetResourceId')), null())]",
                 "priority": "[parameters('priority')]",
                 "evictionPolicy": "[if(and(not(empty(parameters('priority'))), not(equals(parameters('priority'), 'Regular'))), parameters('evictionPolicy'), null())]",
