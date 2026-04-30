@@ -253,7 +253,6 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enable
     maintenanceConfigurationResourceId: maintenanceConfiguration!.outputs.resourceId
     enableAutomaticUpdates: true
     encryptionAtHost: false
-    proximityPlacementGroupResourceId: proximityPlacementGroup!.outputs.resourceId
     availabilityZone: enableRedundancy ? 1 : -1
     imageReference: {
       publisher: 'microsoft-dsvm'
@@ -481,18 +480,6 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
         }
       ]
     }
-  }
-}
-
-var proximityPlacementGroupResourceName = 'ppg-${solutionSuffix}'
-module proximityPlacementGroup 'br/public:avm/res/compute/proximity-placement-group:0.4.1' = if (enablePrivateNetworking) {
-  name: take('avm.res.compute.proximity-placement-group.${proximityPlacementGroupResourceName}', 64)
-  params: {
-    name: proximityPlacementGroupResourceName
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    availabilityZone: enableRedundancy ? 1 : -1
   }
 }
 
