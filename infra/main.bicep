@@ -145,7 +145,7 @@ var existingProjectResourceId = trim(existingFoundryProjectResourceId)
 
 // ========== AVM Telemetry ========== //
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: take(
     '46d3xbcp.ptn.sa-contentprocessing.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}',
     64
@@ -197,7 +197,7 @@ module virtualNetwork './modules/virtualNetwork.bicep' = if (enablePrivateNetwor
 
 // Azure Bastion Host
 var bastionHostName = 'bas-${solutionSuffix}'
-module bastionHost 'br/public:avm/res/network/bastion-host:0.8.0' = if (enablePrivateNetworking) {
+module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = if (enablePrivateNetworking) {
   name: take('avm.res.network.bastion-host.${bastionHostName}', 64)
   params: {
     name: bastionHostName
@@ -230,7 +230,7 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.8.0' = if (enablePr
 
 // Jumpbox Virtual Machine
 var jumpboxVmName = take('vm-${solutionSuffix}', 15)
-module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enablePrivateNetworking) {
+module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enablePrivateNetworking) {
   name: take('avm.res.compute.virtual-machine.${jumpboxVmName}', 64)
   params: {
     name: jumpboxVmName
@@ -250,7 +250,6 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
     maintenanceConfigurationResourceId: maintenanceConfiguration!.outputs.resourceId
     enableAutomaticUpdates: true
     encryptionAtHost: false
-    proximityPlacementGroupResourceId: proximityPlacementGroup!.outputs.resourceId
     availabilityZone: enableRedundancy ? 1 : -1
     imageReference: {
       publisher: 'microsoft-dsvm'
@@ -331,7 +330,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (enable
   }
 }
 
-module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.2' = if (enablePrivateNetworking) {
+module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.4.0' = if (enablePrivateNetworking) {
   name: take('avm.res.maintenance-configuration.${jumpboxVmName}', 64)
   params: {
     name: 'mc-${jumpboxVmName}'
@@ -369,7 +368,7 @@ module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-confi
 
 var dataCollectionRulesResourceName = 'dcr-${solutionSuffix}'
 var dataCollectionRulesLocation = logAnalyticsWorkspace!.outputs.location
-module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-rule:0.8.0' = if (enablePrivateNetworking && enableMonitoring) {
+module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
   name: take('avm.res.insights.data-collection-rule.${dataCollectionRulesResourceName}', 64)
   params: {
     name: dataCollectionRulesResourceName
@@ -481,18 +480,6 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
   }
 }
 
-var proximityPlacementGroupResourceName = 'ppg-${solutionSuffix}'
-module proximityPlacementGroup 'br/public:avm/res/compute/proximity-placement-group:0.4.1' = if (enablePrivateNetworking) {
-  name: take('avm.res.compute.proximity-placement-group.${proximityPlacementGroupResourceName}', 64)
-  params: {
-    name: proximityPlacementGroupResourceName
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    availabilityZone: enableRedundancy ? 1 : -1
-  }
-}
-
 // ========== Private DNS Zones ========== //
 var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
@@ -520,7 +507,7 @@ var dnsZoneIndex = {
 }
 
 @batchSize(5)
-module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.0' = [
+module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
     name: take('avm.res.network.private-dns-zone.${split(zone, '.')[1]}', 64)
     params: {
@@ -547,7 +534,7 @@ module logAnalyticsWorkspace 'modules/log-analytics-workspace.bicep' = if (enabl
   }
 }
 
-module applicationInsights 'br/public:avm/res/insights/component:0.7.0' = if (enableMonitoring) {
+module applicationInsights 'br/public:avm/res/insights/component:0.7.1' = if (enableMonitoring) {
   name: take('avm.res.insights.component.${solutionSuffix}', 64)
   params: {
     name: 'appi-${solutionSuffix}'
@@ -623,7 +610,7 @@ module avmContainerRegistry 'modules/container-registry.bicep' = {
 }
 
 // // ========== Storage Account ========== //
-module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.28.0' = {
+module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
   name: take('module.storage-account.${solutionSuffix}', 64)
   params: {
     name: 'st${replace(solutionSuffix, '-', '')}'
@@ -789,7 +776,7 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
   }
 }
 
-module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
+module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
   name: take('avm.res.network.private-endpoint.${solutionSuffix}', 64)
   params: {
     name: 'pep-aiservices-${solutionSuffix}'
@@ -829,7 +816,7 @@ module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoi
   }
 }
 
-module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.1' = {
+module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.2' = {
   name: take('avm.res.cognitive-services.account.content-understanding.${solutionSuffix}', 64)
 
   params: {
@@ -871,7 +858,7 @@ module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.1' = 
   }
 }
 
-module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (enablePrivateNetworking) {
+module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = if (enablePrivateNetworking) {
   name: take('avm.res.network.private-endpoint.aicu-${solutionSuffix}', 64)
   params: {
     name: 'pep-aicu-${solutionSuffix}'
@@ -908,7 +895,7 @@ module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-en
 }
 
 // ========== Container App Environment ========== //
-module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.3' = {
+module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
   name: take('avm.res.app.managed-environment.${solutionSuffix}', 64)
   params: {
     name: 'cae-${solutionSuffix}'
@@ -921,10 +908,7 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.3' = {
     appLogsConfiguration: enableMonitoring
       ? {
           destination: 'log-analytics'
-          logAnalyticsConfiguration: {
-            customerId: logAnalyticsWorkspace!.outputs.logAnalyticsWorkspaceId
-            sharedKey: logAnalyticsWorkspace.outputs.primarySharedKey
-          }
+          logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
         }
       : null
     workloadProfiles: [
@@ -948,7 +932,7 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.11.3' = {
 }
 
 // //=========== Managed Identity for Container Registry ========== //
-module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.2' = {
+module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assigned-identity:0.5.0' = {
   name: take('avm.res.managed-identity.user-assigned-identity.${solutionSuffix}', 64)
   params: {
     name: 'id-acr-${solutionSuffix}'
@@ -959,7 +943,7 @@ module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assig
 }
 
 // ========== Container App  ========== //
-module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-app'
@@ -1005,6 +989,14 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessor'
+          }
         ]
       }
     ]
@@ -1020,7 +1012,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.19.0' = {
 }
 
 // ========== Container App API ========== //
-module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-api.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-api'
@@ -1064,6 +1056,14 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorAPI'
           }
         ]
         probes: [
@@ -1143,7 +1143,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.19.0' = {
 }
 
 //========== Container App Web ========== //
-module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-web.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-web'
@@ -1225,7 +1225,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.19.0' = {
 }
 
 // ========== Container App Workflow ========== //
-module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-wkfl.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-wkfl'
@@ -1270,6 +1270,14 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorWorkflow'
+          }
         ]
       }
     ]
@@ -1284,7 +1292,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.19.0' = {
 }
 
 // ========== Cosmos Database for Mongo DB ========== //
-module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.18.0' = {
+module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.19.0' = {
   name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
   params: {
     name: 'cosmos-${solutionSuffix}'
@@ -1596,7 +1604,7 @@ module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-st
 }
 
 // ========== Container App Update Modules ========== //
-module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-update.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-app'
@@ -1642,6 +1650,14 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
           }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessor'
+          }
         ]
       }
     ]
@@ -1671,7 +1687,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.19.0' = {
   ]
 }
 
-module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-api.update.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-api'
@@ -1716,6 +1732,14 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorAPI'
           }
         ]
         probes: [
@@ -1798,7 +1822,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.19.0' =
 }
 
 // ========== Container App Workflow Update ========== //
-module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19.0' = {
+module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-wkfl.update.${solutionSuffix}', 64)
   params: {
     name: 'ca-${solutionSuffix}-wkfl'
@@ -1842,6 +1866,14 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.19
           {
             name: 'AZURE_LOGGING_PACKAGES'
             value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorWorkflow'
           }
         ]
       }

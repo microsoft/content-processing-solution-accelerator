@@ -47,7 +47,7 @@ const ChevronDoubleLeft = bundleIcon(ChevronDoubleLeft20Regular, ChevronDoubleLe
 /** Props for the {@link PanelCenter} component. */
 interface PanelCenterProps {
   /** Callback to collapse/expand a named panel. */
-  readonly togglePanel: (panel: string) => void;
+  readonly togglePanel: (panel: 'Left' | 'Right' | 'Center' | 'All') => void;
 }
 
 const useStyles = makeStyles({
@@ -153,7 +153,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
   );
 
   useEffect(() => {
-    dispatch(setActiveProcessId(store.processId))
+    dispatch(setActiveProcessId(store.processId ?? ''))
     setComment('');
     // Reset tab to appropriate default when selection changes
     if (store.selectionType === 'claim') {
@@ -183,7 +183,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
       }
     }
     // Only fetch for document selection
-    if (store.selectionType === 'document' && (store.activeProcessId != null || store.activeProcessId !== '') && !status.includes(store.selectedItem.status) && store.selectedItem?.process_id === store.activeProcessId) {
+    if (store.selectionType === 'document' && (store.activeProcessId != null && store.activeProcessId !== '') && !status.includes(store.selectedItem.status as string) && store.selectedItem?.process_id === store.activeProcessId) {
       fetchContent();
     }
   }, [store.activeProcessId, store.selectedItem, store.selectionType, store.refreshTrigger])
@@ -192,14 +192,14 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
   useEffect(() => {
     if (store.selectionType === 'claim' && store.selectedClaim?.id) {
       setClaimComment('');
-      dispatch(fetchClaimDetails({ claimId: store.selectedClaim.id }));
+      dispatch(fetchClaimDetails({ claimId: store.selectedClaim.id as string }));
     }
   }, [store.selectionType, store.selectedClaim?.id, dispatch, store.refreshTrigger])
 
   // Sync claim comment with API response
   useEffect(() => {
-    if (store.claimDetails?.data?.process_comment !== undefined) {
-      setClaimComment(store.claimDetails.data.process_comment || '');
+    if ((store.claimDetails?.data as Record<string, unknown>)?.process_comment !== undefined) {
+      setClaimComment((store.claimDetails?.data as Record<string, unknown>)?.process_comment as string || '');
     }
   }, [store.claimDetails])
 
@@ -232,7 +232,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
           <div style={{ marginBottom: '16px' }}>
             <h4 style={{ margin: '0 0 8px 0', color: tokens.colorNeutralForeground1 }}>Summary</h4>
             <p style={{ margin: 0, color: tokens.colorNeutralForeground2, whiteSpace: 'pre-wrap' }}>
-              {store.claimDetails.data.process_summary || 'No summary available'}
+              {(store.claimDetails.data as Record<string, unknown>)?.process_summary as string || 'No summary available'}
             </p>
           </div>
         </div>
@@ -266,7 +266,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
 
   const ExtractedResults = React.useCallback(() => (
     <div role="tabpanel" className={styles.tabItemCotnent} aria-labelledby="Extracted Results">
-      {store.activeProcessId && !status.includes(store.selectedItem.status) ? (
+      {store.activeProcessId && !status.includes(store.selectedItem.status as string) ? (
         <JSONEditor
           processId={store.activeProcessId}
         />
@@ -277,7 +277,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
   const ProcessHistory = useCallback(() => (
     <div role="tabpanel" className={styles.processTabItemCotnent} aria-labelledby="Process Steps">
       {apiLoader ? <div className={styles.apiLoader}><p>Loading...</p></div>
-        : (store.processStepsData?.length === 0 || status.includes(store.selectedItem.status)) ? <p style={{ textAlign: 'center' }}> No data available</p>
+        : (store.processStepsData?.length === 0 || status.includes(store.selectedItem.status as string)) ? <p style={{ textAlign: 'center' }}> No data available</p>
           : <ProcessSteps />
       }
     </div>
@@ -291,7 +291,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
     try {
       dispatch(startLoader("1"));
       dispatch(setUpdateComments(comment))
-      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': store.modified_result, 'comments': comment, 'savedComments': store.comments }))
+      const result = await dispatch(saveContentJson({ 'processId': store.activeProcessId, 'contentJson': store.modified_result as unknown as string, 'comments': comment, 'savedComments': store.comments }))
       if (result?.type === 'SaveContentJSON-Comments/fulfilled') {
         dispatch(setRefreshGrid(true));
       }
@@ -304,7 +304,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
 
   const isButtonSaveDisabledCheck = () => {
     if(!store.activeProcessId) return true;
-    if (status.includes(store.selectedItem.status)) return true;
+    if (status.includes(store.selectedItem.status as string)) return true;
     if (Object.keys(store.modified_result).length > 0) return false;
     if (comment.trim() !== store.comments && comment.trim() !== '') return false;
     if (store.comments !== '' && comment.trim() === '') return false;
@@ -314,7 +314,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
   const isClaimSaveDisabled = () => {
     if (!store.claimDetails) return true;
     if (store.claimCommentSaving) return true;
-    const savedComment = store.claimDetails?.data?.process_comment || '';
+    const savedComment = ((store.claimDetails?.data as Record<string, unknown>)?.process_comment as string) || '';
     // Enable save if comment has changed
     if (claimComment.trim() !== savedComment) return false;
     return true;
@@ -322,7 +322,7 @@ const PanelCenter: React.FC<PanelCenterProps> = ({ togglePanel }) => {
 
   const handleClaimSave = async () => {
     if (store.selectedClaim?.id) {
-      await dispatch(saveClaimComment({ claimId: store.selectedClaim.id, comment: claimComment }));
+      await dispatch(saveClaimComment({ claimId: store.selectedClaim.id as string, comment: claimComment }));
     }
   }
 

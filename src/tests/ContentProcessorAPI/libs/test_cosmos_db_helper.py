@@ -120,7 +120,7 @@ def test_count_documents(mock_certifi, mock_mongo_client):
     result = helper.count_documents({"key": "value"})
     assert result == 42
 
-    result = helper.count_documents()
+    helper.count_documents()
     mock_container.count_documents.assert_called_with({})
 
 
@@ -195,3 +195,45 @@ def test_update_document_by_query(mock_certifi, mock_mongo_client):
 
     assert result == mock_result
     mock_container.update_one.assert_called_once_with(query, {"$set": update})
+
+
+@patch("app.libs.azure.cosmos_db.helper.MongoClient")
+@patch("app.libs.azure.cosmos_db.helper.certifi.where")
+def test_init_with_indexes(mock_certifi, mock_mongo_client):
+    """Test CosmosMongDBHelper initialization with indexes creates missing indexes."""
+    mock_certifi.return_value = "/path/to/cert"
+    mock_client = MagicMock()
+    mock_mongo_client.return_value = mock_client
+    mock_db = MagicMock()
+    mock_client.__getitem__.return_value = mock_db
+    mock_db.list_collection_names.return_value = ["test_container"]
+    mock_container = MagicMock()
+    mock_db.__getitem__.return_value = mock_container
+    mock_container.index_information.return_value = {}
+
+    CosmosMongDBHelper(
+        connection_string="mongodb://test",
+        db_name="test_db",
+        container_name="test_container",
+        indexes=[("field1", 1), ("field2", -1)],
+    )
+
+    assert mock_container.create_index.call_count == 2
+
+
+@patch("app.libs.azure.cosmos_db.helper.MongoClient")
+@patch("app.libs.azure.cosmos_db.helper.certifi.where")
+def test_create_container_when_missing(mock_certifi, mock_mongo_client):
+    """Test _create_container creates collection when it does not exist."""
+    mock_certifi.return_value = "/path/to/cert"
+    mock_client = MagicMock()
+    mock_mongo_client.return_value = mock_client
+    mock_db = MagicMock()
+    mock_client.__getitem__.return_value = mock_db
+    mock_db.list_collection_names.return_value = []
+    mock_container = MagicMock()
+    mock_db.__getitem__.return_value = mock_container
+
+    CosmosMongDBHelper("mongodb://test", "test_db", "new_container")
+
+    mock_db.create_collection.assert_called_once_with("new_container")
