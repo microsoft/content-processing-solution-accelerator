@@ -109,13 +109,13 @@ def validate_json_schema(raw_bytes: bytes) -> dict[str, Any]:
                 f"Allowed: {sorted(ALLOWED_CPS_KEYWORDS)}."
             )
 
-    # Reject external $ref values. The runtime loader only supports local
+    # Reject unsupported $ref values. The runtime loader only supports local
     # references of the form ``#/$defs/...`` or ``#/definitions/...``.
     for path, ref in _walk_refs(document):
-        if not ref.startswith("#/"):
+        if not (ref.startswith("#/$defs/") or ref.startswith("#/definitions/")):
             errors.append(
-                f"External $ref '{ref}' at {path or '<root>'} is not supported. "
-                "Only local '#/$defs/...' and '#/definitions/...' references are allowed."
+                f"Unsupported $ref '{ref}' at {path or '<root>'}. "
+                "Only '#/$defs/...' and '#/definitions/...' references are supported."
             )
 
     if errors:

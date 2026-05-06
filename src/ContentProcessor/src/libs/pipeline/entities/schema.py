@@ -35,7 +35,7 @@ class Schema(BaseModel):
     Description: str
     FileName: str
     ContentType: str
-    Format: Literal["python", "json"] = Field(default="json")
+    Format: Literal["json"] = Field(default="json")
     Created_On: Optional[datetime.datetime] = Field(default=None)
     Updated_On: Optional[datetime.datetime] = Field(default=None)
 

@@ -138,7 +138,7 @@ else
 
     # Only JSON Schema descriptors are accepted. The legacy .py format
     # was removed as part of the schemavault RCE remediation.
-    EXT="${FILE_NAME##*.}"
+    EXT=$(echo "${FILE_NAME##*.}" | tr '[:upper:]' '[:lower:]')
     if [ "$EXT" != "json" ]; then
       echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Only .json is accepted. Skipping..."
       continue

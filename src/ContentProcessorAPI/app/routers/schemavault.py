@@ -146,10 +146,10 @@ async def Register_Schema(
 
     schemas: Schemas = app.app_context.get_service(Schemas)
 
-    safe_filename, extension = _validate_upload(file)
+    safe_filename, _ = _validate_upload(file)
 
-    raw = file.file.read()
-    file.file.seek(0)
+    raw = await file.read()
+    await file.seek(0)
     try:
         document = validate_json_schema(raw)
     except SchemaValidationError as exc:
@@ -211,10 +211,10 @@ async def Update_Schema(
     """Update an existing schema with a new file."""
     app: TypedFastAPI = request.app  # type: ignore
 
-    safe_filename, extension = _validate_upload(file)
+    safe_filename, _ = _validate_upload(file)
 
-    raw = file.file.read()
-    file.file.seek(0)
+    raw = await file.read()
+    await file.seek(0)
     try:
         document = validate_json_schema(raw)
     except SchemaValidationError as exc:
