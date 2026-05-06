@@ -307,14 +307,13 @@ When uploading JSON:
   used as a fallback.
 - The schema must be ≤ 1 MB.
 
-### Constraints relative to the legacy Python schemas
+### Limitations
 
 JSON schemas are pure data. They cannot carry custom validation logic
-written in Python (e.g. `field_validator`). For most extraction
-schemas this is not a limitation — the existing samples don't use
-custom validators — but if you depend on imperative validation, keep
-authoring those schemas in Python locally and run the resulting JSON
-through the API.
+(e.g. Pydantic `field_validator`). For most extraction schemas this is
+not a limitation — the existing samples don't use custom validators.
+If you need imperative validation, implement it downstream after the
+pipeline extracts the data.
 
 
 

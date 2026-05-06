@@ -9,7 +9,7 @@ GET {{baseUrl}}{{schemavault}}/
 ### Register a schema (.json) into the vault
 # Sends multipart/form-data with fields:
 # - data: JSON string { ClassName, Description }
-# - file: schema file (.json recommended; .py still accepted for legacy)
+# - file: schema file (.json only)
 #
 # @name registerSchema
 POST {{baseUrl}}{{schemavault}}/

@@ -154,12 +154,11 @@ class MapHandler(HandlerBase):
         # Load the schema class for structured output. Only JSON schemas
         # are supported; the worker materialises the descriptor as an
         # in-memory Pydantic model without ever executing uploaded code.
-        schema_format = getattr(selected_schema, "Format", "json") or "json"
-        if schema_format != "json":
+        if not selected_schema.FileName.lower().endswith(".json"):
             raise ValueError(
-                f"Schema {selected_schema.Id} has unsupported Format "
-                f"'{schema_format}'. Re-register the schema as a JSON "
-                "Schema (.json) document; legacy Python (.py) schemas "
+                f"Schema {selected_schema.Id} has a non-JSON file "
+                f"'{selected_schema.FileName}'. Re-register the schema as a "
+                "JSON Schema (.json) document; legacy Python (.py) schemas "
                 "are no longer supported."
             )
         schema_class = load_schema_from_blob_json(
