@@ -100,11 +100,11 @@ class Paragraph(BaseModel):
 
 class Page(BaseModel):
     pageNumber: int
-    angle: float
+    angle: Optional[float] = None
     width: float
     height: float
-    spans: List[Span]
-    words: List[Word]
+    spans: Optional[List[Span]] = None
+    words: Optional[List[Word]] = None
     lines: Optional[List[Line]] = []
     paragraphs: Optional[List[Paragraph]] = []
 
@@ -116,13 +116,30 @@ class DocumentContent(BaseModel):
     endPageNumber: int
     unit: str
     pages: List[Page]
+    paragraphs: Optional[List[Paragraph]] = None
+
+
+class Warning(BaseModel):
+    """Mirrors the Azure.Core.Foundations.Error shape returned in
+    ``ResultData.warnings`` by the Content Understanding GA API.
+
+    The API now emits structured warning objects (with ``code`` / ``message``
+    plus optional ``target`` / ``details``) instead of plain strings, so this
+    model accepts arbitrary nested error payloads via ``model_config``.
+    """
+
+    code: str
+    message: str
+    target: Optional[str] = None
+
+    model_config = {"extra": "allow"}
 
 
 class ResultData(BaseModel):
     analyzerId: str
     apiVersion: str
     createdAt: str
-    warnings: List[str]
+    warnings: List[Warning] = []
     contents: List[DocumentContent]
 
 

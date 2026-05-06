@@ -146,7 +146,6 @@ jobs:
             --parameters \
               solutionName="${{ env.ENVIRONMENT_NAME }}" \
               enablePrivateNetworking="false" \
-              contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-5.1" \
               gptModelVersion="2025-11-13" \
