@@ -2,9 +2,9 @@
 
 ## How to Use Your Own Data
 
-Files processed by the solution are mapped and transformed into **schemas** — strongly typed Pydantic class definitions that represent a standardized output for each document type. For example, the accelerator includes an `AutoInsuranceClaimForm` schema with fields like `policy_number`, `date_of_loss`, and `vehicle_information`.
+Files processed by the solution are mapped and transformed into **schemas** — JSON Schema documents that represent a standardized output for each document type. For example, the accelerator includes an `AutoInsuranceClaimForm` schema with fields like `policy_number`, `date_of_loss`, and `vehicle_information`.
 
-Using AI, the processing pipeline extracts content from each document (text, images, tables), then maps the extracted data into the schema fields using GPT-5.1 with structured JSON output — field descriptions in the schema class act as extraction guidance for the LLM.
+Using AI, the processing pipeline extracts content from each document (text, images, tables), then maps the extracted data into the schema fields using GPT-5.1 with structured JSON output — field descriptions in the schema act as extraction guidance for the LLM.
 
 Schemas need to be created specific to your business and domain requirements. A lot of times schemas may be generally common across industries, but this allows for variations specific to your use case.
 
@@ -15,9 +15,9 @@ Before processing documents, schemas must be **registered** in the system and gr
 ```mermaid
 flowchart TB
     subgraph Step1["<b>Step 1: Register Schemas</b> (one per document type)<br/>POST /schemavault/ × N"]
-        S1["🗎 AutoInsuranceClaimForm<br/><i>autoclaim.py</i><br/>Schema ID: abc123"]
-        S2["🗎 PoliceReportDocument<br/><i>policereport.py</i><br/>Schema ID: def456"]
-        S3["🗎 RepairEstimateDocument<br/><i>repairestimate.py</i><br/>Schema ID: ghi789"]
+        S1["🗎 AutoInsuranceClaimForm<br/><i>autoclaim.json</i><br/>Schema ID: abc123"]
+        S2["🗎 PoliceReportDocument<br/><i>policereport.json</i><br/>Schema ID: def456"]
+        S3["🗎 RepairEstimateDocument<br/><i>repairestimate.json</i><br/>Schema ID: ghi789"]
         S4["🗎 ...<br/><i>more schemas</i>"]
     end
 
@@ -37,8 +37,8 @@ flowchart TB
 
     subgraph Runtime["<b>Runtime — Pipeline Map Step</b>"]
         R1["1. Look up Schema metadata<br/>from Cosmos DB"]
-        R2["2. Download .py class file<br/>from Blob Storage"]
-        R3["3. Dynamically load Pydantic class<br/>→ generate JSON Schema"]
+        R2["2. Download JSON Schema<br/>from Blob Storage"]
+        R3["3. Materialise Pydantic model<br/>from JSON Schema (no code execution)"]
         R4["4. Embed JSON Schema in<br/>GPT-5.1 prompt"]
         R5["5. Validate response with<br/>Pydantic → confidence scoring"]
         R1 --> R2 --> R3 --> R4 --> R5
@@ -60,90 +60,90 @@ flowchart TB
 flowchart LR
     Claim["🗂️ Claim"] -->|"assigned to"| SchemaSet["📂 SchemaSet"]
     SchemaSet -->|"contains"| Schema["🗎 Schema"]
-    Schema -->|"stores .py file"| Blob["💾 Blob Storage"]
+    Schema -->|"stores .json file"| Blob["💾 Blob Storage"]
 ```
 
-- **Schema** — one per document type. Metadata in Cosmos DB, `.py` class file in Blob Storage.
+- **Schema** — one per document type. Metadata in Cosmos DB, `.json` schema file in Blob Storage.
 - **SchemaSet** — a named group that holds references to one or more Schemas. Assigned to a Claim at creation time.
 - A Schema can belong to multiple SchemaSets or none at all.
 
 ---
 
-## Step 1: Create Schema Class (.py)
+## Step 1: Create a JSON Schema Document
 
-A new class needs to be created that defines the schema as a strongly typed Python class inheriting from Pydantic `BaseModel`.
+A new JSON Schema document needs to be created that defines the schema as a declarative description of your document type.
 
-> **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema classes should be placed into this folder
+> **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema JSON files should be placed into this folder
 
 **Sample Schemas:** The accelerator ships with 4 sample schemas — use any as a starting template:
 
 | Schema                    | File                                                                              | Class Name                      | Auto-registered |
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------- | --------------- |
-| Auto Insurance Claim Form | [autoclaim.py](/src/ContentProcessorAPI/samples/schemas/autoclaim.py)             | `AutoInsuranceClaimForm`        | ✅               |
-| Police Report             | [policereport.py](/src/ContentProcessorAPI/samples/schemas/policereport.py)       | `PoliceReportDocument`          | ✅               |
-| Repair Estimate           | [repairestimate.py](/src/ContentProcessorAPI/samples/schemas/repairestimate.py)   | `RepairEstimateDocument`        | ✅               |
-| Damaged Vehicle Image     | [damagedcarimage.py](/src/ContentProcessorAPI/samples/schemas/damagedcarimage.py) | `DamagedVehicleImageAssessment` | ✅               |
+| Auto Insurance Claim Form | [autoclaim.json](/src/ContentProcessorAPI/samples/schemas/autoclaim.json)             | `AutoInsuranceClaimForm`        | ✅               |
+| Police Report             | [policereport.json](/src/ContentProcessorAPI/samples/schemas/policereport.json)       | `PoliceReportDocument`          | ✅               |
+| Repair Estimate           | [repairestimate.json](/src/ContentProcessorAPI/samples/schemas/repairestimate.json)   | `RepairEstimateDocument`        | ✅               |
+| Damaged Vehicle Image     | [damagedcarimage.json](/src/ContentProcessorAPI/samples/schemas/damagedcarimage.json) | `DamagedVehicleImageAssessment` | ✅               |
 
 > **Note:** All 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set.
 
-Duplicate one of these files and update with a class definition that represents your document type.
+Duplicate one of these files and update with fields that represent your document type.
 
 > **Tip:** You can use GitHub Copilot to generate a schema. Example prompt:
 > 
-> *Generate a Schema Class based on the following autoclaim.py schema definition, which has been built and derived from Pydantic BaseModel class. The generated Schema Class should be called "Freight Shipment Bill of Lading" schema file. Please define the entities based on standard bill of lading documents in the logistics industry.*
+> *Generate a JSON Schema (Draft 2020-12) based on the following autoclaim.json schema definition. The generated schema should be called "Freight Shipment Bill of Lading". Please define the properties based on standard bill of lading documents in the logistics industry.*
 
-### Class Structure
+### Schema Document Structure
 
-Each schema `.py` file must include:
+Each schema `.json` file must be a JSON Schema (Draft 2020-12) with
+`"type": "object"` at the root and a `"properties"` block. Example:
 
-```python
-from pydantic import BaseModel, Field
-from typing import List, Optional
-
-class SubModel(BaseModel):
-    """Description of this sub-entity — used as LLM context."""
-    
-    field_name: Optional[str] = Field(
-        description="What this field represents, e.g. Consignee company name"
-    )
-
-class MyDocumentSchema(BaseModel):
-    """Top-level description of the document type."""
-    
-    some_field: Optional[str] = Field(description="...")
-    sub_entity: Optional[SubModel] = Field(description="...")
-    
-    @staticmethod
-    def example() -> "MyDocumentSchema":
-        """Returns an empty instance of this schema."""
-        return MyDocumentSchema(some_field="", sub_entity=SubModel.example())
-    
-    @staticmethod
-    def from_json(json_str: str) -> "MyDocumentSchema":
-        """Creates an instance from a JSON string."""
-        return MyDocumentSchema.model_validate_json(json_str)
-    
-    def to_dict(self) -> dict:
-        """Converts this instance to a dictionary."""
-        return self.model_dump()
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MyDocumentSchema",
+  "description": "Top-level description of the document type.",
+  "type": "object",
+  "properties": {
+    "some_field": {
+      "type": ["string", "null"],
+      "description": "What this field represents, e.g. policy number"
+    },
+    "sub_entity": {
+      "$ref": "#/$defs/SubModel"
+    }
+  },
+  "$defs": {
+    "SubModel": {
+      "title": "SubModel",
+      "description": "Description of this sub-entity — used as LLM context.",
+      "type": "object",
+      "properties": {
+        "field_name": {
+          "type": ["string", "null"],
+          "description": "What this field represents, e.g. Consignee company name"
+        }
+      }
+    }
+  }
+}
 ```
 
 ### Key Rules
 
 | Element                  | Requirement                                                                                                                                                                  |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Inheritance**          | All classes must inherit from `pydantic.BaseModel`                                                                                                                           |
-| **Field descriptions**   | Every field must have a `description=` — this is the prompt text the LLM uses for extraction. Include examples for better accuracy (e.g., `"Date of loss, e.g. 01/15/2026"`) |
-| **Optional vs Required** | Use `Optional[str]` for fields that may not be present in every document                                                                                                     |
-| **Subclasses**           | Use nested `BaseModel` classes for complex entities (address, line items, etc.)                                                                                              |
-| **Required methods**     | `example()`, `from_json()`, `to_dict()` — all three must be present                                                                                                          |
-| **Class docstring**      | Include a description — it's used as context during mapping                                                                                                                  |
+| **Root type**            | Must be `"type": "object"` with a `"properties"` block                                                                                                                       |
+| **Field descriptions**   | Every property must have a `"description"` — this is the prompt text the LLM uses for extraction. Include examples for better accuracy (e.g., `"Date of loss, e.g. 01/15/2026"`) |
+| **Optional vs Required** | Use `["string", "null"]` for fields that may not be present in every document; list required keys in the root `"required"` array if any                                       |
+| **Sub-objects**          | Define reusable nested types under `"$defs"` and reference them via `"$ref": "#/$defs/<Name>"`                                                                                |
+| **Class name**           | Use a top-level `"title"` field; this becomes `ClassName` in the Schema Vault. If absent, the request body's `ClassName` (or filename) is used                                |
+| **Top-level description**| Include a `"description"` — it's used as context during mapping                                                                                                              |
 
 ---
 
 ## Step 2: Register Schemas
 
-After creating your `.py` class files, register each schema in the system. Registration uploads the class file to Blob Storage and stores metadata in Cosmos DB.
+After creating your `.json` schema files, register each schema in the system. Registration uploads the file to Blob Storage and stores metadata in Cosmos DB.
 
 ### Option A: Register via API (individual)
 
@@ -152,7 +152,7 @@ After creating your `.py` class files, register each schema in the system. Regis
 | Part          | Type        | Description                                                       |
 | ------------- | ----------- | ----------------------------------------------------------------- |
 | `schema_info` | JSON string | `{"ClassName": "MyDocumentSchema", "Description": "My Document"}` |
-| `file`        | File upload | The `.py` class file (max 1 MB)                                   |
+| `file`        | File upload | The `.json` JSON Schema file (max 1 MB)                           |
 
 Example using the REST Client extension:
 
@@ -177,10 +177,10 @@ For bulk registration, use the provided script with a JSON manifest. The script 
 ```json
 {
   "schemas": [
-    { "File": "autoclaim.py",       "ClassName": "AutoInsuranceClaimForm",       "Description": "Auto Insurance Claim Form" },
-    { "File": "damagedcarimage.py", "ClassName": "DamagedVehicleImageAssessment","Description": "Damaged Vehicle Image Assessment" },
-    { "File": "policereport.py",    "ClassName": "PoliceReportDocument",         "Description": "Police Report Document" },
-    { "File": "repairestimate.py",  "ClassName": "RepairEstimateDocument",       "Description": "Repair Estimate Document" }
+    { "File": "autoclaim.json",       "ClassName": "AutoInsuranceClaimForm",       "Description": "Auto Insurance Claim Form" },
+    { "File": "damagedcarimage.json", "ClassName": "DamagedVehicleImageAssessment","Description": "Damaged Vehicle Image Assessment" },
+    { "File": "policereport.json",    "ClassName": "PoliceReportDocument",         "Description": "Police Report Document" },
+    { "File": "repairestimate.json",  "ClassName": "RepairEstimateDocument",       "Description": "Repair Estimate Document" }
   ],
   "schemaset": {
     "Name": "Auto Claim",
@@ -205,7 +205,7 @@ The script checks for existing schemas and schema sets to avoid duplicates, and 
 | `POST`   | `/schemavault/`                     | Register a new schema (multipart upload) |
 | `PUT`    | `/schemavault/`                     | Update an existing schema                |
 | `DELETE` | `/schemavault/`                     | Delete a schema by ID                    |
-| `GET`    | `/schemavault/schemas/{schema_id}` | Get a schema by ID (includes `.py` file)  |
+| `GET`    | `/schemavault/schemas/{schema_id}` | Get a schema by ID (includes `.json` file) |
 
 ---
 
@@ -259,16 +259,63 @@ Repeat for each schema. The SchemaSet now holds references to all your document 
 Once schemas are registered and grouped into a SchemaSet, the pipeline uses them automatically during the **Map** step:
 
 1. **Schema lookup** — The Map handler reads the `Schema_Id` from the processing queue message, then fetches metadata from Cosmos DB
-2. **Dynamic class loading** — Downloads the `.py` file from Blob Storage and dynamically loads the Pydantic class
-3. **JSON Schema generation** — Calls `model_json_schema()` on the class to produce a full JSON Schema with all field descriptions
+2. **Schema materialisation** — Downloads the JSON Schema document from Blob Storage and builds a Pydantic model from it in memory (no code execution)
+3. **JSON Schema generation** — Calls `model_json_schema()` on the materialised model to produce the schema with all field descriptions
 4. **LLM extraction** — Embeds the JSON Schema into the GPT-5.1 system prompt with `response_format` for structured JSON output (temperature=0.1 for deterministic results)
-5. **Validation & scoring** — Parses the GPT response back into the Pydantic class, then computes per-field confidence scores using log-probabilities
+5. **Validation & scoring** — Parses the GPT response back into the Pydantic model, then computes per-field confidence scores using log-probabilities
 
-This means your field descriptions in the schema class **directly influence extraction quality** — write clear, specific descriptions with examples for best results.
+This means your field descriptions in the schema **directly influence extraction quality** — write clear, specific descriptions with examples for best results.
 
 ---
 
-## Related Documentation
+## Authoring Schemas as JSON
+
+The schema vault accepts **JSON Schema** documents (Draft 2020-12) only.
+JSON schemas are treated strictly as data: the worker parses them and
+materialises a Pydantic model in memory without executing any uploaded
+code, eliminating an entire class of remote-code-execution risk in the
+schema-management path. The legacy executable `.py` format has been
+removed; uploads of `.py` files are rejected with HTTP 415.
+
+### Format requirements
+
+| | JSON Schema |
+| --- | --- |
+| Format | Declarative JSON document |
+| Worker behaviour | Parses JSON, builds model in memory |
+| Authoring | Pydantic-compatible JSON |
+| Side-effects on import | Impossible |
+
+### Upload via API
+
+`POST /schemavault/` accepts JSON Schema documents. Send the file with
+`Content-Type: application/json`:
+
+```http
+POST /schemavault/
+Content-Type: multipart/form-data
+- data: { "ClassName": "InvoiceSchema", "Description": "Invoice extraction" }
+- file: invoice.json   (application/json)
+```
+
+When uploading JSON:
+
+- The schema must be a JSON object with `"type": "object"` and a
+  `"properties"` block.
+- The schema's `title` (if present) becomes the `ClassName` recorded in
+  Cosmos. If the JSON has no `title`, the request body's `ClassName` is
+  used as a fallback.
+- The schema must be ≤ 1 MB.
+
+### Limitations
+
+JSON schemas are pure data. They cannot carry custom validation logic
+(e.g. Pydantic `field_validator`). For most extraction schemas this is
+not a limitation — the existing samples don't use custom validators.
+If you need imperative validation, implement it downstream after the
+pipeline extracts the data.
+
+
 
 - [Modifying System Processing Prompts](./CustomizeSystemPrompts.md) — Customize extraction and mapping prompts
 - [Gap Analysis Ruleset Guide](./GapAnalysisRulesetGuide.md) — Define gap rules that reference your document types

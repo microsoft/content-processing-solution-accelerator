@@ -209,7 +209,7 @@ Using Azure OpenAI Service, a deployment of the GPT-5.1 model is used during the
 Using Azure Blob Storage, the solution uses multiple containers:
 - **process-batch** – Claim batch manifests and batch-level artifacts.
 - **cps-processes** – Source files for processing, intermediate results, and final output JSON files.
-- **cps-configuration** – Schema `.py` files and configuration data.
+- **cps-configuration** – Schema JSON files and configuration data.
 
 ### Azure Cosmos DB for MongoDB
 Using Azure Cosmos DB for MongoDB, the solution uses multiple collections:

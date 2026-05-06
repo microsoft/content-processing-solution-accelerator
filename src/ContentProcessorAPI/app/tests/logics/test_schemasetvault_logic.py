@@ -120,8 +120,8 @@ def test_add_schema_to_set(MockBlob, MockMongo, mock_app_context):
             "Id": "s1",
             "ClassName": "Invoice",
             "Description": "desc",
-            "FileName": "invoice.py",
-            "ContentType": "text/x-python",
+            "FileName": "invoice.json",
+            "ContentType": "application/json",
         }
     ]
 
@@ -229,8 +229,8 @@ def test_get_all_schemas_in_set(MockBlob, MockMongo, mock_app_context):
             "Id": "s1",
             "ClassName": "Invoice",
             "Description": "d1",
-            "FileName": "invoice.py",
-            "ContentType": "text/x-python",
+            "FileName": "invoice.json",
+            "ContentType": "application/json",
         }
     ]
 

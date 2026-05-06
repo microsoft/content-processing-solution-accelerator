@@ -51,4 +51,4 @@ For the complete DSL reference, expression language, domain adaptation examples,
 
 ## Schema-Specific Prompts
 
-Schema-specific prompts are managed directly in the individual schema .py file that is created. The field descriptions in your schema class act as prompts for the LLM during data extraction and mapping. See [Customizing Schema and Data](./CustomizeSchemaData.md) for details on how to write effective field descriptions.
+Schema-specific prompts are managed directly in the individual schema JSON file. The field descriptions in your schema act as prompts for the LLM during data extraction and mapping. See [Customizing Schema and Data](./CustomizeSchemaData.md) for details on how to write effective field descriptions.

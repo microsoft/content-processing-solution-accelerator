@@ -1,0 +1,596 @@
+{
+  "$defs": {
+    "RepairEstimateLineItem": {
+      "description": "A class representing a repair estimate line item.",
+      "properties": {
+        "service_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Service description, e.g. Dent repair (quarter panel)",
+          "title": "Service Description"
+        },
+        "labor_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Labor hours, e.g. 2.0",
+          "title": "Labor Hours"
+        },
+        "rate_per_hour": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Labor rate per hour, e.g. 75.0",
+          "title": "Rate Per Hour"
+        },
+        "rate_per_hour_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency for rate_per_hour, e.g. USD",
+          "title": "Rate Per Hour Currency"
+        },
+        "parts_cost": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Parts cost, e.g. 150.0",
+          "title": "Parts Cost"
+        },
+        "parts_cost_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency for parts_cost, e.g. USD",
+          "title": "Parts Cost Currency"
+        },
+        "materials_cost": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Materials/supplies cost, e.g. 50.0",
+          "title": "Materials Cost"
+        },
+        "materials_cost_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency for materials_cost, e.g. USD",
+          "title": "Materials Cost Currency"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Line total amount",
+          "title": "Total"
+        },
+        "total_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency for total, e.g. USD",
+          "title": "Total Currency"
+        }
+      },
+      "required": [
+        "service_description",
+        "labor_hours",
+        "rate_per_hour",
+        "rate_per_hour_currency",
+        "parts_cost",
+        "parts_cost_currency",
+        "materials_cost",
+        "materials_cost_currency",
+        "total",
+        "total_currency"
+      ],
+      "title": "RepairEstimateLineItem",
+      "type": "object"
+    },
+    "RepairEstimateVehicle": {
+      "description": "A class representing the customer vehicle on a repair estimate.",
+      "properties": {
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle year, e.g. 2022",
+          "title": "Year"
+        },
+        "make": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle make, e.g. Toyota",
+          "title": "Make"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle model, e.g. Camry",
+          "title": "Model"
+        },
+        "trim": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle trim, e.g. SE",
+          "title": "Trim"
+        },
+        "vin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle VIN, e.g. 4T1G11AK2NU123456",
+          "title": "Vin"
+        },
+        "license_plate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "License plate, e.g. GA-ABC123",
+          "title": "License Plate"
+        }
+      },
+      "required": [
+        "year",
+        "make",
+        "model",
+        "trim",
+        "vin",
+        "license_plate"
+      ],
+      "title": "RepairEstimateVehicle",
+      "type": "object"
+    },
+    "RepairShopAddress": {
+      "description": "A class representing an auto body shop address.",
+      "properties": {
+        "street": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Street address, e.g. 456 Repair Lane",
+          "title": "Street"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "City, e.g. Macon",
+          "title": "City"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "State, e.g. GA",
+          "title": "State"
+        },
+        "postal_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Postal code, e.g. 31201",
+          "title": "Postal Code"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Country, e.g. USA",
+          "title": "Country"
+        }
+      },
+      "required": [
+        "street",
+        "city",
+        "state",
+        "postal_code",
+        "country"
+      ],
+      "title": "RepairShopAddress",
+      "type": "object"
+    },
+    "Signature": {
+      "description": "A class representing an authorized signature field.",
+      "properties": {
+        "signatory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the signatory",
+          "title": "Signatory"
+        },
+        "is_signed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Indicates if the document is signed. GPT should check whether it has signature in image files. if there is Sign, fill it up as True",
+          "title": "Is Signed"
+        }
+      },
+      "required": [
+        "signatory",
+        "is_signed"
+      ],
+      "title": "Signature",
+      "type": "object"
+    }
+  },
+  "description": "A class representing an auto body shop repair estimate document.",
+  "properties": {
+    "estimate_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Estimate number, e.g. EST-20251130",
+      "title": "Estimate Number"
+    },
+    "date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Estimate date, e.g. 2025-11-30",
+      "title": "Date"
+    },
+    "prepared_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Prepared by / shop name, e.g. Macon Auto Body & Paint",
+      "title": "Prepared By"
+    },
+    "shop_address": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RepairShopAddress"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Shop address"
+    },
+    "shop_phone": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Shop phone number",
+      "title": "Shop Phone"
+    },
+    "customer_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Customer name, e.g. Chad Brooks",
+      "title": "Customer Name"
+    },
+    "vehicle": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RepairEstimateVehicle"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Vehicle information"
+    },
+    "damage_description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Damage description / narrative",
+      "title": "Damage Description"
+    },
+    "repair_details": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/RepairEstimateLineItem"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Repair detail line items",
+      "title": "Repair Details"
+    },
+    "subtotal": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Subtotal amount",
+      "title": "Subtotal"
+    },
+    "subtotal_currency": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Currency for subtotal, e.g. USD",
+      "title": "Subtotal Currency"
+    },
+    "tax_rate": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Tax rate, e.g. 7%",
+      "title": "Tax Rate"
+    },
+    "tax_amount": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Tax amount, e.g. 24.50",
+      "title": "Tax Amount"
+    },
+    "tax_currency": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Currency for tax_amount, e.g. USD",
+      "title": "Tax Currency"
+    },
+    "total_estimate": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Total estimate amount, e.g. 374.50",
+      "title": "Total Estimate"
+    },
+    "total_estimate_currency": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Currency for total_estimate, e.g. USD",
+      "title": "Total Estimate Currency"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Notes on the estimate",
+      "title": "Notes"
+    },
+    "authorized_signature": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Signature"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Authorized signature"
+    },
+    "authorized_signature_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Signature date, e.g. 2025-11-30",
+      "title": "Authorized Signature Date"
+    }
+  },
+  "required": [
+    "estimate_number",
+    "date",
+    "prepared_by",
+    "shop_address",
+    "shop_phone",
+    "customer_name",
+    "vehicle",
+    "damage_description",
+    "repair_details",
+    "subtotal",
+    "subtotal_currency",
+    "tax_rate",
+    "tax_amount",
+    "tax_currency",
+    "total_estimate",
+    "total_estimate_currency",
+    "notes",
+    "authorized_signature",
+    "authorized_signature_date"
+  ],
+  "title": "RepairEstimateDocument",
+  "type": "object"
+}
