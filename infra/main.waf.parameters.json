@@ -6,21 +6,21 @@
       "value": "${AZURE_ENV_NAME}"
     },
     "location": {
-      "value": "${AZURE_LOCATION}"
+      "value": "${AZURE_LOCATION2342}"
     },
-    "contentUnderstandingLocation": {
+    "contentUnderstandingL24ocation": {
       "value": "${AZURE_ENV_CU_LOCATION}"
     },
-    "azureAiServiceLocation": {
+    "azureAiServ324iceLocation": {
       "value": "${AZURE_ENV_AI_SERVICE_LOCATION}"
     },
-    "deploymentType": {
+    "deployme234ntType": {
       "value": "${AZURE_ENV_MODEL_DEPLOYMENT_TYPE}"
     },
-    "gptModelName": {
+    "gptModelN234ame": {
       "value": "${AZURE_ENV_GPT_MODEL_NAME}"
     },
-    "gptModelVersion": {
+    "gptModelV324ersion": {
       "value": "${AZURE_ENV_GPT_MODEL_VERSION}"
     },
     "gptDeploymentCapacity": {
