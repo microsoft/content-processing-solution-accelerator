@@ -325,12 +325,6 @@ When uploading JSON:
 - The schema's `title` (if present) becomes the `ClassName` recorded in
   Cosmos. If the JSON has no `title`, the request body's `ClassName` is
   used as a fallback.
-- Two project-specific extension keywords are accepted:
-  - `x-cps-extract-prompt` — optional override for the LLM extraction
-    prompt for that field.
-  - `x-cps-required-on-save` — marks a field that must be present in
-    the LLM output before persistence.
-  Any other `x-…` keyword is rejected.
 - The schema must be ≤ 1 MB.
 
 ### Constraints relative to the legacy Python schemas

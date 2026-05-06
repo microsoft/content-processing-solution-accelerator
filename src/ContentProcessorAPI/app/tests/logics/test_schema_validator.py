@@ -54,13 +54,6 @@ def test_validate_accepts_autoclaim_golden():
     assert document["type"] == "object"
 
 
-def test_validate_accepts_allowed_cps_keywords():
-    schema = _minimal_object_schema()
-    schema["properties"]["name"]["x-cps-extract-prompt"] = "Extract the full name."
-    schema["properties"]["name"]["x-cps-required-on-save"] = True
-    validate_json_schema(_bytes(schema))
-
-
 # ---------------------------------------------------------------------------
 # Failure modes
 # ---------------------------------------------------------------------------
@@ -146,6 +139,5 @@ def test_derive_class_name_sanitises_leading_digits():
     assert derive_class_name({}, fallback="9invoice") == "Schema_9invoice"
 
 
-def test_allowed_keywords_constant_contains_expected_extensions():
-    assert "x-cps-extract-prompt" in ALLOWED_CPS_KEYWORDS
-    assert "x-cps-required-on-save" in ALLOWED_CPS_KEYWORDS
+def test_allowed_keywords_constant_is_empty():
+    assert len(ALLOWED_CPS_KEYWORDS) == 0

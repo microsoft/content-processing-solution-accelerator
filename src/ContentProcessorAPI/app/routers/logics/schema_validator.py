@@ -24,13 +24,7 @@ from jsonschema.exceptions import SchemaError
 #: artefacts; a generous cap of 1 MB matches the legacy ``.py`` limit.
 MAX_SCHEMA_BYTES: int = 1 * 1024 * 1024
 
-#: Allowlisted project-specific custom keywords. Any other ``x-cps-*`` or
-#: ``x-`` keyword in the uploaded schema is rejected so unknown extension
-#: points cannot be smuggled in.
-ALLOWED_CPS_KEYWORDS: frozenset[str] = frozenset({
-    "x-cps-extract-prompt",
-    "x-cps-required-on-save",
-})
+ALLOWED_CPS_KEYWORDS: frozenset[str] = frozenset()
 
 
 class SchemaValidationError(ValueError):
