@@ -286,26 +286,6 @@ removed; uploads of `.py` files are rejected with HTTP 415.
 | Authoring | Pydantic-compatible JSON |
 | Side-effects on import | Impossible |
 
-### Authoring with the conversion helper
-
-If you have an existing Pydantic-based `.py` schema, the repo ships a
-helper that emits the equivalent JSON Schema:
-
-```bash
-python scripts/py_schema_to_json.py \
-    src/ContentProcessorAPI/samples/schemas/autoclaim.py \
-    AutoInsuranceClaimForm
-```
-
-This writes `autoclaim.json` next to the source file. Under the hood it
-calls `Model.model_json_schema()` from Pydantic v2 — the same call the
-worker uses today to build the LLM prompt. The output is therefore
-already aligned with the contract the pipeline expects.
-
-The accelerator ships a golden conversion of the auto-claim sample at
-[/src/ContentProcessorAPI/samples/schemas/autoclaim.json](/src/ContentProcessorAPI/samples/schemas/autoclaim.json)
-that you can reference.
-
 ### Upload via API
 
 `POST /schemavault/` accepts JSON Schema documents. Send the file with
