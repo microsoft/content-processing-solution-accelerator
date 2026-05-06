@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, ForwardRef, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, ForwardRef, List, Literal, Tuple, Type, Union
 
 from azure.storage.blob import BlobServiceClient
 from pydantic import BaseModel, ConfigDict, Field, create_model

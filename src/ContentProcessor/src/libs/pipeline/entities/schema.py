@@ -27,9 +27,7 @@ class Schema(BaseModel):
         ContentType: Target content type this schema handles.
         Format: Storage format of the schema artifact. Always
             ``"json"`` — declarative JSON Schema descriptors are the
-            only supported format. The legacy ``"python"`` value is
-            tolerated when reading historical Cosmos records but the
-            worker will refuse to process them.
+            only supported format.
     """
 
     Id: str

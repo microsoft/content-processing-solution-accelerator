@@ -107,7 +107,7 @@ async def Get_All_Registered_Schema(
     response_model=Schema,
     summary="Register a schema",
     description="""
-    Registers a new schema file (`.py` or `.json`) and stores its metadata
+    Registers a new schema file (`.json`) and stores its metadata
     in the Schema Vault.
 
     The request must be sent as `multipart/form-data` with:
@@ -115,8 +115,7 @@ async def Get_All_Registered_Schema(
     - a file part (named `file`)
 
     Constraints:
-    - Accepted extensions: `.py` (legacy executable Python class) and
-      `.json` (declarative JSON Schema; recommended).
+    - Only `.json` (declarative JSON Schema) files are accepted.
     - Max size: 1 MB.
 
     For `.json` uploads:
@@ -126,15 +125,15 @@ async def Get_All_Registered_Schema(
       document declares a `title`; otherwise the filename stem is used.
 
     ## Parameters
-    - **ClassName** (body): Schema class name. Used for `.py` uploads and
-      as a fallback for `.json` uploads without a `title`.
+    - **ClassName** (body): Schema class name. Used as a fallback for
+      `.json` uploads without a `title`.
     - **Description** (body): Human-readable description.
-    - **file** (form): `.py` or `.json` schema file (max 1 MB).
+    - **file** (form): `.json` schema file (max 1 MB).
 
     ## Example Request Body
     multipart/form-data
     - `data`: `{ "ClassName": "InvoiceSchema", "Description": "Extract invoice fields" }`
-    - `file`: `<schema.py>` or `<schema.json>`
+    - `file`: `<schema.json>`
     """,
 )
 async def Register_Schema(
@@ -161,7 +160,7 @@ async def Register_Schema(
 
     fallback = os.path.splitext(safe_filename)[0]
     class_name = derive_class_name(document, fallback=data.ClassName or fallback)
-    content_type = file.content_type or "application/json"
+    content_type = "application/json"
 
     return schemas.Add(
         file,
@@ -181,7 +180,7 @@ async def Register_Schema(
     response_model=Schema,
     summary="Update a schema",
     description="""
-    Updates an existing registered schema (`.py` or `.json` file) and
+    Updates an existing registered schema (`.json` file) and
     associated metadata.
 
     The request must be sent as `multipart/form-data` with:
@@ -189,19 +188,19 @@ async def Register_Schema(
     - a file part (named `file`)
 
     Constraints:
-    - Accepted extensions: `.py` and `.json`.
+    - Only `.json` files are accepted.
     - Max size: 1 MB.
 
     ## Parameters
     - **SchemaId** (body): Schema ID to update.
     - **ClassName** (body): Updated class name (fallback for `.json`
       schemas without a `title`).
-    - **file** (form): New `.py` or `.json` schema file (max 1 MB).
+    - **file** (form): New `.json` schema file (max 1 MB).
 
     ## Example Request Body
     multipart/form-data
     - `data`: `{ "SchemaId": "<schema_id>", "ClassName": "InvoiceSchema" }`
-    - `file`: `<schema.py>` or `<schema.json>`
+    - `file`: `<schema.json>`
     """,
 )
 async def Update_Schema(

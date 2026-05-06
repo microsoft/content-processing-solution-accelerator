@@ -85,7 +85,7 @@ class Schemas(BaseModel):
         )
 
         schema_object.ClassName = class_name
-        schema_object.ContentType = file.content_type
+        schema_object.ContentType = "application/json"
         schema_object.Format = storage_format
         schema_object.Updated_On = result["date"]
 

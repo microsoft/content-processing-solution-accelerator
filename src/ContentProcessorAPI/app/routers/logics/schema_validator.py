@@ -109,6 +109,15 @@ def validate_json_schema(raw_bytes: bytes) -> dict[str, Any]:
                 f"Allowed: {sorted(ALLOWED_CPS_KEYWORDS)}."
             )
 
+    # Reject external $ref values. The runtime loader only supports local
+    # references of the form ``#/$defs/...`` or ``#/definitions/...``.
+    for path, ref in _walk_refs(document):
+        if not ref.startswith("#/"):
+            errors.append(
+                f"External $ref '{ref}' at {path or '<root>'} is not supported. "
+                "Only local '#/$defs/...' and '#/definitions/...' references are allowed."
+            )
+
     if errors:
         raise SchemaValidationError(errors)
 
@@ -155,3 +164,18 @@ def _walk_extension_keywords(
     elif isinstance(node, list):
         for idx, item in enumerate(node):
             yield from _walk_extension_keywords(item, f"{path}[{idx}]")
+
+
+def _walk_refs(
+    node: Any, path: str = ""
+) -> Iterable[tuple[str, str]]:
+    """Yield every ``(path, ref_value)`` for ``$ref`` keys anywhere in *node*."""
+    if isinstance(node, dict):
+        if "$ref" in node and isinstance(node["$ref"], str):
+            yield path, node["$ref"]
+        for key, value in node.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            yield from _walk_refs(value, child_path)
+    elif isinstance(node, list):
+        for idx, item in enumerate(node):
+            yield from _walk_refs(item, f"{path}[{idx}]")
