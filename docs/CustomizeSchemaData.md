@@ -2,9 +2,9 @@
 
 ## How to Use Your Own Data
 
-Files processed by the solution are mapped and transformed into **schemas** — strongly typed Pydantic class definitions that represent a standardized output for each document type. For example, the accelerator includes an `AutoInsuranceClaimForm` schema with fields like `policy_number`, `date_of_loss`, and `vehicle_information`.
+Files processed by the solution are mapped and transformed into **schemas** — JSON Schema documents that represent a standardized output for each document type. For example, the accelerator includes an `AutoInsuranceClaimForm` schema with fields like `policy_number`, `date_of_loss`, and `vehicle_information`.
 
-Using AI, the processing pipeline extracts content from each document (text, images, tables), then maps the extracted data into the schema fields using GPT-5.1 with structured JSON output — field descriptions in the schema class act as extraction guidance for the LLM.
+Using AI, the processing pipeline extracts content from each document (text, images, tables), then maps the extracted data into the schema fields using GPT-5.1 with structured JSON output — field descriptions in the schema act as extraction guidance for the LLM.
 
 Schemas need to be created specific to your business and domain requirements. A lot of times schemas may be generally common across industries, but this allows for variations specific to your use case.
 
@@ -73,7 +73,7 @@ flowchart LR
 
 A new JSON Schema document needs to be created that defines the schema as a declarative description of your document type.
 
-> **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema classes should be placed into this folder
+> **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema JSON files should be placed into this folder
 
 **Sample Schemas:** The accelerator ships with 4 sample schemas — use any as a starting template:
 
@@ -264,7 +264,7 @@ Once schemas are registered and grouped into a SchemaSet, the pipeline uses them
 4. **LLM extraction** — Embeds the JSON Schema into the GPT-5.1 system prompt with `response_format` for structured JSON output (temperature=0.1 for deterministic results)
 5. **Validation & scoring** — Parses the GPT response back into the Pydantic model, then computes per-field confidence scores using log-probabilities
 
-This means your field descriptions in the schema class **directly influence extraction quality** — write clear, specific descriptions with examples for best results.
+This means your field descriptions in the schema **directly influence extraction quality** — write clear, specific descriptions with examples for best results.
 
 ---
 
