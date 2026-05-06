@@ -190,7 +190,7 @@ def test_update_schema_rejects_unsupported_extension(client_and_schemas):
 def test_unregister_schema_success(client_and_schemas):
     client, mock_schemas = client_and_schemas
     mock_schemas.Delete.return_value = MagicMock(
-        Id="test-id", ClassName="TestClass", FileName="test.py"
+        Id="test-id", ClassName="TestClass", FileName="test.json"
     )
 
     response = client.request(

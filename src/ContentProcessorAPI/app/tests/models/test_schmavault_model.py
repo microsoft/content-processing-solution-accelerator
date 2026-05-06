@@ -22,8 +22,8 @@ class TestSchemaModel:
             Id="s1",
             ClassName="Invoice",
             Description="desc",
-            FileName="invoice.py",
-            ContentType="text/x-python",
+            FileName="invoice.json",
+            ContentType="application/json",
             Created_On="2025-01-01T00:00:00Z",
             Updated_On="2025-06-15T12:30:00Z",
         )
@@ -36,8 +36,8 @@ class TestSchemaModel:
             Id="s1",
             ClassName="Invoice",
             Description="desc",
-            FileName="invoice.py",
-            ContentType="text/x-python",
+            FileName="invoice.json",
+            ContentType="application/json",
         )
         assert schema.Created_On is None
         assert schema.Updated_On is None
@@ -76,7 +76,7 @@ class TestSchemaVaultUnregisterResponse:
             Status="Success",
             SchemaId="s1",
             ClassName="Invoice",
-            FileName="invoice.py",
+            FileName="invoice.json",
         )
         d = resp.to_dict()
         assert d["Status"] == "Success"

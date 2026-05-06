@@ -21,7 +21,7 @@ from libs.utils.remote_schema_loader import (
     build_model_from_schema,
 )
 
-#: Repo-relative path to the golden JSON schema generated from autoclaim.py.
+#: Repo-relative path to the golden JSON schema.
 _GOLDEN_AUTOCLAIM = (
     Path(__file__).resolve().parents[4]
     / "ContentProcessorAPI"

@@ -37,8 +37,8 @@ flowchart TB
 
     subgraph Runtime["<b>Runtime — Pipeline Map Step</b>"]
         R1["1. Look up Schema metadata<br/>from Cosmos DB"]
-        R2["2. Download .py class file<br/>from Blob Storage"]
-        R3["3. Dynamically load Pydantic class<br/>→ generate JSON Schema"]
+        R2["2. Download JSON Schema<br/>from Blob Storage"]
+        R3["3. Materialise Pydantic model<br/>from JSON Schema (no code execution)"]
         R4["4. Embed JSON Schema in<br/>GPT-5.1 prompt"]
         R5["5. Validate response with<br/>Pydantic → confidence scoring"]
         R1 --> R2 --> R3 --> R4 --> R5
@@ -60,18 +60,18 @@ flowchart TB
 flowchart LR
     Claim["🗂️ Claim"] -->|"assigned to"| SchemaSet["📂 SchemaSet"]
     SchemaSet -->|"contains"| Schema["🗎 Schema"]
-    Schema -->|"stores .py file"| Blob["💾 Blob Storage"]
+    Schema -->|"stores .json file"| Blob["💾 Blob Storage"]
 ```
 
-- **Schema** — one per document type. Metadata in Cosmos DB, `.py` class file in Blob Storage.
+- **Schema** — one per document type. Metadata in Cosmos DB, `.json` schema file in Blob Storage.
 - **SchemaSet** — a named group that holds references to one or more Schemas. Assigned to a Claim at creation time.
 - A Schema can belong to multiple SchemaSets or none at all.
 
 ---
 
-## Step 1: Create Schema Class (.py)
+## Step 1: Create a JSON Schema Document
 
-A new class needs to be created that defines the schema as a strongly typed Python class inheriting from Pydantic `BaseModel`.
+A new JSON Schema document needs to be created that defines the schema as a declarative description of your document type.
 
 > **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema classes should be placed into this folder
 
@@ -86,11 +86,11 @@ A new class needs to be created that defines the schema as a strongly typed Pyth
 
 > **Note:** All 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set.
 
-Duplicate one of these files and update with a class definition that represents your document type.
+Duplicate one of these files and update with fields that represent your document type.
 
 > **Tip:** You can use GitHub Copilot to generate a schema. Example prompt:
 > 
-> *Generate a Schema Class based on the following autoclaim.py schema definition, which has been built and derived from Pydantic BaseModel class. The generated Schema Class should be called "Freight Shipment Bill of Lading" schema file. Please define the entities based on standard bill of lading documents in the logistics industry.*
+> *Generate a JSON Schema (Draft 2020-12) based on the following autoclaim.json schema definition. The generated schema should be called "Freight Shipment Bill of Lading". Please define the properties based on standard bill of lading documents in the logistics industry.*
 
 ### Schema Document Structure
 
@@ -205,7 +205,7 @@ The script checks for existing schemas and schema sets to avoid duplicates, and 
 | `POST`   | `/schemavault/`                     | Register a new schema (multipart upload) |
 | `PUT`    | `/schemavault/`                     | Update an existing schema                |
 | `DELETE` | `/schemavault/`                     | Delete a schema by ID                    |
-| `GET`    | `/schemavault/schemas/{schema_id}` | Get a schema by ID (includes `.py` file)  |
+| `GET`    | `/schemavault/schemas/{schema_id}` | Get a schema by ID (includes `.json` file) |
 
 ---
 
