@@ -76,11 +76,13 @@ jobs:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
         run: |
-          EMAIL_BODY=$(cat email_body.html)
+          if [ ! -f email_body.html ]; then
+            echo "<p>Email body was not generated. Please check the workflow logs.</p>" > email_body.html
+          fi
 
           jq -n \
             --arg name "${ACCELERATOR_NAME}" \
-            --arg body "$EMAIL_BODY" \
+            --rawfile body email_body.html \
             '{subject: ("Bicep Parameter Validation Report - " + $name + " - Issues Detected"), body: $body}' \
             | curl -X POST "${LOGICAPP_URL}" \
               -H "Content-Type: application/json" \
@@ -92,11 +94,13 @@ jobs:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
         run: |
-          EMAIL_BODY=$(cat email_body.html)
+          if [ ! -f email_body.html ]; then
+            echo "<p>Email body was not generated. Please check the workflow logs.</p>" > email_body.html
+          fi
 
           jq -n \
             --arg name "${ACCELERATOR_NAME}" \
-            --arg body "$EMAIL_BODY" \
+            --rawfile body email_body.html \
             '{subject: ("Bicep Parameter Validation Report - " + $name + " - Passed"), body: $body}' \
             | curl -X POST "${LOGICAPP_URL}" \
               -H "Content-Type: application/json" \
