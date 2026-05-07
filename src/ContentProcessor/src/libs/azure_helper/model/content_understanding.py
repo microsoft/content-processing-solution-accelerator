@@ -9,7 +9,7 @@ typed Python objects used downstream by pipeline handlers.
 
 from typing import List, Optional
 
-from pydantic import BaseModel, ValidationInfo, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class Span(BaseModel):
@@ -103,8 +103,8 @@ class Page(BaseModel):
     angle: Optional[float] = None
     width: float
     height: float
-    spans: Optional[List[Span]] = None
-    words: Optional[List[Word]] = None
+    spans: List[Span] = Field(default_factory=list)
+    words: List[Word] = Field(default_factory=list)
     lines: Optional[List[Line]] = []
     paragraphs: Optional[List[Paragraph]] = []
 
@@ -116,7 +116,7 @@ class DocumentContent(BaseModel):
     endPageNumber: int
     unit: str
     pages: List[Page]
-    paragraphs: Optional[List[Paragraph]] = None
+    paragraphs: List[Paragraph] = Field(default_factory=list)
 
 
 class Warning(BaseModel):
@@ -139,7 +139,7 @@ class ResultData(BaseModel):
     analyzerId: str
     apiVersion: str
     createdAt: str
-    warnings: List[Warning] = []
+    warnings: List[Warning] = Field(default_factory=list)
     contents: List[DocumentContent]
 
 

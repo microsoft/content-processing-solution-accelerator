@@ -216,7 +216,7 @@ class TestPageGAOptionals:
         )
         assert page.pageNumber == 1
         assert page.angle is None
-        assert page.spans is None
-        assert page.words is None
+        assert page.spans == []
+        assert page.words == []
         assert page.lines == []
         assert page.paragraphs == []
