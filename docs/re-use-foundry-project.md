@@ -6,7 +6,7 @@ To configure your environment to use an existing Azure AI Foundry Project, follo
 > **⚠️ Region requirement**
 >
 > The existing Foundry project must reside in a region that supports **both** the GPT model deployed by this accelerator (default `gpt-5.1` with `GlobalStandard` deployment type) **and** Azure AI Content Understanding (GA).<br>
-> Supported regions: `australiaeast`, `eastus`, `eastus2`, `northcentralus`, `southcentralus`, `swedencentral`, `switzerlandnorth`, `westeurope`, `westus`, `westus2`, `westus3`.<br>
+> Supported regions: `australiaeast`, `eastus`, `eastus2`, `japaneast`, `southcentralus`, `southeastasia`, `swedencentral`, `uksouth`, `westeurope`, `westus`, `westus3`.<br>
 > If the existing project is in a different region, deployment will fail or the application will not work correctly.
 
 ---
