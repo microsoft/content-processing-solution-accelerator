@@ -6,7 +6,7 @@
       "value": "${AZURE_ENV_NAME}"
     },
     "location": {
-      "value": "${AZURE_LOCATION2323}"
+      "value": "${AZURE_LOCATION}"
     },
     "contentUnderstandingLocation": {
       "value": "${AZURE_ENV_CU_LOCATION}"
@@ -17,13 +17,13 @@
     "deploymentType": {
       "value": "${AZURE_ENV_MODEL_DEPLOYMENT_TYPE}"
     },
-    "gptModelName232": {
+    "gptModelName": {
       "value": "${AZURE_ENV_GPT_MODEL_NAME}"
     },
-    "gptModelVersion232": {
+    "gptModelVersion": {
       "value": "${AZURE_ENV_GPT_MODEL_VERSION}"
     },
-    "gptDeploymentCapacity23": {
+    "gptDeploymentCapacity": {
       "value": "${AZURE_ENV_GPT_MODEL_CAPACITY}"
     },
     "existingLogAnalyticsWorkspaceId": {
