@@ -50,26 +50,11 @@ Write-Host "  [Link] Portal URL: $WORKFLOW_APP_PORTAL_URL"
 
 Write-Host ""
 Write-Host "[Package] Registering schemas and creating schema set..."
-
-# Check if private networking (WAF) is enabled
-$ENABLE_PRIVATE_NETWORKING = $null
-try {
-    $ENABLE_PRIVATE_NETWORKING = azd env get-value ENABLE_PRIVATE_NETWORKING 2>$null
-} catch { }
-
-# When private networking is enabled, the API is internal-only (ingressExternal=false).
-# Use the web app's /api proxy to reach the backend through same-origin routing.
-if ($ENABLE_PRIVATE_NETWORKING -eq "true") {
-    Write-Host "  [Info] Private networking (WAF) is enabled. Using web app /api proxy to reach backend."
-    $ApiBaseUrl = "https://$CONTAINER_WEB_APP_FQDN/api"
-} else {
-    $ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
-}
-
 Write-Host "  [Wait] Waiting for API to be ready..."
 
 $MaxRetries = 10
 $RetryInterval = 15
+$ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
 $ApiReady = $false
 
 for ($i = 1; $i -le $MaxRetries; $i++) {

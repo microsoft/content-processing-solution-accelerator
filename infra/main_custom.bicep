@@ -934,8 +934,8 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
       }
     ]
     enableTelemetry: enableTelemetry
-    publicNetworkAccess: 'Enabled'
-    internal: false
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    internal: enablePrivateNetworking ? true : false
 
     // <========== WAF related parameters
 
@@ -945,6 +945,34 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
     infrastructureSubnetResourceId: (enablePrivateNetworking)
       ? virtualNetwork!.outputs.containersSubnetResourceId // Use the container app subnet
       : null // Use the container app subnet
+  }
+}
+
+// ========== Private DNS Zone for internal Container App Environment ========== //
+// When the CAE is internal, its FQDN is resolvable only within the VNet via this zone.
+module caeDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.0' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.private-dns-zone.cae.${solutionSuffix}', 64)
+  params: {
+    name: avmContainerAppEnv.outputs.defaultDomain
+    tags: tags
+    enableTelemetry: enableTelemetry
+    a: [
+      {
+        name: '*'
+        aRecords: [
+          {
+            ipv4Address: avmContainerAppEnv.outputs.staticIp
+          }
+        ]
+        ttl: 300
+      }
+    ]
+    virtualNetworkLinks: [
+      {
+        name: take('vnetlink-vnet-${solutionSuffix}-cae', 64)
+        virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+      }
+    ]
   }
 }
 
@@ -1983,9 +2011,6 @@ output AZURE_CONTAINER_REGISTRY_ENDPOINT string = avmContainerRegistry.outputs.l
 
 @description('The name of the Content Understanding AI Services account.')
 output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = avmAiServices_cu.outputs.name
-
-@description('Whether private networking (WAF) is enabled.')
-output ENABLE_PRIVATE_NETWORKING bool = enablePrivateNetworking
 
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name

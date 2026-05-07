@@ -60,23 +60,11 @@ echo "  🔗 Portal URL: $WORKFLOW_APP_PORTAL_URL"
 
 echo ""
 echo "📦 Registering schemas and creating schema set..."
-
-# Check if private networking (WAF) is enabled
-ENABLE_PRIVATE_NETWORKING=$(azd env get-value ENABLE_PRIVATE_NETWORKING 2>/dev/null || echo "")
-
-# When private networking is enabled, the API is internal-only (ingressExternal=false).
-# Use the web app's /api proxy to reach the backend through same-origin routing.
-if [ "$ENABLE_PRIVATE_NETWORKING" = "true" ]; then
-  echo "  ℹ️  Private networking (WAF) is enabled. Using web app /api proxy to reach backend."
-  API_BASE_URL="https://$CONTAINER_WEB_APP_FQDN/api"
-else
-  API_BASE_URL="https://$CONTAINER_API_APP_FQDN"
-fi
-
 echo "  ⏳ Waiting for API to be ready..."
 
 MAX_RETRIES=10
 RETRY_INTERVAL=15
+API_BASE_URL="https://$CONTAINER_API_APP_FQDN"
 
 for i in $(seq 1 $MAX_RETRIES); do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/schemavault/" 2>/dev/null || echo "000")
