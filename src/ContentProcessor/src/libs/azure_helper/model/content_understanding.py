@@ -105,8 +105,8 @@ class Page(BaseModel):
     height: float
     spans: List[Span] = Field(default_factory=list)
     words: List[Word] = Field(default_factory=list)
-    lines: Optional[List[Line]] = []
-    paragraphs: Optional[List[Paragraph]] = []
+    lines: List[Line] = Field(default_factory=list)
+    paragraphs: List[Paragraph] = Field(default_factory=list)
 
 
 class DocumentContent(BaseModel):
