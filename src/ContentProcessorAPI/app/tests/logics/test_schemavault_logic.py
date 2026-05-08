@@ -32,8 +32,8 @@ def test_get_all(MockBlob, MockMongo, mock_app_context):
             "Id": "s1",
             "ClassName": "Invoice",
             "Description": "desc",
-            "FileName": "invoice.py",
-            "ContentType": "text/x-python",
+            "FileName": "invoice.json",
+            "ContentType": "application/json",
         }
     ]
 
@@ -55,20 +55,20 @@ def test_get_file(MockBlob, MockMongo, mock_app_context):
             "Id": "s1",
             "ClassName": "Invoice",
             "Description": "desc",
-            "FileName": "invoice.py",
-            "ContentType": "text/x-python",
+            "FileName": "invoice.json",
+            "ContentType": "application/json",
         }
     ]
     mock_blob = MockBlob.return_value
-    mock_blob.download_blob.return_value = b"class Invoice: pass"
+    mock_blob.download_blob.return_value = b'{"type": "object"}'
 
     from app.routers.logics.schemavault import Schemas
 
     schemas = Schemas(app_context=mock_app_context)
     result = schemas.GetFile("s1")
-    assert result["File"] == b"class Invoice: pass"
-    assert result["FileName"] == "invoice.py"
-    assert result["ContentType"] == "text/x-python"
+    assert result["File"] == b'{"type": "object"}'
+    assert result["FileName"] == "invoice.json"
+    assert result["ContentType"] == "application/json"
 
 
 @patch("app.routers.logics.schemavault.CosmosMongDBHelper")
@@ -99,8 +99,8 @@ def test_add(MockBlob, MockMongo, mock_app_context):
         Id="s1",
         ClassName="Invoice",
         Description="desc",
-        FileName="invoice.py",
-        ContentType="text/x-python",
+        FileName="invoice.json",
+        ContentType="application/json",
     )
     result = schemas.Add(file, schema)
     assert result.Created_On == "2025-01-01T00:00:00Z"
@@ -116,8 +116,8 @@ def test_update(MockBlob, MockMongo, mock_app_context):
             "Id": "s1",
             "ClassName": "Old",
             "Description": "desc",
-            "FileName": "old.py",
-            "ContentType": "text/x-python",
+            "FileName": "old.json",
+            "ContentType": "application/json",
         }
     ]
     mock_blob = MockBlob.return_value
@@ -127,7 +127,7 @@ def test_update(MockBlob, MockMongo, mock_app_context):
 
     schemas = Schemas(app_context=mock_app_context)
     file = MagicMock()
-    file.content_type = "text/x-python"
+    file.content_type = "application/json"
     result = schemas.Update(file, "s1", "NewClass")
     assert result.ClassName == "NewClass"
     mock_mongo.update_document.assert_called_once()
@@ -155,8 +155,8 @@ def test_delete(MockBlob, MockMongo, mock_app_context):
             "Id": "s1",
             "ClassName": "Invoice",
             "Description": "desc",
-            "FileName": "invoice.py",
-            "ContentType": "text/x-python",
+            "FileName": "invoice.json",
+            "ContentType": "application/json",
         }
     ]
 

@@ -1,0 +1,548 @@
+{
+  "$defs": {
+    "PoliceReportAddress": {
+      "description": "A class representing an address referenced in a police report.",
+      "properties": {
+        "street": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Street address, e.g. 123 Main St.",
+          "title": "Street"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "City, e.g. Macon",
+          "title": "City"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "State, e.g. GA",
+          "title": "State"
+        },
+        "postal_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Postal code, e.g. 31201",
+          "title": "Postal Code"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Country, e.g. USA",
+          "title": "Country"
+        }
+      },
+      "required": [
+        "street",
+        "city",
+        "state",
+        "postal_code",
+        "country"
+      ],
+      "title": "PoliceReportAddress",
+      "type": "object"
+    },
+    "PoliceReportDamageItem": {
+      "description": "A class representing a damage line item recorded alongside a police report.",
+      "properties": {
+        "item_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Damaged item/area description",
+          "title": "Item Description"
+        },
+        "repair_estimate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Repair estimate amount",
+          "title": "Repair Estimate"
+        },
+        "repair_estimate_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency of repair_estimate, e.g. USD",
+          "title": "Repair Estimate Currency"
+        }
+      },
+      "required": [
+        "item_description",
+        "repair_estimate",
+        "repair_estimate_currency"
+      ],
+      "title": "PoliceReportDamageItem",
+      "type": "object"
+    },
+    "PoliceReportDamageSummary": {
+      "description": "A class representing a damage summary section.",
+      "properties": {
+        "items": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PoliceReportDamageItem"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "List of damage items",
+          "title": "Items"
+        },
+        "total_estimated_repair": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Total estimated repair amount",
+          "title": "Total Estimated Repair"
+        },
+        "total_estimated_repair_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency of total_estimated_repair, e.g. USD",
+          "title": "Total Estimated Repair Currency"
+        }
+      },
+      "required": [
+        "items",
+        "total_estimated_repair",
+        "total_estimated_repair_currency"
+      ],
+      "title": "PoliceReportDamageSummary",
+      "type": "object"
+    },
+    "PoliceReportIncident": {
+      "description": "A class representing incident details in a police report.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Incident date, e.g. 2025-11-28",
+          "title": "Date"
+        },
+        "time": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Incident time, e.g. 14:15",
+          "title": "Time"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Incident location",
+          "title": "Location"
+        },
+        "cause": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cause of incident",
+          "title": "Cause"
+        },
+        "narrative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Narrative/description of what happened",
+          "title": "Narrative"
+        }
+      },
+      "required": [
+        "date",
+        "time",
+        "location",
+        "cause",
+        "narrative"
+      ],
+      "title": "PoliceReportIncident",
+      "type": "object"
+    },
+    "PoliceReportVehicle": {
+      "description": "A class representing a vehicle referenced in a police report.",
+      "properties": {
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle year, e.g. 2022",
+          "title": "Year"
+        },
+        "make": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle make, e.g. Toyota",
+          "title": "Make"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle model, e.g. Camry",
+          "title": "Model"
+        },
+        "trim": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle trim, e.g. SE",
+          "title": "Trim"
+        },
+        "vin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle VIN",
+          "title": "Vin"
+        },
+        "license_plate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "License plate",
+          "title": "License Plate"
+        },
+        "mileage": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mileage",
+          "title": "Mileage"
+        }
+      },
+      "required": [
+        "year",
+        "make",
+        "model",
+        "trim",
+        "vin",
+        "license_plate",
+        "mileage"
+      ],
+      "title": "PoliceReportVehicle",
+      "type": "object"
+    },
+    "ReportingParty": {
+      "description": "A class representing the reporting party / claimant in the police report context.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Full name of reporting party",
+          "title": "Name"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PoliceReportAddress"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Address of reporting party"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Phone number",
+          "title": "Phone"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email address",
+          "title": "Email"
+        }
+      },
+      "required": [
+        "name",
+        "address",
+        "phone",
+        "email"
+      ],
+      "title": "ReportingParty",
+      "type": "object"
+    }
+  },
+  "description": "A class representing a police report document attached to an auto claim.\n\nNote: The sample content includes the statement \"Police Report: Filed (Report # GA-20251128-CR)\".\nThis schema focuses on extracting the report identifier and the related incident context.",
+  "properties": {
+    "report_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Police report number, e.g. GA-20251128-CR",
+      "title": "Report Number"
+    },
+    "is_filed": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Whether a police report was filed",
+      "title": "Is Filed"
+    },
+    "reporting_agency": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Reporting agency / department",
+      "title": "Reporting Agency"
+    },
+    "insurance_company": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Insurance company name",
+      "title": "Insurance Company"
+    },
+    "claim_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Claim number",
+      "title": "Claim Number"
+    },
+    "policy_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Policy number",
+      "title": "Policy Number"
+    },
+    "reporting_party": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReportingParty"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Reporting party information"
+    },
+    "incident": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PoliceReportIncident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Incident details"
+    },
+    "vehicles": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/PoliceReportVehicle"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Vehicles involved",
+      "title": "Vehicles"
+    },
+    "damage_summary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PoliceReportDamageSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Damage summary"
+    }
+  },
+  "required": [
+    "report_number",
+    "is_filed",
+    "reporting_agency",
+    "insurance_company",
+    "claim_number",
+    "policy_number",
+    "reporting_party",
+    "incident",
+    "vehicles",
+    "damage_summary"
+  ],
+  "title": "PoliceReportDocument",
+  "type": "object"
+}
