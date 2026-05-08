@@ -194,6 +194,13 @@ Review the configuration options below. You can customize any settings that meet
 | **Framework**          | Basic configuration               | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
 | **Features**           | Core functionality                | Reliability, security, operational excellence                                           |
 
+When using the Production/WAF deployment (`enablePrivateNetworking=true`), networking is configured as follows:
+
+- Backend Container App endpoints are internal-only (`ingressExternal=false`) and not publicly reachable.
+- Container Apps Environment is deployed in internal mode with VNet integration.
+- The web frontend remains public and routes browser API traffic through same-origin `/api` proxying to the private backend over VNet.
+- Private DNS is configured for the internal Container Apps Environment domain.
+
 **To use production configuration:**
 
 Copy the contents from the production configuration file to your main parameters file:
