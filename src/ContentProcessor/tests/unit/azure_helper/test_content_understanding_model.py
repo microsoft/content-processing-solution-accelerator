@@ -13,6 +13,7 @@ from libs.azure_helper.model.content_understanding import (
     Paragraph,
     ResultData,
     Span,
+    Warning,
     Word,
 )
 
@@ -163,7 +164,7 @@ class TestAnalyzedResult:
             status="succeeded",
             result=ResultData(
                 analyzerId="prebuilt",
-                apiVersion="2024-01-01",
+                apiVersion="2025-11-01",
                 createdAt="2024-01-01T00:00:00Z",
                 warnings=[],
                 contents=[],
@@ -172,3 +173,50 @@ class TestAnalyzedResult:
         assert result.id == "r-1"
         assert result.status == "succeeded"
         assert result.result.contents == []
+
+    def test_warnings_are_structured(self):
+        # In CU GA the `warnings` field switched from List[str] to a list of
+        # Azure.Core.Foundations.Error objects with code/message/target/details.
+        result = AnalyzedResult(
+            id="r-2",
+            status="succeeded",
+            result=ResultData(
+                analyzerId="prebuilt-documentAnalyzer",
+                apiVersion="2025-11-01",
+                createdAt="2025-11-01T00:00:00Z",
+                warnings=[
+                    {
+                        "code": "PageImageNotAvailable",
+                        "message": "Generated image is not available for page 3.",
+                        "target": "pages[2]",
+                        "details": [],
+                    }
+                ],
+                contents=[],
+            ),
+        )
+        assert len(result.result.warnings) == 1
+        warning = result.result.warnings[0]
+        assert isinstance(warning, Warning)
+        assert warning.code == "PageImageNotAvailable"
+        assert warning.message.startswith("Generated image")
+        assert warning.target == "pages[2]"
+
+
+class TestPageGAOptionals:
+    """In CU GA the `angle`, `spans`, and `words` fields on Page are optional
+    (the prebuilt-documentAnalyzer can omit them when the underlying source
+    has no OCR layer)."""
+
+    def test_page_can_be_constructed_without_angle_spans_words(self):
+        page = Page(
+            pageNumber=1,
+            width=8.5,
+            height=11.0,
+        )
+        assert page.pageNumber == 1
+        assert page.angle is None
+        assert page.spans == []
+        assert page.words == []
+        assert page.lines == []
+        assert page.paragraphs == []

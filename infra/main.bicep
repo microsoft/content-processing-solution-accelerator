@@ -25,26 +25,20 @@ param solutionName string = 'cps'
 param location string
 
 @minLength(1)
-@description('Optional. Location for the Azure AI Content Understanding service deployment.')
-@allowed(['WestUS', 'SwedenCentral', 'AustraliaEast'])
-@metadata({
-  azd: {
-    type: 'location'
-  }
-})
-param contentUnderstandingLocation string = 'WestUS'
-
 @allowed([
   'australiaeast'
-  'centralus'
-  'eastasia'
+  'eastus'
   'eastus2'
   'japaneast'
-  'northeurope'
+  'southcentralus'
   'southeastasia'
+  'swedencentral'
   'uksouth'
+  'westeurope'
+  'westus'
+  'westus3'
 ])
-@description('Required. Location for the Azure AI Services deployment.')
+@description('Required. Location for the Azure AI Services deployment. Must support both Azure OpenAI gpt-5.1 (GlobalStandard) and Azure AI Content Understanding GA. If the deploymentType param is set to Standard, override the metadata.azd.usageName below to reference OpenAI.Standard.gpt-5.1 instead.')
 @metadata({
   azd: {
     type: 'location'
@@ -747,6 +741,16 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
         roleDefinitionIdOrName: 'Azure AI Developer'
         principalType: 'ServicePrincipal'
       }
+      {
+        principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
+        roleDefinitionIdOrName: 'Cognitive Services User'
+        principalType: 'ServicePrincipal'
+      }
+      {
+        principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
+        roleDefinitionIdOrName: 'Cognitive Services User'
+        principalType: 'ServicePrincipal'
+      }
     ]
     networkAcls: {
       bypass: 'AzureServices'
@@ -808,84 +812,6 @@ module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoi
         }
         {
           name: 'ai-services-dns-zone-contentunderstanding'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
-        }
-      ]
-    }
-    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-  }
-}
-
-module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.2' = {
-  name: take('avm.res.cognitive-services.account.content-understanding.${solutionSuffix}', 64)
-
-  params: {
-    name: 'aicu-${solutionSuffix}'
-    location: contentUnderstandingLocation
-    sku: 'S0'
-    managedIdentities: {
-      systemAssigned: false
-      userAssignedResourceIds: [
-        avmManagedIdentity.outputs.resourceId // Use the managed identity created above
-      ]
-    }
-    kind: 'AIServices'
-    tags: {
-      app: solutionSuffix
-      location: location
-    }
-    customSubDomainName: 'aicu-${solutionSuffix}'
-    disableLocalAuth: true
-    enableTelemetry: enableTelemetry
-    networkAcls: {
-      bypass: 'AzureServices'
-      defaultAction: 'Allow' // Always allow for AI Services
-    }
-    roleAssignments: [
-      {
-        principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-        principalType: 'ServicePrincipal'
-      }
-    ]
-
-    publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
-  }
-}
-
-module contentUnderstandingPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = if (enablePrivateNetworking) {
-  name: take('avm.res.network.private-endpoint.aicu-${solutionSuffix}', 64)
-  params: {
-    name: 'pep-aicu-${solutionSuffix}'
-    location: location
-    tags: tags
-    customNetworkInterfaceName: 'nic-aicu-${solutionSuffix}'
-    privateLinkServiceConnections: [
-      {
-        name: 'pep-aicu-${solutionSuffix}-cognitiveservices-connection'
-        properties: {
-          privateLinkServiceId: avmAiServices_cu.outputs.resourceId
-          groupIds: ['account']
-        }
-      }
-    ]
-    privateDnsZoneGroup: {
-      privateDnsZoneGroupConfigs: [
-        {
-          name: 'aicu-dns-zone-cognitiveservices'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-        }
-        {
-          name: 'ai-services-dns-zone-aiservices'
-          privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServices]!.outputs.resourceId
-        }
-        {
-          name: 'aicu-dns-zone-contentunderstanding'
           privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
         }
       ]
@@ -1408,7 +1334,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
       }
       {
         name: 'APP_CONTENT_UNDERSTANDING_ENDPOINT'
-        value: avmAiServices_cu.outputs.endpoint //TODO: replace with actual endpoint
+        value: avmAiServices.outputs.endpoint
       }
       {
         name: 'APP_COSMOS_CONTAINER_PROCESS'
@@ -1683,7 +1609,6 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
   }
   dependsOn: [
     cognitiveServicePrivateEndpoint
-    contentUnderstandingPrivateEndpoint
   ]
 }
 
@@ -1922,8 +1847,8 @@ output CONTAINER_REGISTRY_NAME string = avmContainerRegistry.outputs.name
 @description('The login server of the Azure Container Registry.')
 output CONTAINER_REGISTRY_LOGIN_SERVER string = avmContainerRegistry.outputs.loginServer
 
-@description('The name of the Content Understanding AI Services account.')
-output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = avmAiServices_cu.outputs.name
+@description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA.')
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = avmAiServices.outputs.name
 
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
