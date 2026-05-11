@@ -53,7 +53,7 @@ starlette==1.0.0
 typer==0.24.1
 typing-extensions==4.15.0
 typing-inspection==0.4.2
-urllib3==2.6.3
+urllib3==2.7.0
 uvicorn==0.42.0
 watchfiles==1.1.1
 websockets==16.0
