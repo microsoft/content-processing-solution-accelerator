@@ -160,7 +160,7 @@ Example resource names from deployment:
 - App Configuration: `appcs-{suffix}.azconfig.io`
 - Cosmos DB: `cosmos-{suffix}.documents.azure.com`
 - Storage Account: `st{suffix}.queue.core.windows.net`
-- Content Understanding: `aicu-{suffix}.cognitiveservices.azure.com`
+- Content Understanding: `aif-{suffix}.cognitiveservices.azure.com`
 
 ### Required Azure RBAC Permissions
 

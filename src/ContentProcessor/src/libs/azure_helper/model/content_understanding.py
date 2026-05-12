@@ -9,7 +9,7 @@ typed Python objects used downstream by pipeline handlers.
 
 from typing import List, Optional
 
-from pydantic import BaseModel, ValidationInfo, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class Span(BaseModel):
@@ -100,13 +100,13 @@ class Paragraph(BaseModel):
 
 class Page(BaseModel):
     pageNumber: int
-    angle: float
+    angle: Optional[float] = None
     width: float
     height: float
-    spans: List[Span]
-    words: List[Word]
-    lines: Optional[List[Line]] = []
-    paragraphs: Optional[List[Paragraph]] = []
+    spans: List[Span] = Field(default_factory=list)
+    words: List[Word] = Field(default_factory=list)
+    lines: List[Line] = Field(default_factory=list)
+    paragraphs: List[Paragraph] = Field(default_factory=list)
 
 
 class DocumentContent(BaseModel):
@@ -116,13 +116,30 @@ class DocumentContent(BaseModel):
     endPageNumber: int
     unit: str
     pages: List[Page]
+    paragraphs: List[Paragraph] = Field(default_factory=list)
+
+
+class Warning(BaseModel):
+    """Mirrors the Azure.Core.Foundations.Error shape returned in
+    ``ResultData.warnings`` by the Content Understanding GA API.
+
+    The API now emits structured warning objects (with ``code`` / ``message``
+    plus optional ``target`` / ``details``) instead of plain strings, so this
+    model accepts arbitrary nested error payloads via ``model_config``.
+    """
+
+    code: str
+    message: str
+    target: Optional[str] = None
+
+    model_config = {"extra": "allow"}
 
 
 class ResultData(BaseModel):
     analyzerId: str
     apiVersion: str
     createdAt: str
-    warnings: List[str]
+    warnings: List[Warning] = Field(default_factory=list)
     contents: List[DocumentContent]
 
 
