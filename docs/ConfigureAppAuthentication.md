@@ -4,10 +4,10 @@
 >
 > `azd up` no longer runs authentication setup automatically. Run the script below after deployment:
 >
-> - Windows: `./infra/scripts/configure_auth.ps1`
-> - macOS/Linux: `sed -i 's/\r$//' ./infra/scripts/configure_auth.sh && bash ./infra/scripts/configure_auth.sh`
+> - Windows: `./infra/scripts/setup_auth.ps1`
+> - macOS/Linux: `sed -i 's/\r$//' ./infra/scripts/setup_auth.sh && bash ./infra/scripts/setup_auth.sh`
 >
-> See [DeploymentGuide.md § 5.2](./DeploymentGuide.md#52-configure-authentication-manual-script) for details.
+> See [DeploymentGuide.md § 5.3](./DeploymentGuide.md#53-configure-authentication-manual-script) for details.
 >
 > Follow the portal/manual steps below if:
 > - Your tenant policy prohibits programmatic app registration or secret creation
