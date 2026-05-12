@@ -20,6 +20,7 @@ from libs.pipeline.entities.pipeline_step_result import StepResult
 from libs.pipeline.entities.schema import Schema
 from libs.pipeline.handlers.logics.evaluate_handler.model import DataExtractionResult
 from libs.pipeline.queue_handler_base import HandlerBase
+from libs.token_usage_utils import emit_model_token_event, emit_summary_token_event
 
 
 class SaveHandler(HandlerBase):
@@ -166,6 +167,27 @@ class SaveHandler(HandlerBase):
             connection_string=self.application_context.configuration.app_cosmos_connstr,
             database_name=self.application_context.configuration.app_cosmos_database,
             collection_name=self.application_context.configuration.app_cosmos_container_process,
+        )
+
+        # Emit token usage summary and per-model events to Application Insights
+        emit_summary_token_event(
+            total_input_tokens=evaluated_result.prompt_tokens,
+            total_output_tokens=evaluated_result.completion_tokens,
+            total_tokens=evaluated_result.prompt_tokens + evaluated_result.completion_tokens,
+            process_id=context.data_pipeline.pipeline_status.process_id,
+            file_name=context.data_pipeline.get_source_files()[0].name,
+            file_mime_type=context.data_pipeline.get_source_files()[0].mime_type,
+            agent_count=1,
+            model_count=1,
+        )
+        emit_model_token_event(
+            model_deployment_name=self.application_context.configuration.app_azure_openai_model,
+            usage={
+                "input_tokens": evaluated_result.prompt_tokens,
+                "output_tokens": evaluated_result.completion_tokens,
+                "total_tokens": evaluated_result.prompt_tokens + evaluated_result.completion_tokens,
+            },
+            process_id=context.data_pipeline.pipeline_status.process_id,
         )
 
         # save process_output to blob storage.

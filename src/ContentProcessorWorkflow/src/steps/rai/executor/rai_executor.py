@@ -27,6 +27,8 @@ from steps.models.output import Executor_Output, Workflow_Output
 from services.content_process_service import ContentProcessService
 from steps.rai.model import rai_response
 
+from libs.token_usage_utils import emit_agent_token_event, extract_token_usage
+
 
 class RAIExecutor(Executor):
     """Workflow executor that applies Responsible-AI content analysis.
@@ -184,6 +186,16 @@ class RAIExecutor(Executor):
                 role="user",
                 text=document_text,
             )
+        )
+
+        # Track token usage for RAI check
+        token_usage = extract_token_usage(model_response)
+        model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
+        emit_agent_token_event(
+            agent_name="RAI",
+            model_deployment_name=model_name,
+            usage=token_usage,
+            process_id=result.claim_process_id,
         )
 
         response_content = model_response.text
