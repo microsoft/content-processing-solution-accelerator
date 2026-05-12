@@ -166,7 +166,7 @@ The response returns a Schema `Id` — **save this** for Step 3.
 
 ### Option B: Register via script (batch)
 
-> **Note:** The default sample schemas are registered **automatically** during `azd up` via the post-provisioning hook. You only need to run the script manually if you are adding custom schemas or if automatic registration was skipped.
+> **Note:** Default sample schemas are registered when you run the post-deployment script manually (see Deployment Guide Step 5.1). Run this script again whenever you add or update schemas.
 
 For bulk registration, use the provided script with a JSON manifest. The script performs three steps automatically:
 1. **Registers** individual schema files via `/schemavault/`

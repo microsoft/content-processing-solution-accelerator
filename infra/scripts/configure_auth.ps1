@@ -13,10 +13,18 @@ if ($env:AZURE_SKIP_AUTH_SETUP -eq "true") {
   return
 }
 
-Write-Host ""
-Write-Host "============================================================"
-Write-Host "🔐 Configuring Entra ID authentication (Web + API)"
-Write-Host "============================================================"
+$PrefightOnly = $args -contains "--preflight-only"
+if ($PrefightOnly) {
+  Write-Host ""
+  Write-Host "============================================================"
+  Write-Host "🔍 Preflight permission check (read-only — no changes made)"
+  Write-Host "============================================================"
+} else {
+  Write-Host ""
+  Write-Host "============================================================"
+  Write-Host "🔐 Configuring Entra ID authentication (Web + API)"
+  Write-Host "============================================================"
+}
 
 function Azd-Get($key, $default = "") {
   try { return (azd env get-value $key 2>$null) } catch { return $default }
@@ -25,9 +33,9 @@ function Azd-Get($key, $default = "") {
 $EnvName        = Azd-Get "AZURE_ENV_NAME" "cps"
 $ResourceGroup  = Azd-Get "AZURE_RESOURCE_GROUP"
 $SubscriptionId = Azd-Get "AZURE_SUBSCRIPTION_ID"
-$TenantId = (az account show --query tenantId -o tsv)
+$TenantId = (az account show --query tenantId -o tsv 2>$null)
 if (-not $TenantId) { $TenantId = Azd-Get "AZURE_TENANT_ID" "" }
-if (-not $TenantId) { throw "Could not resolve Azure tenant id. Run 'az login' or set AZURE_TENANT_ID." }
+# (Preflight Check 1 will catch missing authentication with a clear error message)
 
 $WebName = Azd-Get "CONTAINER_WEB_APP_NAME"
 $WebFqdn = Azd-Get "CONTAINER_WEB_APP_FQDN"
@@ -45,6 +53,7 @@ $ApiAuthCallback = "$ApiUrl/.auth/login/aad/callback"
 $GraphAppId            = "00000003-0000-0000-c000-000000000000"
 $GraphUserReadScopeId  = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"
 $CaSecretName          = "microsoft-provider-authentication-secret"
+$ConsentPrecheckOk     = $true
 
 function Retry($Block, $Max = 6, $Delay = 10) {
   for ($i = 1; $i -le $Max; $i++) {
@@ -67,6 +76,174 @@ function Find-AppIdByEnvOrName($EnvKey, $DisplayName) {
   if ($arr.Count -gt 1) { throw "Multiple app registrations with displayName '$DisplayName'. Clean up or set $EnvKey manually." }
   if ($arr.Count -eq 1) { return $arr[0] }
   return ""
+}
+
+function Write-Check($Status, $Label, $Detail = "") {
+  switch ($Status) {
+    "PASS" { Write-Host ("  ✅ {0,-55}" -f $Label) }
+    "WARN" {
+      Write-Host ("  ⚠️  {0,-54}" -f $Label)
+      if ($Detail) { Write-Host "       $Detail" }
+    }
+    "FAIL" {
+      Write-Host ("  ❌ {0,-55}" -f $Label)
+      if ($Detail) { Write-Host "       $Detail" }
+    }
+  }
+}
+
+function Validate-PrerequisitesAndPermissions {
+  Write-Host ""
+  Write-Host "============================================================"
+  Write-Host "Preflight: permission validation"
+  Write-Host "============================================================"
+
+  $Fatal = $false
+
+  # ── 1. Azure CLI authentication ──────────────────────────────────
+  $accountId = az account show --query id -o tsv 2>$null
+  if (-not $accountId) {
+    Write-Check FAIL "Azure CLI authenticated" `
+      "Run 'az login' (or 'az login --use-device-code') then re-run this script."
+    $Fatal = $true
+  } else {
+    Write-Check PASS "Azure CLI authenticated (subscription: $accountId)"
+  }
+
+  # ── 2. Required azd environment values present ───────────────────
+  $RequiredKeys = @(
+    "AZURE_RESOURCE_GROUP", "AZURE_SUBSCRIPTION_ID",
+    "CONTAINER_WEB_APP_NAME", "CONTAINER_WEB_APP_FQDN",
+    "CONTAINER_API_APP_NAME", "CONTAINER_API_APP_FQDN"
+  )
+  $MissingKeys = @()
+  foreach ($k in $RequiredKeys) {
+    $v = Azd-Get $k ""
+    if (-not $v) { $MissingKeys += $k }
+  }
+  if ($MissingKeys.Count -gt 0) {
+    Write-Check FAIL "Required azd env values present" `
+      "Missing: $($MissingKeys -join ', '). Run 'azd env get-values' to inspect. Re-run 'azd up' if provisioning is incomplete."
+    $Fatal = $true
+  } else {
+    Write-Check PASS "Required azd env values present"
+  }
+
+  # Abort early — remaining checks depend on these values
+  if ($Fatal) {
+    Write-Host ""
+    Write-Error "Preflight failed — fix the issues above and re-run configure_auth.ps1"
+    exit 1
+  }
+
+  # ── 3. Azure Container Apps CLI extension available ──────────────
+  az containerapp --help 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Check PASS "Azure Container Apps CLI extension available"
+  } else {
+    Write-Check FAIL "Azure Container Apps CLI extension available" `
+      "Install with: az extension add --name containerapp --upgrade"
+    $Fatal = $true
+  }
+
+  # ── 4. Contributor (or Owner) on the resource group ──────────────
+  $CurrentPrincipal = az ad signed-in-user show --query id -o tsv 2>$null
+  $IsSp = $false
+  if (-not $CurrentPrincipal) {
+    $IsSp = $true
+    $CurrentPrincipal = az account show --query 'user.name' -o tsv 2>$null
+  }
+
+  $RgScope  = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup"
+  $SubScope = "/subscriptions/$SubscriptionId"
+
+  $RbacRoles = az role assignment list --assignee $CurrentPrincipal --scope $RgScope `
+    --query "[].roleDefinitionName" -o tsv 2>$null
+  $HasContributor = $RbacRoles -match "Owner|Contributor"
+
+  if (-not $HasContributor) {
+    $SubRoles = az role assignment list --assignee $CurrentPrincipal --scope $SubScope `
+      --query "[].roleDefinitionName" -o tsv 2>$null
+    $HasContributor = $SubRoles -match "Owner|Contributor"
+    if ($HasContributor) {
+      Write-Check PASS "Contributor/Owner role inherited from subscription scope"
+    }
+  } else {
+    Write-Check PASS "Contributor/Owner role on resource group '$ResourceGroup'"
+  }
+
+  if (-not $HasContributor) {
+    Write-Check FAIL "Contributor/Owner role on resource group '$ResourceGroup'" `
+      "Grant Contributor: az role assignment create --assignee `"$CurrentPrincipal`" --role Contributor --scope $RgScope"
+    $Fatal = $true
+  }
+
+  # ── 5. Entra app registration read access ────────────────────────
+  az ad app list --top 1 --query "[0].appId" -o tsv 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Check PASS "Can read Entra app registrations"
+  } else {
+    Write-Check FAIL "Can read Entra app registrations" `
+      "Ensure your identity has at least Directory Readers or Application Developer role in Entra."
+    $Fatal = $true
+  }
+
+  # ── 6. Container App reachable ───────────────────────────────────
+  az containerapp show -n $WebName -g $ResourceGroup --query name -o tsv 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Check PASS "Container App '$WebName' is accessible"
+  } else {
+    Write-Check FAIL "Container App '$WebName' is accessible" `
+      "Verify deployment completed and you have Contributor role on the resource group."
+    $Fatal = $true
+  }
+
+  # ── 7. Entra directory-role check (users only) ───────────────────
+  if ($IsSp) {
+    Write-Check WARN "Entra directory-role check" `
+      "Logged in as a service principal — directory role check skipped. Ensure the SP has Application Administrator and admin-consent permissions."
+    $script:ConsentPrecheckOk = $false
+  } else {
+    $Roles = az rest --method GET `
+      --url "https://graph.microsoft.com/v1.0/me/transitiveMemberOf/microsoft.graph.directoryRole?`$select=displayName" `
+      --query "value[].displayName" -o tsv 2>$null
+
+    if (-not $Roles) {
+      Write-Check WARN "Entra directory roles resolvable" `
+        "Could not enumerate roles. The script will continue; exact permission errors will surface at runtime."
+    } elseif ($Roles -notmatch "Global Administrator|Application Administrator|Cloud Application Administrator") {
+      Write-Check FAIL "App-registration permission (Application Administrator or higher)" `
+        "Assign 'Application Administrator' (or higher) in Entra ID, then re-run.`n       Portal: https://entra.microsoft.com → Roles and administrators"
+      $Fatal = $true
+    } else {
+      Write-Check PASS "App-registration permission (Application Administrator or higher)"
+
+      if ($Roles -notmatch "Global Administrator|Cloud Application Administrator") {
+        $script:ConsentPrecheckOk = $false
+        Write-Check WARN "Admin-consent permission (Cloud Application Administrator or higher)" `
+          "Admin consent step will be attempted but may fail. A tenant admin can grant consent at:`n       https://login.microsoftonline.com/$TenantId/adminconsent?client_id=<web-client-id>"
+      } else {
+        Write-Check PASS "Admin-consent permission (Cloud Application Administrator or higher)"
+      }
+    }
+  }
+
+  # ── Summary ──────────────────────────────────────────────────────
+  Write-Host ""
+  if ($Fatal) {
+    Write-Error "One or more preflight checks FAILED. Resolve the issues above and re-run."
+    exit 1
+  }
+  Write-Host "  Preflight passed — proceeding with auth configuration."
+  Write-Host "============================================================"
+}
+
+Validate-PrerequisitesAndPermissions
+
+if ($PrefightOnly) {
+  Write-Host ""
+  Write-Host "✅ Preflight-only mode: all permission checks passed. No changes were made."
+  exit 0
 }
 
 # --- Step 1: API app registration --------------------------------------------
@@ -334,5 +511,6 @@ Write-Host "  API client id : $ApiClientId"
 Write-Host "  Web scope     : $WebScopeValue"
 Write-Host "  API scope     : $ApiScopeValue"
 if (-not $ConsentOk) { Write-Host "  ⚠️  Admin consent pending — see step 3 above." }
+if (-not $ConsentPrecheckOk) { Write-Host "  ⚠️  Permission pre-check predicted admin-consent limitations for this identity." }
 Write-Host "  Note: EasyAuth rollout can take up to 10 minutes."
 Write-Host "============================================================"

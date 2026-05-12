@@ -40,6 +40,15 @@ DATA_SCRIPT_PATH="$SCRIPT_DIR/../../src/ContentProcessorAPI/samples/schemas"
 # Normalize the path (optional, in case of ../..)
 DATA_SCRIPT_PATH="$(realpath "$DATA_SCRIPT_PATH")"
 
+POST_DEPLOYMENT_MODE="${POST_DEPLOYMENT_MODE:-all}"
+case "$POST_DEPLOYMENT_MODE" in
+  all|schema|sample-data) ;;
+  *)
+    echo "❌ Unsupported POST_DEPLOYMENT_MODE '$POST_DEPLOYMENT_MODE'. Use one of: all, schema, sample-data." >&2
+    exit 1
+    ;;
+esac
+
 # Output
 echo ""
 echo "🧭 Web App Details:"
@@ -59,7 +68,7 @@ echo "  ✅ Name: $CONTAINER_WORKFLOW_APP_NAME"
 echo "  🔗 Portal URL: $WORKFLOW_APP_PORTAL_URL"
 
 echo ""
-echo "📦 Registering schemas and creating schema set..."
+echo "📦 Post-deployment mode: $POST_DEPLOYMENT_MODE"
 echo "  ⏳ Waiting for API to be ready..."
 
 MAX_RETRIES=10
@@ -80,175 +89,193 @@ if [ "$STATUS" != "200" ]; then
   echo "  API did not become ready after $MAX_RETRIES attempts. Skipping schema registration."
   echo "  Run manually after the API is ready."
 else
-  # ---------- Schema registration (no Python dependency) ----------
   SCHEMA_INFO_FILE="$DATA_SCRIPT_PATH/schema_info.json"
   SCHEMAVAULT_URL="$API_BASE_URL/schemavault/"
   SCHEMASETVAULT_URL="$API_BASE_URL/schemasetvault/"
-
-  # --- Step 1: Register schemas ---
-  echo ""
-  echo "============================================================"
-  echo "Step 1: Register schemas"
-  echo "============================================================"
-
-  # Fetch existing schemas
-  EXISTING_SCHEMAS=$(curl -s "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
-  EXISTING_COUNT=$(echo "$EXISTING_SCHEMAS" | grep -o '"Id"' | wc -l)
-  echo "Fetched $EXISTING_COUNT existing schema(s)."
-
-  # Read schema entries from manifest
-  SCHEMA_COUNT=$(cat "$SCHEMA_INFO_FILE" | grep -o '"File"' | wc -l)
-  REGISTERED_IDS=()
-  REGISTERED_NAMES=()
-
-  for idx in $(seq 0 $((SCHEMA_COUNT - 1))); do
-    # Parse entry fields using grep/sed (no python needed)
-    ENTRY=$(cat "$SCHEMA_INFO_FILE")
-    FILE_NAME=$(echo "$ENTRY" | grep -o '"File"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"File"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-    CLASS_NAME=$(echo "$ENTRY" | grep -o '"ClassName"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"ClassName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-    DESCRIPTION=$(echo "$ENTRY" | grep -o '"Description"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"Description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-
-    SCHEMA_FILE="$DATA_SCRIPT_PATH/$FILE_NAME"
-
-    echo ""
-    echo "Processing schema: $CLASS_NAME"
-
-    if [ ! -f "$SCHEMA_FILE" ]; then
-      echo "Error: Schema file '$SCHEMA_FILE' does not exist. Skipping..."
-      continue
-    fi
-
-    # Check if already registered
-    EXISTING_ID=""
-    # Use a simple approach: look for the ClassName in the existing schemas response
-    if echo "$EXISTING_SCHEMAS" | grep -q "\"ClassName\"[[:space:]]*:[[:space:]]*\"$CLASS_NAME\""; then
-      # Extract the Id for this ClassName – find the object containing it
-      EXISTING_ID=$(echo "$EXISTING_SCHEMAS" | sed 's/},/}\n/g' | grep "\"ClassName\"[[:space:]]*:[[:space:]]*\"$CLASS_NAME\"" | grep -o '"Id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
-    fi
-
-    if [ -n "$EXISTING_ID" ]; then
-      echo "  Schema '$CLASS_NAME' already exists with ID: $EXISTING_ID"
-      REGISTERED_IDS+=("$EXISTING_ID")
-      REGISTERED_NAMES+=("$CLASS_NAME")
-      continue
-    fi
-
-    echo "  Registering new schema '$CLASS_NAME'..."
-    DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
-
-    # Only JSON Schema descriptors are accepted. The legacy .py format
-    # was removed as part of the schemavault RCE remediation.
-    EXT=$(echo "${FILE_NAME##*.}" | tr '[:upper:]' '[:lower:]')
-    if [ "$EXT" != "json" ]; then
-      echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Only .json is accepted. Skipping..."
-      continue
-    fi
-    CONTENT_TYPE="application/json"
-
-    RESPONSE=$(curl -s -w "\n%{http_code}" \
-      -X POST "$SCHEMAVAULT_URL" \
-      -F "data=$DATA_PAYLOAD" \
-      -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
-      --connect-timeout 60)
-
-    HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-    BODY=$(echo "$RESPONSE" | sed '$d')
-
-    if [ "$HTTP_CODE" = "200" ]; then
-      SCHEMA_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-      echo "  Successfully registered: $DESCRIPTION's Schema Id - $SCHEMA_ID"
-      REGISTERED_IDS+=("$SCHEMA_ID")
-      REGISTERED_NAMES+=("$CLASS_NAME")
-    else
-      echo "  Failed to upload '$FILE_NAME'. HTTP Status: $HTTP_CODE"
-      echo "  Error Response: $BODY"
-    fi
-  done
-
-  # --- Step 2: Create schema set ---
-  echo ""
-  echo "============================================================"
-  echo "Step 2: Create schema set"
-  echo "============================================================"
-
-  # Parse schemaset config from manifest
   SET_NAME=$(cat "$SCHEMA_INFO_FILE" | grep -A2 '"schemaset"' | grep '"Name"' | sed 's/.*"Name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
   SET_DESC=$(cat "$SCHEMA_INFO_FILE" | grep -A3 '"schemaset"' | grep '"Description"' | sed 's/.*"Description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-
-  # Fetch existing schema sets
-  EXISTING_SETS=$(curl -s "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
-
+  REGISTERED_IDS=()
+  REGISTERED_NAMES=()
   SCHEMASET_ID=""
-  if echo "$EXISTING_SETS" | grep -q "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\""; then
-    SCHEMASET_ID=$(echo "$EXISTING_SETS" | sed 's/},/}\n/g' | grep "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\"" | grep -o '"Id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
-    echo "  Schema set '$SET_NAME' already exists with ID: $SCHEMASET_ID"
-  else
-    echo "  Creating schema set '$SET_NAME'..."
-    RESPONSE=$(curl -s -w "\n%{http_code}" \
-      -X POST "$SCHEMASETVAULT_URL" \
-      -H "Content-Type: application/json" \
-      -d "{\"Name\": \"$SET_NAME\", \"Description\": \"$SET_DESC\"}" \
-      --connect-timeout 30)
 
-    HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-    BODY=$(echo "$RESPONSE" | sed '$d')
+  SCHEMA_COUNT=$(cat "$SCHEMA_INFO_FILE" | grep -o '"File"' | wc -l)
 
-    if [ "$HTTP_CODE" = "200" ]; then
-      SCHEMASET_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-      echo "  Created schema set '$SET_NAME' with ID: $SCHEMASET_ID"
-    else
-      echo "  Failed to create schema set. HTTP Status: $HTTP_CODE"
-      echo "  Error Response: $BODY"
-    fi
-  fi
-
-  if [ -z "$SCHEMASET_ID" ]; then
-    echo "Error: Could not create or find schema set. Aborting step 3."
-  else
-    # --- Step 3: Add schemas to schema set ---
+  if [ "$POST_DEPLOYMENT_MODE" = "sample-data" ]; then
     echo ""
     echo "============================================================"
-    echo "Step 3: Add schemas to schema set"
+    echo "Resolving existing schemas and schema set for sample data upload"
     echo "============================================================"
 
-    ALREADY_IN_SET=$(curl -s "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
+    EXISTING_SCHEMAS=$(curl -s "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
+    for idx in $(seq 0 $((SCHEMA_COUNT - 1))); do
+      ENTRY=$(cat "$SCHEMA_INFO_FILE")
+      CLASS_NAME=$(echo "$ENTRY" | grep -o '"ClassName"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"ClassName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+      EXISTING_ID=$(echo "$EXISTING_SCHEMAS" | sed 's/},/}\n/g' | grep "\"ClassName\"[[:space:]]*:[[:space:]]*\"$CLASS_NAME\"" | grep -o '"Id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/' || true)
+      if [ -n "$EXISTING_ID" ]; then
+        REGISTERED_IDS+=("$EXISTING_ID")
+        REGISTERED_NAMES+=("$CLASS_NAME")
+      else
+        echo "  ⚠️ Schema '$CLASS_NAME' is not registered. Run schema registration first."
+      fi
+    done
 
-    # Iterate over registered schemas
-    for i in "${!REGISTERED_IDS[@]}"; do
-      SCHEMA_ID="${REGISTERED_IDS[$i]}"
-      CLASS_NAME="${REGISTERED_NAMES[$i]}"
+    EXISTING_SETS=$(curl -s "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
+    if echo "$EXISTING_SETS" | grep -q "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\""; then
+      SCHEMASET_ID=$(echo "$EXISTING_SETS" | sed 's/},/}\n/g' | grep "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\"" | grep -o '"Id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+      echo "  ✅ Using existing schema set '$SET_NAME' ($SCHEMASET_ID)"
+    else
+      echo "  ⚠️ Schema set '$SET_NAME' does not exist yet. Run schema registration first."
+    fi
+  else
+    # ---------- Schema registration (no Python dependency) ----------
+    echo ""
+    echo "============================================================"
+    echo "Step 1: Register schemas"
+    echo "============================================================"
 
-      if echo "$ALREADY_IN_SET" | grep -q "\"Id\"[[:space:]]*:[[:space:]]*\"$SCHEMA_ID\""; then
-        echo "  Schema '$CLASS_NAME' ($SCHEMA_ID) already in schema set - skipped"
+    EXISTING_SCHEMAS=$(curl -s "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
+    EXISTING_COUNT=$(echo "$EXISTING_SCHEMAS" | grep -o '"Id"' | wc -l)
+    echo "Fetched $EXISTING_COUNT existing schema(s)."
+
+    for idx in $(seq 0 $((SCHEMA_COUNT - 1))); do
+      ENTRY=$(cat "$SCHEMA_INFO_FILE")
+      FILE_NAME=$(echo "$ENTRY" | grep -o '"File"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"File"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+      CLASS_NAME=$(echo "$ENTRY" | grep -o '"ClassName"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"ClassName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+      DESCRIPTION=$(echo "$ENTRY" | grep -o '"Description"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"Description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+
+      SCHEMA_FILE="$DATA_SCRIPT_PATH/$FILE_NAME"
+
+      echo ""
+      echo "Processing schema: $CLASS_NAME"
+
+      if [ ! -f "$SCHEMA_FILE" ]; then
+        echo "Error: Schema file '$SCHEMA_FILE' does not exist. Skipping..."
         continue
       fi
 
+      EXISTING_ID=""
+      if echo "$EXISTING_SCHEMAS" | grep -q "\"ClassName\"[[:space:]]*:[[:space:]]*\"$CLASS_NAME\""; then
+        EXISTING_ID=$(echo "$EXISTING_SCHEMAS" | sed 's/},/}\n/g' | grep "\"ClassName\"[[:space:]]*:[[:space:]]*\"$CLASS_NAME\"" | grep -o '"Id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+      fi
+
+      if [ -n "$EXISTING_ID" ]; then
+        echo "  Schema '$CLASS_NAME' already exists with ID: $EXISTING_ID"
+        REGISTERED_IDS+=("$EXISTING_ID")
+        REGISTERED_NAMES+=("$CLASS_NAME")
+        continue
+      fi
+
+      echo "  Registering new schema '$CLASS_NAME'..."
+      DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
+
+      EXT=$(echo "${FILE_NAME##*.}" | tr '[:upper:]' '[:lower:]')
+      if [ "$EXT" != "json" ]; then
+        echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Only .json is accepted. Skipping..."
+        continue
+      fi
+      CONTENT_TYPE="application/json"
+
       RESPONSE=$(curl -s -w "\n%{http_code}" \
-        -X POST "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" \
+        -X POST "$SCHEMAVAULT_URL" \
+        -F "data=$DATA_PAYLOAD" \
+        -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
+        --connect-timeout 60)
+
+      HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+      BODY=$(echo "$RESPONSE" | sed '$d')
+
+      if [ "$HTTP_CODE" = "200" ]; then
+        SCHEMA_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+        echo "  Successfully registered: $DESCRIPTION's Schema Id - $SCHEMA_ID"
+        REGISTERED_IDS+=("$SCHEMA_ID")
+        REGISTERED_NAMES+=("$CLASS_NAME")
+      else
+        echo "  Failed to upload '$FILE_NAME'. HTTP Status: $HTTP_CODE"
+        echo "  Error Response: $BODY"
+      fi
+    done
+
+    echo ""
+    echo "============================================================"
+    echo "Step 2: Create schema set"
+    echo "============================================================"
+
+    EXISTING_SETS=$(curl -s "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
+
+    if echo "$EXISTING_SETS" | grep -q "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\""; then
+      SCHEMASET_ID=$(echo "$EXISTING_SETS" | sed 's/},/}\n/g' | grep "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\"" | grep -o '"Id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+      echo "  Schema set '$SET_NAME' already exists with ID: $SCHEMASET_ID"
+    else
+      echo "  Creating schema set '$SET_NAME'..."
+      RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X POST "$SCHEMASETVAULT_URL" \
         -H "Content-Type: application/json" \
-        -d "{\"SchemaId\": \"$SCHEMA_ID\"}" \
+        -d "{\"Name\": \"$SET_NAME\", \"Description\": \"$SET_DESC\"}" \
         --connect-timeout 30)
 
       HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+      BODY=$(echo "$RESPONSE" | sed '$d')
 
       if [ "$HTTP_CODE" = "200" ]; then
-        echo "  Added '$CLASS_NAME' ($SCHEMA_ID) to schema set"
+        SCHEMASET_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+        echo "  Created schema set '$SET_NAME' with ID: $SCHEMASET_ID"
       else
-        BODY=$(echo "$RESPONSE" | sed '$d')
-        echo "  Failed to add '$CLASS_NAME' to schema set. HTTP $HTTP_CODE"
-        echo "    Error Response: $BODY"
+        echo "  Failed to create schema set. HTTP Status: $HTTP_CODE"
+        echo "  Error Response: $BODY"
       fi
-    done
+    fi
+
+    if [ -z "$SCHEMASET_ID" ]; then
+      echo "Error: Could not create or find schema set. Aborting step 3."
+    else
+      echo ""
+      echo "============================================================"
+      echo "Step 3: Add schemas to schema set"
+      echo "============================================================"
+
+      ALREADY_IN_SET=$(curl -s "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
+
+      for i in "${!REGISTERED_IDS[@]}"; do
+        SCHEMA_ID="${REGISTERED_IDS[$i]}"
+        CLASS_NAME="${REGISTERED_NAMES[$i]}"
+
+        if echo "$ALREADY_IN_SET" | grep -q "\"Id\"[[:space:]]*:[[:space:]]*\"$SCHEMA_ID\""; then
+          echo "  Schema '$CLASS_NAME' ($SCHEMA_ID) already in schema set - skipped"
+          continue
+        fi
+
+        RESPONSE=$(curl -s -w "\n%{http_code}" \
+          -X POST "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" \
+          -H "Content-Type: application/json" \
+          -d "{\"SchemaId\": \"$SCHEMA_ID\"}" \
+          --connect-timeout 30)
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "  Added '$CLASS_NAME' ($SCHEMA_ID) to schema set"
+        else
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "  Failed to add '$CLASS_NAME' to schema set. HTTP $HTTP_CODE"
+          echo "    Error Response: $BODY"
+        fi
+      done
+    fi
+
+    echo ""
+    echo "============================================================"
+    echo "Schema registration process completed."
+    echo "  Schemas registered: ${#REGISTERED_IDS[@]}"
+    echo "============================================================"
   fi
 
-  echo ""
-  echo "============================================================"
-  echo "Schema registration process completed."
-  echo "  Schemas registered: ${#REGISTERED_IDS[@]}"
-  echo "============================================================"
-
-  # --- Step 4: Process sample file bundles ---
-  if [ -n "$SCHEMASET_ID" ] && [ -n "$REGISTERED_IDS" ]; then
+  if [ "$POST_DEPLOYMENT_MODE" = "schema" ]; then
+    echo ""
+    echo "============================================================"
+    echo "Sample data upload skipped because POST_DEPLOYMENT_MODE=schema"
+    echo "Next explicit step: run POST_DEPLOYMENT_MODE=sample-data bash ./infra/scripts/post_deployment.sh"
+    echo "============================================================"
+  elif [ -n "$SCHEMASET_ID" ] && [ ${#REGISTERED_IDS[@]} -gt 0 ]; then
     echo ""
     echo "============================================================"
     echo "Step 4: Process sample file bundles"
@@ -367,6 +394,12 @@ else
     echo "============================================================"
     echo "Sample file processing completed."
     echo "============================================================"
+  else
+    echo ""
+    echo "============================================================"
+    echo "Sample data upload skipped because required schemas or schema set were not found."
+    echo "Run schema registration first, then re-run with POST_DEPLOYMENT_MODE=sample-data."
+    echo "============================================================"
   fi
 fi
 
@@ -394,9 +427,8 @@ else
 fi
 
 
-# --- Configure Entra ID authentication (app registrations + EasyAuth) ---
-SCRIPT_DIR_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR_SELF/configure_auth.sh" ]; then
-  sed -i 's/\r$//' "$SCRIPT_DIR_SELF/configure_auth.sh"
-  bash "$SCRIPT_DIR_SELF/configure_auth.sh" || echo "⚠️ Auth configuration had errors — see output above."
-fi
+echo ""
+echo "============================================================"
+echo "Post-deployment data setup completed."
+echo "Next manual step: configure authentication using infra/scripts/configure_auth.sh"
+echo "============================================================"

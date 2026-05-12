@@ -1,15 +1,17 @@
 # Set up Authentication in Azure Container App
 
-> ### ✅ Automatic configuration is now the default
+> ### ✅ Recommended: run the authentication script first
 >
-> As of the latest release, `azd up` **automatically** performs all of the steps below via the `infra/scripts/configure_auth.{sh,ps1}` post-provisioning hook. You should not need to follow this document in most cases.
+> `azd up` no longer runs authentication setup automatically. Run the script below after deployment:
 >
-> See [DeploymentGuide.md § 5.2](./DeploymentGuide.md#52-configure-authentication-automatic) for details, including how to opt out with `azd env set AZURE_SKIP_AUTH_SETUP true`.
+> - Windows: `./infra/scripts/configure_auth.ps1`
+> - macOS/Linux: `sed -i 's/\r$//' ./infra/scripts/configure_auth.sh && bash ./infra/scripts/configure_auth.sh`
 >
-> Follow the manual steps below **only** if:
-> - You set `AZURE_SKIP_AUTH_SETUP=true` before running `azd up`
-> - The automatic script reported an error (most commonly: your identity lacks permission to grant admin consent — a tenant admin still has to consent, but the rest of the configuration is already complete)
+> See [DeploymentGuide.md § 5.2](./DeploymentGuide.md#52-configure-authentication-manual-script) for details.
+>
+> Follow the portal/manual steps below if:
 > - Your tenant policy prohibits programmatic app registration or secret creation
+> - The script reports a permission or policy failure that cannot be resolved in your current identity
 
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 

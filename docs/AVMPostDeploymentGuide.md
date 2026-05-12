@@ -14,7 +14,7 @@ After successfully deploying the Content Processing Solution Accelerator using t
 2. **Process sample files** — upload and process sample claim bundles for verification
 3. **Configure authentication** — set up app registration for secure access
 
-> **Note:** When deploying via `azd up`, schema registration and sample processing happen automatically through a post-provisioning hook. AVM deployments require the manual steps below.
+> **Note:** Post-deployment data setup and authentication are manual steps for both `azd` and AVM deployments. Run the scripts in this guide after infrastructure provisioning.
 
 ## Prerequisites
 
@@ -85,7 +85,7 @@ The workflow for each bundle:
 
 You can perform these steps via the web UI or the API directly. See the [API documentation](./API.md) and [Golden Path Workflows](./GoldenPathWorkflows.md) for details.
 
-> **Note:** When deploying via `azd up`, sample file processing happens automatically as Step 4 of the post-provisioning hook.
+> **Note:** In `azd` and AVM flows, sample file processing runs when you execute the post-deployment script manually.
 
 ### Step 5: Configure Authentication (Required)
 

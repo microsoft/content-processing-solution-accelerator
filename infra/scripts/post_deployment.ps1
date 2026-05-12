@@ -30,6 +30,11 @@ $DataScriptPath = Join-Path $ScriptDir "..\..\src\ContentProcessorAPI\samples\sc
 # Resolve to an absolute path
 $FullPath = Resolve-Path $DataScriptPath
 
+$PostDeploymentMode = if ($env:POST_DEPLOYMENT_MODE) { $env:POST_DEPLOYMENT_MODE } else { "all" }
+if ($PostDeploymentMode -notin @("all", "schema", "sample-data")) {
+    throw "Unsupported POST_DEPLOYMENT_MODE '$PostDeploymentMode'. Use one of: all, schema, sample-data."
+}
+
 # Output
 Write-Host ""
 Write-Host "- Web App Details:"
@@ -49,7 +54,7 @@ Write-Host "  - Name: $CONTAINER_WORKFLOW_APP_NAME"
 Write-Host "  - Portal URL: $WORKFLOW_APP_PORTAL_URL"
 
 Write-Host ""
-Write-Host "- Registering schemas and creating schema set..."
+Write-Host "- Post-deployment mode: $PostDeploymentMode"
 Write-Host "  - Waiting for API to be ready..."
 
 $MaxRetries = 10
@@ -76,171 +81,203 @@ if (-not $ApiReady) {
     Write-Host "  API did not become ready after $MaxRetries attempts. Skipping schema registration."
     Write-Host "  Run manually after the API is ready."
 } else {
-    # ---------- Schema registration (no Python dependency) ----------
     $SchemaInfoFile = Join-Path $FullPath "schema_info.json"
     $Manifest = Get-Content $SchemaInfoFile -Raw | ConvertFrom-Json
 
     $SchemaVaultUrl   = "$ApiBaseUrl/schemavault/"
     $SchemaSetVaultUrl = "$ApiBaseUrl/schemasetvault/"
-
-    # --- Step 1: Register schemas ---
-    Write-Host ""
-    Write-Host ("=" * 60)
-    Write-Host "Step 1: Register schemas"
-    Write-Host ("=" * 60)
-
-    # Fetch existing schemas
-    $ExistingSchemas = @()
-    try {
-        $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
-        Write-Host "Fetched $($ExistingSchemas.Count) existing schema(s)."
-    } catch {
-        Write-Host "Warning: Could not fetch existing schemas. Proceeding..."
-    }
-
-    $Registered = @{}  # ClassName -> schema Id
-
-    foreach ($entry in $Manifest.schemas) {
-        $ClassName   = $entry.ClassName
-        $Description = $entry.Description
-        $SchemaFile  = Join-Path $FullPath $entry.File
-
-        Write-Host ""
-        Write-Host "Processing schema: $ClassName"
-
-        if (-not (Test-Path $SchemaFile)) {
-            Write-Host "Error: Schema file '$SchemaFile' does not exist. Skipping..."
-            continue
-        }
-
-        # Check if already registered
-        $existing = $ExistingSchemas | Where-Object { $_.ClassName -eq $ClassName } | Select-Object -First 1
-        if ($existing) {
-            $schemaId = $existing.Id
-            Write-Host "  Schema '$ClassName' already exists with ID: $schemaId"
-            $Registered[$ClassName] = $schemaId
-            continue
-        }
-
-        Write-Host "  Registering new schema '$ClassName'..."
-
-        # Only JSON Schema descriptors are accepted. The legacy .py format
-        # was removed as part of the schemavault RCE remediation.
-        $extension = [System.IO.Path]::GetExtension($SchemaFile).ToLowerInvariant()
-        if ($extension -ne '.json') {
-            Write-Host "  Unsupported schema extension '$extension' for '$SchemaFile'. Only .json is accepted. Skipping..."
-            continue
-        }
-        $contentType = 'application/json'
-
-        # Build multipart form data
-        $dataPayload = @{ ClassName = $ClassName; Description = $Description } | ConvertTo-Json -Compress
-        $fileBytes   = [System.IO.File]::ReadAllBytes($SchemaFile)
-        $fileName    = [System.IO.Path]::GetFileName($SchemaFile)
-
-        $boundary = [System.Guid]::NewGuid().ToString()
-        $LF = "`r`n"
-        $bodyLines = (
-            "--$boundary",
-            "Content-Disposition: form-data; name=`"data`"$LF",
-            $dataPayload,
-            "--$boundary",
-            "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-            "Content-Type: $contentType$LF",
-            [System.Text.Encoding]::UTF8.GetString($fileBytes),
-            "--$boundary--$LF"
-        ) -join $LF
-
-        try {
-            $resp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
-                -ContentType "multipart/form-data; boundary=$boundary" `
-                -Body $bodyLines -TimeoutSec 60 -ErrorAction Stop
-            $schemaId = $resp.Id
-            Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
-            $Registered[$ClassName] = $schemaId
-        } catch {
-            Write-Host "  Failed to upload '$fileName'. Error: $_"
-        }
-    }
-
-    # --- Step 2: Create schema set ---
-    Write-Host ""
-    Write-Host ("=" * 60)
-    Write-Host "Step 2: Create schema set"
-    Write-Host ("=" * 60)
-
     $SetName = $Manifest.schemaset.Name
     $SetDesc = $Manifest.schemaset.Description
-
-    $ExistingSets = @()
-    try {
-        $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
-        Write-Host "Fetched $($ExistingSets.Count) existing schema set(s)."
-    } catch {
-        Write-Host "Warning: Could not fetch existing schema sets. Proceeding..."
-    }
-
+    $Registered = @{}
     $SchemaSetId = $null
-    $existingSet = $ExistingSets | Where-Object { $_.Name -eq $SetName } | Select-Object -First 1
-    if ($existingSet) {
-        $SchemaSetId = $existingSet.Id
-        Write-Host "  Schema set '$SetName' already exists with ID: $SchemaSetId"
-    } else {
-        Write-Host "  Creating schema set '$SetName'..."
-        try {
-            $setResp = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method POST `
-                -ContentType "application/json" `
-                -Body (@{ Name = $SetName; Description = $SetDesc } | ConvertTo-Json) `
-                -TimeoutSec 30 -ErrorAction Stop
-            $SchemaSetId = $setResp.Id
-            Write-Host "  Created schema set '$SetName' with ID: $SchemaSetId"
-        } catch {
-            Write-Host "  Failed to create schema set. Error: $_"
-        }
-    }
 
-    if (-not $SchemaSetId) {
-        Write-Host "Error: Could not create or find schema set. Aborting step 3."
-    } else {
-        # --- Step 3: Add schemas to schema set ---
+    if ($PostDeploymentMode -eq "sample-data") {
         Write-Host ""
         Write-Host ("=" * 60)
-        Write-Host "Step 3: Add schemas to schema set"
+        Write-Host "Resolving existing schemas and schema set for sample data upload"
         Write-Host ("=" * 60)
 
-        $AlreadyInSet = @()
+        $ExistingSchemas = @()
         try {
-            $AlreadyInSet = Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method GET -TimeoutSec 30 -ErrorAction Stop
-        } catch { }
-        $AlreadyInSetIds = $AlreadyInSet | ForEach-Object { $_.Id }
+            $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+        } catch {
+            Write-Host "Warning: Could not fetch existing schemas. Proceeding..."
+        }
 
-        foreach ($className in $Registered.Keys) {
-            $schemaId = $Registered[$className]
-            if ($AlreadyInSetIds -contains $schemaId) {
-                Write-Host "  Schema '$className' ($schemaId) already in schema set - skipped"
+        foreach ($entry in $Manifest.schemas) {
+            $existing = $ExistingSchemas | Where-Object { $_.ClassName -eq $entry.ClassName } | Select-Object -First 1
+            if ($existing) {
+                $Registered[$entry.ClassName] = $existing.Id
+            } else {
+                Write-Host "  ⚠️ Schema '$($entry.ClassName)' is not registered. Run schema registration first."
+            }
+        }
+
+        $ExistingSets = @()
+        try {
+            $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+        } catch {
+            Write-Host "Warning: Could not fetch existing schema sets. Proceeding..."
+        }
+
+        $existingSet = $ExistingSets | Where-Object { $_.Name -eq $SetName } | Select-Object -First 1
+        if ($existingSet) {
+            $SchemaSetId = $existingSet.Id
+            Write-Host "  ✅ Using existing schema set '$SetName' ($SchemaSetId)"
+        } else {
+            Write-Host "  ⚠️ Schema set '$SetName' does not exist yet. Run schema registration first."
+        }
+    } else {
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Step 1: Register schemas"
+        Write-Host ("=" * 60)
+
+        $ExistingSchemas = @()
+        try {
+            $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+            Write-Host "Fetched $($ExistingSchemas.Count) existing schema(s)."
+        } catch {
+            Write-Host "Warning: Could not fetch existing schemas. Proceeding..."
+        }
+
+        foreach ($entry in $Manifest.schemas) {
+            $ClassName   = $entry.ClassName
+            $Description = $entry.Description
+            $SchemaFile  = Join-Path $FullPath $entry.File
+
+            Write-Host ""
+            Write-Host "Processing schema: $ClassName"
+
+            if (-not (Test-Path $SchemaFile)) {
+                Write-Host "Error: Schema file '$SchemaFile' does not exist. Skipping..."
                 continue
             }
 
+            $existing = $ExistingSchemas | Where-Object { $_.ClassName -eq $ClassName } | Select-Object -First 1
+            if ($existing) {
+                $schemaId = $existing.Id
+                Write-Host "  Schema '$ClassName' already exists with ID: $schemaId"
+                $Registered[$ClassName] = $schemaId
+                continue
+            }
+
+            Write-Host "  Registering new schema '$ClassName'..."
+
+            $extension = [System.IO.Path]::GetExtension($SchemaFile).ToLowerInvariant()
+            if ($extension -ne '.json') {
+                Write-Host "  Unsupported schema extension '$extension' for '$SchemaFile'. Only .json is accepted. Skipping..."
+                continue
+            }
+            $contentType = 'application/json'
+
+            $dataPayload = @{ ClassName = $ClassName; Description = $Description } | ConvertTo-Json -Compress
+            $fileBytes   = [System.IO.File]::ReadAllBytes($SchemaFile)
+            $fileName    = [System.IO.Path]::GetFileName($SchemaFile)
+
+            $boundary = [System.Guid]::NewGuid().ToString()
+            $LF = "`r`n"
+            $bodyLines = (
+                "--$boundary",
+                "Content-Disposition: form-data; name=`"data`"$LF",
+                $dataPayload,
+                "--$boundary",
+                "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
+                "Content-Type: $contentType$LF",
+                [System.Text.Encoding]::UTF8.GetString($fileBytes),
+                "--$boundary--$LF"
+            ) -join $LF
+
             try {
-                Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method POST `
-                    -ContentType "application/json" `
-                    -Body (@{ SchemaId = $schemaId } | ConvertTo-Json) `
-                    -TimeoutSec 30 -ErrorAction Stop | Out-Null
-                Write-Host "  Added '$className' ($schemaId) to schema set"
+                $resp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
+                    -ContentType "multipart/form-data; boundary=$boundary" `
+                    -Body $bodyLines -TimeoutSec 60 -ErrorAction Stop
+                $schemaId = $resp.Id
+                Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
+                $Registered[$ClassName] = $schemaId
             } catch {
-                Write-Host "  Failed to add '$className' to schema set. Error: $_"
+                Write-Host "  Failed to upload '$fileName'. Error: $_"
             }
         }
+
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Step 2: Create schema set"
+        Write-Host ("=" * 60)
+
+        $ExistingSets = @()
+        try {
+            $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+            Write-Host "Fetched $($ExistingSets.Count) existing schema set(s)."
+        } catch {
+            Write-Host "Warning: Could not fetch existing schema sets. Proceeding..."
+        }
+
+        $existingSet = $ExistingSets | Where-Object { $_.Name -eq $SetName } | Select-Object -First 1
+        if ($existingSet) {
+            $SchemaSetId = $existingSet.Id
+            Write-Host "  Schema set '$SetName' already exists with ID: $SchemaSetId"
+        } else {
+            Write-Host "  Creating schema set '$SetName'..."
+            try {
+                $setResp = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method POST `
+                    -ContentType "application/json" `
+                    -Body (@{ Name = $SetName; Description = $SetDesc } | ConvertTo-Json) `
+                    -TimeoutSec 30 -ErrorAction Stop
+                $SchemaSetId = $setResp.Id
+                Write-Host "  Created schema set '$SetName' with ID: $SchemaSetId"
+            } catch {
+                Write-Host "  Failed to create schema set. Error: $_"
+            }
+        }
+
+        if (-not $SchemaSetId) {
+            Write-Host "Error: Could not create or find schema set. Aborting step 3."
+        } else {
+            Write-Host ""
+            Write-Host ("=" * 60)
+            Write-Host "Step 3: Add schemas to schema set"
+            Write-Host ("=" * 60)
+
+            $AlreadyInSet = @()
+            try {
+                $AlreadyInSet = Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method GET -TimeoutSec 30 -ErrorAction Stop
+            } catch { }
+            $AlreadyInSetIds = $AlreadyInSet | ForEach-Object { $_.Id }
+
+            foreach ($className in $Registered.Keys) {
+                $schemaId = $Registered[$className]
+                if ($AlreadyInSetIds -contains $schemaId) {
+                    Write-Host "  Schema '$className' ($schemaId) already in schema set - skipped"
+                    continue
+                }
+
+                try {
+                    Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method POST `
+                        -ContentType "application/json" `
+                        -Body (@{ SchemaId = $schemaId } | ConvertTo-Json) `
+                        -TimeoutSec 30 -ErrorAction Stop | Out-Null
+                    Write-Host "  Added '$className' ($schemaId) to schema set"
+                } catch {
+                    Write-Host "  Failed to add '$className' to schema set. Error: $_"
+                }
+            }
+        }
+
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Schema registration process completed."
+        Write-Host "  Schemas registered: $($Registered.Count)"
+        Write-Host ("=" * 60)
     }
 
-    Write-Host ""
-    Write-Host ("=" * 60)
-    Write-Host "Schema registration process completed."
-    Write-Host "  Schemas registered: $($Registered.Count)"
-    Write-Host ("=" * 60)
-
-    # --- Step 4: Process sample file bundles ---
-    if ($SchemaSetId -and $Registered.Count -gt 0) {
+    if ($PostDeploymentMode -eq "schema") {
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Sample data upload skipped because POST_DEPLOYMENT_MODE=schema"
+        Write-Host "Next explicit step: run `$env:POST_DEPLOYMENT_MODE='sample-data'; ./infra/scripts/post_deployment.ps1"
+        Write-Host ("=" * 60)
+    } elseif ($SchemaSetId -and $Registered.Count -gt 0) {
         Write-Host ""
         Write-Host ("=" * 60)
         Write-Host "Step 4: Process sample file bundles"
@@ -365,11 +402,17 @@ if (-not $ApiReady) {
         Write-Host ("=" * 60)
         Write-Host "Sample file processing completed."
         Write-Host ("=" * 60)
+    } else {
+        Write-Host ""
+        Write-Host ("=" * 60)
+        Write-Host "Sample data upload skipped because required schemas or schema set were not found."
+        Write-Host "Run schema registration first, then re-run with POST_DEPLOYMENT_MODE=sample-data."
+        Write-Host ("=" * 60)
     }
 }
 
-# --- Configure Entra ID authentication (app registrations + EasyAuth) ---
-$authScript = Join-Path $PSScriptRoot "configure_auth.ps1"
-if (Test-Path $authScript) {
-  try { & $authScript } catch { Write-Host "⚠️ Auth configuration had errors: $_" }
-}
+Write-Host ""
+Write-Host ("=" * 60)
+Write-Host "Post-deployment data setup completed."
+Write-Host "Next manual step: configure authentication using infra/scripts/configure_auth.ps1"
+Write-Host ("=" * 60)
