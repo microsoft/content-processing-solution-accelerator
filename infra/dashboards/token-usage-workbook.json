@@ -1,0 +1,236 @@
+{
+  "version": "Notebook/1.0",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# LLM Token Usage Dashboard\n\nMonitors token consumption across all pipeline agents in Content Processing Solution Accelerator.\n\n---"
+      },
+      "name": "title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a0b1c2d3-e4f5-6789-abcd-ef0123456789",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 604800000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ]
+            }
+          }
+        ],
+        "style": "pills"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Overview"
+      },
+      "name": "section-overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| summarize\n    TotalDocuments = count(),\n    TotalInputTokens = sum(input_tokens),\n    TotalOutputTokens = sum(output_tokens),\n    TotalTokens = sum(total_tokens),\n    AvgTokensPerDocument = round(avg(total_tokens), 0)",
+        "size": 4,
+        "title": "Overall Token Usage Summary",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true
+        }
+      },
+      "name": "overall-summary"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Agent_Token_Usage'\n| where timestamp {TimeRange}\n| extend agent = tostring(customDimensions['agent_name'])\n| extend input_tokens = toint(customDimensions['input_tokens'])\n| extend output_tokens = toint(customDimensions['output_tokens'])\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| summarize\n    InputTokens = sum(input_tokens),\n    OutputTokens = sum(output_tokens),\n    TotalTokens = sum(total_tokens),\n    Invocations = count()\n    by Step = agent\n| order by TotalTokens desc",
+        "size": 0,
+        "title": "Token Usage by Pipeline Step",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "barchart"
+      },
+      "name": "tokens-by-agent"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\n| summarize InputTokens = sum(input_tokens), OutputTokens = sum(output_tokens) by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Token Usage Over Time (Hourly)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "areachart"
+      },
+      "name": "tokens-over-time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Agent_Token_Usage'\n| where timestamp {TimeRange}\n| extend agent = tostring(customDimensions['agent_name'])\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| summarize TotalTokens = sum(total_tokens) by agent",
+        "size": 0,
+        "title": "Token Distribution by Agent",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "piechart"
+      },
+      "name": "token-distribution-pie"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Cost Estimation"
+      },
+      "name": "section-cost"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let input_price_per_million = 2.50;\nlet output_price_per_million = 10.00;\ncustomEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\n| summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by bin(timestamp, 1d)\n| extend InputCost = round(TotalInput * input_price_per_million / 1000000.0, 4)\n| extend OutputCost = round(TotalOutput * output_price_per_million / 1000000.0, 4)\n| extend TotalCost = InputCost + OutputCost\n| project Day = timestamp, TotalInput, TotalOutput, InputCost, OutputCost, TotalCost\n| order by Day desc",
+        "size": 0,
+        "title": "Estimated Daily Cost (GPT-4o Pricing: $2.50/1M input, $10.00/1M output)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "cost-estimation"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let gpt4o_input = 2.50;\nlet gpt4o_output = 10.00;\nlet gpt4o_mini_input = 0.15;\nlet gpt4o_mini_output = 0.60;\ncustomEvents\n| where name == 'LLM_Model_Token_Usage'\n| where timestamp {TimeRange}\n| extend model = tostring(customDimensions['model_deployment_name'])\n| extend input_tokens = toint(customDimensions['input_tokens'])\n| extend output_tokens = toint(customDimensions['output_tokens'])\n| summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by model\n| extend InputPrice = case(model has \"mini\", gpt4o_mini_input, gpt4o_input)\n| extend OutputPrice = case(model has \"mini\", gpt4o_mini_output, gpt4o_output)\n| extend InputCost = round(TotalInput * InputPrice / 1000000.0, 4)\n| extend OutputCost = round(TotalOutput * OutputPrice / 1000000.0, 4)\n| extend TotalCost = InputCost + OutputCost\n| project Model = model, TotalInput, TotalOutput, InputCost, OutputCost, TotalCost\n| order by TotalCost desc",
+        "size": 0,
+        "title": "Estimated Cost by Model",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "cost-by-model"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Model & Document Details"
+      },
+      "name": "section-details"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Model_Token_Usage'\n| where timestamp {TimeRange}\n| extend model = tostring(customDimensions['model_deployment_name'])\n| extend input_tokens = toint(customDimensions['input_tokens'])\n| extend output_tokens = toint(customDimensions['output_tokens'])\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| summarize\n    InputTokens = sum(input_tokens),\n    OutputTokens = sum(output_tokens),\n    TotalTokens = sum(total_tokens),\n    Invocations = count()\n    by Model = model\n| order by TotalTokens desc",
+        "size": 0,
+        "title": "Token Usage by Model",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "tokens-by-model"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Agent_Token_Usage'\n| where timestamp {TimeRange}\n| extend agent = tostring(customDimensions['agent_name'])\n| extend model = tostring(customDimensions['model_deployment_name'])\n| extend input_tokens = toint(customDimensions['input_tokens'])\n| extend output_tokens = toint(customDimensions['output_tokens'])\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| summarize\n    InputTokens = sum(input_tokens),\n    OutputTokens = sum(output_tokens),\n    TotalTokens = sum(total_tokens),\n    Invocations = count()\n    by Step = agent, Model = model\n| order by TotalTokens desc",
+        "size": 0,
+        "title": "Step-to-Model Token Mapping",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "step-model-mapping"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| extend process_id = tostring(customDimensions['process_id'])\n| extend file_name = tostring(customDimensions['file_name'])\n| summarize TotalTokens = sum(total_tokens) by process_id, file_name\n| order by TotalTokens desc\n| take 20",
+        "size": 0,
+        "title": "Top 20 Token Consumers by Document",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "top-consumers"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\n| extend mime_type = tostring(customDimensions['file_mime_type'])\n| extend file_type = case(\n    mime_type has \"pdf\", \"PDF\",\n    mime_type has \"image\", \"Image\",\n    mime_type has \"word\" or mime_type has \"docx\", \"Word\",\n    mime_type has \"excel\" or mime_type has \"xlsx\", \"Excel\",\n    mime_type has \"text\", \"Text\",\n    \"Other\")\n| summarize\n    Documents = count(),\n    TotalInputTokens = sum(input_tokens),\n    TotalOutputTokens = sum(output_tokens),\n    TotalTokens = sum(total_tokens),\n    AvgTokensPerDoc = round(avg(total_tokens), 0)\n    by FileType = file_type\n| order by TotalTokens desc",
+        "size": 0,
+        "title": "Token Usage by File Type",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "barchart"
+      },
+      "name": "tokens-by-filetype"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Percentiles & Trends"
+      },
+      "name": "section-percentiles"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| summarize\n    p50 = percentile(total_tokens, 50),\n    p90 = percentile(total_tokens, 90),\n    p95 = percentile(total_tokens, 95),\n    p99 = percentile(total_tokens, 99),\n    Max = max(total_tokens)",
+        "size": 4,
+        "title": "Token Usage Percentiles Per Document",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true
+        }
+      },
+      "name": "token-percentiles"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where name == 'LLM_Token_Usage_Summary'\n| where timestamp {TimeRange}\n| extend total_tokens = toint(customDimensions['total_tokens'])\n| extend file_name = tostring(customDimensions['file_name'])\n| summarize\n    DocumentsProcessed = count(),\n    TotalTokens = sum(total_tokens),\n    AvgTokensPerDoc = round(avg(total_tokens), 0),\n    MaxTokensPerDoc = max(total_tokens)\n    by Day = bin(timestamp, 1d)\n| order by Day desc",
+        "size": 0,
+        "title": "Daily Processing Volume with Token Usage",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "daily-volume"
+    }
+  ],
+  "isLocked": false,
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ]
+}
