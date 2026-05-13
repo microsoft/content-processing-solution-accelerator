@@ -29,6 +29,24 @@ else
   echo "============================================================"
 fi
 
+if ! command -v az >/dev/null 2>&1; then
+  echo "❌ Azure CLI (az) is not installed or not on PATH." >&2
+  echo "   Install it from https://aka.ms/installazurecli, then re-run." >&2
+  exit 1
+fi
+
+if ! command -v azd >/dev/null 2>&1; then
+  echo "❌ Azure Developer CLI (azd) is not installed or not on PATH." >&2
+  echo "   Install it from https://aka.ms/install-azd, then re-run." >&2
+  exit 1
+fi
+
+if ! azd env get-values >/dev/null 2>&1; then
+  echo "❌ No active azd environment found." >&2
+  echo "   Run 'azd env list' and 'azd env select <name>', then re-run." >&2
+  exit 1
+fi
+
 # --- Load values from azd env -------------------------------------------------
 ENV_NAME="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || echo "")"
 RESOURCE_GROUP="$(azd env get-value AZURE_RESOURCE_GROUP 2>/dev/null || true)"
@@ -97,6 +115,20 @@ retry() {
   done
 }
 
+# Generate a UUID in a macOS/Linux portable way.
+generate_uuid() {
+  if command -v uuidgen >/dev/null 2>&1; then
+    uuidgen
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import uuid; print(uuid.uuid4())'
+  elif [[ -r /proc/sys/kernel/random/uuid ]]; then
+    cat /proc/sys/kernel/random/uuid
+  else
+    echo "❌ Unable to generate UUID. Install uuidgen or python3." >&2
+    exit 1
+  fi
+}
+
 # Print a preflight check result line
 _check() {
   local status="$1"  # PASS | WARN | FAIL
@@ -161,6 +193,15 @@ validate_prerequisites_and_permissions() {
   else
     _check FAIL "Azure Container Apps CLI extension available" \
       "Install with: az extension add --name containerapp --upgrade"
+    fatal=true
+  fi
+
+  # ── 3b. Python 3 available (used for authConfig JSON patching) ───
+  if command -v python3 >/dev/null 2>&1; then
+    _check PASS "python3 available (required for authConfig patching)"
+  else
+    _check FAIL "python3 available (required for authConfig patching)" \
+      "Install Python 3 and ensure 'python3' is on PATH, then re-run."
     fatal=true
   fi
 
@@ -301,7 +342,7 @@ API_IDENTIFIER_URI="api://${API_CLIENT_ID}"
 API_SCOPE_ID="$(az ad app show --id "$API_CLIENT_ID" \
   --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv)"
 if [[ -z "$API_SCOPE_ID" || "$API_SCOPE_ID" == "null" ]]; then
-  API_SCOPE_ID="$(cat /proc/sys/kernel/random/uuid)"
+  API_SCOPE_ID="$(generate_uuid)"
   cat > /tmp/api_scope_patch.json <<EOF
 {
   "identifierUris": ["$API_IDENTIFIER_URI"],
@@ -365,7 +406,7 @@ WEB_IDENTIFIER_URI="api://${WEB_CLIENT_ID}"
 # + add SPA redirect URI + declare required resource access on API scope + Graph User.Read
 WEB_SCOPE_ID="$(az ad app show --id "$WEB_CLIENT_ID" \
   --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv)"
-[[ -z "$WEB_SCOPE_ID" || "$WEB_SCOPE_ID" == "null" ]] && WEB_SCOPE_ID="$(cat /proc/sys/kernel/random/uuid)"
+[[ -z "$WEB_SCOPE_ID" || "$WEB_SCOPE_ID" == "null" ]] && WEB_SCOPE_ID="$(generate_uuid)"
 
 cat > /tmp/web_patch.json <<EOF
 {

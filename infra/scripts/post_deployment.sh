@@ -341,8 +341,9 @@ else
         done
 
         if [ -z "$SCHEMA_ID" ]; then
-          echo "    - No schema ID found for '$SCHEMA_CLASS'. Skipping '$FILE_NAME'."
-          continue
+          echo "    ❌ No schema ID found for '$SCHEMA_CLASS'. Marking bundle upload as failed and skipping submission."
+          UPLOAD_SUCCESS=false
+          break
         fi
 
         echo "    - Uploading '$FILE_NAME' (schema: $SCHEMA_CLASS)..."

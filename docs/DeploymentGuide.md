@@ -323,7 +323,11 @@ Run schema registration first to:
 **macOS/Linux:**
 
 ```bash
-sed -i 's/\r$//' ./infra/scripts/register_schemas.sh
+if [ "$(uname)" = "Darwin" ]; then
+   sed -i '' 's/\r$//' ./infra/scripts/register_schemas.sh
+else
+   sed -i 's/\r$//' ./infra/scripts/register_schemas.sh
+fi
 bash ./infra/scripts/register_schemas.sh
 ```
 
@@ -347,7 +351,11 @@ After schema registration completes, upload the sample bundles as a separate exp
 **macOS/Linux:**
 
 ```bash
-sed -i 's/\r$//' ./infra/scripts/upload_sample_data.sh
+if [ "$(uname)" = "Darwin" ]; then
+   sed -i '' 's/\r$//' ./infra/scripts/upload_sample_data.sh
+else
+   sed -i 's/\r$//' ./infra/scripts/upload_sample_data.sh
+fi
 bash ./infra/scripts/upload_sample_data.sh
 ```
 
@@ -364,7 +372,11 @@ Run authentication setup as an explicit step after post-deployment data setup:
 **macOS/Linux:**
 
 ```bash
-sed -i 's/\r$//' ./infra/scripts/setup_auth.sh
+if [ "$(uname)" = "Darwin" ]; then
+   sed -i '' 's/\r$//' ./infra/scripts/setup_auth.sh
+else
+   sed -i 's/\r$//' ./infra/scripts/setup_auth.sh
+fi
 bash ./infra/scripts/setup_auth.sh
 ```
 

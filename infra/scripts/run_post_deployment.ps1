@@ -89,8 +89,8 @@ if ($env:SKIP_SCHEMA_REGISTRATION -eq "true") {
         Write-StepOk 1
     } catch {
         Write-StepFail 1
-        Write-Host "  To retry : .\$Step1Script"
-        Write-Host "  To skip  : `$env:SKIP_SCHEMA_REGISTRATION = 'true'; .\$ScriptDir\run_post_deployment.ps1"
+        Write-Host "  To retry : & \"$Step1Script\""
+        Write-Host "  To skip  : `$env:SKIP_SCHEMA_REGISTRATION = 'true'; & \"$(Join-Path $ScriptDir 'run_post_deployment.ps1')\""
         exit 1
     }
 }
@@ -115,8 +115,8 @@ if ($env:SKIP_SAMPLE_DATA_UPLOAD -eq "true") {
         Write-StepOk 2
     } catch {
         Write-StepFail 2
-        Write-Host "  To retry : .\$Step2Script"
-        Write-Host "  To skip  : `$env:SKIP_SAMPLE_DATA_UPLOAD = 'true'; .\$ScriptDir\run_post_deployment.ps1"
+        Write-Host "  To retry : & \"$Step2Script\""
+        Write-Host "  To skip  : `$env:SKIP_SAMPLE_DATA_UPLOAD = 'true'; & \"$(Join-Path $ScriptDir 'run_post_deployment.ps1')\""
         exit 1
     }
 }
@@ -134,10 +134,10 @@ Write-Host "    * Cloud Application Administrator / Global Administrator — to 
 Write-Host "    * Contributor on resource group — to update Container Apps"
 Write-Host ""
 Write-Host "  To skip this step:"
-Write-Host "    `$env:SKIP_AUTH_SETUP = 'true'; .\$ScriptDir\run_post_deployment.ps1"
+Write-Host "    `$env:SKIP_AUTH_SETUP = 'true'; & \"$(Join-Path $ScriptDir 'run_post_deployment.ps1')\""
 Write-Host "    — or —"
 Write-Host "    azd env set AZURE_SKIP_AUTH_SETUP true"
-Write-Host "    then run .\$Step3Script later when permissions are available."
+Write-Host "    then run & \"$Step3Script\" later when permissions are available."
 Write-Host ""
 
 $AzureSkipAuth = Azd-Get "AZURE_SKIP_AUTH_SETUP"
@@ -145,7 +145,7 @@ $AzureSkipAuth = Azd-Get "AZURE_SKIP_AUTH_SETUP"
 if ($env:SKIP_AUTH_SETUP -eq "true" -or $AzureSkipAuth -eq "true" -or $env:AZURE_SKIP_AUTH_SETUP -eq "true") {
     Write-StepSkip 3 "SKIP_AUTH_SETUP=true or AZURE_SKIP_AUTH_SETUP=true"
     Write-Host "  Run manually when permissions are available:"
-    Write-Host "    .\$Step3Script"
+    Write-Host "    & \"$Step3Script\""
 } else {
     if (-not (Test-Path $Step3Script)) {
         Write-Error "Script not found: $Step3Script"
@@ -157,7 +157,7 @@ if ($env:SKIP_AUTH_SETUP -eq "true" -or $AzureSkipAuth -eq "true" -or $env:AZURE
         Write-StepOk 3
     } catch {
         Write-StepFail 3
-        Write-Host "  To retry auth setup  : .\$Step3Script"
+        Write-Host "  To retry auth setup  : & \"$Step3Script\""
         Write-Host "  For manual portal steps: docs/ConfigureAppAuthentication.md"
         exit 1
     }

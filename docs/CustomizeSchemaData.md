@@ -77,14 +77,14 @@ A new JSON Schema document needs to be created that defines the schema as a decl
 
 **Sample Schemas:** The accelerator ships with 4 sample schemas — use any as a starting template:
 
-| Schema                    | File                                                                              | Class Name                      | Auto-registered |
+| Schema                    | File                                                                              | Class Name                      | Included sample |
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------- | --------------- |
 | Auto Insurance Claim Form | [autoclaim.json](../src/ContentProcessorAPI/samples/schemas/autoclaim.json)             | `AutoInsuranceClaimForm`        | ✅               |
 | Police Report             | [policereport.json](../src/ContentProcessorAPI/samples/schemas/policereport.json)       | `PoliceReportDocument`          | ✅               |
 | Repair Estimate           | [repairestimate.json](../src/ContentProcessorAPI/samples/schemas/repairestimate.json)   | `RepairEstimateDocument`        | ✅               |
 | Damaged Vehicle Image     | [damagedcarimage.json](../src/ContentProcessorAPI/samples/schemas/damagedcarimage.json) | `DamagedVehicleImageAssessment` | ✅               |
 
-> **Note:** All 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set.
+> **Note:** These 4 schemas are included in the repository and are registered when you run the manual post-deployment schema registration step (for example, `register_schemas.ps1` / `register_schemas.sh`, or `run_post_deployment.ps1` / `run_post_deployment.sh`). They are then grouped into the **"Auto Claim"** schema set.
 
 Duplicate one of these files and update with fields that represent your document type.
 

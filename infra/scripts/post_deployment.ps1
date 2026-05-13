@@ -332,8 +332,9 @@ if (-not $ApiReady) {
 
                 $schemaId = $Registered[$schemaClass]
                 if (-not $schemaId) {
-                    Write-Host "    - No schema ID found for '$schemaClass'. Skipping '$fileName'."
-                    continue
+                    Write-Host "    - No schema ID found for '$schemaClass'. Marking bundle upload as failed and skipping submission."
+                    $uploadSuccess = $false
+                    break
                 }
 
                 Write-Host "    - Uploading '$fileName' (schema: $schemaClass)..."

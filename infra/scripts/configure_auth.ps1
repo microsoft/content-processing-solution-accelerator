@@ -13,8 +13,8 @@ if ($env:AZURE_SKIP_AUTH_SETUP -eq "true") {
   return
 }
 
-$PrefightOnly = $args -contains "--preflight-only"
-if ($PrefightOnly) {
+$PreflightOnly = $args -contains "--preflight-only"
+if ($PreflightOnly) {
   Write-Host ""
   Write-Host "============================================================"
   Write-Host "🔍 Preflight permission check (read-only — no changes made)"
@@ -24,6 +24,24 @@ if ($PrefightOnly) {
   Write-Host "============================================================"
   Write-Host "🔐 Configuring Entra ID authentication (Web + API)"
   Write-Host "============================================================"
+}
+
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+  Write-Error "Azure CLI (az) is not installed or not on PATH. Install from https://aka.ms/installazurecli and re-run."
+  exit 1
+}
+
+if (-not (Get-Command azd -ErrorAction SilentlyContinue)) {
+  Write-Error "Azure Developer CLI (azd) is not installed or not on PATH. Install from https://aka.ms/install-azd and re-run."
+  exit 1
+}
+
+try {
+  azd env get-values *> $null
+  if ($LASTEXITCODE -ne 0) { throw }
+} catch {
+  Write-Error "No active azd environment found. Run 'azd env list' and 'azd env select <name>', then re-run."
+  exit 1
 }
 
 function Azd-Get($key, $default = "") {
@@ -240,7 +258,7 @@ function Validate-PrerequisitesAndPermissions {
 
 Validate-PrerequisitesAndPermissions
 
-if ($PrefightOnly) {
+if ($PreflightOnly) {
   Write-Host ""
   Write-Host "✅ Preflight-only mode: all permission checks passed. No changes were made."
   exit 0
@@ -420,7 +438,6 @@ Ensure-CaSecret $WebClientId $WebName
 # --- Step 5: Enable EasyAuth ------------------------------------------------
 Write-Host ""
 Write-Host "➡️  Step 5/6: Enabling EasyAuth on Web + API container apps"
-$Issuer = "https://login.microsoftonline.com/$TenantId/v2.0"
 
 function Configure-EasyAuth($CaName, $ClientId) {
   # Note: --tenant-id and --issuer are mutually exclusive. Do not override
