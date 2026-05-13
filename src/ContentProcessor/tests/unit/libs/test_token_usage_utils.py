@@ -111,6 +111,21 @@ class TestExtractTokenUsage:
             "total_tokens": 75,
         }
 
+    def test_usage_details_object_with_attributes(self):
+        """Handle UsageDetails object (not dict) from agent framework."""
+        response = MagicMock()
+        usage_obj = MagicMock()
+        usage_obj.input_token_count = 400
+        usage_obj.output_token_count = 150
+        usage_obj.total_token_count = 550
+        response.usage_details = usage_obj
+        result = extract_token_usage(response)
+        assert result == {
+            "input_tokens": 400,
+            "output_tokens": 150,
+            "total_tokens": 550,
+        }
+
     def test_no_usage_returns_zeros(self):
         response = MagicMock()
         response.usage_details = None
