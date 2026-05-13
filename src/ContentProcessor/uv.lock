@@ -699,6 +699,19 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-monitor-events-extension"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cd/51/976c8cd4a76d41bcd4d3f6400aeed8fdd70d516d271badf9c4a5893a558d/azure-monitor-events-extension-0.1.0.tar.gz", hash = "sha256:094773685171a50aa5cc548279c9141c8a26682f6acef397815c528b53b838b5", size = 4165, upload-time = "2023-09-19T20:01:17.887Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/44/cbb68c55505a604de61caa44375be7371368e71aa8386b1576be5b789e11/azure_monitor_events_extension-0.1.0-py2.py3-none-any.whl", hash = "sha256:5d92abb5e6a32ab23b12c726def9f9607c6fa1d84900d493b906ff9ec489af4a", size = 4514, upload-time = "2023-09-19T20:01:16.162Z" },
+]
+
+[[package]]
 name = "azure-monitor-opentelemetry"
 version = "1.8.7"
 source = { registry = "https://pypi.org/simple" }
@@ -974,6 +987,7 @@ dependencies = [
     { name = "azure-ai-inference" },
     { name = "azure-appconfiguration" },
     { name = "azure-identity" },
+    { name = "azure-monitor-events-extension" },
     { name = "azure-monitor-opentelemetry" },
     { name = "azure-storage-blob" },
     { name = "azure-storage-queue" },
@@ -1011,6 +1025,7 @@ requires-dist = [
     { name = "azure-ai-inference", specifier = "==1.0.0b9" },
     { name = "azure-appconfiguration", specifier = "==1.8.0" },
     { name = "azure-identity", specifier = "==1.26.0b1" },
+    { name = "azure-monitor-events-extension", specifier = ">=0.1.0" },
     { name = "azure-monitor-opentelemetry", specifier = "==1.8.7" },
     { name = "azure-storage-blob", specifier = "==12.29.0b1" },
     { name = "azure-storage-queue", specifier = "==12.16.0b1" },

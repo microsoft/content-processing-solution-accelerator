@@ -737,6 +737,19 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-monitor-events-extension"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cd/51/976c8cd4a76d41bcd4d3f6400aeed8fdd70d516d271badf9c4a5893a558d/azure-monitor-events-extension-0.1.0.tar.gz", hash = "sha256:094773685171a50aa5cc548279c9141c8a26682f6acef397815c528b53b838b5", size = 4165, upload-time = "2023-09-19T20:01:17.887Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/44/cbb68c55505a604de61caa44375be7371368e71aa8386b1576be5b789e11/azure_monitor_events_extension-0.1.0-py2.py3-none-any.whl", hash = "sha256:5d92abb5e6a32ab23b12c726def9f9607c6fa1d84900d493b906ff9ec489af4a", size = 4514, upload-time = "2023-09-19T20:01:16.162Z" },
+]
+
+[[package]]
 name = "azure-monitor-opentelemetry"
 version = "1.8.7"
 source = { registry = "https://pypi.org/simple" }
@@ -2960,6 +2973,7 @@ dependencies = [
     { name = "azure-appconfiguration" },
     { name = "azure-core" },
     { name = "azure-identity" },
+    { name = "azure-monitor-events-extension" },
     { name = "azure-monitor-opentelemetry" },
     { name = "azure-storage-blob" },
     { name = "azure-storage-file-datalake" },
@@ -3001,6 +3015,7 @@ requires-dist = [
     { name = "azure-appconfiguration", specifier = "==1.8.0" },
     { name = "azure-core", specifier = "==1.38.0" },
     { name = "azure-identity", specifier = "==1.26.0b1" },
+    { name = "azure-monitor-events-extension", specifier = ">=0.1.0" },
     { name = "azure-monitor-opentelemetry", specifier = "==1.8.7" },
     { name = "azure-storage-blob", specifier = "==12.29.0b1" },
     { name = "azure-storage-file-datalake", specifier = "==12.23.0" },
@@ -3015,7 +3030,7 @@ requires-dist = [
     { name = "psutil", specifier = "==7.2.1" },
     { name = "pyasn1", specifier = "==0.6.3" },
     { name = "pyjwt", specifier = "==2.12.1" },
-    { name = "python-multipart", specifier = "==0.0.27" },
+    { name = "python-multipart", specifier = "==0.0.26" },
     { name = "pytz", specifier = "==2025.2" },
     { name = "sas-cosmosdb", specifier = "==0.1.4" },
     { name = "sas-storage", specifier = "==1.0.0" },
@@ -3482,11 +3497,11 @@ wheels = [
 
 [[package]]
 name = "python-multipart"
-version = "0.0.27"
+version = "0.0.26"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/69/9b/f23807317a113dc36e74e75eb265a02dd1a4d9082abc3c1064acd22997c4/python_multipart-0.0.27.tar.gz", hash = "sha256:9870a6a8c5a20a5bf4f07c017bd1489006ff8836cff097b6933355ee2b49b602", size = 44043, upload-time = "2026-04-27T10:51:26.649Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/71/b145a380824a960ebd60e1014256dbb7d2253f2316ff2d73dfd8928ec2c3/python_multipart-0.0.26.tar.gz", hash = "sha256:08fadc45918cd615e26846437f50c5d6d23304da32c341f289a617127b081f17", size = 43501, upload-time = "2026-04-10T14:09:59.473Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/78/4126abcbdbd3c559d43e0db7f7b9173fc6befe45d39a2856cc0b8ec2a5a6/python_multipart-0.0.27-py3-none-any.whl", hash = "sha256:6fccfad17a27334bd0193681b369f476eda3409f17381a2d65aa7df3f7275645", size = 29254, upload-time = "2026-04-27T10:51:24.997Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/22/f1925cdda983ab66fc8ec6ec8014b959262747e58bdca26a4e3d1da29d56/python_multipart-0.0.26-py3-none-any.whl", hash = "sha256:c0b169f8c4484c13b0dcf2ef0ec3a4adb255c4b7d18d8e420477d2b1dd03f185", size = 28847, upload-time = "2026-04-10T14:09:58.131Z" },
 ]
 
 [[package]]
@@ -4077,11 +4092,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.7.0"
+version = "2.6.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/24/5f1b3bdffd70275f6661c76461e25f024d5a38a46f04aaca912426a2b1d3/urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed", size = 435556, upload-time = "2026-01-07T16:24:43.925Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+    { url = "https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4", size = 131584, upload-time = "2026-01-07T16:24:42.685Z" },
 ]
 
 [[package]]

@@ -56,21 +56,35 @@ def extract_token_usage(response: Any) -> dict[str, int]:
 
     # Path 1: usage_details attribute (set by agent framework SDK)
     usage_details = getattr(response, "usage_details", None)
-    if isinstance(usage_details, dict):
-        input_tokens = _to_int(
-            usage_details.get("input_token_count")
-            or usage_details.get("prompt_tokens")
-            or usage_details.get("input_tokens")
-        )
-        output_tokens = _to_int(
-            usage_details.get("output_token_count")
-            or usage_details.get("completion_tokens")
-            or usage_details.get("output_tokens")
-        )
-        total_tokens = _to_int(
-            usage_details.get("total_token_count")
-            or usage_details.get("total_tokens")
-        ) or (input_tokens + output_tokens)
+    if usage_details is not None:
+        if isinstance(usage_details, dict):
+            input_tokens = _to_int(
+                usage_details.get("input_token_count")
+                or usage_details.get("prompt_tokens")
+                or usage_details.get("input_tokens")
+            )
+            output_tokens = _to_int(
+                usage_details.get("output_token_count")
+                or usage_details.get("completion_tokens")
+                or usage_details.get("output_tokens")
+            )
+            total_tokens = _to_int(
+                usage_details.get("total_token_count")
+                or usage_details.get("total_tokens")
+            ) or (input_tokens + output_tokens)
+        else:
+            # UsageDetails object with attributes
+            input_tokens = _to_int(
+                getattr(usage_details, "input_token_count", 0)
+                or getattr(usage_details, "prompt_tokens", 0)
+            )
+            output_tokens = _to_int(
+                getattr(usage_details, "output_token_count", 0)
+                or getattr(usage_details, "completion_tokens", 0)
+            )
+            total_tokens = _to_int(
+                getattr(usage_details, "total_token_count", 0)
+            ) or (input_tokens + output_tokens)
 
     # Path 2: raw_representation.usage (raw Azure OpenAI response)
     if total_tokens == 0:
