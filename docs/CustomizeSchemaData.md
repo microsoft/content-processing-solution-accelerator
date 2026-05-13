@@ -73,16 +73,16 @@ flowchart LR
 
 A new JSON Schema document needs to be created that defines the schema as a declarative description of your document type.
 
-> **Schema Folder:** [/src/ContentProcessorAPI/samples/schemas/](/src/ContentProcessorAPI/samples/schemas/) — All schema JSON files should be placed into this folder
+> **Schema Folder:** [../src/ContentProcessorAPI/samples/schemas/](../src/ContentProcessorAPI/samples/schemas/) — All schema JSON files should be placed into this folder
 
 **Sample Schemas:** The accelerator ships with 4 sample schemas — use any as a starting template:
 
 | Schema                    | File                                                                              | Class Name                      | Auto-registered |
 | ------------------------- | --------------------------------------------------------------------------------- | ------------------------------- | --------------- |
-| Auto Insurance Claim Form | [autoclaim.json](/src/ContentProcessorAPI/samples/schemas/autoclaim.json)             | `AutoInsuranceClaimForm`        | ✅               |
-| Police Report             | [policereport.json](/src/ContentProcessorAPI/samples/schemas/policereport.json)       | `PoliceReportDocument`          | ✅               |
-| Repair Estimate           | [repairestimate.json](/src/ContentProcessorAPI/samples/schemas/repairestimate.json)   | `RepairEstimateDocument`        | ✅               |
-| Damaged Vehicle Image     | [damagedcarimage.json](/src/ContentProcessorAPI/samples/schemas/damagedcarimage.json) | `DamagedVehicleImageAssessment` | ✅               |
+| Auto Insurance Claim Form | [autoclaim.json](../src/ContentProcessorAPI/samples/schemas/autoclaim.json)             | `AutoInsuranceClaimForm`        | ✅               |
+| Police Report             | [policereport.json](../src/ContentProcessorAPI/samples/schemas/policereport.json)       | `PoliceReportDocument`          | ✅               |
+| Repair Estimate           | [repairestimate.json](../src/ContentProcessorAPI/samples/schemas/repairestimate.json)   | `RepairEstimateDocument`        | ✅               |
+| Damaged Vehicle Image     | [damagedcarimage.json](../src/ContentProcessorAPI/samples/schemas/damagedcarimage.json) | `DamagedVehicleImageAssessment` | ✅               |
 
 > **Note:** All 4 schemas are automatically registered during deployment (via `azd up` or the `register_schema.py` script) and grouped into the **"Auto Claim"** schema set.
 
@@ -158,7 +158,7 @@ Example using the REST Client extension:
 
 > **Note:** Install the [REST Client VSCode extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) to execute `.http` files directly in VS Code.
 
-> **Sample requests:** [/src/ContentProcessorAPI/test_http/invoke_APIs.http](/src/ContentProcessorAPI/test_http/invoke_APIs.http)
+> **Sample requests:** [../src/ContentProcessorAPI/test_http/invoke_APIs.http](../src/ContentProcessorAPI/test_http/invoke_APIs.http)
 
 The response returns a Schema `Id` — **save this** for Step 3.
 
@@ -173,7 +173,7 @@ For bulk registration, use the provided script with a JSON manifest. The script 
 2. **Creates** a schema set via `/schemasetvault/`
 3. **Adds** each registered schema into the schema set
 
-**Manifest file** ([schema_info.json](/src/ContentProcessorAPI/samples/schemas/schema_info.json)):
+**Manifest file** ([schema_info.json](../src/ContentProcessorAPI/samples/schemas/schema_info.json)):
 ```json
 {
   "schemas": [
