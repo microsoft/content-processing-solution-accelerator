@@ -370,6 +370,16 @@ bash ./infra/scripts/setup_auth.sh
 
 The auth script is idempotent and performs preflight validation before making changes.
 
+#### Skipping auth setup
+
+If your tenant blocks programmatic app registration, or you need to defer authentication setup, you can skip this step:
+
+```powershell
+azd env set AZURE_SKIP_AUTH_SETUP true
+```
+
+Then follow the manual instructions in [App Authentication Configuration](./ConfigureAppAuthentication.md). To re-enable later, set the value to `false` and re-run `setup_auth.ps1`.
+
 #### Required Permissions for auth setup
 
 - Create/update app registrations: **Application Administrator**, **Cloud Application Administrator**, or **Global Administrator**

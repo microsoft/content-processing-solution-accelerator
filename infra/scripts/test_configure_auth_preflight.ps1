@@ -48,7 +48,7 @@ try {
 # Behaviour controlled by AZ_MOCK_SCENARIO environment variable.
 # =============================================================================
 $MockAzPs1Content = @'
-param([Parameter(ValueFromRemainingArguments=$true)]$allArgs)
+$allArgs = $args
 $SCENARIO = if ($env:AZ_MOCK_SCENARIO) { $env:AZ_MOCK_SCENARIO } else { "happy" }
 $S = ($allArgs -join " ")
 function has($t) { $S -like "*$t*" }
@@ -95,7 +95,7 @@ exit 0
 # Behaviour controlled by AZD_MOCK_SCENARIO environment variable.
 # =============================================================================
 $MockAzdPs1Content = @'
-param([Parameter(ValueFromRemainingArguments=$true)]$allArgs)
+$allArgs = $args
 $SCENARIO = if ($env:AZD_MOCK_SCENARIO) { $env:AZD_MOCK_SCENARIO } else { "happy" }
 $S = ($allArgs -join " ")
 
@@ -154,7 +154,7 @@ function Run-Test {
     $env:AZD_MOCK_SCENARIO = $AzdScenario
     $env:AZURE_SKIP_AUTH_SETUP = ""
 
-    $rawOutput = powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+    $rawOutput = pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass `
         -File $Subject "--preflight-only" 2>&1
     $exitCode = $LASTEXITCODE
     $outputStr = ($rawOutput | Out-String)
