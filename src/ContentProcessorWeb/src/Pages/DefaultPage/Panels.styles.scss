@@ -51,7 +51,7 @@
   .topContainer {
     display: flex;
     flex-wrap: nowrap;
-    align-items: end;
+    align-items: start;
     gap: 10px;
     padding: 0px 16px 16px 16px;
   }
@@ -59,7 +59,7 @@
   @media (max-width: 1600px) {
     .topContainer {
       flex-wrap: wrap;
-      align-items: center;
+      align-items: start;
     }
   }
 
