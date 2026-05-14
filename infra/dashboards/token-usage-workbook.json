@@ -51,7 +51,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize\r\n    TotalDocuments = count(),\r\n    TotalInputTokens = sum(input_tokens),\r\n    TotalOutputTokens = sum(output_tokens),\r\n    TotalTokens = sum(total_tokens),\r\n    AvgTokensPerDocument = round(avg(total_tokens), 0)",
+        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens) by process_id\r\n| summarize\r\n    TotalDocuments = count(),\r\n    TotalInputTokens = sum(input_tokens),\r\n    TotalOutputTokens = sum(output_tokens),\r\n    TotalTokens = sum(total_tokens),\r\n    AvgTokensPerDocument = round(avg(total_tokens), 0)",
         "size": 3,
         "title": "Overall Token Usage Summary",
         "timeContext": {
@@ -76,7 +76,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend agent = tostring(customDimensions['agent_name'])\r\n| extend input_tokens = toint(customDimensions['input_tokens'])\r\n| extend output_tokens = toint(customDimensions['output_tokens'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize\r\n    InputTokens = sum(input_tokens),\r\n    OutputTokens = sum(output_tokens),\r\n    TotalTokens = sum(total_tokens),\r\n    Invocations = count()\r\n    by Step = agent\r\n| order by TotalTokens desc",
+        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend agent = tostring(customDimensions['agent_name'])\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend input_tokens = toint(customDimensions['input_tokens'])\r\n| extend output_tokens = toint(customDimensions['output_tokens'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens) by agent, process_id\r\n| summarize\r\n    InputTokens = sum(input_tokens),\r\n    OutputTokens = sum(output_tokens),\r\n    TotalTokens = sum(total_tokens),\r\n    Invocations = count()\r\n    by Step = agent\r\n| order by TotalTokens desc",
         "size": 0,
         "title": "Token Usage by Pipeline Step",
         "timeContext": {
@@ -93,7 +93,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| summarize InputTokens = sum(input_tokens), OutputTokens = sum(output_tokens) by bin(timestamp, 1h)\r\n| order by timestamp asc",
+        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), timestamp=min(timestamp) by process_id\r\n| summarize InputTokens = sum(input_tokens), OutputTokens = sum(output_tokens) by bin(timestamp, 1h)\r\n| order by timestamp asc",
         "size": 0,
         "title": "Token Usage Over Time (Hourly)",
         "timeContext": {
@@ -110,7 +110,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend agent = tostring(customDimensions['agent_name'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize TotalTokens = sum(total_tokens) by agent",
+        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend agent = tostring(customDimensions['agent_name'])\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize total_tokens=max(total_tokens) by agent, process_id\r\n| summarize TotalTokens = sum(total_tokens) by agent",
         "size": 0,
         "title": "Token Distribution by Agent",
         "timeContext": {
@@ -134,7 +134,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let input_price_per_million = 2.50;\r\nlet output_price_per_million = 10.00;\r\ncustomEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by bin(timestamp, 1d)\r\n| extend InputCost = round(TotalInput * input_price_per_million / 1000000.0, 4)\r\n| extend OutputCost = round(TotalOutput * output_price_per_million / 1000000.0, 4)\r\n| extend TotalCost = InputCost + OutputCost\r\n| project Day = timestamp, TotalInput, TotalOutput, InputCost, OutputCost, TotalCost\r\n| order by Day desc",
+        "query": "let input_price_per_million = 2.50;\r\nlet output_price_per_million = 10.00;\r\ncustomEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), timestamp=min(timestamp) by process_id\r\n| summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by bin(timestamp, 1d)\r\n| extend InputCost = round(TotalInput * input_price_per_million / 1000000.0, 4)\r\n| extend OutputCost = round(TotalOutput * output_price_per_million / 1000000.0, 4)\r\n| extend TotalCost = InputCost + OutputCost\r\n| project Day = timestamp, TotalInput, TotalOutput, InputCost, OutputCost, TotalCost\r\n| order by Day desc",
         "size": 0,
         "title": "Estimated Daily Cost (GPT-4o Pricing: $2.50/1M input, $10.00/1M output)",
         "timeContext": {
@@ -209,7 +209,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend file_name = tostring(customDimensions['file_name'])\r\n| summarize TotalTokens = sum(total_tokens) by process_id, file_name\r\n| order by TotalTokens desc\r\n| take 20",
+        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend file_name = tostring(customDimensions['file_name'])\r\n| summarize TotalTokens = max(total_tokens) by process_id, file_name\r\n| order by TotalTokens desc\r\n| take 20",
         "size": 0,
         "title": "Top 20 Token Consumers by Document",
         "timeContext": {
@@ -226,7 +226,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| extend mime_type = tostring(customDimensions['file_mime_type'])\r\n| extend file_type = case(\r\n    mime_type has \"pdf\", \"PDF\",\r\n    mime_type has \"image\", \"Image\",\r\n    mime_type has \"word\" or mime_type has \"docx\", \"Word\",\r\n    mime_type has \"excel\" or mime_type has \"xlsx\", \"Excel\",\r\n    mime_type has \"text\", \"Text\",\r\n    \"Other\")\r\n| summarize\r\n    Documents = count(),\r\n    TotalInputTokens = sum(input_tokens),\r\n    TotalOutputTokens = sum(output_tokens),\r\n    TotalTokens = sum(total_tokens),\r\n    AvgTokensPerDoc = round(avg(total_tokens), 0)\r\n    by FileType = file_type\r\n| order by TotalTokens desc",
+        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| extend input_tokens = toint(customDimensions['total_input_tokens'])\r\n| extend output_tokens = toint(customDimensions['total_output_tokens'])\r\n| extend mime_type = tostring(customDimensions['file_mime_type'])\r\n| extend file_type = case(\r\n    mime_type has \"pdf\", \"PDF\",\r\n    mime_type has \"image\", \"Image\",\r\n    mime_type has \"word\" or mime_type has \"docx\", \"Word\",\r\n    mime_type has \"excel\" or mime_type has \"xlsx\", \"Excel\",\r\n    mime_type has \"text\", \"Text\",\r\n    \"Other\")\r\n| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens), file_type=take_any(file_type) by process_id\r\n| summarize\r\n    Documents = count(),\r\n    TotalInputTokens = sum(input_tokens),\r\n    TotalOutputTokens = sum(output_tokens),\r\n    TotalTokens = sum(total_tokens),\r\n    AvgTokensPerDoc = round(avg(total_tokens), 0)\r\n    by FileType = file_type\r\n| order by TotalTokens desc",
         "size": 0,
         "title": "Token Usage by File Type",
         "timeContext": {
@@ -250,7 +250,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize\r\n    p50 = percentile(total_tokens, 50),\r\n    p90 = percentile(total_tokens, 90),\r\n    p95 = percentile(total_tokens, 95),\r\n    p99 = percentile(total_tokens, 99),\r\n    Max = max(total_tokens)",
+        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize total_tokens=max(total_tokens) by process_id\r\n| summarize\r\n    p50 = percentile(total_tokens, 50),\r\n    p90 = percentile(total_tokens, 90),\r\n    p95 = percentile(total_tokens, 95),\r\n    p99 = percentile(total_tokens, 99),\r\n    Max = max(total_tokens)",
         "size": 3,
         "title": "Token Usage Percentiles Per Document",
         "timeContext": {
@@ -275,7 +275,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| extend file_name = tostring(customDimensions['file_name'])\r\n| summarize\r\n    DocumentsProcessed = count(),\r\n    TotalTokens = sum(total_tokens),\r\n    AvgTokensPerDoc = round(avg(total_tokens), 0),\r\n    MaxTokensPerDoc = max(total_tokens)\r\n    by Day = bin(timestamp, 1d)\r\n| order by Day desc",
+        "query": "customEvents\r\n| where name == 'LLM_Token_Usage_Summary'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| extend total_tokens = toint(customDimensions['total_tokens'])\r\n| summarize total_tokens=max(total_tokens), timestamp=min(timestamp) by process_id\r\n| summarize\r\n    DocumentsProcessed = count(),\r\n    TotalTokens = sum(total_tokens),\r\n    AvgTokensPerDoc = round(avg(total_tokens), 0),\r\n    MaxTokensPerDoc = max(total_tokens)\r\n    by Day = bin(timestamp, 1d)\r\n| order by Day desc",
         "size": 0,
         "title": "Daily Processing Volume with Token Usage",
         "timeContext": {
