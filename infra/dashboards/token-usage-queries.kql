@@ -1,0 +1,320 @@
+// ============================================================
+// KQL Queries for LLM Token Usage Monitoring
+// Content Processing Solution Accelerator
+// Run these in Application Insights > Logs
+//
+// IMPORTANT: All queries use a deduplication pattern:
+//   max() by (agent, process_id) first, then sum()
+// This handles duplicate custom events that can occur when
+// both ContentProcessor and ContentProcessorWorkflow emit
+// telemetry through the same Application Insights instance.
+// ============================================================
+
+// 1. Overall token usage summary
+// Dedup: max by (agent, process_id) → sum by process_id → aggregate
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens) by agent, process_id
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), total_tokens=sum(total_tokens) by process_id
+| summarize
+    TotalDocuments = count(),
+    TotalInputTokens = sum(input_tokens),
+    TotalOutputTokens = sum(output_tokens),
+    TotalTokens = sum(total_tokens),
+    AvgTokensPerDocument = round(avg(total_tokens), 0)
+
+// 2. Token usage by pipeline step (agent)
+// Dedup: max by (agent, process_id) → sum by agent
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend agent = tostring(customDimensions['agent_name'])
+| extend process_id = tostring(customDimensions['process_id'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens) by agent, process_id
+| summarize
+    InputTokens = sum(input_tokens),
+    OutputTokens = sum(output_tokens),
+    TotalTokens = sum(total_tokens),
+    Invocations = count()
+    by Step = agent
+| project Step, InputTokens, OutputTokens, TotalTokens, Invocations
+| order by TotalTokens desc
+
+// 3. Token usage over time (hourly)
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), timestamp=min(timestamp) by agent, process_id
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), timestamp=min(timestamp) by process_id
+| summarize InputTokens = sum(input_tokens), OutputTokens = sum(output_tokens) by bin(timestamp, 1h)
+| order by timestamp asc
+| render areachart
+
+// 4. Token distribution by agent (pie chart)
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend agent = tostring(customDimensions['agent_name'])
+| extend process_id = tostring(customDimensions['process_id'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize total_tokens=max(total_tokens) by agent, process_id
+| summarize TotalTokens = sum(total_tokens) by agent
+| render piechart
+
+// 5. Estimated daily cost (GPT-4o pricing: $2.50/1M input, $10.00/1M output)
+let input_price_per_million = 2.50;
+let output_price_per_million = 10.00;
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(30d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), timestamp=min(timestamp) by agent, process_id
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), timestamp=min(timestamp) by process_id
+| summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by bin(timestamp, 1d)
+| extend InputCost = round(TotalInput * input_price_per_million / 1000000.0, 4)
+| extend OutputCost = round(TotalOutput * output_price_per_million / 1000000.0, 4)
+| extend TotalCost = InputCost + OutputCost
+| project Day = timestamp, TotalInput, TotalOutput, InputCost, OutputCost, TotalCost
+| order by Day desc
+
+// 6. Estimated cost by model (adjust pricing per model)
+let gpt4o_input = 2.50;
+let gpt4o_output = 10.00;
+let gpt4o_mini_input = 0.15;
+let gpt4o_mini_output = 0.60;
+customEvents
+| where name == 'LLM_Model_Token_Usage'
+| where timestamp > ago(30d)
+| extend model = tostring(customDimensions['model_deployment_name'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by model
+| extend InputPrice = case(
+    model has "mini", gpt4o_mini_input,
+    gpt4o_input)
+| extend OutputPrice = case(
+    model has "mini", gpt4o_mini_output,
+    gpt4o_output)
+| extend InputCost = round(TotalInput * InputPrice / 1000000.0, 4)
+| extend OutputCost = round(TotalOutput * OutputPrice / 1000000.0, 4)
+| extend TotalCost = InputCost + OutputCost
+| project Model = model, TotalInput, TotalOutput, InputCost, OutputCost, TotalCost
+| order by TotalCost desc
+
+// 7. Token usage by model deployment
+customEvents
+| where name == 'LLM_Model_Token_Usage'
+| where timestamp > ago(7d)
+| extend model = tostring(customDimensions['model_deployment_name'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize
+    InputTokens = sum(input_tokens),
+    OutputTokens = sum(output_tokens),
+    TotalTokens = sum(total_tokens),
+    Invocations = count()
+    by Model = model
+| order by TotalTokens desc
+
+// 8. Step-to-model mapping with token usage
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend agent = tostring(customDimensions['agent_name'])
+| extend model = tostring(customDimensions['model_deployment_name'])
+| extend process_id = tostring(customDimensions['process_id'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens) by agent, model, process_id
+| summarize
+    InputTokens = sum(input_tokens),
+    OutputTokens = sum(output_tokens),
+    TotalTokens = sum(total_tokens),
+    Invocations = dcount(process_id)
+    by Step = agent, Model = model
+| order by TotalTokens desc
+
+// 9. Top 20 token consumers by document
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize total_tokens=max(total_tokens) by agent, process_id
+| summarize TotalTokens = sum(total_tokens) by process_id
+| join kind=leftouter (
+    customEvents
+    | where name == 'LLM_Token_Usage_Summary'
+    | where timestamp > ago(7d)
+    | extend process_id = tostring(customDimensions['process_id'])
+    | extend file_name = tostring(customDimensions['file_name'])
+    | summarize file_name=take_any(file_name) by process_id
+) on process_id
+| project process_id, file_name, TotalTokens
+| order by TotalTokens desc
+| take 20
+
+// 10. Token usage by file type (PDF, DOCX, image, etc.)
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize input_tokens=max(input_tokens), output_tokens=max(output_tokens), total_tokens=max(total_tokens) by agent, process_id
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), total_tokens=sum(total_tokens) by process_id
+| join kind=leftouter (
+    customEvents
+    | where name == 'LLM_Token_Usage_Summary'
+    | where timestamp > ago(7d)
+    | extend process_id = tostring(customDimensions['process_id'])
+    | extend mime_type = tostring(customDimensions['file_mime_type'])
+    | summarize mime_type=take_any(mime_type) by process_id
+) on process_id
+| extend file_type = case(
+    mime_type has "pdf", "PDF",
+    mime_type has "image", "Image",
+    mime_type has "word" or mime_type has "docx", "Word",
+    mime_type has "excel" or mime_type has "xlsx", "Excel",
+    mime_type has "text", "Text",
+    "Other")
+| summarize
+    Documents = count(),
+    TotalInputTokens = sum(input_tokens),
+    TotalOutputTokens = sum(output_tokens),
+    TotalTokens = sum(total_tokens),
+    AvgTokensPerDoc = round(avg(total_tokens), 0)
+    by FileType = file_type
+| order by TotalTokens desc
+
+// ============================================================
+// Processing Time Queries
+// ============================================================
+
+// 11. Step completion time (seconds from document start to step completion)
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend agent = tostring(customDimensions['agent_name'])
+| extend process_id = tostring(customDimensions['process_id'])
+| join kind=inner (
+    customEvents
+    | where name == 'LLM_Agent_Token_Usage'
+    | where timestamp > ago(7d)
+    | extend process_id = tostring(customDimensions['process_id'])
+    | summarize DocStartTime = min(timestamp) by process_id
+) on process_id
+| extend StepDurationSeconds = round(datetime_diff('millisecond', timestamp, DocStartTime) / 1000.0, 2)
+| summarize
+    AvgCompletionTime = round(avg(StepDurationSeconds), 2),
+    P50CompletionTime = round(percentile(StepDurationSeconds, 50), 2),
+    P90CompletionTime = round(percentile(StepDurationSeconds, 90), 2),
+    MaxCompletionTime = round(max(StepDurationSeconds), 2),
+    Invocations = count()
+    by Step = agent
+| order by AvgCompletionTime desc
+
+// 12. OpenAI API call durations from dependencies table
+dependencies
+| where timestamp > ago(7d)
+| where target has "openai" or name has "chat" or type == "HTTP" or name has "openai"
+| where success == true
+| extend durationSeconds = round(duration / 1000.0, 2)
+| summarize
+    TotalCalls = count(),
+    AvgSeconds = round(avg(durationSeconds), 2),
+    P50Seconds = round(percentile(durationSeconds, 50), 2),
+    P90Seconds = round(percentile(durationSeconds, 90), 2),
+    MaxSeconds = round(max(durationSeconds), 2)
+    by OperationName = name
+| order by TotalCalls desc
+| take 10
+
+// 13. Per-document step timeline
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend agent = tostring(customDimensions['agent_name'])
+| extend process_id = tostring(customDimensions['process_id'])
+| join kind=inner (
+    customEvents
+    | where name == 'LLM_Agent_Token_Usage'
+    | where timestamp > ago(7d)
+    | extend process_id = tostring(customDimensions['process_id'])
+    | summarize DocStartTime = min(timestamp) by process_id
+) on process_id
+| extend StepCompletedAt = round(datetime_diff('millisecond', timestamp, DocStartTime) / 1000.0, 2)
+| project timestamp, process_id, Step=agent, StepCompletedAtSeconds=StepCompletedAt
+| order by process_id, timestamp asc
+
+// 14. Total document processing time (first to last step)
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| summarize StartTime = min(timestamp), EndTime = max(timestamp) by process_id
+| extend TotalSeconds = round(datetime_diff('millisecond', EndTime, StartTime) / 1000.0, 2)
+| summarize
+    DocumentsProcessed = count(),
+    AvgSeconds = round(avg(TotalSeconds), 2),
+    P50Seconds = round(percentile(TotalSeconds, 50), 2),
+    P90Seconds = round(percentile(TotalSeconds, 90), 2),
+    MaxSeconds = round(max(TotalSeconds), 2)
+
+// ============================================================
+// Percentiles & Trends
+// ============================================================
+
+// 15. Token usage percentiles per document
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize total_tokens=max(total_tokens) by agent, process_id
+| summarize total_tokens=sum(total_tokens) by process_id
+| summarize
+    p50 = percentile(total_tokens, 50),
+    p90 = percentile(total_tokens, 90),
+    p95 = percentile(total_tokens, 95),
+    p99 = percentile(total_tokens, 99),
+    Max = max(total_tokens)
+
+// 16. Daily processing volume with token usage
+customEvents
+| where name == 'LLM_Agent_Token_Usage'
+| where timestamp > ago(30d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend agent = tostring(customDimensions['agent_name'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize total_tokens=max(total_tokens), timestamp=min(timestamp) by agent, process_id
+| summarize total_tokens=sum(total_tokens), timestamp=min(timestamp) by process_id
+| summarize
+    DocumentsProcessed = count(),
+    TotalTokens = sum(total_tokens),
+    AvgTokensPerDoc = round(avg(total_tokens), 0),
+    MaxTokensPerDoc = max(total_tokens)
+    by Day = bin(timestamp, 1d)
+| order by Day desc

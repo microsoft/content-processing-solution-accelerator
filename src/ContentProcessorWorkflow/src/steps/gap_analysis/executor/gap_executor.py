@@ -31,6 +31,8 @@ from services.content_process_service import ContentProcessService
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
 
+from libs.token_usage_utils import emit_agent_token_event, extract_token_usage
+
 
 class GapExecutor(Executor):
     """Workflow executor that runs the GAP-analysis step.
@@ -190,6 +192,16 @@ class GapExecutor(Executor):
                     ]
                 ),
             )
+        )
+
+        # Track token usage for gap analysis
+        token_usage = extract_token_usage(model_response)
+        model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
+        emit_agent_token_event(
+            agent_name="GapAnalysis",
+            model_deployment_name=model_name,
+            usage=token_usage,
+            process_id=result.claim_process_id,
         )
 
         claim_process_repository = self.app_context.get_service(Claim_Processes)
