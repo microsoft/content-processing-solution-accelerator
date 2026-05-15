@@ -228,9 +228,9 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "traces\r\n| where timestamp > ago(7d)\r\n| where message has \"Pipeline stage completed\"\r\n| parse message with * \"process_id=\" process_id \", document=\" document \", stage=\" stage \", elapsed=\" elapsed\r\n| where isnotempty(stage)\r\n| extend elapsed_parts = split(elapsed, \":\")\r\n| extend hours = toint(elapsed_parts[0])\r\n| extend mins = toint(elapsed_parts[1])\r\n| extend sec_parts = split(tostring(elapsed_parts[2]), \".\")\r\n| extend secs = toint(sec_parts[0])\r\n| extend ms = toint(sec_parts[1])\r\n| extend elapsed_seconds = hours * 3600.0 + mins * 60.0 + secs + ms / 100.0\r\n| summarize\r\n    AvgSeconds = round(avg(elapsed_seconds), 2),\r\n    P50Seconds = round(percentile(elapsed_seconds, 50), 2),\r\n    P90Seconds = round(percentile(elapsed_seconds, 90), 2),\r\n    MaxSeconds = round(max(elapsed_seconds), 2),\r\n    Invocations = count()\r\n    by Step = stage\r\n| order by AvgSeconds desc",
+        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend agent = tostring(customDimensions['agent_name'])\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| join kind=inner (\r\n    customEvents\r\n    | where name == 'LLM_Agent_Token_Usage'\r\n    | where timestamp > ago(7d)\r\n    | extend process_id = tostring(customDimensions['process_id'])\r\n    | summarize DocStartTime = min(timestamp) by process_id\r\n) on process_id\r\n| extend StepDurationSeconds = round(datetime_diff('millisecond', timestamp, DocStartTime) / 1000.0, 2)\r\n| summarize\r\n    AvgCompletionTime = round(avg(StepDurationSeconds), 2),\r\n    P50CompletionTime = round(percentile(StepDurationSeconds, 50), 2),\r\n    P90CompletionTime = round(percentile(StepDurationSeconds, 90), 2),\r\n    MaxCompletionTime = round(max(StepDurationSeconds), 2),\r\n    Invocations = count()\r\n    by Step = agent\r\n| order by AvgCompletionTime desc",
         "size": 0,
-        "title": "Processing Time by Pipeline Step",
+        "title": "Step Completion Time (seconds from doc start)",
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
@@ -242,29 +242,43 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "traces\r\n| where timestamp > ago(7d)\r\n| where message has \"Workflow elapsed time\"\r\n| parse message with * \"Workflow elapsed time: \" elapsed \" (start=\" * \", end=\" *\r\n| where isnotempty(elapsed)\r\n| extend elapsed_parts = split(elapsed, \":\")\r\n| extend hours = toint(elapsed_parts[0])\r\n| extend mins = toint(elapsed_parts[1])\r\n| extend sec_parts = split(tostring(elapsed_parts[2]), \".\")\r\n| extend secs = toint(sec_parts[0])\r\n| extend ms = toint(sec_parts[1])\r\n| extend elapsed_seconds = hours * 3600.0 + mins * 60.0 + secs + ms / 100.0\r\n| summarize\r\n    DocumentsProcessed = count(),\r\n    AvgSeconds = round(avg(elapsed_seconds), 2),\r\n    P50Seconds = round(percentile(elapsed_seconds, 50), 2),\r\n    P90Seconds = round(percentile(elapsed_seconds, 90), 2),\r\n    P95Seconds = round(percentile(elapsed_seconds, 95), 2),\r\n    MaxSeconds = round(max(elapsed_seconds), 2)",
-        "size": 3,
-        "title": "Total Document Processing Time (End-to-End)",
+        "query": "dependencies\r\n| where timestamp > ago(7d)\r\n| where target has \"openai\" or name has \"chat\" or type == \"HTTP\" or name has \"openai\"\r\n| where success == true\r\n| extend durationSeconds = round(duration / 1000.0, 2)\r\n| summarize\r\n    TotalCalls = count(),\r\n    AvgSeconds = round(avg(durationSeconds), 2),\r\n    P50Seconds = round(percentile(durationSeconds, 50), 2),\r\n    P90Seconds = round(percentile(durationSeconds, 90), 2),\r\n    MaxSeconds = round(max(durationSeconds), 2)\r\n    by OperationName = name\r\n| order by TotalCalls desc\r\n| take 10",
+        "size": 0,
+        "title": "OpenAI API Call Durations",
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
         "visualization": "table"
       },
-      "name": "total-processing-time"
+      "name": "openai-call-durations"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "traces\r\n| where timestamp > ago(7d)\r\n| where message has \"Pipeline stage completed\"\r\n| parse message with * \"process_id=\" process_id \", document=\" document \", stage=\" stage \", elapsed=\" elapsed\r\n| where isnotempty(stage)\r\n| extend elapsed_parts = split(elapsed, \":\")\r\n| extend hours = toint(elapsed_parts[0])\r\n| extend mins = toint(elapsed_parts[1])\r\n| extend sec_parts = split(tostring(elapsed_parts[2]), \".\")\r\n| extend secs = toint(sec_parts[0])\r\n| extend ms = toint(sec_parts[1])\r\n| extend elapsed_seconds = round(hours * 3600.0 + mins * 60.0 + secs + ms / 100.0, 2)\r\n| project timestamp, process_id, document, Step=stage, ElapsedSeconds=elapsed_seconds\r\n| order by process_id, timestamp asc",
+        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend agent = tostring(customDimensions['agent_name'])\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| join kind=inner (\r\n    customEvents\r\n    | where name == 'LLM_Agent_Token_Usage'\r\n    | where timestamp > ago(7d)\r\n    | extend process_id = tostring(customDimensions['process_id'])\r\n    | summarize DocStartTime = min(timestamp) by process_id\r\n) on process_id\r\n| extend StepCompletedAt = round(datetime_diff('millisecond', timestamp, DocStartTime) / 1000.0, 2)\r\n| project timestamp, process_id, Step=agent, StepCompletedAtSeconds=StepCompletedAt\r\n| order by process_id, timestamp asc",
         "size": 0,
-        "title": "Per-Document Processing Time Breakdown",
+        "title": "Per-Document Step Timeline",
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
         "visualization": "table"
       },
       "name": "per-document-time-breakdown"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\r\n| where name == 'LLM_Agent_Token_Usage'\r\n| where timestamp > ago(7d)\r\n| extend process_id = tostring(customDimensions['process_id'])\r\n| summarize StartTime = min(timestamp), EndTime = max(timestamp) by process_id\r\n| extend TotalSeconds = round(datetime_diff('millisecond', EndTime, StartTime) / 1000.0, 2)\r\n| summarize\r\n    DocumentsProcessed = count(),\r\n    AvgSeconds = round(avg(TotalSeconds), 2),\r\n    P50Seconds = round(percentile(TotalSeconds, 50), 2),\r\n    P90Seconds = round(percentile(TotalSeconds, 90), 2),\r\n    MaxSeconds = round(max(TotalSeconds), 2)",
+        "size": 3,
+        "title": "Total Document Processing Time (First to Last Step)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "name": "total-processing-time"
     },
     {
       "type": 1,
