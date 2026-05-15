@@ -6,11 +6,13 @@
 
 // 1. Overall token usage summary (last 7 days)
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(7d)
-| extend input_tokens = toint(customDimensions['total_input_tokens'])
-| extend output_tokens = toint(customDimensions['total_output_tokens'])
+| extend process_id = tostring(customDimensions['process_id'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
 | extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), total_tokens=sum(total_tokens) by process_id
 | summarize
     TotalDocuments = count(),
     TotalInputTokens = sum(input_tokens),
@@ -36,10 +38,12 @@ customEvents
 
 // 3. Token usage over time (hourly)
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(7d)
-| extend input_tokens = toint(customDimensions['total_input_tokens'])
-| extend output_tokens = toint(customDimensions['total_output_tokens'])
+| extend process_id = tostring(customDimensions['process_id'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), timestamp=min(timestamp) by process_id
 | summarize InputTokens = sum(input_tokens), OutputTokens = sum(output_tokens) by bin(timestamp, 1h)
 | order by timestamp asc
 | render areachart
@@ -48,10 +52,12 @@ customEvents
 let input_price_per_million = 2.50;
 let output_price_per_million = 10.00;
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(30d)
-| extend input_tokens = toint(customDimensions['total_input_tokens'])
-| extend output_tokens = toint(customDimensions['total_output_tokens'])
+| extend process_id = tostring(customDimensions['process_id'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), timestamp=min(timestamp) by process_id
 | summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by bin(timestamp, 1d)
 | extend InputCost = round(TotalInput * input_price_per_million / 1000000.0, 4)
 | extend OutputCost = round(TotalOutput * output_price_per_million / 1000000.0, 4)
@@ -61,12 +67,20 @@ customEvents
 
 // 5. Top token consumers by document
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(7d)
-| extend total_tokens = toint(customDimensions['total_tokens'])
 | extend process_id = tostring(customDimensions['process_id'])
-| extend file_name = tostring(customDimensions['file_name'])
-| summarize TotalTokens = sum(total_tokens) by process_id, file_name
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize TotalTokens = sum(total_tokens) by process_id
+| join kind=leftouter (
+    customEvents
+    | where name == 'LLM_Token_Usage_Summary'
+    | where timestamp > ago(7d)
+    | extend process_id = tostring(customDimensions['process_id'])
+    | extend file_name = tostring(customDimensions['file_name'])
+    | summarize file_name=take_any(file_name) by process_id
+) on process_id
+| project process_id, file_name, TotalTokens
 | order by TotalTokens desc
 | take 20
 
@@ -81,9 +95,11 @@ customEvents
 
 // 7. Token usage percentiles per document
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
 | extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize total_tokens=sum(total_tokens) by process_id
 | summarize
     p50 = percentile(total_tokens, 50),
     p90 = percentile(total_tokens, 90),
@@ -230,12 +246,21 @@ dependencies
 
 // 16. Token usage by file type (PDF, DOCX, image, etc.)
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(7d)
+| extend process_id = tostring(customDimensions['process_id'])
+| extend input_tokens = toint(customDimensions['input_tokens'])
+| extend output_tokens = toint(customDimensions['output_tokens'])
 | extend total_tokens = toint(customDimensions['total_tokens'])
-| extend input_tokens = toint(customDimensions['total_input_tokens'])
-| extend output_tokens = toint(customDimensions['total_output_tokens'])
-| extend mime_type = tostring(customDimensions['file_mime_type'])
+| summarize input_tokens=sum(input_tokens), output_tokens=sum(output_tokens), total_tokens=sum(total_tokens) by process_id
+| join kind=leftouter (
+    customEvents
+    | where name == 'LLM_Token_Usage_Summary'
+    | where timestamp > ago(7d)
+    | extend process_id = tostring(customDimensions['process_id'])
+    | extend mime_type = tostring(customDimensions['file_mime_type'])
+    | summarize mime_type=take_any(mime_type) by process_id
+) on process_id
 | extend file_type = case(
     mime_type has "pdf", "PDF",
     mime_type has "image", "Image",
@@ -270,10 +295,11 @@ customEvents
 
 // 18. Daily processing volume with token costs
 customEvents
-| where name == 'LLM_Token_Usage_Summary'
+| where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(30d)
+| extend process_id = tostring(customDimensions['process_id'])
 | extend total_tokens = toint(customDimensions['total_tokens'])
-| extend file_name = tostring(customDimensions['file_name'])
+| summarize total_tokens=sum(total_tokens), timestamp=min(timestamp) by process_id
 | summarize
     DocumentsProcessed = count(),
     TotalTokens = sum(total_tokens),
