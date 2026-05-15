@@ -213,7 +213,7 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "barchart"
+        "visualization": "table"
       },
       "name": "tokens-by-filetype"
     },
