@@ -170,6 +170,9 @@ class SaveHandler(HandlerBase):
         )
 
         # Emit token usage summary and per-model events to Application Insights
+        # NOTE: This summary only contains tokens from the evaluate/map step.
+        # For true totals across all pipeline steps (Summarize, RAI, GapAnalysis),
+        # aggregate from LLM_Agent_Token_Usage events grouped by process_id.
         emit_summary_token_event(
             total_input_tokens=evaluated_result.prompt_tokens,
             total_output_tokens=evaluated_result.completion_tokens,
