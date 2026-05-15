@@ -326,12 +326,10 @@
   ],
   "isLocked": true,
   "defaultResourceIds": [
-    "/subscriptions/1d5876cd-7603-407a-96d2-ae5ca9a9c5f3/resourcegroups/rg-content-processing-token1/providers/microsoft.insights/components/appi-cptoken1kbxf2",
-    "/subscriptions/1d5876cd-7603-407a-96d2-ae5ca9a9c5f3/resourceGroups/rg-pgcpfeat/providers/Microsoft.Insights/components/appi-pgcpfeatuw333"
+    "/subscriptions/1d5876cd-7603-407a-96d2-ae5ca9a9c5f3/resourcegroups/rg-content-processing-token1/providers/microsoft.insights/components/appi-cptoken1kbxf2"
   ],
   "fallbackResourceIds": [
-    "/subscriptions/1d5876cd-7603-407a-96d2-ae5ca9a9c5f3/resourcegroups/rg-content-processing-token1/providers/microsoft.insights/components/appi-cptoken1kbxf2",
-    "/subscriptions/1d5876cd-7603-407a-96d2-ae5ca9a9c5f3/resourceGroups/rg-pgcpfeat/providers/Microsoft.Insights/components/appi-pgcpfeatuw333"
+    "/subscriptions/1d5876cd-7603-407a-96d2-ae5ca9a9c5f3/resourcegroups/rg-content-processing-token1/providers/microsoft.insights/components/appi-cptoken1kbxf2"
   ],
   "fromTemplateId": "community-Workbooks/Common/Templates"
 }
