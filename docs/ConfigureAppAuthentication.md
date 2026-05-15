@@ -1,5 +1,18 @@
 # Set up Authentication in Azure Container App
 
+> ### ✅ Recommended: run the authentication script first
+>
+> `azd up` no longer runs authentication setup automatically. Run the script below after deployment:
+>
+> - Windows: `./infra/scripts/setup_auth.ps1`
+> - macOS/Linux: `sed -i 's/\r$//' ./infra/scripts/setup_auth.sh && bash ./infra/scripts/setup_auth.sh`
+>
+> See [DeploymentGuide.md § 5.3](./DeploymentGuide.md#53-configure-authentication-manual-script) for details.
+>
+> Follow the portal/manual steps below if:
+> - Your tenant policy prohibits programmatic app registration or secret creation
+> - The script reports a permission or policy failure that cannot be resolved in your current identity
+
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 
 > **Note:** The solution deploys four container apps. Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues using managed identity — they do not expose public endpoints.

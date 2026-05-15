@@ -1,0 +1,533 @@
+# Automates the app registration + EasyAuth configuration that is otherwise
+# performed manually per docs/ConfigureAppAuthentication.md.
+#
+# Idempotent: safe to re-run. Reuses existing app registrations and container
+# app secrets where possible.
+#
+# Skip with: azd env set AZURE_SKIP_AUTH_SETUP true
+
+$ErrorActionPreference = "Stop"
+
+if ($env:AZURE_SKIP_AUTH_SETUP -eq "true") {
+  Write-Host "⏭️  AZURE_SKIP_AUTH_SETUP=true — skipping auth configuration."
+  return
+}
+
+$PreflightOnly = $args -contains "--preflight-only"
+if ($PreflightOnly) {
+  Write-Host ""
+  Write-Host "============================================================"
+  Write-Host "🔍 Preflight permission check (read-only — no changes made)"
+  Write-Host "============================================================"
+} else {
+  Write-Host ""
+  Write-Host "============================================================"
+  Write-Host "🔐 Configuring Entra ID authentication (Web + API)"
+  Write-Host "============================================================"
+}
+
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+  Write-Error "Azure CLI (az) is not installed or not on PATH. Install from https://aka.ms/installazurecli and re-run."
+  exit 1
+}
+
+if (-not (Get-Command azd -ErrorAction SilentlyContinue)) {
+  Write-Error "Azure Developer CLI (azd) is not installed or not on PATH. Install from https://aka.ms/install-azd and re-run."
+  exit 1
+}
+
+try {
+  azd env get-values *> $null
+  if ($LASTEXITCODE -ne 0) { throw }
+} catch {
+  Write-Error "No active azd environment found. Run 'azd env list' and 'azd env select <name>', then re-run."
+  exit 1
+}
+
+function Azd-Get($key, $default = "") {
+  try { return (azd env get-value $key 2>$null) } catch { return $default }
+}
+
+$EnvName        = Azd-Get "AZURE_ENV_NAME" "cps"
+$ResourceGroup  = Azd-Get "AZURE_RESOURCE_GROUP"
+$SubscriptionId = Azd-Get "AZURE_SUBSCRIPTION_ID"
+$TenantId = (az account show --query tenantId -o tsv 2>$null)
+if (-not $TenantId) { $TenantId = Azd-Get "AZURE_TENANT_ID" "" }
+# (Preflight Check 1 will catch missing authentication with a clear error message)
+
+$WebName = Azd-Get "CONTAINER_WEB_APP_NAME"
+$WebFqdn = Azd-Get "CONTAINER_WEB_APP_FQDN"
+$ApiName = Azd-Get "CONTAINER_API_APP_NAME"
+$ApiFqdn = Azd-Get "CONTAINER_API_APP_FQDN"
+
+$WebDisplayName = "$EnvName-web-app"
+$ApiDisplayName = "$EnvName-api-app"
+
+$WebUrl = "https://$WebFqdn"
+$ApiUrl = "https://$ApiFqdn"
+$WebAuthCallback = "$WebUrl/.auth/login/aad/callback"
+$ApiAuthCallback = "$ApiUrl/.auth/login/aad/callback"
+
+$GraphAppId            = "00000003-0000-0000-c000-000000000000"
+$GraphUserReadScopeId  = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"
+$CaSecretName          = "microsoft-provider-authentication-secret"
+$ConsentPrecheckOk     = $true
+
+function Retry($Block, $Max = 6, $Delay = 10) {
+  for ($i = 1; $i -le $Max; $i++) {
+    try { return & $Block } catch {
+      if ($i -eq $Max) { throw }
+      Write-Host "  ↻ retry $i/$Max after ${Delay}s..."
+      Start-Sleep -Seconds $Delay
+    }
+  }
+}
+
+function Find-AppIdByEnvOrName($EnvKey, $DisplayName) {
+  $id = Azd-Get $EnvKey ""
+  if ($id) {
+    $exists = az ad app show --id $id 2>$null
+    if ($LASTEXITCODE -eq 0) { return $id }
+  }
+  $ids = az ad app list --display-name $DisplayName --query "[].appId" -o tsv
+  $arr = @($ids -split "`n" | Where-Object { $_ })
+  if ($arr.Count -gt 1) { throw "Multiple app registrations with displayName '$DisplayName'. Clean up or set $EnvKey manually." }
+  if ($arr.Count -eq 1) { return $arr[0] }
+  return ""
+}
+
+function Write-Check($Status, $Label, $Detail = "") {
+  switch ($Status) {
+    "PASS" { Write-Host ("  ✅ {0,-55}" -f $Label) }
+    "WARN" {
+      Write-Host ("  ⚠️  {0,-54}" -f $Label)
+      if ($Detail) { Write-Host "       $Detail" }
+    }
+    "FAIL" {
+      Write-Host ("  ❌ {0,-55}" -f $Label)
+      if ($Detail) { Write-Host "       $Detail" }
+    }
+  }
+}
+
+function Validate-PrerequisitesAndPermissions {
+  Write-Host ""
+  Write-Host "============================================================"
+  Write-Host "Preflight: permission validation"
+  Write-Host "============================================================"
+
+  $Fatal = $false
+
+  # ── 1. Azure CLI authentication ──────────────────────────────────
+  $accountId = az account show --query id -o tsv 2>$null
+  if (-not $accountId) {
+    Write-Check FAIL "Azure CLI authenticated" `
+      "Run 'az login' (or 'az login --use-device-code') then re-run this script."
+    $Fatal = $true
+  } else {
+    Write-Check PASS "Azure CLI authenticated (subscription: $accountId)"
+  }
+
+  # ── 2. Required azd environment values present ───────────────────
+  $RequiredKeys = @(
+    "AZURE_RESOURCE_GROUP", "AZURE_SUBSCRIPTION_ID",
+    "CONTAINER_WEB_APP_NAME", "CONTAINER_WEB_APP_FQDN",
+    "CONTAINER_API_APP_NAME", "CONTAINER_API_APP_FQDN"
+  )
+  $MissingKeys = @()
+  foreach ($k in $RequiredKeys) {
+    $v = Azd-Get $k ""
+    if (-not $v) { $MissingKeys += $k }
+  }
+  if ($MissingKeys.Count -gt 0) {
+    Write-Check FAIL "Required azd env values present" `
+      "Missing: $($MissingKeys -join ', '). Run 'azd env get-values' to inspect. Re-run 'azd up' if provisioning is incomplete."
+    $Fatal = $true
+  } else {
+    Write-Check PASS "Required azd env values present"
+  }
+
+  # Abort early — remaining checks depend on these values
+  if ($Fatal) {
+    Write-Host ""
+    Write-Error "Preflight failed — fix the issues above and re-run configure_auth.ps1"
+    exit 1
+  }
+
+  # ── 3. Azure Container Apps CLI extension available ──────────────
+  az containerapp --help 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Check PASS "Azure Container Apps CLI extension available"
+  } else {
+    Write-Check FAIL "Azure Container Apps CLI extension available" `
+      "Install with: az extension add --name containerapp --upgrade"
+    $Fatal = $true
+  }
+
+  # ── 4. Contributor (or Owner) on the resource group ──────────────
+  $CurrentPrincipal = az ad signed-in-user show --query id -o tsv 2>$null
+  $IsSp = $false
+  if (-not $CurrentPrincipal) {
+    $IsSp = $true
+    $CurrentPrincipal = az account show --query 'user.name' -o tsv 2>$null
+  }
+
+  $RgScope  = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup"
+  $SubScope = "/subscriptions/$SubscriptionId"
+
+  $RbacRoles = az role assignment list --assignee $CurrentPrincipal --scope $RgScope `
+    --query "[].roleDefinitionName" -o tsv 2>$null
+  $HasContributor = $RbacRoles -match "Owner|Contributor"
+
+  if (-not $HasContributor) {
+    $SubRoles = az role assignment list --assignee $CurrentPrincipal --scope $SubScope `
+      --query "[].roleDefinitionName" -o tsv 2>$null
+    $HasContributor = $SubRoles -match "Owner|Contributor"
+    if ($HasContributor) {
+      Write-Check PASS "Contributor/Owner role inherited from subscription scope"
+    }
+  } else {
+    Write-Check PASS "Contributor/Owner role on resource group '$ResourceGroup'"
+  }
+
+  if (-not $HasContributor) {
+    Write-Check FAIL "Contributor/Owner role on resource group '$ResourceGroup'" `
+      "Grant Contributor: az role assignment create --assignee `"$CurrentPrincipal`" --role Contributor --scope $RgScope"
+    $Fatal = $true
+  }
+
+  # ── 5. Entra app registration read access ────────────────────────
+  az ad app list --top 1 --query "[0].appId" -o tsv 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Check PASS "Can read Entra app registrations"
+  } else {
+    Write-Check FAIL "Can read Entra app registrations" `
+      "Ensure your identity has at least Directory Readers or Application Developer role in Entra."
+    $Fatal = $true
+  }
+
+  # ── 6. Container App reachable ───────────────────────────────────
+  az containerapp show -n $WebName -g $ResourceGroup --query name -o tsv 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Check PASS "Container App '$WebName' is accessible"
+  } else {
+    Write-Check FAIL "Container App '$WebName' is accessible" `
+      "Verify deployment completed and you have Contributor role on the resource group."
+    $Fatal = $true
+  }
+
+  # ── 7. Entra directory-role check (users only) ───────────────────
+  if ($IsSp) {
+    Write-Check WARN "Entra directory-role check" `
+      "Logged in as a service principal — directory role check skipped. Ensure the SP has Application Administrator and admin-consent permissions."
+    $script:ConsentPrecheckOk = $false
+  } else {
+    $Roles = az rest --method GET `
+      --url "https://graph.microsoft.com/v1.0/me/transitiveMemberOf/microsoft.graph.directoryRole?`$select=displayName" `
+      --query "value[].displayName" -o tsv 2>$null
+
+    if (-not $Roles) {
+      Write-Check WARN "Entra directory roles resolvable" `
+        "Could not enumerate roles. The script will continue; exact permission errors will surface at runtime."
+    } elseif ($Roles -notmatch "Global Administrator|Application Administrator|Cloud Application Administrator") {
+      Write-Check FAIL "App-registration permission (Application Administrator or higher)" `
+        "Assign 'Application Administrator' (or higher) in Entra ID, then re-run.`n       Portal: https://entra.microsoft.com → Roles and administrators"
+      $Fatal = $true
+    } else {
+      Write-Check PASS "App-registration permission (Application Administrator or higher)"
+
+      if ($Roles -notmatch "Global Administrator|Cloud Application Administrator") {
+        $script:ConsentPrecheckOk = $false
+        Write-Check WARN "Admin-consent permission (Cloud Application Administrator or higher)" `
+          "Admin consent step will be attempted but may fail. A tenant admin can grant consent at:`n       https://login.microsoftonline.com/$TenantId/adminconsent?client_id=<web-client-id>"
+      } else {
+        Write-Check PASS "Admin-consent permission (Cloud Application Administrator or higher)"
+      }
+    }
+  }
+
+  # ── Summary ──────────────────────────────────────────────────────
+  Write-Host ""
+  if ($Fatal) {
+    Write-Error "One or more preflight checks FAILED. Resolve the issues above and re-run."
+    exit 1
+  }
+  Write-Host "  Preflight passed — proceeding with auth configuration."
+  Write-Host "============================================================"
+}
+
+Validate-PrerequisitesAndPermissions
+
+if ($PreflightOnly) {
+  Write-Host ""
+  Write-Host "✅ Preflight-only mode: all permission checks passed. No changes were made."
+  exit 0
+}
+
+# --- Step 1: API app registration --------------------------------------------
+Write-Host ""
+Write-Host "➡️  Step 1/6: API app registration ($ApiDisplayName)"
+
+$ApiClientId = Find-AppIdByEnvOrName "AZURE_AUTH_API_CLIENT_ID" $ApiDisplayName
+if (-not $ApiClientId) {
+  $ApiClientId = az ad app create --display-name $ApiDisplayName `
+    --sign-in-audience AzureADMyOrg `
+    --web-redirect-uris $ApiAuthCallback `
+    --enable-id-token-issuance true `
+    --query appId -o tsv
+  Write-Host "  ✓ Created API app: $ApiClientId"
+} else {
+  Write-Host "  ↺ Reusing API app: $ApiClientId"
+  Retry { az ad app update --id $ApiClientId --web-redirect-uris $ApiAuthCallback --enable-id-token-issuance true | Out-Null }
+}
+azd env set AZURE_AUTH_API_CLIENT_ID $ApiClientId | Out-Null
+
+Retry {
+  az ad sp show --id $ApiClientId 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) { az ad sp create --id $ApiClientId | Out-Null }
+}
+
+$ApiAppObjectId = az ad app show --id $ApiClientId --query id -o tsv
+$ApiIdentifierUri = "api://$ApiClientId"
+
+$ApiScopeId = az ad app show --id $ApiClientId --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv
+if (-not $ApiScopeId -or $ApiScopeId -eq "null") {
+  $ApiScopeId = [guid]::NewGuid().ToString()
+  $patch = @{
+    identifierUris = @($ApiIdentifierUri)
+    api = @{
+      oauth2PermissionScopes = @(@{
+        id = $ApiScopeId
+        adminConsentDescription = "Allow the application to access the API on behalf of the signed-in user."
+        adminConsentDisplayName = "Access API as user"
+        userConsentDescription  = "Allow the application to access the API on your behalf."
+        userConsentDisplayName  = "Access API"
+        value = "user_impersonation"
+        type  = "User"
+        isEnabled = $true
+      })
+    }
+  } | ConvertTo-Json -Depth 10
+  $tmp = New-TemporaryFile
+  $patch | Out-File -FilePath $tmp -Encoding utf8
+  Retry { az rest --method PATCH --url "https://graph.microsoft.com/v1.0/applications/$ApiAppObjectId" --headers "Content-Type=application/json" --body "@$tmp" | Out-Null }
+  Remove-Item $tmp
+  Write-Host "  ✓ Exposed scope api://$ApiClientId/user_impersonation"
+} else {
+  Write-Host "  ↺ API scope already exposed"
+}
+$ApiScopeValue = "api://$ApiClientId/user_impersonation"
+
+# --- Step 2: Web app registration --------------------------------------------
+Write-Host ""
+Write-Host "➡️  Step 2/6: Web app registration ($WebDisplayName)"
+
+$WebClientId = Find-AppIdByEnvOrName "AZURE_AUTH_WEB_CLIENT_ID" $WebDisplayName
+if (-not $WebClientId) {
+  $WebClientId = az ad app create --display-name $WebDisplayName `
+    --sign-in-audience AzureADMyOrg `
+    --web-redirect-uris $WebAuthCallback `
+    --enable-id-token-issuance true `
+    --enable-access-token-issuance true `
+    --query appId -o tsv
+  Write-Host "  ✓ Created Web app: $WebClientId"
+} else {
+  Write-Host "  ↺ Reusing Web app: $WebClientId"
+  Retry { az ad app update --id $WebClientId --web-redirect-uris $WebAuthCallback --enable-id-token-issuance true --enable-access-token-issuance true | Out-Null }
+}
+azd env set AZURE_AUTH_WEB_CLIENT_ID $WebClientId | Out-Null
+
+Retry {
+  az ad sp show --id $WebClientId 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) { az ad sp create --id $WebClientId | Out-Null }
+}
+
+$WebAppObjectId = az ad app show --id $WebClientId --query id -o tsv
+$WebIdentifierUri = "api://$WebClientId"
+
+$WebScopeId = az ad app show --id $WebClientId --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv
+if (-not $WebScopeId -or $WebScopeId -eq "null") { $WebScopeId = [guid]::NewGuid().ToString() }
+
+$webPatch = @{
+  identifierUris = @($WebIdentifierUri)
+  spa = @{ redirectUris = @($WebUrl, "$WebUrl/") }
+  api = @{
+    knownClientApplications = @()
+    oauth2PermissionScopes = @(@{
+      id = $WebScopeId
+      adminConsentDescription = "Allow the app to sign in the user."
+      adminConsentDisplayName = "Sign in"
+      userConsentDescription  = "Allow the app to sign you in."
+      userConsentDisplayName  = "Sign in"
+      value = "user_impersonation"
+      type  = "User"
+      isEnabled = $true
+    })
+  }
+  requiredResourceAccess = @(
+    @{ resourceAppId = $ApiClientId; resourceAccess = @(@{ id = $ApiScopeId; type = "Scope" }) },
+    @{ resourceAppId = $GraphAppId;  resourceAccess = @(@{ id = $GraphUserReadScopeId; type = "Scope" }) }
+  )
+} | ConvertTo-Json -Depth 10
+$tmp = New-TemporaryFile
+$webPatch | Out-File -FilePath $tmp -Encoding utf8
+Retry { az rest --method PATCH --url "https://graph.microsoft.com/v1.0/applications/$WebAppObjectId" --headers "Content-Type=application/json" --body "@$tmp" | Out-Null }
+Remove-Item $tmp
+Write-Host "  ✓ Web SPA redirect, scope, and required permissions configured"
+$WebScopeValue = "api://$WebClientId/user_impersonation"
+
+# --- Step 3: Admin consent ---------------------------------------------------
+Write-Host ""
+Write-Host "➡️  Step 3/6: Granting admin consent"
+$ConsentOk = $true
+try {
+  Retry { az ad app permission admin-consent --id $WebClientId | Out-Null }
+  Write-Host "  ✓ Admin consent granted"
+} catch {
+  $ConsentOk = $false
+  Write-Host "  ⚠️ Admin consent failed. Sign-in may fail until a tenant admin runs:"
+  Write-Host "       az ad app permission admin-consent --id $WebClientId"
+  Write-Host "     Or: https://login.microsoftonline.com/$TenantId/adminconsent?client_id=$WebClientId"
+}
+
+# Belt-and-suspenders: explicitly grant the API user_impersonation scope to
+# the Web SP. `az ad app permission admin-consent` often skips custom-API
+# delegated permissions, leaving MSAL.js silent token acquisition broken
+# (which causes the SPA to render a blank page after sign-in).
+$WebSpId = az ad sp show --id $WebClientId --query id -o tsv 2>$null
+$ApiSpId = az ad sp show --id $ApiClientId --query id -o tsv 2>$null
+if ($WebSpId -and $ApiSpId) {
+  $existing = az rest --method get `
+    --url "https://graph.microsoft.com/v1.0/servicePrincipals/$WebSpId/oauth2PermissionGrants" `
+    --query "value[?resourceId=='$ApiSpId'] | [0].id" -o tsv 2>$null
+  if (-not $existing -or $existing -eq "null") {
+    $body = "{`"clientId`":`"$WebSpId`",`"consentType`":`"AllPrincipals`",`"resourceId`":`"$ApiSpId`",`"scope`":`"user_impersonation`"}"
+    try {
+      az rest --method POST `
+        --url "https://graph.microsoft.com/v1.0/oauth2PermissionGrants" `
+        --headers "Content-Type=application/json" `
+        --body $body --output none
+      Write-Host "  ✓ API user_impersonation scope granted to Web SP"
+    } catch {
+      Write-Host "  ⚠️  Could not auto-grant API user_impersonation; SPA may show blank page until granted manually."
+      $ConsentOk = $false
+    }
+  } else {
+    Write-Host "  ↺ API user_impersonation scope already granted"
+  }
+}
+
+# --- Step 4: Container App secrets ------------------------------------------
+Write-Host ""
+Write-Host "➡️  Step 4/6: Client secrets"
+
+function Ensure-CaSecret($AppId, $CaName) {
+  $existing = az containerapp secret list -n $CaName -g $ResourceGroup --query "[?name=='$CaSecretName'].name | [0]" -o tsv
+  if ($existing -and $existing -ne "null") {
+    Write-Host "  ↺ Container App '$CaName' already has '$CaSecretName' — not rotating."
+    return
+  }
+  $secret = az ad app credential reset --id $AppId --append --display-name "containerapp-easyauth" --years 2 --query password -o tsv
+  az containerapp secret set -n $CaName -g $ResourceGroup --secrets "$CaSecretName=$secret" --output none
+  Write-Host "  ✓ Stored new client secret in '$CaName'"
+}
+
+Ensure-CaSecret $ApiClientId $ApiName
+Ensure-CaSecret $WebClientId $WebName
+
+# --- Step 5: Enable EasyAuth ------------------------------------------------
+Write-Host ""
+Write-Host "➡️  Step 5/6: Enabling EasyAuth on Web + API container apps"
+
+function Configure-EasyAuth($CaName, $ClientId) {
+  # Note: --tenant-id and --issuer are mutually exclusive. Do not override
+  # --allowed-token-audiences; EasyAuth issues ID tokens with aud=<client_id>.
+  az containerapp auth microsoft update -n $CaName -g $ResourceGroup `
+    --client-id $ClientId `
+    --client-secret-name $CaSecretName `
+    --tenant-id $TenantId `
+    --yes --output none
+}
+
+Configure-EasyAuth $ApiName $ApiClientId
+Configure-EasyAuth $WebName $WebClientId
+
+az containerapp auth update -n $WebName -g $ResourceGroup --enabled true --unauthenticated-client-action AllowAnonymous --output none
+az containerapp auth update -n $ApiName -g $ResourceGroup --enabled true --unauthenticated-client-action AllowAnonymous --output none
+Write-Host "  ✓ EasyAuth providers configured"
+
+# --- Step 6: Env vars + allowedApplications + lockdown ----------------------
+Write-Host ""
+Write-Host "➡️  Step 6/6: Wiring env vars and caller allowlist"
+
+az containerapp update -n $WebName -g $ResourceGroup `
+  --set-env-vars "APP_WEB_CLIENT_ID=$WebClientId" "APP_WEB_SCOPE=$WebScopeValue" "APP_API_SCOPE=$ApiScopeValue" "APP_WEB_AUTHORITY=https://login.microsoftonline.com/$TenantId" "APP_AUTH_ENABLED=true" `
+  --output none
+Write-Host "  ✓ Web env vars updated"
+
+function Patch-AuthConfig($CaName, $ClientId, $AddWebAllowed) {
+  $url = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.App/containerApps/$CaName/authConfigs/current?api-version=2024-03-01"
+  $current = az rest --method get --url $url | ConvertFrom-Json
+  if (-not $current.properties) { $current | Add-Member -MemberType NoteProperty -Name properties -Value (@{}) }
+  if (-not $current.properties.identityProviders) { $current.properties | Add-Member -MemberType NoteProperty -Name identityProviders -Value (@{}) }
+  if (-not $current.properties.identityProviders.azureActiveDirectory) { $current.properties.identityProviders | Add-Member -MemberType NoteProperty -Name azureActiveDirectory -Value (@{}) }
+  $aad = $current.properties.identityProviders.azureActiveDirectory
+  if (-not $aad.registration) { $aad | Add-Member -MemberType NoteProperty -Name registration -Value (@{}) }
+  $aad.registration.openIdIssuer = "https://login.microsoftonline.com/$TenantId/v2.0"
+  if (-not $aad.validation) { $aad | Add-Member -MemberType NoteProperty -Name validation -Value (@{}) }
+  $aad.validation.allowedAudiences = @($ClientId, "api://$ClientId")
+  if (-not $aad.validation.defaultAuthorizationPolicy) { $aad.validation | Add-Member -MemberType NoteProperty -Name defaultAuthorizationPolicy -Value (@{}) }
+  $policy = $aad.validation.defaultAuthorizationPolicy
+  $allowed = @()
+  if ($policy.allowedApplications) { $allowed = @($policy.allowedApplications) }
+  if ($AddWebAllowed -and ($allowed -notcontains $WebClientId)) { $allowed += $WebClientId }
+  $policy.allowedApplications = $allowed
+
+  if (-not $current.properties.platform) { $current.properties | Add-Member -MemberType NoteProperty -Name platform -Value (@{}) }
+  $current.properties.platform.enabled = $true
+  if (-not $current.properties.globalValidation) { $current.properties | Add-Member -MemberType NoteProperty -Name globalValidation -Value ([pscustomobject]@{}) }
+  $gv = $current.properties.globalValidation
+  if ($gv.PSObject.Properties.Name -notcontains 'requireAuthentication') { $gv | Add-Member -MemberType NoteProperty -Name requireAuthentication -Value $true } else { $gv.requireAuthentication = $true }
+  if ($AddWebAllowed) {
+    if ($gv.PSObject.Properties.Name -notcontains 'unauthenticatedClientAction') { $gv | Add-Member -MemberType NoteProperty -Name unauthenticatedClientAction -Value 'Return401' } else { $gv.unauthenticatedClientAction = 'Return401' }
+    if ($gv.PSObject.Properties.Name -contains 'redirectToProvider') { $gv.PSObject.Properties.Remove('redirectToProvider') }
+  } else {
+    if ($gv.PSObject.Properties.Name -notcontains 'unauthenticatedClientAction') { $gv | Add-Member -MemberType NoteProperty -Name unauthenticatedClientAction -Value 'RedirectToLoginPage' } else { $gv.unauthenticatedClientAction = 'RedirectToLoginPage' }
+    if ($gv.PSObject.Properties.Name -notcontains 'redirectToProvider') { $gv | Add-Member -MemberType NoteProperty -Name redirectToProvider -Value 'azureactivedirectory' } else { $gv.redirectToProvider = 'azureactivedirectory' }
+  }
+
+  $tmp = New-TemporaryFile
+  $current | ConvertTo-Json -Depth 20 | Out-File -FilePath $tmp -Encoding utf8
+  Retry { az rest --method put --url $url --headers "Content-Type=application/json" --body "@$tmp" | Out-Null }
+  Remove-Item $tmp
+}
+
+Patch-AuthConfig $ApiName $ApiClientId $true
+Patch-AuthConfig $WebName $WebClientId $false
+Write-Host "  ✓ authConfigs normalized (issuer, audiences, allowedApplications)"
+
+Write-Host "  ✓ Unauthenticated requests: Web → login, API → 401"
+
+# Restart active revisions so containers pick up newly-set client secrets.
+# (`az containerapp secret set` does NOT trigger a new revision on its own.)
+function Restart-ActiveRevision($CaName) {
+  $rev = az containerapp revision list -n $CaName -g $ResourceGroup --query "[?properties.active] | [0].name" -o tsv 2>$null
+  if ($rev -and $rev -ne "null") {
+    az containerapp revision restart -n $CaName -g $ResourceGroup --revision $rev --output none 2>$null
+  }
+}
+Restart-ActiveRevision $WebName
+Restart-ActiveRevision $ApiName
+Write-Host "  ✓ Restarted Web + API container revisions to apply secrets"
+
+Write-Host ""
+Write-Host "============================================================"
+Write-Host "🔐 Auth configuration complete."
+Write-Host "  Web client id : $WebClientId"
+Write-Host "  API client id : $ApiClientId"
+Write-Host "  Web scope     : $WebScopeValue"
+Write-Host "  API scope     : $ApiScopeValue"
+if (-not $ConsentOk) { Write-Host "  ⚠️  Admin consent pending — see step 3 above." }
+if (-not $ConsentPrecheckOk) { Write-Host "  ⚠️  Permission pre-check predicted admin-consent limitations for this identity." }
+Write-Host "  Note: EasyAuth rollout can take up to 10 minutes."
+Write-Host "============================================================"

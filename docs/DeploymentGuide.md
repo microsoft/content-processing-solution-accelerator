@@ -301,85 +301,127 @@ azd up
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Schema Registration (Automatic)
+### 5.1 Run Schema Registration (Manual)
 
- > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
+> Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
 
-Schema registration happens **automatically** as part of the `azd up` post-provisioning hook — no manual steps required. After infrastructure is deployed, the hook:
+`azd up` now provisions infrastructure and application containers only. Post-provision data setup is split into **separate manual steps** so you can run, retry, or skip them independently.
 
-1. Waits for the API container app to be ready
-2. Registers the sample schema files (auto claim, damaged car image, police report, repair estimate)
-3. Creates an **"Auto Claim"** schema set
-4. Adds all registered schemas into the schema set
+Run schema registration first to:
 
-After successful deployment, the terminal displays container app details and schema registration output:
+1. Wait for the API container app to be ready
+2. Register the sample schema files (auto claim, damaged car image, police report, repair estimate)
+3. Create the **"Auto Claim"** schema set
+4. Add all registered schemas into the schema set
 
-```
-🧭 Web App Details:
-  ✅ Name: ca-<env>-web
-  🌐 Endpoint: ca-<env>-web.<region>.azurecontainerapps.io
-  🔗 Portal URL: https://portal.azure.com/#resource/...
+**Windows (PowerShell):**
 
-🧭 API App Details:
-  ✅ Name: ca-<env>-api
-  🌐 Endpoint: ca-<env>-api.<region>.azurecontainerapps.io
-  🔗 Portal URL: https://portal.azure.com/#resource/...
-
-🧭 Workflow App Details:
-  ✅ Name: ca-<env>-wkfl
-  🔗 Portal URL: https://portal.azure.com/#resource/...
-
-📦 Registering schemas and creating schema set...
-  ⏳ Waiting for API to be ready...
-  ✅ API is ready.
-============================================================
-Step 1: Register schemas
-============================================================
-✓ Successfully registered: Auto Insurance Claim Form's Schema Id - <id>
-✓ Successfully registered: Damaged Vehicle Image Assessment's Schema Id - <id>
-✓ Successfully registered: Police Report Document's Schema Id - <id>
-✓ Successfully registered: Repair Estimate Document's Schema Id - <id>
-
-============================================================
-Step 2: Create schema set
-============================================================
-✓ Created schema set 'Auto Claim' with ID: <id>
-
-============================================================
-Step 3: Add schemas to schema set
-============================================================
-  ✓ Added 'AutoInsuranceClaimForm' (<id>) to schema set
-  ✓ Added 'DamagedVehicleImageAssessment' (<id>) to schema set
-  ✓ Added 'PoliceReportDocument' (<id>) to schema set
-  ✓ Added 'RepairEstimateDocument' (<id>) to schema set
-
-============================================================
-Schema registration process completed.
-  Schema set ID: <id>
-  Schemas added: 4
-============================================================
-  ✅ Schema registration complete.
+```powershell
+./infra/scripts/register_schemas.ps1
 ```
 
-### 5.2 Configure Authentication (Required)
+**macOS/Linux:**
 
-**This step is mandatory for application access:**
+```bash
+if [ "$(uname)" = "Darwin" ]; then
+   sed -i '' 's/\r$//' ./infra/scripts/register_schemas.sh
+else
+   sed -i 's/\r$//' ./infra/scripts/register_schemas.sh
+fi
+bash ./infra/scripts/register_schemas.sh
+```
 
-1. Follow [App Authentication Configuration](./ConfigureAppAuthentication.md).
-2. Wait up to 10 minutes for authentication changes to take effect.
+The script is idempotent and safe to re-run.
 
-### 5.3 Verify Deployment
+### 5.2 Run Sample Data Upload (Manual)
+
+After schema registration completes, upload the sample bundles as a separate explicit step. This step:
+
+1. Resolves the existing **Auto Claim** schema set and registered schema IDs
+2. Creates sample claim batches for `claim_date_of_loss` and `claim_hail`
+3. Uploads each file with its mapped schema
+4. Submits each claim batch for processing
+
+**Windows (PowerShell):**
+
+```powershell
+./infra/scripts/upload_sample_data.ps1
+```
+
+**macOS/Linux:**
+
+```bash
+if [ "$(uname)" = "Darwin" ]; then
+   sed -i '' 's/\r$//' ./infra/scripts/upload_sample_data.sh
+else
+   sed -i 's/\r$//' ./infra/scripts/upload_sample_data.sh
+fi
+bash ./infra/scripts/upload_sample_data.sh
+```
+
+### 5.3 Configure Authentication (Manual Script)
+
+Run authentication setup as an explicit step after post-deployment data setup:
+
+**Windows (PowerShell):**
+
+```powershell
+./infra/scripts/setup_auth.ps1
+```
+
+**macOS/Linux:**
+
+```bash
+if [ "$(uname)" = "Darwin" ]; then
+   sed -i '' 's/\r$//' ./infra/scripts/setup_auth.sh
+else
+   sed -i 's/\r$//' ./infra/scripts/setup_auth.sh
+fi
+bash ./infra/scripts/setup_auth.sh
+```
+
+The auth script is idempotent and performs preflight validation before making changes.
+
+#### Skipping auth setup
+
+If your tenant blocks programmatic app registration, or you need to defer authentication setup, you can skip this step:
+
+```powershell
+azd env set AZURE_SKIP_AUTH_SETUP true
+```
+
+Then follow the manual instructions in [App Authentication Configuration](./ConfigureAppAuthentication.md). To re-enable later, set the value to `false` and re-run `setup_auth.ps1`.
+
+#### Required Permissions for auth setup
+
+- Create/update app registrations: **Application Administrator**, **Cloud Application Administrator**, or **Global Administrator**
+- Grant admin consent: **Cloud Application Administrator** or **Global Administrator**
+- Update Container Apps auth/secret settings: **Contributor** on the deployment resource group
+
+If permissions are insufficient, the script exits early (or warns before consent) with clear remediation guidance.
+
+> **Note:** EasyAuth can take up to 10 minutes to fully propagate. If the Web app returns 500/401 immediately after setup, wait a few minutes and retry.
+
+#### WAF (Well-Architected Framework) deployments
+
+Authentication script execution is fully compatible with the WAF / production profile (`main.waf.parameters.json`, which enables `enablePrivateNetworking`, `enableRedundancy`, and `enableScalability`). The Web and API container apps keep external ingress in the default WAF profile, so registered redirect URIs (`https://<fqdn>/.auth/login/aad/callback`) remain valid public entry points.
+
+> If you customize WAF to make Web or API ingress internal-only, run the auth script from an environment that can reach those private endpoints (for example, the deployed jumpbox or a VPN-connected host).
+
+### 5.4 Verify Deployment
 
 1. Access your application using the **Web App Endpoint** from the deployment output.
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
 
-### 5.4 Test the Application
+### 5.5 Test the Application
+
+> **Note:** If you ran [Step 5.2](#52-run-sample-data-upload-manual), two sample claim bundles (`claim_date_of_loss` and `claim_hail`) should already be processed in the web app.
 
 **Quick Test Steps:**
-1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
-2. **Upload**: In the app, select the **"Auto Claim"** schema set, choose a schema (e.g., Auto Insurance Claim Form), click Import Content, and upload a sample file.
-3. **Review**: Wait for completion (~1 min), then click the row to verify the extracted data against the source document.
+1. **Check Processed Results**: Open the web app — you should see the two sample claim batches already processed with extracted data.
+2. **Review**: Click a processed claim row to verify the extracted data against the source document.
+3. **Upload More (Optional)**: To test additional uploads, get sample files from the [samples directory](../src/ContentProcessorAPI/samples), select the **"Auto Claim"** schema set, and upload via Import Content.
 
 📖 **Detailed Instructions:** See the complete [Golden Path Workflows](./GoldenPathWorkflows.md) guide for step-by-step testing procedures.
 
