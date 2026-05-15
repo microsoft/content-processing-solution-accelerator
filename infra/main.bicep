@@ -877,7 +877,12 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
@@ -946,7 +951,12 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1077,7 +1087,12 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1159,7 +1174,12 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1538,7 +1558,12 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1620,7 +1645,12 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1755,7 +1785,12 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
+    registries: [
+      {
+        server: containerRegistryEndpoint
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
