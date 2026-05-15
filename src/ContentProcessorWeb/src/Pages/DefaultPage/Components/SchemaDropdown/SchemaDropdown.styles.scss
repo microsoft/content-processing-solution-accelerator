@@ -1,4 +1,5 @@
 .comboboxClass{
     width: 100%;
     min-width: 125px !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
 }
