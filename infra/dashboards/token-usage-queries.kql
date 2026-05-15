@@ -293,7 +293,66 @@ customEvents
     by process_id, Step = agent
 | order by process_id, TotalTokens desc
 
-// 18. Daily processing volume with token costs
+// 18. Processing time per pipeline step
+traces
+| where timestamp > ago(7d)
+| where message has "Pipeline stage completed"
+| parse message with * "process_id=" process_id ", document=" document ", stage=" stage ", elapsed=" elapsed
+| where isnotempty(stage)
+| extend elapsed_parts = split(elapsed, ":")
+| extend hours = toint(elapsed_parts[0])
+| extend mins = toint(elapsed_parts[1])
+| extend sec_parts = split(tostring(elapsed_parts[2]), ".")
+| extend secs = toint(sec_parts[0])
+| extend ms = toint(sec_parts[1])
+| extend elapsed_seconds = hours * 3600.0 + mins * 60.0 + secs + ms / 100.0
+| summarize
+    AvgSeconds = round(avg(elapsed_seconds), 2),
+    P50Seconds = round(percentile(elapsed_seconds, 50), 2),
+    P90Seconds = round(percentile(elapsed_seconds, 90), 2),
+    MaxSeconds = round(max(elapsed_seconds), 2),
+    Invocations = count()
+    by Step = stage
+| order by AvgSeconds desc
+
+// 19. Total document processing time (end-to-end workflow)
+traces
+| where timestamp > ago(7d)
+| where message has "Workflow elapsed time"
+| parse message with * "Workflow elapsed time: " elapsed " (start=" * ", end=" *
+| where isnotempty(elapsed)
+| extend elapsed_parts = split(elapsed, ":")
+| extend hours = toint(elapsed_parts[0])
+| extend mins = toint(elapsed_parts[1])
+| extend sec_parts = split(tostring(elapsed_parts[2]), ".")
+| extend secs = toint(sec_parts[0])
+| extend ms = toint(sec_parts[1])
+| extend elapsed_seconds = hours * 3600.0 + mins * 60.0 + secs + ms / 100.0
+| summarize
+    DocumentsProcessed = count(),
+    AvgSeconds = round(avg(elapsed_seconds), 2),
+    P50Seconds = round(percentile(elapsed_seconds, 50), 2),
+    P90Seconds = round(percentile(elapsed_seconds, 90), 2),
+    P95Seconds = round(percentile(elapsed_seconds, 95), 2),
+    MaxSeconds = round(max(elapsed_seconds), 2)
+
+// 20. Per-document processing time breakdown by step
+traces
+| where timestamp > ago(7d)
+| where message has "Pipeline stage completed"
+| parse message with * "process_id=" process_id ", document=" document ", stage=" stage ", elapsed=" elapsed
+| where isnotempty(stage)
+| extend elapsed_parts = split(elapsed, ":")
+| extend hours = toint(elapsed_parts[0])
+| extend mins = toint(elapsed_parts[1])
+| extend sec_parts = split(tostring(elapsed_parts[2]), ".")
+| extend secs = toint(sec_parts[0])
+| extend ms = toint(sec_parts[1])
+| extend elapsed_seconds = round(hours * 3600.0 + mins * 60.0 + secs + ms / 100.0, 2)
+| project timestamp, process_id, document, Step=stage, ElapsedSeconds=elapsed_seconds
+| order by process_id, timestamp asc
+
+// 21. Daily processing volume with token costs
 customEvents
 | where name == 'LLM_Agent_Token_Usage'
 | where timestamp > ago(30d)
