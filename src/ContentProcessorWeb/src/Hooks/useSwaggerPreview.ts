@@ -1,4 +1,10 @@
-// src/hooks/useSwaggerPreview.ts
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Opens a Swagger UI preview in a new browser window using the provided
+ * OpenAPI JSON spec and an optional bearer token.
+ */
 import { toast } from 'react-toastify';
 
 const useSwaggerPreview = () => {

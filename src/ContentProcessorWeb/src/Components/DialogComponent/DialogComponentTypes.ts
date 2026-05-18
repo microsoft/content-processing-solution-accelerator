@@ -1,16 +1,33 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Type definitions for the reusable Dialog/Confirmation component.
+ * Shared across any consumer that renders a confirmation dialog.
+ */
 
 import { ReactNode } from 'react';
 
-interface FooterButton {
-  text: string;
-  appearance: "primary" | "secondary";
-  onClick: () => void;
+/** Describes a single action button rendered in the dialog footer. */
+export interface FooterButton {
+  /** Button label text. */
+  readonly text: string;
+  /** Fluent UI button appearance variant. */
+  readonly appearance: 'primary' | 'secondary';
+  /** Callback invoked when the button is clicked. */
+  readonly onClick: () => void;
 }
 
+/** Props for the {@link Confirmation} dialog component. */
 export interface ConfirmationProps {
-  title: string;
-  content: string | ReactNode;
-  isDialogOpen: boolean; // Controlled state for dialog visibility
-  onDialogClose: () => void; // Function to close the dialog
-  footerButtons: FooterButton[]; // Array of footer buttons
+  /** Dialog title displayed in the header. */
+  readonly title: string;
+  /** Body content — plain text or React nodes. */
+  readonly content: string | ReactNode;
+  /** Whether the dialog is currently visible (controlled). */
+  readonly isDialogOpen: boolean;
+  /** Callback to close the dialog. */
+  readonly onDialogClose: () => void;
+  /** Action buttons rendered in the dialog footer. */
+  readonly footerButtons: FooterButton[];
 }

@@ -18,7 +18,8 @@ cd ../../
 
 echo "Installing dependencies for ContentProcessorWeb..."
 cd ./src/ContentProcessorWeb
-yarn install
+export HOME="${HOME:-/home/vscode}"
+pnpm install --store-dir "$HOME/.local/share/pnpm/store"
 
 cd ../../
 
@@ -27,6 +28,6 @@ sed -i 's/\r$//' infra/scripts/post_deployment.sh
 sudo chmod +x infra/scripts/docker-build.sh
 sudo chmod +x infra/scripts/post_deployment.sh
 sudo chmod +x src/ContentProcessorAPI/samples/upload_files.sh
-sudo chmod +x src/ContentProcessorAPI/samples/schemas/register_schema.sh
+# register_schema.py is cross-platform and does not need chmod
 
 echo "Setup complete! 🎉"

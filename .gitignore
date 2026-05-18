@@ -6,10 +6,74 @@ dist/
 wheels/
 *.egg-info
 
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+coverage.*
+htmlcov/
+.cache/
+pip-wheel-metadata/
+
+# Python type checkers / IDEs
+pyrightconfig.json
+.pyright/
+
 # Virtual environments
 .venv
+venv/
+ENV/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Exclude all .http files
+
+# Node / TypeScript / React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Bundler / tool caches
+.eslintcache
+.stylelintcache
+vite.config.*.timestamp*
+
+# Environment files (keep .env.example checked in)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# React (CRA)
+.pnp
+.pnp.js
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
 
 *.exe
 *.msi

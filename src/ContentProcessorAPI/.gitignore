@@ -9,7 +9,79 @@ wheels/
 # Virtual environments
 .venv
 
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyright/
+.tox/
+noxfile.py
+
+# Coverage artifacts (Python)
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Python packaging / installers
+pip-wheel-metadata/
+*.whl
+
+# Local runtime / app data
+*.log
+*.sqlite
+*.db
+
+# Jupyter
+.ipynb_checkpoints/
+
 # Exclude all .http files
 
 *.exe
 *.msi
+
+# Node / TypeScript / React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript build info
+*.tsbuildinfo
+
+# React / bundler outputs
+build/
+dist/
+.next/
+out/
+.nuxt/
+.vite/
+.parcel-cache/
+
+# Turborepo
+.turbo/
+
+# Storybook
+storybook-static/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Caches
+.eslintcache
+.stylelintcache
+
+# Env files (keep a checked-in .env.example instead)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -48,33 +48,37 @@ on:
 permissions:
   contents: read
   actions: read
+  id-token: write
   
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: production
     env:
       ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
+      - name: Login to Azure
+        if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Log in to Azure Container Registry
         if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
-        uses: azure/docker-login@v2
-        with:
-          login-server: ${{ env.ACR_LOGIN_SERVER }}
-          username: ${{ env.ACR_USERNAME }}
-          password: ${{ env.ACR_PASSWORD }}
+        run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
       
       - name: Get registry
         id: registry
@@ -88,7 +92,7 @@ jobs:
           DATE="${{ steps.date.outputs.date }}"
           GITHUB_RUN_NUMBER="${{ github.run_number }}"
           if [[ "$BRANCH" == "main" ]]; then
-            BASE_TAG="latest"
+            BASE_TAG="latest_v2"
           elif [[ "$BRANCH" == "dev" ]]; then
             BASE_TAG="dev"
           elif [[ "$BRANCH" == "demo" ]]; then
@@ -97,7 +101,6 @@ jobs:
             BASE_TAG="hotfix"
           elif [[ "$BRANCH" == "dependabotchanges" ]]; then
             BASE_TAG="dependabotchanges"
-            
           else
             BASE_TAG="pullrequest-ignore"
           fi
@@ -107,7 +110,7 @@ jobs:
           echo "Base tag: $BASE_TAG, Date tag: $DATE_TAG"
 
       - name: Build and Push ContentProcessor Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./src/ContentProcessor
           file: ./src/ContentProcessor/Dockerfile
@@ -117,7 +120,7 @@ jobs:
             ${{ steps.registry.outputs.ext_registry }}/contentprocessor:${{ env.DATE_TAG }}
 
       - name: Build and Push ContentProcessorAPI Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./src/ContentProcessorAPI
           file: ./src/ContentProcessorAPI/Dockerfile
@@ -127,7 +130,7 @@ jobs:
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorapi:${{ env.DATE_TAG }}
 
       - name: Build and Push ContentProcessorWeb Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./src/ContentProcessorWeb
           file: ./src/ContentProcessorWeb/Dockerfile
@@ -135,3 +138,13 @@ jobs:
           tags: |
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.BASE_TAG }}
             ${{ steps.registry.outputs.ext_registry }}/contentprocessorweb:${{ env.DATE_TAG }}
+
+      - name: Build and Push ContentProcessorWorkflow Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/ContentProcessorWorkflow
+          file: ./src/ContentProcessorWorkflow/Dockerfile
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo' || github.ref_name == 'hotfix' || github.ref_name == 'dependabotchanges' }}
+          tags: |
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorworkflow:${{ env.BASE_TAG }}
+            ${{ steps.registry.outputs.ext_registry }}/contentprocessorworkflow:${{ env.DATE_TAG }}

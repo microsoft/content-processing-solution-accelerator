@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Custom hook that exposes MSAL authentication state and actions
+ * (login, logout, token acquisition) to React components.
+ *
+ * @returns Authentication state and helper functions.
+ */
+import { useState, useEffect, useCallback } from 'react';
+
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus, AccountInfo } from "@azure/msal-browser";
 
-import { msalInstance } from "./msalInstance";
+import { getMsalInstanceSync } from "./msalInstance";
 import { loginRequest, tokenRequest } from "./msaConfig";
-
 
 interface User {
   username: string;
@@ -23,37 +32,58 @@ const useAuth = () => {
 
   const activeAccount: AccountInfo | undefined = accounts[0];
 
+  const getToken = useCallback(async () => {
+    const active = instance.getActiveAccount();
+    if (!active) {
+      console.error("No active account set. Please log in.");
+      return;
+    }
+
+    try {
+      const accessTokenRequest = {
+        scopes: [...tokenRequest.scopes],
+        account: active,
+      };
+
+      const response = await instance.acquireTokenSilent(accessTokenRequest);
+      const accessToken = response.accessToken;
+      localStorage.setItem('token', accessToken);
+      setToken(accessToken);
+    } catch (error) {
+      console.error("Error acquiring token:", error);
+    }
+  }, [instance]);
+
   useEffect(() => {
     if (accounts.length > 0) {
       setUser({
         username: accounts[0].username,
         name: accounts[0]?.name,
-        //shortName: getShortName(accounts?[0].name),
-        isInTeams: false
+        isInTeams: false,
       });
       instance.setActiveAccount(accounts[0]);
       getToken();
     }
-  }, [accounts]);
+  }, [accounts, instance, getToken]);
 
-
-  const login = async () => {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length === 0 && inProgress === InteractionStatus.None) {
+  const login = useCallback(async () => {
+    const msalInst = getMsalInstanceSync();
+    if (!msalInst) return;
+    const allAccounts = msalInst.getAllAccounts();
+    if (allAccounts.length === 0 && inProgress === InteractionStatus.None) {
       try {
-        await msalInstance.loginRedirect(loginRequest);
+        await msalInst.loginRedirect(loginRequest);
       } catch (error) {
         console.error("Login failed:", error);
       }
     }
-  };
+  }, [inProgress]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (activeAccount) {
       try {
         await instance.logoutRedirect({
           account: activeAccount,
-          //onRedirectNavigate: () => false, 
         });
         localStorage.removeItem('token');
       } catch (error) {
@@ -62,30 +92,7 @@ const useAuth = () => {
     } else {
       console.warn("No active account found for logout.");
     }
-  }
-
-  const getToken = async () => {
-    const activeAccount = instance.getActiveAccount();
-    if (!activeAccount) {
-      console.error("No active account set. Please log in.");
-      return;
-    }
-
-    try {
-      const accessTokenRequest = {
-        scopes: [...tokenRequest.scopes],
-        account: activeAccount,
-      };
-
-      const response = await instance.acquireTokenSilent(accessTokenRequest);
-      const token = response.accessToken;
-      localStorage.setItem('token', token);
-      setToken(token);
-      //return token;
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  }
+  }, [activeAccount, instance]);
 
   return {
     isAuthenticated,
@@ -95,12 +102,8 @@ const useAuth = () => {
     accounts,
     inProgress,
     token,
-    getToken
+    getToken,
   };
 };
 
 export default useAuth;
-
-
-
-

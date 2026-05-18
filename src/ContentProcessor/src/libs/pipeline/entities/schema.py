@@ -1,5 +1,15 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Schema metadata model for dynamic extraction templates.
+
+A ``Schema`` record is stored in Cosmos DB and describes a Python
+class file (in blob storage) that defines the structured output
+format for a particular document type.
+"""
+
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -7,11 +17,25 @@ from libs.azure_helper.comsos_mongo import CosmosMongDBHelper
 
 
 class Schema(BaseModel):
+    """Metadata for a registered extraction schema.
+
+    Attributes:
+        Id: Unique schema identifier.
+        ClassName: Class name to materialise from the schema artifact.
+        Description: Human-readable description.
+        FileName: Blob filename containing the schema artifact.
+        ContentType: Target content type this schema handles.
+        Format: Storage format of the schema artifact. Always
+            ``"json"`` — declarative JSON Schema descriptors are the
+            only supported format.
+    """
+
     Id: str
     ClassName: str
     Description: str
     FileName: str
     ContentType: str
+    Format: Literal["json"] = Field(default="json")
     Created_On: Optional[datetime.datetime] = Field(default=None)
     Updated_On: Optional[datetime.datetime] = Field(default=None)
 

@@ -1,3 +1,11 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""General-purpose JSON encoding, dict flattening, and value comparison.
+
+Provides helpers shared across pipeline handlers and evaluation logic.
+"""
+
 import json
 
 

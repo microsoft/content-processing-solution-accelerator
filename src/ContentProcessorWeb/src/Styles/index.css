@@ -1,7 +1,5 @@
 :root {
-  --app-background-color: var(
-    --colorNeutralBackground1
-  ); /* Reference Fluent token */
+  --app-background-color: var(--colorNeutralBackground1);
 }
 
 html,
@@ -10,8 +8,8 @@ body {
 }
 
 body {
-  background-color: var(--app-background-color); /* Apply custom variable */
-  transition: background-color 0.3s ease; /* Optional smooth transition */
+  background-color: var(--app-background-color);
+  transition: background-color 0.3s ease;
 }
 
 html {
@@ -24,14 +22,7 @@ body {
   overflow: auto;
 }
 
-/* Global Custom Scrollbar */
-::-webkit-scrollbar {
-  overflow-y: auto; /* Ensure scrollable content */
-  scrollbar-width: thin; /* For Firefox */
-  scrollbar-color: rgba(100, 100, 100, 0.7) transparent; /* For Firefox */
-}
-
-/* Webkit-based browsers */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -48,6 +39,8 @@ body {
 * {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.7) transparent;
 }
 
 p,

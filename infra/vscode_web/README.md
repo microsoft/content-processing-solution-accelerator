@@ -8,7 +8,7 @@ Follow the instructions below to get started!
 
 You should see a terminal opened with the template code already cloned.
 
-## Deploy the template 
+## Deploy the template
 
 You can provision and deploy this template using:
 

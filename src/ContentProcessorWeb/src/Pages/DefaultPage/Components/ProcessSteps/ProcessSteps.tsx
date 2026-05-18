@@ -1,16 +1,30 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Accordion-based view of the processing steps for a selected document.
+ * Each step is expandable and renders its raw JSON payload in a read-only
+ * json-edit-react editor.
+ */
+
+import React, { useEffect, useState, useRef } from "react";
 import { Accordion, AccordionItem, AccordionHeader, AccordionPanel } from "@fluentui/react-components";
-import { useSelector, shallowEqual } from 'react-redux';
-import { RootState } from '../../../../store/index.ts';
-import { JsonEditor } from "json-edit-react";
 import { CheckmarkCircleFilled } from "@fluentui/react-icons";
 import { Spinner } from "@fluentui/react-components";
+import { JsonEditor } from "json-edit-react";
+
+import { useSelector, shallowEqual } from 'react-redux';
+import { RootState } from '../../../../store';
 
 type LoadingStates = {
   [key: string]: boolean;
 };
 
-const ProcessSteps = () => {
+/**
+ * Renders an accordion of processing steps, each showing its JSON details
+ * and elapsed processing time.
+ */
+const ProcessSteps: React.FC = () => {
   const status = ['extract', 'processing', 'map', 'evaluate'];
   const [loadingStates, setLoadingStates] = useState<LoadingStates>({});
   const childRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -38,7 +52,7 @@ const ProcessSteps = () => {
     return `${totalSeconds}s`;
   };
 
-  const handleExpand = (itemId: any) => {
+  const handleExpand = (itemId: number) => {
     setLoadingStates((prevState) => ({ ...prevState, [itemId]: true }));
     setTimeout(() => {
       const childDiv = childRefs.current[itemId];
@@ -78,15 +92,18 @@ const ProcessSteps = () => {
 
   return (
     <Accordion collapsible>
-      {!status.includes(store.selectedItem.status) && store.processStepsData?.map((step, index) => (
-        <AccordionItem key={index} value={step.step_name}>
+      {!status.includes(store.selectedItem.status as string) && store.processStepsData?.map((step, index) => {
+        const stepName = step.step_name as string;
+        const processedTime = step.processed_time as string;
+        return (
+        <AccordionItem key={index} value={stepName}>
           <AccordionHeader onClick={() => handleExpand(index)}> {loadingStates[index] && <Spinner size="tiny" style={{ position: 'absolute', left: '10px' }} label="" />}
-            <span style={{ fontWeight: 'bold', textTransform: 'capitalize'}}>{step.step_name}</span>
+            <span style={{ fontWeight: 'bold', textTransform: 'capitalize'}}>{stepName}</span>
             <span style={{ color: 'green', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-              {renderProcessTimeInSeconds(step.processed_time)} <CheckmarkCircleFilled style={{ marginLeft: '4px' }} />
+              {renderProcessTimeInSeconds(processedTime)} <CheckmarkCircleFilled style={{ marginLeft: '4px' }} />
             </span>
           </AccordionHeader>
-          <div ref={(el) => (childRefs.current[index] = el)}>
+          <div ref={(el) => { childRefs.current[index] = el; }}>
             <AccordionPanel >
               <JsonEditor
                 key={`json-editor-${index}`}
@@ -95,7 +112,7 @@ const ProcessSteps = () => {
                 restrictEdit={true}
                 restrictDelete={true}
                 restrictAdd={true}
-                rootName={step.step_name.toLowerCase()}
+                rootName={stepName.toLowerCase()}
                 collapseAnimationTime={300}
                 theme={[{
                   styles: {
@@ -112,7 +129,8 @@ const ProcessSteps = () => {
             </AccordionPanel>
           </div>
         </AccordionItem>
-      ))}
+        );
+      })}
     </Accordion>
 
   );

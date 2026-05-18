@@ -2,14 +2,14 @@
     "name": "uv",
     "build": {
         "context": "..",
-        "dockerfile": "Dockerfile",
-        "args": {
-            "UV_VERSION": "latest",
-            "DEBIAN_VERSION": "bookworm"
-        }
+        "dockerfile": "Dockerfile"
     },
     "features": {
-        "ghcr.io/dhoeric/features/hadolint:1": {}
+        "ghcr.io/dhoeric/features/hadolint:1": {},
+        "ghcr.io/devcontainers/features/azure-cli:1": {},
+        "ghcr.io/azure/azure-dev/azd:latest": {},
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
     },
     "customizations": {
         "vscode": {

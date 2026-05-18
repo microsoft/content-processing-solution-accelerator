@@ -1,7 +1,11 @@
-//DEV NOTES:
-//It's recommended to create bundleIcons for icons that nest within Fluent components and then import them into your project.
-// See full catalog of icons at https://react.fluentui.dev/?path=/docs/icons-catalog--docs.
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+/**
+ * Pre-bundled Fluent UI icon pairs (filled + regular) used throughout the application.
+ *
+ * See full catalog at https://react.fluentui.dev/?path=/docs/icons-catalog--docs.
+ */
 import {
   ArrowExitFilled,
   ArrowExitRegular,
@@ -99,6 +103,3 @@ export const TreeEvergreen = bundleIcon(
 );
 export const WeatherMoon = bundleIcon(WeatherMoonFilled, WeatherMoonRegular);
 export const WeatherSunny = bundleIcon(WeatherSunnyFilled, WeatherSunnyRegular);
-
-
-

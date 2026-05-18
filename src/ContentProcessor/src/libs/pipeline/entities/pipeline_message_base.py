@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Base classes for pipeline messages with serializable exception support.
+
+Provides ``PipelineMessageBase`` which all pipeline status and result
+models inherit from, along with ``SerializableException`` for safe
+JSON serialization of Python exceptions.
+"""
+
 import traceback
 from abc import abstractmethod
 from typing import Optional

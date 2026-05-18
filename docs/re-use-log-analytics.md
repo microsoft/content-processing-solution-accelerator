@@ -9,23 +9,23 @@ Go to https://portal.azure.com
 ### 2. Search for Log Analytics
 In the search bar at the top, type "Log Analytics workspaces" and click on it and click on the workspace you want to use.
 
-![alt text](../docs/images/re_use_log/logAnalyticsList.png)
+![alt text](./images/re_use_log/logAnalyticsList.png)
 
 ### 3. Copy Resource ID
 In the Overview pane, Click on JSON View
 
-![alt text](../docs/images/re_use_log/logAnalytics.png)
+![alt text](./images/re_use_log/logAnalytics.png)
 
 Copy Resource ID that is your Workspace ID
 
-![alt text](../docs/images/re_use_log/logAnalyticsJson.png)
+![alt text](./images/re_use_log/logAnalyticsJson.png)
 
-### 4. Set the Workspace ID in Your Environment
+### 4. Set the Workspace Resource ID in Your Environment
 Run the following command in your terminal
 ```bash
-azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID '<Existing Log Analytics Workspace Id>'
+azd env set AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID '<Existing Log Analytics Workspace Resource Id>'
 ```
-Replace `<Existing Log Analytics Workspace Id>` with the value obtained from Step 3.
+Replace `<Existing Log Analytics Workspace Resource Id>` with the value obtained from Step 3.
 
 ### 5. Continue Deployment
 Proceed with the next steps in the [deployment guide](/docs/DeploymentGuide.md#deployment-options--steps).

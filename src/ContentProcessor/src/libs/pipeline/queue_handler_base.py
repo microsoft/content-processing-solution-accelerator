@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Abstract base class for queue-driven pipeline handlers.
+
+Defines the message-processing loop, error handling, dead-letter routing,
+and persistence lifecycle that all concrete step handlers inherit.
+"""
+
 import asyncio
 import base64
 import datetime
@@ -9,7 +15,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from azure.storage.queue import QueueClient
-
+from opentelemetry import trace
 from libs.application.application_context import AppContext
 from libs.base.application_models import AppModelBase
 from libs.models.content_process import ContentProcess, Step_Outputs
@@ -22,6 +28,20 @@ from libs.utils import base64_util, stopwatch
 
 
 class HandlerBase(AppModelBase, ABC):
+    """Abstract queue handler implementing the processing loop.
+
+    Responsibilities:
+        1. Connect to an Azure Storage Queue and poll for messages.
+        2. Deserialize messages into ``DataPipeline`` payloads.
+        3. Delegate to the concrete ``execute()`` method.
+        4. Persist results, advance the pipeline, and handle errors.
+
+    Attributes:
+        handler_name: Pipeline step name (e.g. 'extract', 'map').
+        queue_client: Azure Storage Queue client for the step.
+        application_context: Shared application context / DI container.
+    """
+
     handler_name: str = None
     queue_client: QueueClient = None
     queue_name: str = None
@@ -92,66 +112,109 @@ class HandlerBase(AppModelBase, ABC):
 
                 try:
                     if data_pipeline is not None:
-                        ########################################################
-                        # Pass the message to the implementation of the method #
-                        ########################################################
                         print(
                             f"Message received: {self.handler_name} \n {data_pipeline}"
                         ) if show_information else None
 
-                        # Set the current message context
                         self._current_message_context = MessageContext(
                             queue_message=queue_message,
                             data_pipeline=data_pipeline,
                         )
 
-                        # Set Active Step with current handler name
                         self._current_message_context.data_pipeline.pipeline_status.active_step = self.handler_name
+
+                        process_id = self._current_message_context.data_pipeline.pipeline_status.process_id
+                        document_name = self._current_message_context.data_pipeline.files[0].name
+
+                        # Add process_id and document tracking to the current span
+                        current_span = trace.get_current_span()
+                        if current_span.is_recording():
+                            current_span.set_attribute("process_id", process_id)
+                            current_span.set_attribute("document_name", document_name)
+                            current_span.set_attribute("pipeline_stage", self.handler_name)
+
+                        logging.info(
+                            "Pipeline stage started: process_id=%s, document=%s, stage=%s",
+                            process_id,
+                            document_name,
+                            self.handler_name,
+                        )
+
+                        # Update status to the currently running step BEFORE execution
+                        # so the UI reflects real-time progress.
+                        ContentProcess(
+                            process_id=process_id,
+                            processed_file_name=document_name,
+                            processed_file_mime_type=self._current_message_context.data_pipeline.files[
+                                0
+                            ].mime_type,
+                            status=step_name,
+                            imported_time=datetime.datetime.strptime(
+                                self._current_message_context.data_pipeline.pipeline_status.creation_time,
+                                "%Y-%m-%dT%H:%M:%S.%fZ",
+                            ),
+                            last_modified_time=datetime.datetime.now(datetime.UTC),
+                            last_modified_by=step_name,
+                        ).update_process_status_to_cosmos(
+                            connection_string=self.application_context.configuration.app_cosmos_connstr,
+                            database_name=self.application_context.configuration.app_cosmos_database,
+                            collection_name=self.application_context.configuration.app_cosmos_container_process,
+                        )
 
                         print(
                             f"Start Processing : {self.handler_name}"
                         ) if show_information else None
-                        with stopwatch.Stopwatch() as timer:
-                            # Execute the handler - Check each derived class for the implementation of the execute method
-                            step_result = await self.execute(
-                                self._current_message_context
-                            )
+                        tracer = trace.get_tracer(__name__)
+                        with tracer.start_as_current_span(
+                            f"pipeline.{self.handler_name}",
+                            attributes={
+                                "process_id": process_id,
+                                "document_name": document_name,
+                                "pipeline_stage": self.handler_name,
+                            },
+                        ):
+                            with stopwatch.Stopwatch() as timer:
+                                step_result = await self.execute(
+                                    self._current_message_context
+                                )
                         print(
                             f"Completed : {self.handler_name} - Elapsed :{timer.elapsed_string}"
                         ) if show_information else None
+
+                        logging.info(
+                            "Pipeline stage completed: process_id=%s, document=%s, stage=%s, elapsed=%s",
+                            process_id,
+                            document_name,
+                            self.handler_name,
+                            timer.elapsed_string,
+                        )
                         step_result.elapsed = timer.elapsed_string
 
-                        # Save the executed result to persistent - Save the result as a file
                         step_result.save_to_persistent_storage(
                             self.application_context.configuration.app_storage_blob_url,
                             self.application_context.configuration.app_cps_processes,
                         )
 
-                        # Add result to the pipeline status
                         self._current_message_context.data_pipeline.pipeline_status.add_step_result(
                             step_result
                         )
 
-                        # Save(update) pipeline status to the persistent storage
                         self._current_message_context.data_pipeline.save_to_persistent_storage(
                             self.application_context.configuration.app_storage_blob_url,
                             self.application_context.configuration.app_cps_processes,
                         )
 
-                        # Enqueue the message to the next step queue
                         pipeline_queue_helper.pass_data_pipeline_to_next_step(
                             self._current_message_context.data_pipeline,
                             self.application_context.configuration.app_storage_queue_url,
                             self.application_context.credential,
                         )
 
-                        # Delete the message from the current queue
                         pipeline_queue_helper.delete_queue_message(
                             queue_message, self.queue_client
                         )
 
                         # Update Process Status to Cosmos DB
-                        # process_id, processed_file_name, status, last_modified_time, last_modified_by update per each every steps.
                         ContentProcess(
                             process_id=self._current_message_context.data_pipeline.pipeline_status.process_id,
                             processed_file_name=self._current_message_context.data_pipeline.files[
@@ -178,7 +241,17 @@ class HandlerBase(AppModelBase, ABC):
                         logging.error("Message is not a valid model.")
                         self._move_to_dead_letter_queue(queue_message)
                 except Exception as e:
-                    logging.error(f"Error Occurred: {e}")
+                    logging.error(
+                        "Pipeline error: process_id=%s, stage=%s, error=%s",
+                        data_pipeline.pipeline_status.process_id if data_pipeline else "unknown",
+                        self.handler_name,
+                        e,
+                    )
+                    error_span = trace.get_current_span()
+                    if error_span.is_recording():
+                        error_span.set_attribute("process_id", data_pipeline.pipeline_status.process_id if data_pipeline else "unknown")
+                        error_span.set_attribute("pipeline_stage", self.handler_name)
+                        error_span.set_attribute("error", True)
 
                     def _get_artifact_type(step_name: str) -> ArtifactType:
                         if step_name == "extract":
@@ -192,9 +265,7 @@ class HandlerBase(AppModelBase, ABC):
 
                     # Save the exception to the status object
                     if self._current_message_context is not None:
-                        # Add Exception Information
                         self._current_message_context.data_pipeline.pipeline_status.exception = e
-                        # Add the result to the status object
                         exception_result = StepResult(
                             process_id=self._current_message_context.data_pipeline.pipeline_status.process_id,
                             step_name=self.handler_name,
@@ -204,24 +275,20 @@ class HandlerBase(AppModelBase, ABC):
                             },
                         )
 
-                        # Add the exception result to the pipeline status
                         self._current_message_context.data_pipeline.pipeline_status.add_step_result(
                             exception_result
                         )
 
-                        # Save the exception result to the persistent storage
                         exception_result.save_to_persistent_storage(
                             account_url=self.application_context.configuration.app_storage_blob_url,
                             container_name=self.application_context.configuration.app_cps_processes,
                         )
 
-                        # Save the pipeline status to the persistent storage
                         self._current_message_context.data_pipeline.pipeline_status.save_to_persistent_storage(
                             account_url=self.application_context.configuration.app_storage_blob_url,
                             container_name=self.application_context.configuration.app_cps_processes,
                         )
 
-                        # Update Process Status to Cosmos DB
                         ContentProcess(
                             process_id=self._current_message_context.data_pipeline.process_id,
                             processed_file_name=self._current_message_context.data_pipeline.files[
@@ -249,38 +316,8 @@ class HandlerBase(AppModelBase, ABC):
                             collection_name=self.application_context.configuration.app_cosmos_container_process,
                         )
 
-                        #######################################################################
-                        #
-                        # Add Process Step Outputs and save to single file - step_outputs.json
-                        #
-                        #######################################################################
-                        # Get Executed Steps
-                        # executed_steps = self._current_message_context.data_pipeline.pipeline_status.completed_steps
                         process_outputs: list[Step_Outputs] = []
 
-                        # append previous steps to process_outputs
-                        # for step in executed_steps:
-                        #     if (
-                        #         step
-                        #         == self._current_message_context.data_pipeline.pipeline_status.active_step
-                        #     ):
-                        #         continue
-
-                        #     output_json_string = (
-                        #         self.download_output_file_to_json_string(
-                        #             processed_by=step,
-                        #             artifact_type=_get_artifact_type(step),
-                        #         )
-                        #     )
-                        #     process_outputs.append(
-                        #         Step_Outputs(
-                        #             step_name=step,
-                        #             processed_time=_find_process_result(step).elapsed,
-                        #             step_result=json.loads(output_json_string),
-                        #         )
-                        #     )
-
-                        # When the message is dequeued more than 5 times, move the message to the Dead Letter Queue
                         if queue_message.dequeue_count > 5:
                             logging.info(
                                 "Message will be moved to the Dead Letter Queue."
@@ -294,12 +331,10 @@ class HandlerBase(AppModelBase, ABC):
                                 },
                             )
 
-                            # Add the dead letter result to the pipeline status
                             self._current_message_context.data_pipeline.pipeline_status.add_step_result(
                                 exception_result
                             )
 
-                            # Save the dead letter result to the persistent storage
                             dead_letter_result.save_to_persistent_storage(
                                 account_url=self.application_context.configuration.app_storage_blob_url,
                                 container_name=self.application_context.configuration.app_cps_processes,
@@ -309,20 +344,17 @@ class HandlerBase(AppModelBase, ABC):
                                 dead_letter_result
                             )
 
-                            # Save the pipeline status to the persistent storage
                             self._current_message_context.data_pipeline.pipeline_status.save_to_persistent_storage(
                                 account_url=self.application_context.configuration.app_storage_blob_url,
                                 container_name=self.application_context.configuration.app_cps_processes,
                             )
 
-                            # self._move_to_dead_letter_queue(queue_message)
                             pipeline_queue_helper.move_to_dead_letter_queue(
                                 queue_message,
                                 self.dead_letter_queue_client,
                                 self.queue_client,
                             )
 
-                            # Update Process Status - Deadletter queue moving - to Cosmos DB
                             ContentProcess(
                                 process_id=self._current_message_context.data_pipeline.process_id,
                                 processed_file_name=self._current_message_context.data_pipeline.files[
@@ -358,10 +390,9 @@ class HandlerBase(AppModelBase, ABC):
                                 )
                             )
                         else:
-                            # Set visibility timeout to 30 seconds before the message becomes visible again
                             self.queue_client.update_message(
                                 queue_message,
-                                visibility_timeout=self.application_context.configuration.app_message_queue_visibility_timeout,  # Adjust the timeout as needed
+                                visibility_timeout=self.application_context.configuration.app_message_queue_visibility_timeout,
                             )
 
                             process_outputs.append(
@@ -372,7 +403,7 @@ class HandlerBase(AppModelBase, ABC):
                                 )
                             )
 
-                        # Add Output file
+                        # Save step outputs to blob storage
                         processed_history = self._current_message_context.data_pipeline.add_file(
                             file_name="step_outputs.json",
                             artifact_type=_get_artifact_type(
@@ -380,45 +411,40 @@ class HandlerBase(AppModelBase, ABC):
                             ),
                         )
                         processed_history.log_entries.append(
-                            PipelineLogEntry(
-                                **{
-                                    "source": self.handler_name,
-                                    "message": "Process Output has been added. this file should be deserialized to Step_Outputs[]",
-                                }
-                            )
+                            PipelineLogEntry(**{
+                                "source": self.handler_name,
+                                "message": "Process Output has been added. this file should be deserialized to Step_Outputs[]",
+                            })
                         )
 
                         processed_history.upload_json_text(
                             account_url=self.application_context.configuration.app_storage_blob_url,
                             container_name=self.application_context.configuration.app_cps_processes,
-                            text=json.dumps(
-                                [step.model_dump() for step in process_outputs]
-                            ),
+                            text=json.dumps([
+                                step.model_dump() for step in process_outputs
+                            ]),
                         )
 
     def __initialize_handler(self, appContext: AppContext, step_name: str):
+        """Set up queue clients and handler metadata for a pipeline step."""
         self.handler_name = step_name
         self.application_context = appContext
 
-        # Create a queue name based on the handler name
         self.queue_name = pipeline_queue_helper.create_queue_client_name(
             self.handler_name
         )
 
-        # Create a dead letter queue name based on the handler name
         self.dead_letter_queue_name = (
             pipeline_queue_helper.create_dead_letter_queue_client_name(
                 self.handler_name
             )
         )
 
-        # Create a queue client
         self.queue_client = pipeline_queue_helper.create_or_get_queue_client(
             self.queue_name,
             self.application_context.configuration.app_storage_queue_url,
             self.application_context.credential,
         )
-        # Create a dead letter queue client
         self.dead_letter_queue_client = (
             pipeline_queue_helper.create_or_get_queue_client(
                 self.dead_letter_queue_name,
@@ -426,10 +452,10 @@ class HandlerBase(AppModelBase, ABC):
                 self.application_context.credential,
             )
         )
-        # Show the queue information (not for dead letter queue)
         self._show_queue_information()
 
     def _show_queue_information(self):
+        """Log queue name, URL, and approximate message count."""
         queue_statue_message: str = """
         ************************************************************************************************
         * Queue Information - Initialized Successfully
@@ -492,10 +518,13 @@ class HandlerBase(AppModelBase, ABC):
         ]
 
         # Download the output file stream
-        output_file_stream = output_files[0].download_stream(
-            self.application_context.configuration.app_storage_blob_url,
-            self.application_context.configuration.app_cps_processes,
-        )
+        if output_files is None or len(output_files) == 0:
+            output_file_stream = b""
+        else:
+            output_file_stream = output_files[0].download_stream(
+                self.application_context.configuration.app_storage_blob_url,
+                self.application_context.configuration.app_cps_processes,
+            )
 
         # Convert the output file stream to a JSON string
         return output_file_stream.decode("utf-8")

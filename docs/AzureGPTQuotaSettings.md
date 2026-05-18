@@ -7,6 +7,6 @@ Please follow [quota check instructions guide](./quota_check.md) to check quota 
 3. **Go to** the `Management Center` from the bottom-left navigation menu.  
 4. Select `Quota`  
    - Click on the `GlobalStandard` dropdown.  
-   - Select the required **GPT model** (`GPT-4o`).
+   - Select the required **GPT model** (`GPT-5.1`).
    - Choose the **region** where the deployment is hosted.  
 5. Request More Quota or delete any unused model deployments as needed.

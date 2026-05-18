@@ -1,0 +1,886 @@
+{
+  "$defs": {
+    "AutoClaimAddress": {
+      "description": "A class representing an address used on an auto claim form.",
+      "properties": {
+        "street": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Street address, e.g. 123 Main St.",
+          "title": "Street"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "City, e.g. Macon",
+          "title": "City"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "State, e.g. GA",
+          "title": "State"
+        },
+        "postal_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Postal code, e.g. 31201",
+          "title": "Postal Code"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Country, e.g. USA",
+          "title": "Country"
+        }
+      },
+      "required": [
+        "street",
+        "city",
+        "state",
+        "postal_code",
+        "country"
+      ],
+      "title": "AutoClaimAddress",
+      "type": "object"
+    },
+    "DamageAssessment": {
+      "description": "A class representing overall damage assessment.",
+      "properties": {
+        "items": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DamageAssessmentItem"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "List of damage assessment line items",
+          "title": "Items"
+        },
+        "total_estimated_repair": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Total estimated repair, e.g. 500.0",
+          "title": "Total Estimated Repair"
+        },
+        "total_estimated_repair_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency of total_estimated_repair, e.g. USD",
+          "title": "Total Estimated Repair Currency"
+        }
+      },
+      "required": [
+        "items",
+        "total_estimated_repair",
+        "total_estimated_repair_currency"
+      ],
+      "title": "DamageAssessment",
+      "type": "object"
+    },
+    "DamageAssessmentItem": {
+      "description": "A class representing a damage assessment line item.",
+      "properties": {
+        "item_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Damaged item/area description, e.g. Right-front quarter panel",
+          "title": "Item Description"
+        },
+        "date_acquired": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Date acquired (if present), e.g. 2022-03-15",
+          "title": "Date Acquired"
+        },
+        "cost_new": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cost when new, e.g. 1200.0",
+          "title": "Cost New"
+        },
+        "cost_new_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency of cost_new, e.g. USD",
+          "title": "Cost New Currency"
+        },
+        "repair_estimate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Repair estimate, e.g. 350.0",
+          "title": "Repair Estimate"
+        },
+        "repair_estimate_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency of repair_estimate, e.g. USD",
+          "title": "Repair Estimate Currency"
+        }
+      },
+      "required": [
+        "item_description",
+        "date_acquired",
+        "cost_new",
+        "cost_new_currency",
+        "repair_estimate",
+        "repair_estimate_currency"
+      ],
+      "title": "DamageAssessmentItem",
+      "type": "object"
+    },
+    "Declaration": {
+      "description": "A class representing the claim declaration.",
+      "properties": {
+        "statement": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declaration statement text",
+          "title": "Statement"
+        },
+        "signature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Signature"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Signature"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Signature date, e.g. 2025-12-01",
+          "title": "Date"
+        }
+      },
+      "required": [
+        "statement",
+        "signature",
+        "date"
+      ],
+      "title": "Declaration",
+      "type": "object"
+    },
+    "IncidentDetails": {
+      "description": "A class representing incident details.",
+      "properties": {
+        "date_of_loss": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Date of loss, e.g. 2025-11-28",
+          "title": "Date Of Loss"
+        },
+        "time_of_loss": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Time of loss, e.g. 14:15",
+          "title": "Time Of Loss"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Incident location, e.g. Parking lot near 123 Main Street, Macon, GA",
+          "title": "Location"
+        },
+        "cause_of_loss": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cause of loss, e.g. Low-speed collision with another vehicle",
+          "title": "Cause Of Loss"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Incident description, e.g. Minor dent and paint scratches; no structural damage",
+          "title": "Description"
+        },
+        "police_report_filed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether a police report was filed",
+          "title": "Police Report Filed"
+        },
+        "police_report_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Police report number, e.g. GA-20251128-CR",
+          "title": "Police Report Number"
+        }
+      },
+      "required": [
+        "date_of_loss",
+        "time_of_loss",
+        "location",
+        "cause_of_loss",
+        "description",
+        "police_report_filed",
+        "police_report_number"
+      ],
+      "title": "IncidentDetails",
+      "type": "object"
+    },
+    "PolicyDetails": {
+      "description": "A class representing policy details.",
+      "properties": {
+        "coverage_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Coverage type, e.g. Auto \u2013 Comprehensive",
+          "title": "Coverage Type"
+        },
+        "effective_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Policy effective date, e.g. 2025-01-01",
+          "title": "Effective Date"
+        },
+        "expiration_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Policy expiration date, e.g. 2025-12-31",
+          "title": "Expiration Date"
+        },
+        "deductible": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Deductible amount, e.g. 500.0",
+          "title": "Deductible"
+        },
+        "deductible_currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Currency of the deductible, e.g. USD",
+          "title": "Deductible Currency"
+        }
+      },
+      "required": [
+        "coverage_type",
+        "effective_date",
+        "expiration_date",
+        "deductible",
+        "deductible_currency"
+      ],
+      "title": "PolicyDetails",
+      "type": "object"
+    },
+    "PolicyholderInformation": {
+      "description": "A class representing policyholder information.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Policyholder full name, e.g. Chad Brooks",
+          "title": "Name"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AutoClaimAddress"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Policyholder address, e.g. 123 Main Street, Macon, GA 31201"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Policyholder phone number, e.g. (555) 555-1212",
+          "title": "Phone"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Policyholder email address, e.g. chad.brooks@example.com",
+          "title": "Email"
+        }
+      },
+      "required": [
+        "name",
+        "address",
+        "phone",
+        "email"
+      ],
+      "title": "PolicyholderInformation",
+      "type": "object"
+    },
+    "Signature": {
+      "description": "A class representing a signature field.",
+      "properties": {
+        "signatory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the signatory",
+          "title": "Signatory"
+        },
+        "is_signed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Indicates if the form is signed. GPT should check whether it has signature in image files. if there is Sign, fill it up as True",
+          "title": "Is Signed"
+        }
+      },
+      "required": [
+        "signatory",
+        "is_signed"
+      ],
+      "title": "Signature",
+      "type": "object"
+    },
+    "SubmissionInstructions": {
+      "description": "A class representing submission instructions.",
+      "properties": {
+        "submission_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Submission email address, e.g. claims@contosoinsurance.com",
+          "title": "Submission Email"
+        },
+        "portal_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Claims portal URL, if present",
+          "title": "Portal Url"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Additional submission notes",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "submission_email",
+        "portal_url",
+        "notes"
+      ],
+      "title": "SubmissionInstructions",
+      "type": "object"
+    },
+    "SupportingDocuments": {
+      "description": "A class representing supporting documents included with the claim.",
+      "properties": {
+        "photos_of_damage": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether photos of damage are included",
+          "title": "Photos Of Damage"
+        },
+        "police_report_copy": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether a police report copy is included",
+          "title": "Police Report Copy"
+        },
+        "repair_shop_estimate": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether a repair shop estimate is included",
+          "title": "Repair Shop Estimate"
+        },
+        "other": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Other supporting documents",
+          "title": "Other"
+        }
+      },
+      "required": [
+        "photos_of_damage",
+        "police_report_copy",
+        "repair_shop_estimate",
+        "other"
+      ],
+      "title": "SupportingDocuments",
+      "type": "object"
+    },
+    "VehicleInformation": {
+      "description": "A class representing vehicle information.",
+      "properties": {
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle year, e.g. 2022",
+          "title": "Year"
+        },
+        "make": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle make, e.g. Toyota",
+          "title": "Make"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle model, e.g. Camry",
+          "title": "Model"
+        },
+        "trim": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle trim, e.g. SE",
+          "title": "Trim"
+        },
+        "vin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle VIN, e.g. 4T1G11AK2NU123456",
+          "title": "Vin"
+        },
+        "license_plate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "License plate, e.g. GA-ABC123",
+          "title": "License Plate"
+        },
+        "mileage": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mileage, e.g. 28450",
+          "title": "Mileage"
+        }
+      },
+      "required": [
+        "year",
+        "make",
+        "model",
+        "trim",
+        "vin",
+        "license_plate",
+        "mileage"
+      ],
+      "title": "VehicleInformation",
+      "type": "object"
+    }
+  },
+  "description": "A class representing an auto insurance claim form.",
+  "properties": {
+    "insurance_company": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Insurance company name, e.g. Contoso Insurance",
+      "title": "Insurance Company"
+    },
+    "claim_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Claim number, e.g. CLM987654",
+      "title": "Claim Number"
+    },
+    "policy_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Policy number, e.g. AUTO123456",
+      "title": "Policy Number"
+    },
+    "policyholder_information": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PolicyholderInformation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Policyholder information"
+    },
+    "policy_details": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PolicyDetails"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Policy details"
+    },
+    "incident_details": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IncidentDetails"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Incident details"
+    },
+    "vehicle_information": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VehicleInformation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Vehicle information"
+    },
+    "damage_assessment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DamageAssessment"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Damage assessment"
+    },
+    "supporting_documents": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SupportingDocuments"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Supporting documents"
+    },
+    "declaration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Declaration"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Declaration"
+    },
+    "submission_instructions": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SubmissionInstructions"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Submission instructions"
+    }
+  },
+  "required": [
+    "insurance_company",
+    "claim_number",
+    "policy_number",
+    "policyholder_information",
+    "policy_details",
+    "incident_details",
+    "vehicle_information",
+    "damage_assessment",
+    "supporting_documents",
+    "declaration",
+    "submission_instructions"
+  ],
+  "title": "AutoInsuranceClaimForm",
+  "type": "object"
+}

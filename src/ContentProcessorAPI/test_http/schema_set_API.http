@@ -1,0 +1,45 @@
+@baseUrl = http://localhost:8000
+
+@schemavault = /schemavault
+@schemasetvault = /schemasetvault
+
+### List all schema sets
+GET {{baseUrl}}{{schemasetvault}}/
+
+### Create a schema set
+# @name createSchemaSet
+POST {{baseUrl}}{{schemasetvault}}/
+Content-Type: application/json
+
+{
+	"Name": "Auto Claim",
+	"Description": "Claim schema set for auto claims processing"
+}
+
+### Get schema set by id
+@schemasetId = {{createSchemaSet.response.body.$.Id}}
+GET {{baseUrl}}{{schemasetvault}}/{{schemasetId}}
+
+### List registered schemas (needed to add one to the set)
+### NOTE: If this returns an empty array, register a schema first via the Schema Vault APIs.
+# @name listSchemas
+GET {{baseUrl}}{{schemavault}}/
+
+### Add the first available schema to the set
+@schemaId = "2e11a95f-fbcb-4628-a67e-5e0152477f54"
+POST {{baseUrl}}{{schemasetvault}}/{{schemasetId}}/schemas
+Content-Type: application/json
+
+{
+	"SchemaId": "efcd50a4-c3e6-49cd-a88c-be342a269d39"
+}
+
+### List schemas in the schema set
+GET {{baseUrl}}{{schemasetvault}}/2e11a95f-fbcb-4628-a67e-5e0152477f54/schemas
+
+### Remove schema from the schema set
+DELETE {{baseUrl}}{{schemasetvault}}/{{schemasetId}}/schemas/{{schemaId}}
+
+### Delete schema set
+DELETE {{baseUrl}}{{schemasetvault}}/{{schemasetId}}
+

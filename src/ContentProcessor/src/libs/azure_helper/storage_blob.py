@@ -1,17 +1,37 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""Azure Blob Storage upload / download helper.
+
+Provides a convenience wrapper around ``BlobServiceClient`` for the
+pipeline to read and write document blobs, schemas, and configuration.
+"""
+
 from typing import IO, Union
 
-from helpers.azure_credential_utils import get_azure_credential
 from azure.storage.blob import BlobServiceClient
+
+from libs.utils.azure_credential_utils import get_azure_credential
 
 
 class StorageBlobHelper:
+    """Convenience wrapper for common Azure Blob Storage operations.
+
+    Responsibilities:
+        1. Authenticate using the shared Azure credential.
+        2. Auto-create containers when they do not exist.
+        3. Expose upload / download / delete for files, streams, and text.
+
+    Attributes:
+        blob_service_client: The underlying SDK ``BlobServiceClient``.
+        parent_container_name: Default container (and optional folder prefix).
+    """
+
     blob_service_client: BlobServiceClient = None
 
     @staticmethod
     def get(account_url: str, container_name: str = None):
+        """Factory shortcut to create a StorageBlobHelper."""
         return StorageBlobHelper(account_url=account_url, container_name=container_name)
 
     def __init__(self, account_url: str, container_name=None):
@@ -21,17 +41,24 @@ class StorageBlobHelper:
         )
         self.parent_container_name = container_name
         if container_name:
-            # if containeer_name is provided, "container_name/folder name" is used, get container_name
-            # and create container if not exists
             container_name = container_name.split("/")[0]
             self._invalidate_container(container_name)
 
     def _invalidate_container(self, container_name: str):
+        """Create the container if it does not already exist."""
         container_client = self.blob_service_client.get_container_client(container_name)
         if not container_client.exists():
             container_client.create_container()
 
     def _get_container_client(self, container_name=None):
+        """Resolve and return a container client.
+
+        Args:
+            container_name: Optional sub-container; combined with *parent_container_name*.
+
+        Raises:
+            ValueError: If no container name is available.
+        """
         if container_name:
             full_container_name = (
                 f"{self.parent_container_name}/{container_name}"

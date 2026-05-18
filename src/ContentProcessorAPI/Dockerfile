@@ -2,8 +2,16 @@ FROM mcr.microsoft.com/azurelinux/base/python:3.12
 
 WORKDIR /app
 
-# Install uv.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Install system dependencies and UV using tdnf (Azure Linux package manager)
+RUN tdnf update -y && tdnf install -y \
+	tar \
+	ca-certificates \
+	curl \
+	gawk \
+	shadow-utils \
+	&& tdnf clean all \
+	&& curl -LsSf https://astral.sh/uv/install.sh | sh \
+	&& mv /root/.local/bin/uv /usr/local/bin/uv
 
 # Copy the application into the container.
 COPY . /app

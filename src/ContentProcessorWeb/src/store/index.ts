@@ -1,12 +1,17 @@
-// src/store/index.ts
-import { configureStore } from '@reduxjs/toolkit';
-import rootReducer from './rootReducer';  // Import rootReducer
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
-// Configure and export the store
+/**
+ * Configures and exports the Redux store along with the inferred
+ * `RootState` and `AppDispatch` types used throughout the application.
+ */
+import { configureStore } from '@reduxjs/toolkit';
+
+import rootReducer from './rootReducer';
+
 export const store = configureStore({
-  reducer: rootReducer,  // Use rootReducer here
+  reducer: rootReducer,
 });
 
-// Export RootState and AppDispatch for type safety
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

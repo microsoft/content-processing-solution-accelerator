@@ -1,55 +1,54 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Determines the MIME type of a file based on its extension or browser-reported type.
+ *
+ * @param file - The file object with at least a `name` property.
+ * @returns An object containing the resolved `fileType` string and a `getMimeType` helper.
+ */
 import { useState, useEffect } from 'react';
 
 interface FileTypeMapping {
-  [key: string]: string;  // Maps file extensions to MIME types
+  [key: string]: string;
 }
 
-interface FileWithExtension {
+export interface FileWithExtension {
   name: string;
-  type?:string;
+  type?: string;
 }
+
+const MIME_TYPES: FileTypeMapping = {
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'bmp': 'image/bmp',
+  'pdf': 'application/pdf',
+  'txt': 'text/plain',
+  'html': 'text/html',
+  'csv': 'text/csv',
+  'zip': 'application/zip',
+  'mp3': 'audio/mp3',
+  'mp4': 'video/mp4',
+  'json': 'application/json',
+  'xml': 'application/xml',
+};
+
+const getFileExtension = (fileName: string): string =>
+  fileName.split('.').pop()?.toLowerCase() || '';
+
+const getMimeType = (file: FileWithExtension): string => {
+  const extension = getFileExtension(file.name);
+  return MIME_TYPES[extension] || file.type || 'application/octet-stream';
+};
 
 const useFileType = (file: FileWithExtension | null) => {
   const [fileType, setFileType] = useState<string>('');
 
-  // MIME type mapping for common file extensions
-  const mimeTypes: FileTypeMapping = {
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'bmp': 'image/bmp',
-    'pdf': 'application/pdf',
-    'txt': 'text/plain',
-    'html': 'text/html',
-    'csv': 'text/csv',
-    'zip': 'application/zip',
-    'mp3': 'audio/mp3',
-    'mp4': 'video/mp4',
-    'json': 'application/json',
-    'xml': 'application/xml',
-  };
-
-  const getFileExtension = (fileName: string): string => {
-    return fileName.split('.').pop()?.toLowerCase() || '';  // Extract file extension and make it lowercase
-  };
-
-  const getMimeType = (file: FileWithExtension): string => {
-    const extension = getFileExtension(file.name);
-
-    // If the file has a recognized extension, return the associated MIME type
-    if (mimeTypes[extension]) {
-      return mimeTypes[extension];
-    }
-
-    // Otherwise, use file.type (this is the MIME type provided by the browser)
-    return file.type || 'application/octet-stream';
-  };
-
-  // When the file is provided, determine the file type
   useEffect(() => {
     if (file) {
-      setFileType(getMimeType(file));  // Update file type when the file changes
+      setFileType(getMimeType(file));
     }
   }, [file]);
 

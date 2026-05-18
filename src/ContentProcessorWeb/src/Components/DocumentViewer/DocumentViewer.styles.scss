@@ -6,7 +6,6 @@
 
 .imageErrorContainer{
     background: var(--colorBrandShadowAmbient);
-    /* margin: auto; */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -17,21 +16,13 @@
     padding: auto;
     margin: auto;
     z-index: 99999;
-    /* background: white; */
     padding: 35px;
     box-sizing: content-box;
     margin: 30px;
     border-radius: 6px;
     border: 1px solid var(--colorNeutralStroke1Pressed);
-    /* font-size: 21px; */
-    /* font-weight: 600; */
     box-shadow: azure;
-    /* transform: translate(-50%, -50%); */
-    /* top: 50%; */
-    /* left: 50%; */
     background: var(--colorNeutralBackground1);
-    /* display: flex
-; */
     background-color: var(--colorNeutralBackground1);
     border: 1px solid #ddd;
     box-shadow: 0 4px 8px var(--colorNeutralShadowAmbientDarker);
@@ -50,6 +41,3 @@
     border: 1px solid var(--colorNeutralBackground2Pressed);
     background: var(--colorNeutralBackground1Hover)
 }
-
-
-

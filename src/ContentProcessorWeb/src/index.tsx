@@ -1,7 +1,13 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Application entry point that bootstraps React, Fluent UI theming,
+ * MSAL authentication, and the Redux store.
+ */
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
-import "./Styles/index.css";
-import App from "./App.tsx";
+
 import {
   FluentProvider,
   teamsLightTheme,
@@ -9,14 +15,15 @@ import {
   tokens,
   makeStyles,
 } from "@fluentui/react-components";
+import { Provider } from "react-redux";
 
-import AuthProvider from './msal-auth/AuthProvider.tsx';
+import { store } from "./store";
+import AuthProvider from "./msal-auth/AuthProvider";
+import useConsoleSuppression from "./Hooks/useConsoleSuppression";
+import App from "./App";
 
-import { Provider } from 'react-redux';
-import { store } from './store';
-import useConsoleSuppression from "./Hooks/useConsoleSuppression"; 
+import "./Styles/index.css";
 
-// Define custom styles
 const useStyles = makeStyles({
   appContainer: {
     height: "100vh",
@@ -24,26 +31,24 @@ const useStyles = makeStyles({
   },
 });
 
-const Index = () => {
+/** Root component that wires up providers and manages the light / dark theme. */
+const Index: React.FC = () => {
   useConsoleSuppression();
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check device's preferred color scheme on initial load
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
 
-  // Listen for system theme changes
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
     const handleChange = (event: MediaQueryListEvent) => {
-      setIsDarkMode(event.matches); // Update theme if system changes
+      setIsDarkMode(event.matches);
     };
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // Toggle between light and dark themes manually
   const toggleTheme = () => {
     setIsDarkMode((prev) => !prev);
   };
@@ -55,7 +60,6 @@ const Index = () => {
       <Provider store={store}>
         <FluentProvider theme={isDarkMode ? teamsDarkTheme : teamsLightTheme}>
           <div className={styles.appContainer}>
-            {/* Pass theme state and toggle function to App */}
             <App isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
           </div>
         </FluentProvider>

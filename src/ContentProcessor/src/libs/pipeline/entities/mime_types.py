@@ -1,10 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""MIME type constants, file-extension mappings, and detection logic.
+
+Used across the pipeline to identify content types of source files and
+processed artifacts.
+"""
+
 import os
 
 
 class MimeTypes:
+    """String constants for common MIME types."""
+
     PlainText = "text/plain"
     MarkDown = "text/markdown"
     MarkDownOld1 = "text/x-markdown"
@@ -61,6 +69,8 @@ class MimeTypes:
 
 
 class FileExtensions:
+    """String constants for common file extensions."""
+
     PlainText = ".txt"
     MarkDown = ".md"
     Htm = ".htm"
@@ -121,6 +131,8 @@ class MimeTypeException(Exception):
 
 
 class MimeTypesDetection:
+    """Look up MIME types from file extensions using a static mapping."""
+
     _extension_types = {
         FileExtensions.PlainText: MimeTypes.PlainText,
         FileExtensions.MarkDown: MimeTypes.MarkDown,
