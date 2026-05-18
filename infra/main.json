@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "312988678863218513"
+      "templateHash": "4832937303332648388"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -14642,6 +14642,16 @@
                   ],
                   "transformKql": "source",
                   "outputStream": "Microsoft-Perf"
+                },
+                {
+                  "streams": [
+                    "Microsoft-WindowsEvent"
+                  ],
+                  "destinations": [
+                    "[format('la-{0}', variables('dataCollectionRulesResourceName'))]"
+                  ],
+                  "transformKql": "source",
+                  "outputStream": "Microsoft-WindowsEvent"
                 }
               ]
             }
@@ -28049,6 +28059,9 @@
               "defaultAction": "[if(parameters('enablePrivateNetworking'), 'Deny', 'Allow')]",
               "ipRules": []
             }
+          },
+          "requireInfrastructureEncryption": {
+            "value": true
           },
           "supportsHttpsTrafficOnly": {
             "value": true
@@ -42481,10 +42494,10 @@
       },
       "dependsOn": [
         "avmAiServices",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "virtualNetwork"
       ]
     },

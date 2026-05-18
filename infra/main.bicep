@@ -469,6 +469,16 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
         }
+        {
+          streams: [
+            'Microsoft-WindowsEvent'
+          ]
+          destinations: [
+            'la-${dataCollectionRulesResourceName}'
+          ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-WindowsEvent'
+        }
       ]
     }
   }
@@ -654,6 +664,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
       defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
       ipRules: []
     }
+    requireInfrastructureEncryption: true
     supportsHttpsTrafficOnly: true
     accessTier: 'Hot'
     tags: tags
