@@ -10,6 +10,8 @@ param appInsightsResourceId string
 param location string = resourceGroup().location
 
 var workbookId = guid(resourceGroup().id, 'token-usage-workbook')
+var workbookTemplate = loadTextContent('token-usage-workbook.json')
+var workbookContent = replace(workbookTemplate, '__APP_INSIGHTS_RESOURCE_ID__', appInsightsResourceId)
 
 resource workbook 'Microsoft.Insights/workbooks@2022-04-01' = {
   name: workbookId
@@ -19,7 +21,7 @@ resource workbook 'Microsoft.Insights/workbooks@2022-04-01' = {
     displayName: 'LLM Token Usage Dashboard'
     category: 'workbook'
     sourceId: appInsightsResourceId
-    serializedData: loadTextContent('token-usage-workbook.json')
+    serializedData: workbookContent
   }
 }
 

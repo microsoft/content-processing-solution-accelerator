@@ -73,7 +73,10 @@
               "formatter": 1
             }
           ]
-        }
+        },
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "overall-summary"
     },
@@ -87,7 +90,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "tokens-by-agent"
     },
@@ -101,7 +107,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "areachart"
+        "visualization": "areachart",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "tokens-over-time"
     },
@@ -115,7 +124,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "piechart"
+        "visualization": "piechart",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "token-distribution-pie"
     },
@@ -136,7 +148,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "cost-estimation"
     },
@@ -150,7 +165,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "cost-by-model"
     },
@@ -171,7 +189,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "tokens-by-model"
     },
@@ -185,7 +206,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "step-model-mapping"
     },
@@ -199,7 +223,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "top-consumers"
     },
@@ -213,7 +240,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "tokens-by-filetype"
     },
@@ -234,7 +264,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "processing-time-by-step"
     },
@@ -248,7 +281,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "openai-call-durations"
     },
@@ -262,7 +298,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "per-document-time-breakdown"
     },
@@ -276,7 +315,10 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "total-processing-time"
     },
@@ -305,7 +347,10 @@
               "formatter": 1
             }
           ]
-        }
+        },
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "token-percentiles"
     },
@@ -319,13 +364,20 @@
         "timeContextFromParameter": "TimeRange",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "table"
+        "visualization": "table",
+        "crossComponentResources": [
+          "__APP_INSIGHTS_RESOURCE_ID__"
+        ]
       },
       "name": "daily-volume"
     }
   ],
   "isLocked": true,
-  "defaultResourceIds": [],
-  "fallbackResourceIds": [],
+  "defaultResourceIds": [
+    "__APP_INSIGHTS_RESOURCE_ID__"
+  ],
+  "fallbackResourceIds": [
+    "__APP_INSIGHTS_RESOURCE_ID__"
+  ],
   "fromTemplateId": "community-Workbooks/Common/Templates"
 }
