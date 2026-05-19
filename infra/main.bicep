@@ -1237,7 +1237,6 @@ module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.19.0' = {
     capabilitiesToAdd: [
       'EnableMongo'
     ]
-    enableAnalyticalStorage: true
     defaultConsistencyLevel: 'Session'
     maxIntervalInSeconds: 5
     maxStalenessPrefix: 100
