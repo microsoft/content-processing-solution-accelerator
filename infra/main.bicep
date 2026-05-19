@@ -429,26 +429,6 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
             name: 'perfCounterDataSource60'
           }
         ]
-        windowsEventLogs: [
-          {
-            name: 'SecurityAuditEvents'
-            streams: [
-              'Microsoft-WindowsEvent'
-            ]
-            eventLogName: 'Security'
-            eventTypes: [
-              {
-                eventType: 'Audit Success'
-              }
-              {
-                eventType: 'Audit Failure'
-              }
-            ]
-            xPathQueries: [
-              'Security!*[System[(EventID=4624 or EventID=4625)]]'
-            ]
-          }
-        ]
       }
       destinations: {
         logAnalytics: [
@@ -468,16 +448,6 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
-        }
-        {
-          streams: [
-            'Microsoft-WindowsEvent'
-          ]
-          destinations: [
-            'la-${dataCollectionRulesResourceName}'
-          ]
-          transformKql: 'source'
-          outputStream: 'Microsoft-WindowsEvent'
         }
       ]
     }
