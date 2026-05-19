@@ -323,10 +323,8 @@ Run schema registration first to:
 **macOS/Linux:**
 
 ```bash
-for script in ./infra/scripts/register_schemas.sh ./infra/scripts/post_deployment.sh; do
-   tmp="${script}.tmp"
-   awk '{ sub(/\r$/, ""); print }' "$script" > "$tmp" && mv "$tmp" "$script"
-done
+sed -i 's/\r$//' ./infra/scripts/register_schemas.sh
+sed -i 's/\r$//' ./infra/scripts/post_deployment.sh
 bash ./infra/scripts/register_schemas.sh
 ```
 
@@ -350,10 +348,8 @@ After schema registration completes, upload the sample bundles as a separate exp
 **macOS/Linux:**
 
 ```bash
-for script in ./infra/scripts/upload_sample_data.sh ./infra/scripts/post_deployment.sh; do
-   tmp="${script}.tmp"
-   awk '{ sub(/\r$/, ""); print }' "$script" > "$tmp" && mv "$tmp" "$script"
-done
+sed -i 's/\r$//' ./infra/scripts/upload_sample_data.sh
+sed -i 's/\r$//' ./infra/scripts/post_deployment.sh
 bash ./infra/scripts/upload_sample_data.sh
 ```
 
@@ -370,10 +366,8 @@ Run authentication setup as an explicit step after post-deployment data setup:
 **macOS/Linux:**
 
 ```bash
-for script in ./infra/scripts/setup_auth.sh ./infra/scripts/configure_auth.sh; do
-   tmp="${script}.tmp"
-   awk '{ sub(/\r$/, ""); print }' "$script" > "$tmp" && mv "$tmp" "$script"
-done
+sed -i 's/\r$//' ./infra/scripts/setup_auth.sh
+sed -i 's/\r$//' ./infra/scripts/configure_auth.sh
 bash ./infra/scripts/setup_auth.sh
 ```
 
