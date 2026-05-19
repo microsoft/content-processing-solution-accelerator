@@ -67,7 +67,7 @@ on:
         type: boolean
       
       enableScalability:
-        description: 'Enable Scalability'
+        description: 'Enable Scalability (WAF only)'
         required: false
         default: false
         type: boolean
