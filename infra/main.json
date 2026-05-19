@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "312988678863218513"
+      "templateHash": "11967716103255684929"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -14607,7 +14607,7 @@
                   {
                     "name": "SecurityAuditEvents",
                     "streams": [
-                      "Microsoft-WindowsEvent"
+                      "Microsoft-Event"
                     ],
                     "eventLogName": "Security",
                     "eventTypes": [
@@ -14642,6 +14642,16 @@
                   ],
                   "transformKql": "source",
                   "outputStream": "Microsoft-Perf"
+                },
+                {
+                  "streams": [
+                    "Microsoft-Event"
+                  ],
+                  "destinations": [
+                    "[format('la-{0}', variables('dataCollectionRulesResourceName'))]"
+                  ],
+                  "transformKql": "source",
+                  "outputStream": "Microsoft-Event"
                 }
               ]
             }
@@ -28049,6 +28059,9 @@
               "defaultAction": "[if(parameters('enablePrivateNetworking'), 'Deny', 'Allow')]",
               "ipRules": []
             }
+          },
+          "requireInfrastructureEncryption": {
+            "value": true
           },
           "supportsHttpsTrafficOnly": {
             "value": true
@@ -42481,10 +42494,10 @@
       },
       "dependsOn": [
         "avmAiServices",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "virtualNetwork"
       ]
     },
@@ -45910,6 +45923,9 @@
           "ingressTransport": {
             "value": "auto"
           },
+          "ingressAllowInsecure": {
+            "value": false
+          },
           "corsPolicy": {
             "value": {
               "allowedOrigins": [
@@ -47514,6 +47530,9 @@
           },
           "ingressTransport": {
             "value": "auto"
+          },
+          "ingressAllowInsecure": {
+            "value": false
           },
           "scaleSettings": {
             "value": {
@@ -63174,6 +63193,9 @@
           },
           "ingressTransport": {
             "value": "auto"
+          },
+          "ingressAllowInsecure": {
+            "value": false
           },
           "corsPolicy": {
             "value": {

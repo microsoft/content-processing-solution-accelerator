@@ -433,7 +433,7 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
           {
             name: 'SecurityAuditEvents'
             streams: [
-              'Microsoft-WindowsEvent'
+              'Microsoft-Event'
             ]
             eventLogName: 'Security'
             eventTypes: [
@@ -468,6 +468,16 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
+        }
+        {
+          streams: [
+            'Microsoft-Event'
+          ]
+          destinations: [
+            'la-${dataCollectionRulesResourceName}'
+          ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Event'
         }
       ]
     }
@@ -654,6 +664,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
       defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
       ipRules: []
     }
+    requireInfrastructureEncryption: true
     supportsHttpsTrafficOnly: true
     accessTier: 'Hot'
     tags: tags
@@ -1048,6 +1059,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     ingressExternal: true
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
+    ingressAllowInsecure: false
     corsPolicy: {
       allowedOrigins: [
         '*'
@@ -1089,6 +1101,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     ingressTargetPort: 3000
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
+    ingressAllowInsecure: false
     scaleSettings: {
       maxReplicas: enableScalability ? 3 : 2
       minReplicas: enableScalability ? 2 : 1
@@ -1723,6 +1736,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
     ingressExternal: true
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
+    ingressAllowInsecure: false
     corsPolicy: {
       allowedOrigins: [
         '*'
