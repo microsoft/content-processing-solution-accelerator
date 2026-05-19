@@ -431,5 +431,5 @@ fi
 echo ""
 echo "============================================================"
 echo "Post-deployment data setup completed."
-echo "Next manual step: configure authentication using infra/scripts/configure_auth.sh"
+echo "Next manual step: configure authentication using infra/scripts/setup_auth.sh"
 echo "============================================================"

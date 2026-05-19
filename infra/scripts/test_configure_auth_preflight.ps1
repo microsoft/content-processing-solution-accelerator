@@ -128,12 +128,12 @@ $MockAzdPs1Content | Out-File -FilePath (Join-Path $TempDir "mock_azd.ps1") -Enc
 # Write .cmd wrappers — %~dp0 resolves to the directory containing the .cmd file
 @"
 @echo off
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0mock_az.ps1" %*
+pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0mock_az.ps1" %*
 "@ | Out-File -FilePath (Join-Path $TempDir "az.cmd")  -Encoding ASCII
 
 @"
 @echo off
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0mock_azd.ps1" %*
+pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0mock_azd.ps1" %*
 "@ | Out-File -FilePath (Join-Path $TempDir "azd.cmd") -Encoding ASCII
 
 # =============================================================================

@@ -25,7 +25,12 @@ fi
 PASS_COUNT=0
 FAIL_COUNT=0
 
-TEMP_DIR="$(mktemp -d)"
+if ! TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/configure_auth_preflight.XXXXXX" 2>/dev/null)"; then
+  TEMP_DIR="$(mktemp -d -t configure_auth_preflight.XXXXXX 2>/dev/null)" || {
+    echo "❌ Failed to create temp directory" >&2
+    exit 1
+  }
+fi
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # =============================================================================

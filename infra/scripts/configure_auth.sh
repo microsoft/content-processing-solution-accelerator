@@ -573,7 +573,7 @@ echo "  ✓ Web env vars: APP_WEB_CLIENT_ID / APP_WEB_SCOPE / APP_API_SCOPE / AP
 
 # Patch both authConfigs:
 #   - API: add Web client id to allowedApplications
-#   - Both: reset allowedAudiences to only the clientId, normalize openIdIssuer
+#   - Both: set allowedAudiences to clientId and its API scope variant, normalize openIdIssuer
 patch_authconfig() {
   local ca_name="$1"
   local client_id="$2"

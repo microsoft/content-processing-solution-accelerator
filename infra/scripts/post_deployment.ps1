@@ -415,5 +415,5 @@ if (-not $ApiReady) {
 Write-Host ""
 Write-Host ("=" * 60)
 Write-Host "Post-deployment data setup completed."
-Write-Host "Next manual step: configure authentication using infra/scripts/configure_auth.ps1"
+Write-Host "Next manual step: configure authentication using infra/scripts/setup_auth.ps1"
 Write-Host ("=" * 60)
