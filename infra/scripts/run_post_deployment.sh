@@ -50,6 +50,18 @@ step_ok()   { echo ""; echo "  ✅ Step $1 completed successfully."; }
 step_skip() { echo ""; echo "  ⏭️  Step $1 skipped (${2})."; }
 step_fail() { echo ""; echo "  ❌ Step $1 failed — see errors above."; }
 
+normalize_line_endings() {
+  local script_file="$1"
+  local tmp_file
+  tmp_file="$(mktemp)" || { echo "  ❌ Failed to create temp file" >&2; exit 1; }
+  if ! tr -d '\r' < "$script_file" > "$tmp_file"; then
+    rm -f "$tmp_file"
+    echo "  ❌ Failed to normalize line endings for: $script_file" >&2
+    exit 1
+  fi
+  mv "$tmp_file" "$script_file"
+}
+
 print_banner
 
 if ! command -v azd &>/dev/null; then
@@ -84,7 +96,7 @@ else
     exit 1
   fi
 
-  sed -i 's/\r$//' "$STEP1_SCRIPT"
+  normalize_line_endings "$STEP1_SCRIPT"
   chmod +x "$STEP1_SCRIPT"
 
   STEP1_EXIT=0
@@ -115,7 +127,7 @@ else
     exit 1
   fi
 
-  sed -i 's/\r$//' "$STEP2_SCRIPT"
+  normalize_line_endings "$STEP2_SCRIPT"
   chmod +x "$STEP2_SCRIPT"
 
   STEP2_EXIT=0
@@ -162,7 +174,7 @@ else
     exit 1
   fi
 
-  sed -i 's/\r$//' "$STEP3_SCRIPT"
+  normalize_line_endings "$STEP3_SCRIPT"
   chmod +x "$STEP3_SCRIPT"
 
   STEP3_EXIT=0

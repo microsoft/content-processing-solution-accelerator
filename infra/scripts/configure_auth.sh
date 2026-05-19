@@ -137,9 +137,9 @@ _check() {
   case "$status" in
     PASS) printf "  ✅ %-55s\n" "$label" ;;
     WARN) printf "  ⚠️  %-54s\n" "$label"
-          [[ -n "$detail" ]] && echo "       $detail" ;;
+          [[ -n "$detail" ]] && printf "       %b\n" "$detail" ;;
     FAIL) printf "  ❌ %-55s\n" "$label"
-          [[ -n "$detail" ]] && echo "       $detail" ;;
+          [[ -n "$detail" ]] && printf "       %b\n" "$detail" ;;
   esac
 }
 

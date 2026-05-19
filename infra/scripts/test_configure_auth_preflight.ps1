@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     Validates configure_auth.ps1 --preflight-only behavior under each
