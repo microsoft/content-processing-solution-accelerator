@@ -362,6 +362,8 @@ module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-confi
 
 var dataCollectionRulesResourceName = 'dcr-${solutionSuffix}'
 var dataCollectionRulesLocation = logAnalyticsWorkspace!.outputs.location
+var logAnalyticsWorkspaceResourceName = 'log-${solutionSuffix}'
+var dcrLogAnalyticsDestinationName = 'la-${logAnalyticsWorkspaceResourceName}-destination'
 module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
   name: take('avm.res.insights.data-collection-rule.${dataCollectionRulesResourceName}', 64)
   params: {
@@ -445,7 +447,7 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
         logAnalytics: [
           {
             workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-            name: 'la-${dataCollectionRulesResourceName}'
+            name: dcrLogAnalyticsDestinationName
           }
         ]
       }
@@ -455,7 +457,7 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
             'Microsoft-Perf'
           ]
           destinations: [
-            'la-${dataCollectionRulesResourceName}'
+            dcrLogAnalyticsDestinationName
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
@@ -465,7 +467,7 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
             'Microsoft-Event'
           ]
           destinations: [
-            'la-${dataCollectionRulesResourceName}'
+            dcrLogAnalyticsDestinationName
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Event'
