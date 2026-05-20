@@ -34,9 +34,14 @@ from datetime import datetime
 from typing import Any
 
 from agent_framework import (
+    ExecutorCompletedEvent,
+    ExecutorFailedEvent,
+    ExecutorInvokedEvent,
     Workflow,
     WorkflowBuilder,
-    WorkflowEvent,
+    WorkflowFailedEvent,
+    WorkflowOutputEvent,
+    WorkflowStartedEvent,
 )
 from art import text2art
 
@@ -229,9 +234,9 @@ class ClaimProcessor:
 
         try:
             async for event in self.workflow.run_stream(input_data):
-                if event.type == "started":
+                if isinstance(event, WorkflowStartedEvent):
                     logger.info("Workflow started (%s)", event.origin.value)
-                elif event.type == "output":
+                elif isinstance(event, WorkflowOutputEvent):
                     claim_process_repository = self.app_context.get_service(
                         Claim_Processes
                     )
@@ -239,9 +244,9 @@ class ClaimProcessor:
                         process_id=input_data, new_status=Claim_Steps.COMPLETED
                     )
                     return event.data
-                elif event.type == "executor_failed":
+                elif isinstance(event, ExecutorFailedEvent):
                     last_failed_executor_id = event.executor_id
-                elif event.type == "failed":
+                elif isinstance(event, WorkflowFailedEvent):
                     batch_id = input_data
                     executor_id = (
                         event.details.executor_id
@@ -261,7 +266,7 @@ class ClaimProcessor:
                     )
                     raise WorkflowExecutorFailedException(event.details)
 
-                elif event.type == "executor_invoked":
+                elif isinstance(event, ExecutorInvokedEvent):
                     last_invoked_executor_id = event.executor_id
                     logger.info("\n%s", text2art(event.executor_id.capitalize()))
                     claim_process_repository = self.app_context.get_service(
@@ -282,7 +287,7 @@ class ClaimProcessor:
                         await claim_process_repository.Update_Claim_Process_Status(
                             process_id=input_data, new_status=new_status
                         )
-                elif event.type == "executor_completed":
+                elif isinstance(event, ExecutorCompletedEvent):
                     pass
                 else:
                     pass
