@@ -523,7 +523,7 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
 module logAnalyticsWorkspace 'modules/log-analytics-workspace.bicep' = if (enableMonitoring) {
   name: take('module.log-analytics-workspace.${solutionSuffix}', 64)
   params: {
-    name: 'log-${solutionSuffix}'
+    name: logAnalyticsWorkspaceResourceName
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
