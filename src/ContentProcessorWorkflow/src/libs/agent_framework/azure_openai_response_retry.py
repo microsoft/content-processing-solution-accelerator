@@ -19,7 +19,7 @@ import random
 from dataclasses import dataclass
 from typing import Any, AsyncIterable, MutableSequence
 
-from agent_framework.azure import AzureOpenAIChatClient, AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient, OpenAIChatCompletionClient
 from tenacity import (
     AsyncRetrying,
     retry_if_exception,
@@ -525,7 +525,7 @@ async def _retry_call(coro_factory, *, config: RateLimitRetryConfig):
     raise RuntimeError("Retry loop exhausted unexpectedly")
 
 
-class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
+class AzureOpenAIResponseClientWithRetry(OpenAIChatClient):
     """Azure OpenAI Responses client with 429 retry at the request boundary.
 
     Retry is centralized in the client layer (not in orchestrators) by retrying the
@@ -741,7 +741,7 @@ class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
                 await asyncio.sleep(delay)
 
 
-class AzureOpenAIChatClientWithRetry(AzureOpenAIChatClient):
+class AzureOpenAIChatClientWithRetry(OpenAIChatCompletionClient):
     """Azure OpenAI Chat client with 429 retry at the request boundary.
 
     This wraps the underlying chat-completions call used by Agent Framework by overriding
