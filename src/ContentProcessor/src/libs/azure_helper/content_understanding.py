@@ -4,14 +4,15 @@
 """Azure Content Understanding REST client.
 
 Manages analyzer lifecycle (create / list / delete) and document analysis
-operations against the Azure Content Understanding preview API, used by
-the extract pipeline step.
+operations against the Azure Content Understanding GA API
+(api-version=2025-11-01), used by the extract pipeline step.
 """
 
 import json
 import logging
 import time
 from pathlib import Path
+from typing import Optional
 
 import requests
 from requests.models import Response
@@ -22,7 +23,7 @@ COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
 
 
 class AzureContentUnderstandingHelper:
-    """REST client for the Azure Content Understanding preview API.
+    """REST client for the Azure Content Understanding GA API.
 
     Responsibilities:
         1. Manage analyzer lifecycle (create, list, get, delete).
@@ -36,7 +37,7 @@ class AzureContentUnderstandingHelper:
     def __init__(
         self,
         endpoint: str,
-        api_version: str = "2024-12-01-preview",
+        api_version: str = "2025-11-01",
         x_ms_useragent: str = "cps-contentunderstanding/client",
     ):
         self.credential = get_azure_credential()
@@ -63,14 +64,21 @@ class AzureContentUnderstandingHelper:
     def _get_analyze_url(self, endpoint, api_version, analyzer_id):
         return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyze?api-version={api_version}"  # noqa
 
-    def _get_training_data_config(
+    def _get_analyze_binary_url(self, endpoint, api_version, analyzer_id):
+        return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyzeBinary?api-version={api_version}"  # noqa
+
+    def _get_knowledge_source_config(
         self, storage_container_sas_url, storage_container_path_prefix
     ):
-        return {
-            "containerUrl": storage_container_sas_url,
-            "kind": "blob",
-            "prefix": storage_container_path_prefix,
-        }
+        # GA renamed the analyzer-template field `trainingData` (object) to
+        # `knowledgeSources` (array of source objects).
+        return [
+            {
+                "kind": "blob",
+                "containerUrl": storage_container_sas_url,
+                "prefix": storage_container_path_prefix,
+            }
+        ]
 
     def _get_headers(self, api_token, x_ms_useragent):
         """Build default HTTP headers for Content Understanding requests.
@@ -164,7 +172,7 @@ class AzureContentUnderstandingHelper:
             training_storage_container_sas_url
             and training_storage_container_path_prefix
         ):  # noqa
-            analyzer_template["trainingData"] = self._get_training_data_config(
+            analyzer_template["knowledgeSources"] = self._get_knowledge_source_config(
                 training_storage_container_sas_url,
                 training_storage_container_path_prefix,
             )
@@ -204,7 +212,11 @@ class AzureContentUnderstandingHelper:
 
     def begin_analyze_stream(self, analyzer_id: str, file_stream: bytes):
         """
-        Begins the analysis of a file or URL using the specified analyzer.
+        Begins the analysis of a binary file stream using the specified analyzer.
+
+        In Content Understanding GA, raw byte uploads must target the
+        ``:analyzeBinary`` action (the ``:analyze`` action is JSON-only and
+        accepts a ``url`` in the request body).
 
         Args:
             analyzer_id (str): The ID of the analyzer to use.
@@ -214,13 +226,14 @@ class AzureContentUnderstandingHelper:
             Response: The response from the analysis request.
 
         Raises:
-            ValueError: If the file location is not a valid path or URL.
             HTTPError: If the HTTP request returned an unsuccessful status code.
         """
         headers = {"Content-Type": "application/octet-stream"}
         headers.update(self._headers)
         response = requests.post(
-            url=self._get_analyze_url(self._endpoint, self._api_version, analyzer_id),
+            url=self._get_analyze_binary_url(
+                self._endpoint, self._api_version, analyzer_id
+            ),
             headers=headers,
             data=file_stream,
         )
@@ -233,6 +246,10 @@ class AzureContentUnderstandingHelper:
         """
         Begins the analysis of a file or URL using the specified analyzer.
 
+        For local files, byte content is uploaded via the GA ``:analyzeBinary``
+        action; for HTTP/HTTPS URLs, the URL is sent as JSON to the ``:analyze``
+        action.
+
         Args:
             analyzer_id (str): The ID of the analyzer to use.
             file_location (str): The path to the file or the URL to analyze.
@@ -244,19 +261,22 @@ class AzureContentUnderstandingHelper:
             ValueError: If the file location is not a valid path or URL.
             HTTPError: If the HTTP request returned an unsuccessful status code.
         """
-        data = None
         if Path(file_location).exists():
             with open(file_location, "rb") as file:
                 data = file.read()
             headers = {"Content-Type": "application/octet-stream"}
+            headers.update(self._headers)
+            response = requests.post(
+                url=self._get_analyze_binary_url(
+                    self._endpoint, self._api_version, analyzer_id
+                ),
+                headers=headers,
+                data=data,
+            )
         elif "https://" in file_location or "http://" in file_location:
             data = {"url": file_location}
             headers = {"Content-Type": "application/json"}
-        else:
-            raise ValueError("File location must be a valid path or URL.")
-
-        headers.update(self._headers)
-        if isinstance(data, dict):
+            headers.update(self._headers)
             response = requests.post(
                 url=self._get_analyze_url(
                     self._endpoint, self._api_version, analyzer_id
@@ -265,13 +285,7 @@ class AzureContentUnderstandingHelper:
                 json=data,
             )
         else:
-            response = requests.post(
-                url=self._get_analyze_url(
-                    self._endpoint, self._api_version, analyzer_id
-                ),
-                headers=headers,
-                data=data,
-            )
+            raise ValueError("File location must be a valid path or URL.")
 
         response.raise_for_status()
         self._logger.info(
@@ -281,13 +295,32 @@ class AzureContentUnderstandingHelper:
 
     def get_image_from_analyze_operation(
         self, analyze_response: Response, image_id: str
-    ):
-        """Retrieves an image from the analyze operation using the image ID.
+    ) -> Optional[bytes]:
+        """Retrieve a rendered page image (JPEG) generated by a completed
+        analyze operation, by its file id / path.
+
+        Although the GA file-retrieval endpoint is generic
+        (``{operationLocation}/files/{fileId}``, replacing the legacy
+        ``{operationLocation}/images/{imageId}``), this helper is intentionally
+        image-specific: it asserts that the returned ``Content-Type`` is
+        ``image/jpeg`` and is only intended for use with JPEG page images
+        produced by the analyzer. Use a different helper if you need to fetch
+        non-image generated files.
+
         Args:
-            analyze_response (Response): The response object from the analyze operation.
-            image_id (str): The ID of the image to retrieve.
+            analyze_response (Response): The response object from the analyze
+                operation (used only to read its ``operation-location`` header).
+            image_id (str): The id (or path) of the image file to retrieve.
+
         Returns:
-            bytes: The image content as a byte string.
+            Optional[bytes]: The JPEG image bytes on success, or ``None`` if
+            the HTTP request fails (the underlying :class:`RequestException`
+            is logged but not re-raised).
+
+        Raises:
+            ValueError: If the analyze response does not contain an
+                ``operation-location`` header.
+            AssertionError: If the retrieved file is not ``image/jpeg``.
         """
         operation_location = analyze_response.headers.get("operation-location", "")
         if not operation_location:
@@ -296,7 +329,7 @@ class AzureContentUnderstandingHelper:
             )
         operation_location = operation_location.split("?api-version")[0]
         image_retrieval_url = (
-            f"{operation_location}/images/{image_id}?api-version={self._api_version}"
+            f"{operation_location}/files/{image_id}?api-version={self._api_version}"
         )
         try:
             response = requests.get(url=image_retrieval_url, headers=self._headers)
@@ -306,7 +339,7 @@ class AzureContentUnderstandingHelper:
 
             return response.content
         except requests.exceptions.RequestException as e:
-            print(f"HTTP request failed: {e}")
+            self._logger.error("HTTP request failed while retrieving image: %s", e)
             return None
 
     def poll_result(
