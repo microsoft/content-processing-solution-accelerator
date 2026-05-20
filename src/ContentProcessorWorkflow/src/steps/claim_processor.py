@@ -34,14 +34,9 @@ from datetime import datetime
 from typing import Any
 
 from agent_framework import (
-    ExecutorCompletedEvent,
-    ExecutorFailedEvent,
-    ExecutorInvokedEvent,
     Workflow,
     WorkflowBuilder,
-    WorkflowFailedEvent,
-    WorkflowOutputEvent,
-    WorkflowStartedEvent,
+    WorkflowEvent,
 )
 from art import text2art
 
@@ -234,9 +229,10 @@ class ClaimProcessor:
 
         try:
             async for event in self.workflow.run_stream(input_data):
-                if isinstance(event, WorkflowStartedEvent):
+                event: WorkflowEvent
+                if event.type == "started":
                     logger.info("Workflow started (%s)", event.origin.value)
-                elif isinstance(event, WorkflowOutputEvent):
+                elif event.type == "output":
                     claim_process_repository = self.app_context.get_service(
                         Claim_Processes
                     )
@@ -244,9 +240,9 @@ class ClaimProcessor:
                         process_id=input_data, new_status=Claim_Steps.COMPLETED
                     )
                     return event.data
-                elif isinstance(event, ExecutorFailedEvent):
+                elif event.type == "executor_failed":
                     last_failed_executor_id = event.executor_id
-                elif isinstance(event, WorkflowFailedEvent):
+                elif event.type == "failed":
                     batch_id = input_data
                     executor_id = (
                         event.details.executor_id
@@ -266,7 +262,7 @@ class ClaimProcessor:
                     )
                     raise WorkflowExecutorFailedException(event.details)
 
-                elif isinstance(event, ExecutorInvokedEvent):
+                elif event.type == "executor_invoked":
                     last_invoked_executor_id = event.executor_id
                     logger.info("\n%s", text2art(event.executor_id.capitalize()))
                     claim_process_repository = self.app_context.get_service(
@@ -287,12 +283,12 @@ class ClaimProcessor:
                         await claim_process_repository.Update_Claim_Process_Status(
                             process_id=input_data, new_status=new_status
                         )
-                elif isinstance(event, ExecutorCompletedEvent):
+                elif event.type == "executor_completed":
                     pass
                 else:
                     pass
 
-            # Stream exhausted without a WorkflowOutputEvent or WorkflowFailedEvent
+            # Stream exhausted without emitting an output or failure event.
             raise WorkflowOutputMissingException(last_invoked_executor_id)
         finally:
             elapsed_seconds = time.perf_counter() - start_perf

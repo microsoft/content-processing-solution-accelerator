@@ -16,7 +16,7 @@ def test_input_observer_middleware_replaces_user_text_when_configured() -> None:
     async def _run() -> None:
         ctx = SimpleNamespace(
             messages=[
-                ChatMessage(role=Role.USER, text="original"),
+                ChatMessage(role=Role.USER, contents=["original"]),
             ]
         )
 

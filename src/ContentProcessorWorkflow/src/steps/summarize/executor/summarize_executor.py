@@ -183,12 +183,14 @@ class SummarizeExecutor(Executor):
         model_response = await agent.run(
             ChatMessage(
                 role="user",
-                text="Now summarize the following document extracts: : \n\n".join(
-                    [
-                        f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
-                        for file in processed_files
-                    ]
-                ),
+                contents=[
+                    "Now summarize the following document extracts: : \n\n".join(
+                        [
+                            f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
+                            for file in processed_files
+                        ]
+                    )
+                ],
             )
         )
 

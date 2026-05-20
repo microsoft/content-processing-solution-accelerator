@@ -182,7 +182,7 @@ class RAIExecutor(Executor):
         model_response = await agent.run(
             ChatMessage(
                 role="user",
-                text=document_text,
+                contents=[document_text],
             )
         )
 

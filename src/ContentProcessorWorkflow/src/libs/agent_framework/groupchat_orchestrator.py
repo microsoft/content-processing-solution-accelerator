@@ -61,7 +61,7 @@ from agent_framework import (
     ManagerSelectionResponse,
     Role,
     Workflow,
-    WorkflowOutputEvent,
+    WorkflowEvent,
 )
 from mem0 import AsyncMemory
 from pydantic import BaseModel, ValidationError
@@ -240,7 +240,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
            iterates over its streaming events.
         2. ``AgentRunUpdateEvent`` → ``_handle_agent_update()`` dispatches
            text chunks and tool-call contents to callbacks.
-        3. ``WorkflowOutputEvent`` captures the final conversation.
+        3. The workflow ``output`` event captures the final conversation.
         4. Safety guards (timeout, max rounds, loop detection) may force
            early termination at any point.
         5. Post-workflow, the ``ResultGenerator`` agent (if configured)
@@ -573,7 +573,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
                b. Check wall-clock timeout (``max_seconds``).
                c. Check round limit (``max_rounds``).
                d. Break on Coordinator termination or forced stop.
-               e. ``WorkflowOutputEvent`` → extract final conversation.
+               e. ``output`` workflow event → extract final conversation.
             5. Backfill tool usage from the final conversation messages.
             6. Determine result path:
                - Forced termination → ``_try_build_forced_result``.
@@ -653,7 +653,8 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
                     # If the Coordinator requested finish=true, stop immediately.
                     if self._termination_requested:
                         break
-                elif isinstance(event, WorkflowOutputEvent):
+                elif event.type == "output":
+                    event: WorkflowEvent
                     # Complete last agent's response before finishing
                     if self._last_executor_id and self._current_agent_response:
                         await self._complete_agent_response(
