@@ -35,9 +35,9 @@ jobs:
         continue-on-error: true
         env:
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set +e
-          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           python infra/scripts/validate_bicep_params.py --dir infra --strict --no-color \
             --json-output infra_results.json \
             --html-output email_body.html \
