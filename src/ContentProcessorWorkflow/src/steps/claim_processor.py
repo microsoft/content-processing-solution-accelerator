@@ -151,7 +151,7 @@ class ClaimProcessor:
         """
 
         workflow = (
-            WorkflowBuilder()
+            WorkflowBuilder(start_executor="document_processing")
             .register_executor(
                 lambda: DocumentProcessExecutor(
                     id="document_processing", app_context=self.app_context
@@ -172,7 +172,6 @@ class ClaimProcessor:
                 lambda: GapExecutor(id="gap_analysis", app_context=self.app_context),
                 name="gap_analysis",
             )
-            .set_start_executor("document_processing")
             # Edges define the execution flow and can include conditions for branching logic.
             # In this case, we conditionally branch to the RAI analysis step based on the
             # application configuration, allowing it to be toggled on/off without code changes.
