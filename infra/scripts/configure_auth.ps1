@@ -8,7 +8,20 @@
 
 $ErrorActionPreference = "Stop"
 
+# Check AZURE_SKIP_AUTH_SETUP from both env var and azd env (if available)
+$skipAuth = $false
 if ($env:AZURE_SKIP_AUTH_SETUP -eq "true") {
+  $skipAuth = $true
+}
+elseif (Get-Command azd -ErrorAction SilentlyContinue) {
+  try {
+    $azdValue = azd env get-value AZURE_SKIP_AUTH_SETUP 2>$null
+    if ($azdValue -eq "true") {
+      $skipAuth = $true
+    }
+  } catch {}
+}
+if ($skipAuth) {
   Write-Host "⏭️  AZURE_SKIP_AUTH_SETUP=true — skipping auth configuration."
   return
 }

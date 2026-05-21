@@ -35,7 +35,17 @@ make_temp_file() {
 }
 
 trap cleanup_temp_files EXIT
-if [[ "${AZURE_SKIP_AUTH_SETUP:-false}" == "true" ]]; then
+
+# Check AZURE_SKIP_AUTH_SETUP from both env var and azd env (if available)
+AZURE_SKIP_AUTH_SETUP_EFFECTIVE="${AZURE_SKIP_AUTH_SETUP:-}"
+if command -v azd >/dev/null 2>&1 && azd env get-values >/dev/null 2>&1; then
+  AZD_ENV_SKIP_AUTH_SETUP="$(azd env get-value AZURE_SKIP_AUTH_SETUP 2>/dev/null || echo "")"
+  if [[ -z "$AZURE_SKIP_AUTH_SETUP_EFFECTIVE" && -n "$AZD_ENV_SKIP_AUTH_SETUP" ]]; then
+    AZURE_SKIP_AUTH_SETUP_EFFECTIVE="$AZD_ENV_SKIP_AUTH_SETUP"
+  fi
+fi
+
+if [[ "${AZURE_SKIP_AUTH_SETUP_EFFECTIVE,,}" == "true" ]]; then
   echo "⏭️  AZURE_SKIP_AUTH_SETUP=true — skipping auth configuration."
   exit 0
 fi
