@@ -37,6 +37,7 @@ from agent_framework import (
     Agent,
     AgentMiddleware,
     ChatMiddleware,
+    ChatOptions,
     ContextProvider,
     HistoryProvider,
     SupportsChatGetResponse,
@@ -483,32 +484,53 @@ class AgentBuilder:
                 async with agent:
                     response = await agent.run("Hello!")
         """
+        # Build default_options from model parameters
+        options: dict[str, Any] = {}
+        if self._frequency_penalty is not None:
+            options["frequency_penalty"] = self._frequency_penalty
+        if self._logit_bias is not None:
+            options["logit_bias"] = self._logit_bias
+        if self._max_tokens is not None:
+            options["max_tokens"] = self._max_tokens
+        if self._metadata is not None:
+            options["metadata"] = self._metadata
+        if self._model_id is not None:
+            options["model"] = self._model_id
+        if self._presence_penalty is not None:
+            options["presence_penalty"] = self._presence_penalty
+        if self._response_format is not None:
+            options["response_format"] = self._response_format
+        if self._seed is not None:
+            options["seed"] = self._seed
+        if self._stop is not None:
+            options["stop"] = self._stop
+        if self._store is not None:
+            options["store"] = self._store
+        if self._temperature is not None:
+            options["temperature"] = self._temperature
+        if self._tool_choice is not None:
+            options["tool_choice"] = self._tool_choice
+        if self._top_p is not None:
+            options["top_p"] = self._top_p
+        if self._user is not None:
+            options["user"] = self._user
+        if self._conversation_id is not None:
+            options["conversation_id"] = self._conversation_id
+        if self._additional_chat_options:
+            options.update(self._additional_chat_options)
+
+        default_options: ChatOptions | None = ChatOptions(**options) if options else None
+
         return Agent(
-            chat_client=self._chat_client,
+            client=self._chat_client,
             instructions=self._instructions,
             id=self._id,
             name=self._name,
             description=self._description,
-            chat_message_store_factory=self._chat_message_store_factory,
-            conversation_id=self._conversation_id,
+            tools=self._tools,
+            default_options=default_options,
             context_providers=self._context_providers,
             middleware=self._middleware,
-            frequency_penalty=self._frequency_penalty,
-            logit_bias=self._logit_bias,
-            max_tokens=self._max_tokens,
-            metadata=self._metadata,
-            model_id=self._model_id,
-            presence_penalty=self._presence_penalty,
-            response_format=self._response_format,
-            seed=self._seed,
-            stop=self._stop,
-            store=self._store,
-            temperature=self._temperature,
-            tool_choice=self._tool_choice,
-            tools=self._tools,
-            top_p=self._top_p,
-            user=self._user,
-            additional_chat_options=self._additional_chat_options,
             **self._kwargs,
         )
 
@@ -814,31 +836,52 @@ class AgentBuilder:
             ``async with`` to ensure proper initialization and cleanup via the Agent's
             async context manager protocol.
         """
+        # Build default_options from model parameters
+        options: dict[str, Any] = {}
+        if frequency_penalty is not None:
+            options["frequency_penalty"] = frequency_penalty
+        if logit_bias is not None:
+            options["logit_bias"] = logit_bias
+        if max_tokens is not None:
+            options["max_tokens"] = max_tokens
+        if metadata is not None:
+            options["metadata"] = metadata
+        if model_id is not None:
+            options["model"] = model_id
+        if presence_penalty is not None:
+            options["presence_penalty"] = presence_penalty
+        if response_format is not None:
+            options["response_format"] = response_format
+        if seed is not None:
+            options["seed"] = seed
+        if stop is not None:
+            options["stop"] = stop
+        if store is not None:
+            options["store"] = store
+        if temperature is not None:
+            options["temperature"] = temperature
+        if tool_choice is not None:
+            options["tool_choice"] = tool_choice
+        if top_p is not None:
+            options["top_p"] = top_p
+        if user is not None:
+            options["user"] = user
+        if conversation_id is not None:
+            options["conversation_id"] = conversation_id
+        if additional_chat_options:
+            options.update(additional_chat_options)
+
+        default_options: ChatOptions | None = ChatOptions(**options) if options else None
+
         return Agent(
-            chat_client=chat_client,
+            client=chat_client,
             instructions=instructions,
             id=id,
             name=name,
             description=description,
-            chat_message_store_factory=chat_message_store_factory,
-            conversation_id=conversation_id,
+            tools=tools,
+            default_options=default_options,
             context_providers=context_providers,
             middleware=middleware,
-            frequency_penalty=frequency_penalty,
-            logit_bias=logit_bias,
-            max_tokens=max_tokens,
-            metadata=metadata,
-            model_id=model_id,
-            presence_penalty=presence_penalty,
-            response_format=response_format,
-            seed=seed,
-            stop=stop,
-            store=store,
-            temperature=temperature,
-            tool_choice=tool_choice,
-            tools=tools,
-            top_p=top_p,
-            user=user,
-            additional_chat_options=additional_chat_options,
             **kwargs,
         )

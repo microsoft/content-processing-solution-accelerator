@@ -54,6 +54,7 @@ from typing import Any, Awaitable, Callable, Generic, Mapping, Sequence, TypeVar
 from agent_framework import (
     Agent,
     AgentResponseUpdate,
+    ChatOptions,
     Executor,
     Message,
     Role,
@@ -1284,9 +1285,10 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
         ]
 
         return (
-            GroupChatBuilder()
-            .with_agent_orchestrator(agent=coordinator)
-            .participants(participants)
+            GroupChatBuilder(
+                orchestrator_agent=coordinator,
+                participants=participants,
+            )
             .build()
         )
 
@@ -1333,7 +1335,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
 
         result = await result_generator.run(
             final_conversation,
-            response_format=result_format,
+            options=ChatOptions(response_format=result_format),
         )
 
         text = result.messages[-1].text
@@ -1366,7 +1368,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
             )
             retry_result = await result_generator.run(
                 retry_conversation,
-                response_format=result_format,
+                options=ChatOptions(response_format=result_format),
             )
             retry_text = retry_result.messages[-1].text
             retry_json_payload = self._extract_first_json_payload(retry_text)
