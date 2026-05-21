@@ -150,7 +150,6 @@ class ClaimProcessor:
             The built workflow ready to execute.
         """
 
-        # Create executor instances
         document_processing = DocumentProcessExecutor(
             id="document_processing", app_context=self.app_context
         )
@@ -160,16 +159,12 @@ class ClaimProcessor:
 
         workflow = (
             WorkflowBuilder(start_executor=document_processing)
-            # Edges define the execution flow and can include conditions for branching logic.
-            # In this case, we conditionally branch to the RAI analysis step based on the
-            # application configuration, allowing it to be toggled on/off without code changes.
             .add_edge(
                 source=document_processing,
                 target=rai_analysis,
                 condition=lambda _: self.app_context.configuration.app_rai_enabled,
             )
             .add_edge(source=rai_analysis, target=summarizing)
-            # If RAI analysis is disabled, the summarizing step will execute immediately after document processing
             .add_edge(
                 source=document_processing,
                 target=summarizing,
@@ -275,7 +270,7 @@ class ClaimProcessor:
                 else:
                     pass
 
-            # Stream exhausted without emitting an output or failure event.
+            # Stream exhausted without a WorkflowOutputEvent or WorkflowFailedEvent
             raise WorkflowOutputMissingException(last_invoked_executor_id)
         finally:
             elapsed_seconds = time.perf_counter() - start_perf

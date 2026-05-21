@@ -11,7 +11,7 @@ from libs.agent_framework.agent_builder import AgentBuilder
 
 
 def _fake_chat_client():
-    """Return a minimal mock implementing SupportsChatGetResponse."""
+    """Return a minimal mock implementing ChatClientProtocol."""
     return MagicMock()
 
 

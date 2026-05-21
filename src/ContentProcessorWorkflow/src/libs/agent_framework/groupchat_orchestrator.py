@@ -4,7 +4,7 @@
 """
 GroupChat Orchestrator with Generic Type Support.
 
-This module is the execution engine for multi-agent GroupChat workflows. It
+This module is the execution engine for multi-agent GroupChat workflows.  It
 provides ``GroupChatOrchestrator[TInput, TOutput]``, an abstract base class that:
 
 - Runs a ``GroupChatBuilder``-based workflow with streaming event handling.
@@ -20,7 +20,7 @@ Architecture overview:
     1. Subclass ``GroupChatOrchestrator`` and implement ``_build_groupchat()``
        (or accept the default which uses ``GroupChatBuilder``).
     2. Call ``await orchestrator.run_stream(input_data, callbacks...)``.
-    3. The orchestrator streams ``AgentResponseUpdate`` instances, dispatching
+    3. The orchestrator streams ``AgentRunUpdateEvent`` instances, dispatching
        them to ``on_agent_response`` / ``on_agent_response_stream`` callbacks.
     4. After the workflow completes (or is forcibly terminated), a
        ``ResultGenerator`` agent may produce a structured ``TOutput``.
@@ -37,7 +37,7 @@ Termination hierarchy (highest to lowest priority):
     2. **Hard round limit** — ``max_rounds`` agent responses reached.
     3. **Loop detection** — Coordinator repeats the same selection 3× with no
        progress from other agents.
-    4. **Coordinator finish** — Coordinator emits a validated manager selection payload
+    4. **Coordinator finish** — Coordinator emits ``ManagerSelectionResponse``
        with ``finish=True`` (only accepted after SIGN-OFF validation for
        ``instruction="complete"``).
 """
@@ -150,7 +150,7 @@ class OrchestrationResult(Generic[TOutput]):
 
     Fields:
         success: ``True`` if the workflow completed without unhandled exceptions.
-        conversation: Full ``Message`` list from the GroupChat.
+        conversation: Full ``ChatMessage`` list from the GroupChat.
         agent_responses: Ordered list of ``AgentResponse`` objects.
         tool_usage: ``{agent_name: [tool_call_dict, ...]}`` mapping.
         result: Typed ``TOutput`` from the ResultGenerator (or ``None``).
@@ -238,7 +238,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
     """Abstract base class for type-safe GroupChat workflow orchestration.
 
     Subclasses must provide:
-        - A set of pre-created ``Agent`` instances (including the
+        - A set of pre-created ``ChatAgent`` instances (including the
           Coordinator and optionally a ResultGenerator).
         - Optionally override ``_build_groupchat()`` for custom topology,
           ``get_result_generator_name()`` for a non-default result agent,
@@ -247,9 +247,9 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
     Runtime behaviour:
         1. ``run_stream(input_data)`` builds a ``GroupChat`` workflow and
            iterates over its streaming events.
-        2. ``AgentResponseUpdate`` → ``_handle_agent_update()`` dispatches
+        2. ``AgentRunUpdateEvent`` → ``_handle_agent_update()`` dispatches
            text chunks and tool-call contents to callbacks.
-        3. The workflow ``output`` event captures the final conversation.
+        3. ``WorkflowOutputEvent`` captures the final conversation.
         4. Safety guards (timeout, max rounds, loop detection) may force
            early termination at any point.
         5. Post-workflow, the ``ResultGenerator`` agent (if configured)
@@ -578,11 +578,11 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
             2. Ensure agents are initialized (``initialize()``).
             3. Build the ``GroupChat`` workflow via ``_build_groupchat()``.
             4. Stream events from the workflow:
-               a. ``AgentResponseUpdate`` → ``_handle_agent_update()``.
+               a. ``AgentRunUpdateEvent`` → ``_handle_agent_update()``.
                b. Check wall-clock timeout (``max_seconds``).
                c. Check round limit (``max_rounds``).
                d. Break on Coordinator termination or forced stop.
-               e. ``output`` workflow event → extract final conversation.
+               e. ``WorkflowOutputEvent`` → extract final conversation.
             5. Backfill tool usage from the final conversation messages.
             6. Determine result path:
                - Forced termination → ``_try_build_forced_result``.
@@ -680,8 +680,8 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
                         self._conversation = conversation  # Update instance variable
 
             # Backfill tool usage from the final conversation (more reliable than streaming updates)
-            # AgentResponseUpdate may stream text only; tool calls are represented as FunctionCallContent
-            # items inside Message.contents.
+            # AgentRunUpdateEvent may stream text only; tool calls are represented as FunctionCallContent
+            # items inside ChatMessage.contents.
             self._backfill_tool_usage_from_conversation(conversation)
 
             # Post-workflow analysis (optional)
@@ -1152,7 +1152,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
             self._progress_counter += 1
 
         # Detect manager termination signal (finish=true) from Coordinator.
-        # NOTE: The underlying group chat builder does not automatically stop on finish,
+        # NOTE: The underlying GroupChatBuilder does not automatically stop on finish,
         # so we enforce it here.
         if agent_name == self.coordinator_name:
             try:
@@ -1449,7 +1449,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
             keep_tail_chars: Characters to preserve from each message’s end.
 
         Returns:
-            A list of (possibly truncated) ``Message`` objects in
+            A list of (possibly truncated) ``ChatMessage`` objects in
             chronological order.
         """
         exclude = {a.lower() for a in (exclude_authors or set())}

@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 class DebuggingMiddleware(AgentMiddleware):
     """Run-level debugging middleware that prints diagnostic info.
 
-    Intercepts the ``AgentContext`` before the agent executes and prints:
+    Intercepts the ``AgentRunContext`` before the agent executes and prints:
         - Total message count in the context.
         - Whether the run is streaming.
         - Any pre-existing metadata.

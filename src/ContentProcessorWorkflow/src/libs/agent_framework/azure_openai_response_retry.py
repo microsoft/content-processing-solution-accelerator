@@ -199,7 +199,7 @@ def _estimate_message_text(message: Any) -> str:
 def _get_message_role(message: Any) -> str | None:
     """Extract message role as a plain string.
 
-    Handles both dict messages and agent_framework Message objects
+    Handles both dict messages and agent_framework ChatMessage objects
     whose ``role`` attribute is a ``Role`` enum with a ``.value`` string.
     """
     if message is None:
@@ -225,7 +225,7 @@ def _set_message_text(message: Any, new_text: str) -> Any:
 
     Handles three message shapes:
     - dict messages: shallow-copies the dict with content/text updated.
-    - agent_framework ``Message`` objects whose ``.contents`` is a list
+    - agent_framework ``ChatMessage`` objects whose ``.contents`` is a list
       of content items with settable ``.text`` attributes.
     - Generic objects with a settable ``.content`` or ``.text`` attribute.
     """
@@ -241,12 +241,15 @@ def _set_message_text(message: Any, new_text: str) -> Any:
             out["content"] = new_text
         return out
 
-    # agent_framework Message: .text is read-only, but .contents is a
-    # mutable list of content items (Content objects).
-    # Replace all items with a single Content carrying the truncated text.
+    # agent_framework ChatMessage: .text is read-only, but .contents is a
+    # mutable list of content items (TextContent, DataContent, etc.).
+    # Replace all text-type items with a single TextContent carrying the
+    # truncated text.
     contents = getattr(message, "contents", None)
     if isinstance(contents, list):
         try:
+            # Dynamically import TextContent to avoid a hard dependency on
+            # a specific agent_framework version.
             from agent_framework._types import Content
 
             message.contents = [Content.from_text(new_text)]
@@ -599,7 +602,7 @@ class AzureOpenAIChatClientWithRetry(OpenAIChatCompletionClient):
     """Azure OpenAI Chat client with 429 retry at the request boundary.
 
     This wraps the underlying chat-completions call used by Agent Framework by overriding
-    the internal `_inner_get_response` method.
+    the internal `_inner_get_response` / `_inner_get_streaming_response` methods.
     """
 
     def __init__(

@@ -68,8 +68,7 @@ class AgentSpeakingCaptureMiddleware(AgentMiddleware):
         # Without callback (store only)
         capture_middleware = AgentSpeakingCaptureMiddleware()
 
-        agent = Agent(
-            client=client,
+        agent = client.create_agent(
             name="MyAgent",
             middleware=[capture_middleware],
             ...

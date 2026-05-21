@@ -4,7 +4,7 @@
 """Declarative agent metadata with Jinja2 template rendering.
 
 Used to define agent configuration (name, prompts, tools, type) that
-can be rendered with runtime context before constructing an Agent.
+can be rendered with runtime context before constructing a ChatAgent.
 """
 
 from typing import Any, Callable, MutableMapping, Sequence

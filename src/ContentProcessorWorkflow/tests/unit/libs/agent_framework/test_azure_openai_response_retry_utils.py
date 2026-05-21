@@ -96,22 +96,22 @@ def test_trim_messages_keeps_system_and_tails_and_truncates_long_messages() -> N
 
 
 # ---------------------------------------------------------------------------
-# Message-aware helper tests
+# ChatMessage-aware helper tests
 # ---------------------------------------------------------------------------
 
 
 class TestGetMessageRole:
-    """Verify _get_message_role handles both dict and Message objects."""
+    """Verify _get_message_role handles both dict and ChatMessage objects."""
 
     def test_dict_message(self) -> None:
         assert _get_message_role({"role": "system", "content": "hi"}) == "system"
         assert _get_message_role({"role": "user", "content": "hi"}) == "user"
 
-    def test_message_system(self) -> None:
+    def test_chatmessage_system(self) -> None:
         m = Message(role="system", contents=["sys prompt"])
         assert _get_message_role(m) == "system"
 
-    def test_message_user(self) -> None:
+    def test_chatmessage_user(self) -> None:
         m = Message(role="user", contents=["user msg"])
         assert _get_message_role(m) == "user"
 
@@ -120,30 +120,30 @@ class TestGetMessageRole:
 
 
 class TestEstimateMessageText:
-    """Verify _estimate_message_text extracts text from Message objects."""
+    """Verify _estimate_message_text extracts text from ChatMessage objects."""
 
     def test_dict_content(self) -> None:
         assert _estimate_message_text({"content": "hello"}) == "hello"
 
-    def test_message_text(self) -> None:
+    def test_chatmessage_text(self) -> None:
         m = Message(role="user", contents=["hello world"])
         assert _estimate_message_text(m) == "hello world"
 
-    def test_message_large_text(self) -> None:
+    def test_chatmessage_large_text(self) -> None:
         big = "X" * 290_000
         m = Message(role="user", contents=[big])
         assert len(_estimate_message_text(m)) == 290_000
 
 
 class TestSetMessageText:
-    """Verify _set_message_text mutates Message objects correctly."""
+    """Verify _set_message_text mutates ChatMessage objects correctly."""
 
     def test_dict_message(self) -> None:
         m = {"role": "user", "content": "old"}
         result = _set_message_text(m, "new")
         assert result["content"] == "new"
 
-    def test_message_replaces_contents(self) -> None:
+    def test_chatmessage_replaces_contents(self) -> None:
         m = Message(role="user", contents=["A" * 100_000])
         result = _set_message_text(m, "truncated")
         assert result.text == "truncated"
@@ -151,10 +151,10 @@ class TestSetMessageText:
         assert isinstance(result.contents[0], Content)
 
 
-class TestTrimMessagesWithMessage:
-    """Integration tests for _trim_messages with Message objects.
+class TestTrimMessagesWithChatMessage:
+    """Integration tests for _trim_messages with ChatMessage objects.
 
-    These reproduce the exact bug scenario from production: 2 Message
+    These reproduce the exact bug scenario from production: 2 ChatMessage
     objects totalling ~290K chars were trimmed to 0 messages.
     """
 

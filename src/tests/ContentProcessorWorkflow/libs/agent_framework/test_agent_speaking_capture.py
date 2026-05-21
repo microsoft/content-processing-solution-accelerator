@@ -19,7 +19,7 @@ def _make_context(
     is_streaming: bool = False,
     result_text: str = "Hello",
 ):
-    """Build a minimal AgentContext-like namespace."""
+    """Build a minimal AgentRunContext-like namespace."""
     agent = SimpleNamespace(name=agent_name)
     result_msg = SimpleNamespace(text=result_text)
     result = SimpleNamespace(messages=[result_msg], text=result_text)
