@@ -142,7 +142,7 @@ class GapExecutor(Executor):
                 )
             )
 
-            await ctx.set_state("workflow_output", result)
+            ctx.set_state("workflow_output", result)
             await ctx.yield_output(result)
             return
 
@@ -205,7 +205,7 @@ class GapExecutor(Executor):
             Executor_Output(step_name="gap_analysis", output_data=gap_result)
         )
 
-        await ctx.set_state("workflow_output", result)
+        ctx.set_state("workflow_output", result)
         await ctx.yield_output(result)
 
     async def fetch_processed_result(self, process_id: str) -> dict | None:

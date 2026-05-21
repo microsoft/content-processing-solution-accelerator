@@ -85,7 +85,7 @@ class TestFluentBuilder:
         call_kwargs = mock_chat_agent.call_args
         assert call_kwargs.kwargs["name"] == "Bot"
         assert call_kwargs.kwargs["instructions"] == "Do stuff"
-        assert call_kwargs.kwargs["temperature"] == 0.5
+        assert call_kwargs.kwargs["default_options"]["temperature"] == 0.5
 
 
 # ── Static factory ───────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ class TestStaticFactory:
         assert agent == "agent_instance"
         call_kwargs = mock_chat_agent.call_args
         assert call_kwargs.kwargs["name"] == "Bot"
-        assert call_kwargs.kwargs["temperature"] == 0.3
+        assert call_kwargs.kwargs["default_options"]["temperature"] == 0.3
 
 
 # ── with_kwargs ──────────────────────────────────────────────────────────────

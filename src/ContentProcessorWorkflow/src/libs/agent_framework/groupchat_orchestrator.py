@@ -1042,7 +1042,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
         for msg in conversation:
             try:
                 role = getattr(msg, "role", None)
-                if role != Role.ASSISTANT:
+                if role != "assistant":
                     continue
 
                 agent_name = getattr(msg, "author_name", None) or "assistant"

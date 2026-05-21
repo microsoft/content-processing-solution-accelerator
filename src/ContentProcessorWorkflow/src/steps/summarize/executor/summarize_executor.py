@@ -123,7 +123,7 @@ class SummarizeExecutor(Executor):
                 Executor_Output(step_name="summarizing", output_data=summarized_result)
             )
 
-            await ctx.set_state("workflow_output", result)
+            ctx.set_state("workflow_output", result)
             await ctx.send_message(result)
             return
 
@@ -204,7 +204,7 @@ class SummarizeExecutor(Executor):
             Executor_Output(step_name="summarizing", output_data=summarized_result)
         )
 
-        await ctx.set_state("workflow_output", result)
+        ctx.set_state("workflow_output", result)
         await ctx.send_message(result)
 
     async def fetch_processed_steps_result(self, process_id: str) -> dict | None:

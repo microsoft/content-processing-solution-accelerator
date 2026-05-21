@@ -242,19 +242,14 @@ def _set_message_text(message: Any, new_text: str) -> Any:
         return out
 
     # agent_framework Message: .text is read-only, but .contents is a
-    # mutable list of content items (TextContent, DataContent, etc.).
-    # Replace all text-type items with a single TextContent carrying the
-    # truncated text.
+    # mutable list of content items (Content objects).
+    # Replace all items with a single Content carrying the truncated text.
     contents = getattr(message, "contents", None)
     if isinstance(contents, list):
         try:
-            # Dynamically import TextContent to avoid a hard dependency on
-            # a specific agent_framework version.
-            from agent_framework._types import (
-                TextContent,  # type: ignore[import-untyped]
-            )
+            from agent_framework._types import Content
 
-            message.contents = [TextContent(text=new_text)]
+            message.contents = [Content.from_text(new_text)]
             return message
         except Exception:
             # If import or mutation fails, try the generic path below.

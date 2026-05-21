@@ -241,7 +241,7 @@ class InputObserverMiddleware(ChatMiddleware):
 
         for i, message in enumerate(context.messages):
             content = message.text if message.text else str(message.contents)
-            logger.debug("  Message %d (%s): %s", i + 1, message.role.value, content)
+            logger.debug("  Message %d (%s): %s", i + 1, message.role, content)
 
         logger.debug(
             "[InputObserverMiddleware] Total messages: %d", len(context.messages)
@@ -252,7 +252,7 @@ class InputObserverMiddleware(ChatMiddleware):
         modified_count = 0
 
         for message in context.messages:
-            if message.role == Role.USER and message.text:
+            if message.role == "user" and message.text:
                 original_text = message.text
                 updated_text = original_text
 

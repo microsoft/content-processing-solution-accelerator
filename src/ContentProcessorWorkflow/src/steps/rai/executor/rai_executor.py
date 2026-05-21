@@ -118,7 +118,7 @@ class RAIExecutor(Executor):
                 Executor_Output(step_name="rai_analysis", output_data=rai_result)
             )
 
-            await ctx.set_state("workflow_output", result)
+            ctx.set_state("workflow_output", result)
             await ctx.send_message(result)
             return
 
