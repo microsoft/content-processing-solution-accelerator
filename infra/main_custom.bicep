@@ -365,6 +365,8 @@ module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-confi
 
 var dataCollectionRulesResourceName = 'dcr-${solutionSuffix}'
 var dataCollectionRulesLocation = logAnalyticsWorkspace!.outputs.location
+var logAnalyticsWorkspaceResourceName = 'log-${solutionSuffix}'
+var dcrLogAnalyticsDestinationName = 'la-${logAnalyticsWorkspaceResourceName}-destination'
 module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
   name: take('avm.res.insights.data-collection-rule.${dataCollectionRulesResourceName}', 64)
   params: {
@@ -436,19 +438,10 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
           {
             name: 'SecurityAuditEvents'
             streams: [
-              'Microsoft-WindowsEvent'
-            ]
-            eventLogName: 'Security'
-            eventTypes: [
-              {
-                eventType: 'Audit Success'
-              }
-              {
-                eventType: 'Audit Failure'
-              }
+              'Microsoft-Event'
             ]
             xPathQueries: [
-              'Security!*[System[(EventID=4624 or EventID=4625)]]'
+              'Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]'
             ]
           }
         ]
@@ -457,7 +450,7 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
         logAnalytics: [
           {
             workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-            name: 'la-${dataCollectionRulesResourceName}'
+            name: dcrLogAnalyticsDestinationName
           }
         ]
       }
@@ -467,10 +460,20 @@ module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-
             'Microsoft-Perf'
           ]
           destinations: [
-            'la-${dataCollectionRulesResourceName}'
+            dcrLogAnalyticsDestinationName
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
+        }
+        {
+          streams: [
+            'Microsoft-Event'
+          ]
+          destinations: [
+            dcrLogAnalyticsDestinationName
+          ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Event'
         }
       ]
     }
@@ -520,7 +523,7 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
 module logAnalyticsWorkspace 'modules/log-analytics-workspace.bicep' = if (enableMonitoring) {
   name: take('module.log-analytics-workspace.${solutionSuffix}', 64)
   params: {
-    name: 'log-${solutionSuffix}'
+    name: logAnalyticsWorkspaceResourceName
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -657,6 +660,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
       defaultAction: (enablePrivateNetworking) ? 'Deny' : 'Allow'
       ipRules: []
     }
+    requireInfrastructureEncryption: true
     supportsHttpsTrafficOnly: true
     accessTier: 'Hot'
     tags: tags
@@ -1061,6 +1065,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     ingressExternal: true
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
+    ingressAllowInsecure: false
     corsPolicy: {
       allowedOrigins: [
         '*'
@@ -1107,6 +1112,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     ingressTargetPort: 3000
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
+    ingressAllowInsecure: false
     scaleSettings: {
       maxReplicas: enableScalability ? 3 : 2
       minReplicas: enableScalability ? 2 : 1
@@ -1756,6 +1762,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
     ingressExternal: true
     activeRevisionsMode: 'Single'
     ingressTransport: 'auto'
+    ingressAllowInsecure: false
     corsPolicy: {
       allowedOrigins: [
         '*'
