@@ -33,13 +33,13 @@ import time
 from collections.abc import Awaitable, Callable
 
 from agent_framework import (
+    AgentContext,
     AgentMiddleware,
-    AgentRunContext,
     ChatContext,
-    ChatMessage,
     ChatMiddleware,
     FunctionInvocationContext,
     FunctionMiddleware,
+    Message,
     Role,
 )
 
@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 class DebuggingMiddleware(AgentMiddleware):
     """Run-level debugging middleware that prints diagnostic info.
 
-    Intercepts the ``AgentRunContext`` before the agent executes and prints:
+    Intercepts the ``AgentContext`` before the agent executes and prints:
         - Total message count in the context.
         - Whether the run is streaming.
         - Any pre-existing metadata.
@@ -61,8 +61,8 @@ class DebuggingMiddleware(AgentMiddleware):
 
     async def process(
         self,
-        context: AgentRunContext,
-        next: Callable[[AgentRunContext], Awaitable[None]],
+        context: AgentContext,
+        next: Callable[[AgentContext], Awaitable[None]],
     ) -> None:
         """Print run diagnostics, inject debug flag, and delegate to next.
 
@@ -248,7 +248,7 @@ class InputObserverMiddleware(ChatMiddleware):
         )
 
         # Modify user messages by creating new messages with enhanced text
-        modified_messages: list[ChatMessage] = []
+        modified_messages: list[Message] = []
         modified_count = 0
 
         for message in context.messages:
@@ -264,7 +264,7 @@ class InputObserverMiddleware(ChatMiddleware):
                         updated_text,
                     )
 
-                modified_message = ChatMessage(
+                modified_message = Message(
                     role=message.role, contents=[updated_text]
                 )
                 modified_messages.append(modified_message)

@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-from agent_framework import ChatMessage, Role
+from agent_framework import Message, Role
 
 from libs.agent_framework.middlewares import InputObserverMiddleware
 
@@ -16,7 +16,7 @@ def test_input_observer_middleware_replaces_user_text_when_configured() -> None:
     async def _run() -> None:
         ctx = SimpleNamespace(
             messages=[
-                ChatMessage(role=Role.USER, contents=["original"]),
+                Message(role=Role.USER, contents=["original"]),
             ]
         )
 

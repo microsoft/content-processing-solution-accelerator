@@ -5,7 +5,7 @@ from __future__ import annotations
 """Unit tests for Azure OpenAI response retry utilities."""
 
 import pytest
-from agent_framework import ChatMessage
+from agent_framework import Message
 from agent_framework._types import TextContent
 
 from libs.agent_framework.azure_openai_response_retry import (
@@ -96,23 +96,23 @@ def test_trim_messages_keeps_system_and_tails_and_truncates_long_messages() -> N
 
 
 # ---------------------------------------------------------------------------
-# ChatMessage-aware helper tests
+# Message-aware helper tests
 # ---------------------------------------------------------------------------
 
 
 class TestGetMessageRole:
-    """Verify _get_message_role handles both dict and ChatMessage objects."""
+    """Verify _get_message_role handles both dict and Message objects."""
 
     def test_dict_message(self) -> None:
         assert _get_message_role({"role": "system", "content": "hi"}) == "system"
         assert _get_message_role({"role": "user", "content": "hi"}) == "user"
 
-    def test_chatmessage_system(self) -> None:
-        m = ChatMessage(role="system", contents=["sys prompt"])
+    def test_message_system(self) -> None:
+        m = Message(role="system", contents=["sys prompt"])
         assert _get_message_role(m) == "system"
 
-    def test_chatmessage_user(self) -> None:
-        m = ChatMessage(role="user", contents=["user msg"])
+    def test_message_user(self) -> None:
+        m = Message(role="user", contents=["user msg"])
         assert _get_message_role(m) == "user"
 
     def test_none_returns_none(self) -> None:
@@ -120,41 +120,41 @@ class TestGetMessageRole:
 
 
 class TestEstimateMessageText:
-    """Verify _estimate_message_text extracts text from ChatMessage objects."""
+    """Verify _estimate_message_text extracts text from Message objects."""
 
     def test_dict_content(self) -> None:
         assert _estimate_message_text({"content": "hello"}) == "hello"
 
-    def test_chatmessage_text(self) -> None:
-        m = ChatMessage(role="user", contents=["hello world"])
+    def test_message_text(self) -> None:
+        m = Message(role="user", contents=["hello world"])
         assert _estimate_message_text(m) == "hello world"
 
-    def test_chatmessage_large_text(self) -> None:
+    def test_message_large_text(self) -> None:
         big = "X" * 290_000
-        m = ChatMessage(role="user", contents=[big])
+        m = Message(role="user", contents=[big])
         assert len(_estimate_message_text(m)) == 290_000
 
 
 class TestSetMessageText:
-    """Verify _set_message_text mutates ChatMessage objects correctly."""
+    """Verify _set_message_text mutates Message objects correctly."""
 
     def test_dict_message(self) -> None:
         m = {"role": "user", "content": "old"}
         result = _set_message_text(m, "new")
         assert result["content"] == "new"
 
-    def test_chatmessage_replaces_contents(self) -> None:
-        m = ChatMessage(role="user", contents=["A" * 100_000])
+    def test_message_replaces_contents(self) -> None:
+        m = Message(role="user", contents=["A" * 100_000])
         result = _set_message_text(m, "truncated")
         assert result.text == "truncated"
         assert len(result.contents) == 1
         assert isinstance(result.contents[0], TextContent)
 
 
-class TestTrimMessagesWithChatMessage:
-    """Integration tests for _trim_messages with ChatMessage objects.
+class TestTrimMessagesWithMessage:
+    """Integration tests for _trim_messages with Message objects.
 
-    These reproduce the exact bug scenario from production: 2 ChatMessage
+    These reproduce the exact bug scenario from production: 2 Message
     objects totalling ~290K chars were trimmed to 0 messages.
     """
 
@@ -175,8 +175,8 @@ class TestTrimMessagesWithChatMessage:
     def test_never_returns_empty_list(self, tight_cfg: ContextTrimConfig) -> None:
         """Core regression: _trim_messages must never return an empty list."""
         messages = [
-            ChatMessage(role="system", contents=["S" * 5_000]),
-            ChatMessage(role="user", contents=["U" * 285_000]),
+            Message(role="system", contents=["S" * 5_000]),
+            Message(role="user", contents=["U" * 285_000]),
         ]
         result = _trim_messages(messages, cfg=tight_cfg)
         assert len(result) >= 1, "trim must never drop all messages"
@@ -184,8 +184,8 @@ class TestTrimMessagesWithChatMessage:
     def test_system_message_preserved(self, tight_cfg: ContextTrimConfig) -> None:
         """System message must be kept even when non-system messages are dropped."""
         messages = [
-            ChatMessage(role="system", contents=["System instructions"]),
-            ChatMessage(role="user", contents=["U" * 285_000]),
+            Message(role="system", contents=["System instructions"]),
+            Message(role="user", contents=["U" * 285_000]),
         ]
         result = _trim_messages(messages, cfg=tight_cfg)
         assert _get_message_role(result[0]) == "system"
@@ -193,8 +193,8 @@ class TestTrimMessagesWithChatMessage:
     def test_truncation_respects_budget(self, tight_cfg: ContextTrimConfig) -> None:
         """After trimming, total chars must not exceed max_total_chars."""
         messages = [
-            ChatMessage(role="system", contents=["S" * 5_000]),
-            ChatMessage(role="user", contents=["U" * 285_000]),
+            Message(role="system", contents=["S" * 5_000]),
+            Message(role="user", contents=["U" * 285_000]),
         ]
         result = _trim_messages(messages, cfg=tight_cfg)
         total = sum(len(_estimate_message_text(m)) for m in result)
@@ -202,7 +202,7 @@ class TestTrimMessagesWithChatMessage:
 
     def test_single_huge_message(self, tight_cfg: ContextTrimConfig) -> None:
         """A single message exceeding the budget is truncated, not dropped."""
-        messages = [ChatMessage(role="user", contents=["X" * 500_000])]
+        messages = [Message(role="user", contents=["X" * 500_000])]
         result = _trim_messages(messages, cfg=tight_cfg)
         assert len(result) == 1
         assert len(_estimate_message_text(result[0])) <= tight_cfg.max_total_chars
@@ -220,8 +220,8 @@ class TestTrimMessagesWithChatMessage:
             retry_on_context_error=True,
         )
         messages = [
-            ChatMessage(role="system", contents=["S" * 5_607]),
-            ChatMessage(role="user", contents=["U" * 285_000]),
+            Message(role="system", contents=["S" * 5_607]),
+            Message(role="user", contents=["U" * 285_000]),
         ]
         result = _trim_messages(messages, cfg=cfg)
         assert len(result) >= 1, "must keep at least 1 message"
@@ -232,8 +232,8 @@ class TestTrimMessagesWithChatMessage:
         """With new defaults (800K budget), 290K input passes without trimming."""
         cfg = ContextTrimConfig.from_env()
         messages = [
-            ChatMessage(role="system", contents=["S" * 5_607]),
-            ChatMessage(role="user", contents=["U" * 285_000]),
+            Message(role="system", contents=["S" * 5_607]),
+            Message(role="user", contents=["U" * 285_000]),
         ]
         result = _trim_messages(messages, cfg=cfg)
         # 290K < 800K, so no trimming should occur; all messages kept intact.

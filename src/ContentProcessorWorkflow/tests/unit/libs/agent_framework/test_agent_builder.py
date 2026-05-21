@@ -11,7 +11,7 @@ from libs.agent_framework.agent_builder import AgentBuilder
 
 
 def _fake_chat_client():
-    """Return a minimal mock implementing ChatClientProtocol."""
+    """Return a minimal mock implementing SupportsChatGetResponse."""
     return MagicMock()
 
 
@@ -67,7 +67,7 @@ class TestFluentBuilder:
         assert builder._store is True
         assert builder._conversation_id == "conv-1"
 
-    @patch("libs.agent_framework.agent_builder.ChatAgent")
+    @patch("libs.agent_framework.agent_builder.Agent")
     def test_build_delegates_to_chat_agent(self, mock_chat_agent):
         client = _fake_chat_client()
         mock_chat_agent.return_value = "agent_instance"
@@ -92,7 +92,7 @@ class TestFluentBuilder:
 
 
 class TestStaticFactory:
-    @patch("libs.agent_framework.agent_builder.ChatAgent")
+    @patch("libs.agent_framework.agent_builder.Agent")
     def test_create_agent_delegates_to_chat_agent(self, mock_chat_agent):
         client = _fake_chat_client()
         mock_chat_agent.return_value = "agent_instance"
@@ -114,7 +114,7 @@ class TestStaticFactory:
 
 
 class TestWithKwargs:
-    @patch("libs.agent_framework.agent_builder.ChatAgent")
+    @patch("libs.agent_framework.agent_builder.Agent")
     def test_extra_kwargs_forwarded(self, mock_chat_agent):
         client = _fake_chat_client()
         mock_chat_agent.return_value = "agent_instance"

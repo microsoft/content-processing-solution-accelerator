@@ -200,7 +200,7 @@ def _estimate_message_text(message: Any) -> str:
 def _get_message_role(message: Any) -> str | None:
     """Extract message role as a plain string.
 
-    Handles both dict messages and agent_framework ChatMessage objects
+    Handles both dict messages and agent_framework Message objects
     whose ``role`` attribute is a ``Role`` enum with a ``.value`` string.
     """
     if message is None:
@@ -226,7 +226,7 @@ def _set_message_text(message: Any, new_text: str) -> Any:
 
     Handles three message shapes:
     - dict messages: shallow-copies the dict with content/text updated.
-    - agent_framework ``ChatMessage`` objects whose ``.contents`` is a list
+    - agent_framework ``Message`` objects whose ``.contents`` is a list
       of content items with settable ``.text`` attributes.
     - Generic objects with a settable ``.content`` or ``.text`` attribute.
     """
@@ -242,7 +242,7 @@ def _set_message_text(message: Any, new_text: str) -> Any:
             out["content"] = new_text
         return out
 
-    # agent_framework ChatMessage: .text is read-only, but .contents is a
+    # agent_framework Message: .text is read-only, but .contents is a
     # mutable list of content items (TextContent, DataContent, etc.).
     # Replace all text-type items with a single TextContent carrying the
     # truncated text.

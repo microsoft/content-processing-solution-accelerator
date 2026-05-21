@@ -9,7 +9,7 @@ domain, providing:
 Modules
 -------
 agent_builder
-    Fluent builder and static factories for creating ``ChatAgent`` instances with
+    Fluent builder and static factories for creating ``Agent`` instances with
     chainable configuration (tools, temperature, middleware, etc.).
 agent_framework_helper
     Client factory that initializes and caches Azure OpenAI / Response / Assistant /

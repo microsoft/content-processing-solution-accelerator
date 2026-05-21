@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Fluent builder API for constructing Agent Framework ChatAgent instances.
+"""Fluent builder API for constructing Agent Framework Agent instances.
 
 Provides a chainable ``AgentBuilder`` class and static factory methods
 for creating pre-configured agents used by the map handler to invoke
@@ -12,13 +12,13 @@ from collections.abc import Callable, MutableMapping, Sequence
 from typing import Any, Literal
 
 from agent_framework import (
-    ChatAgent,
-    ChatClientProtocol,
-    ChatMessageStoreProtocol,
+    Agent,
+    AgentMiddleware,
+    ChatMiddleware,
     ContextProvider,
-    Middleware,
+    HistoryProvider,
+    SupportsChatGetResponse,
     ToolMode,
-    ToolProtocol,
 )
 from pydantic import BaseModel
 
@@ -28,7 +28,7 @@ from .agent_info import AgentInfo
 
 
 class AgentBuilder:
-    """Fluent builder for creating ChatAgent instances with a chainable API.
+    """Fluent builder for creating Agent instances with a chainable API.
 
     This class provides two ways to create agents:
     1. Fluent API with method chaining (recommended for readability)
@@ -64,7 +64,7 @@ class AgentBuilder:
             )
     """
 
-    def __init__(self, chat_client: ChatClientProtocol):
+    def __init__(self, chat_client: SupportsChatGetResponse):
         """Initialize the builder with a chat client.
 
         Args:
@@ -75,12 +75,15 @@ class AgentBuilder:
         self._id: str | None = None
         self._name: str | None = None
         self._description: str | None = None
-        self._chat_message_store_factory: (
-            Callable[[], ChatMessageStoreProtocol] | None
-        ) = None
+        self._chat_message_store_factory: Callable[[], HistoryProvider] | None = None
         self._conversation_id: str | None = None
         self._context_providers: ContextProvider | list[ContextProvider] | None = None
-        self._middleware: Middleware | list[Middleware] | None = None
+        self._middleware: (
+            AgentMiddleware
+            | ChatMiddleware
+            | list[AgentMiddleware | ChatMiddleware]
+            | None
+        ) = None
         self._frequency_penalty: float | None = None
         self._logit_bias: dict[str | int, float] | None = None
         self._max_tokens: int | None = None
@@ -96,10 +99,10 @@ class AgentBuilder:
             ToolMode | Literal["auto", "required", "none"] | dict[str, Any] | None
         ) = "auto"
         self._tools: (
-            ToolProtocol
+            Any
             | Callable[..., Any]
             | MutableMapping[str, Any]
-            | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+            | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
             | None
         ) = None
         self._top_p: float | None = None
@@ -181,10 +184,10 @@ class AgentBuilder:
 
     def with_tools(
         self,
-        tools: ToolProtocol
+        tools: Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]],
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]],
     ) -> "AgentBuilder":
         """Set the tools available to the agent.
 
@@ -213,12 +216,15 @@ class AgentBuilder:
         return self
 
     def with_middleware(
-        self, middleware: Middleware | list[Middleware]
+        self,
+        middleware: AgentMiddleware
+        | ChatMiddleware
+        | list[AgentMiddleware | ChatMiddleware],
     ) -> "AgentBuilder":
         """Set middleware for request/response processing.
 
         Args:
-            middleware: Middleware or list of middlewares
+            middleware: Agent or chat middleware, or a list of them
 
         Returns:
             Self for method chaining
@@ -385,7 +391,7 @@ class AgentBuilder:
         return self
 
     def with_message_store_factory(
-        self, factory: Callable[[], ChatMessageStoreProtocol]
+        self, factory: Callable[[], HistoryProvider]
     ) -> "AgentBuilder":
         """Set the message store factory.
 
@@ -422,11 +428,11 @@ class AgentBuilder:
         self._kwargs.update(kwargs)
         return self
 
-    def build(self) -> ChatAgent:
-        """Build and return the configured ChatAgent.
+    def build(self) -> Agent:
+        """Build and return the configured Agent.
 
         Returns:
-            ChatAgent: Configured agent instance ready for use
+            Agent: Configured agent instance ready for use
 
         Example:
             .. code-block:: python
@@ -442,7 +448,7 @@ class AgentBuilder:
                 async with agent:
                     response = await agent.run("Hello!")
         """
-        return ChatAgent(
+        return Agent(
             chat_client=self._chat_client,
             instructions=self._instructions,
             id=self._id,
@@ -477,11 +483,12 @@ class AgentBuilder:
         agent_info: AgentInfo,
         *,
         id: str | None = None,
-        chat_message_store_factory: Callable[[], ChatMessageStoreProtocol]
-        | None = None,
+        chat_message_store_factory: Callable[[], HistoryProvider] | None = None,
         conversation_id: str | None = None,
         context_providers: ContextProvider | list[ContextProvider] | None = None,
-        middleware: Middleware | list[Middleware] | None = None,
+        middleware: (
+            AgentMiddleware | ChatMiddleware | list[AgentMiddleware | ChatMiddleware] | None
+        ) = None,
         frequency_penalty: float | None = None,
         logit_bias: dict[str | int, float] | None = None,
         max_tokens: int | None = None,
@@ -497,20 +504,20 @@ class AgentBuilder:
         | Literal["auto", "required", "none"]
         | dict[str, Any]
         | None = "auto",
-        tools: ToolProtocol
+        tools: Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
         | None = None,
         top_p: float | None = None,
         user: str | None = None,
         additional_chat_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> ChatAgent:
+    ) -> Agent:
         """Create an agent using AgentInfo configuration with full parameter support.
 
         This method creates a chat client from the service configuration and then
-        creates a ChatAgent with the specified parameters. Agent name, description,
+        creates an Agent with the specified parameters. Agent name, description,
         and instructions are taken from AgentInfo but can be overridden via kwargs.
 
         Args:
@@ -520,7 +527,7 @@ class AgentBuilder:
             chat_message_store_factory: Factory function to create message stores
             conversation_id: ID for conversation tracking
             context_providers: Providers for additional context in conversations
-            middleware: Middleware for request/response processing
+            middleware: Agent or chat middleware for request/response processing
             frequency_penalty: Penalize frequent token usage (-2.0 to 2.0)
             logit_bias: Modify likelihood of specific tokens
             max_tokens: Maximum tokens in the response
@@ -533,14 +540,14 @@ class AgentBuilder:
             store: Whether to store conversation history
             temperature: Sampling temperature (0.0 to 2.0)
             tool_choice: Tool selection mode
-            tools: Tools available to the agent (MCP tools, callables, or tool protocols)
+            tools: Tools available to the agent (MCP tools, callables, or generic tool objects)
             top_p: Nucleus sampling parameter
             user: User identifier for tracking
             additional_chat_options: Provider-specific options
             **kwargs: Additional keyword arguments
 
         Returns:
-            ChatAgent: Configured agent instance ready for use
+            Agent: Configured agent instance ready for use
 
         Example:
             .. code-block:: python
@@ -608,17 +615,18 @@ class AgentBuilder:
 
     @staticmethod
     def create_agent(
-        chat_client: ChatClientProtocol,
+        chat_client: SupportsChatGetResponse,
         instructions: str | None = None,
         *,
         id: str | None = None,
         name: str | None = None,
         description: str | None = None,
-        chat_message_store_factory: Callable[[], ChatMessageStoreProtocol]
-        | None = None,
+        chat_message_store_factory: Callable[[], HistoryProvider] | None = None,
         conversation_id: str | None = None,
         context_providers: ContextProvider | list[ContextProvider] | None = None,
-        middleware: Middleware | list[Middleware] | None = None,
+        middleware: (
+            AgentMiddleware | ChatMiddleware | list[AgentMiddleware | ChatMiddleware] | None
+        ) = None,
         frequency_penalty: float | None = None,
         logit_bias: dict[str | int, float] | None = None,
         max_tokens: int | None = None,
@@ -634,19 +642,19 @@ class AgentBuilder:
         | Literal["auto", "required", "none"]
         | dict[str, Any]
         | None = "auto",
-        tools: ToolProtocol
+        tools: Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
         | None = None,
         top_p: float | None = None,
         user: str | None = None,
         additional_chat_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> ChatAgent:
-        """Create a Chat Client Agent.
+    ) -> Agent:
+        """Create a chat client agent.
 
-        Factory method that creates a ChatAgent instance with the specified configuration.
+        Factory method that creates an Agent instance with the specified configuration.
         The agent uses a chat client to interact with language models and supports tools
         (MCP tools, callable functions), context providers, middleware, and both streaming
         and non-streaming responses.
@@ -660,7 +668,7 @@ class AgentBuilder:
             chat_message_store_factory: Factory function to create message stores
             conversation_id: ID for conversation tracking
             context_providers: Providers for additional context in conversations
-            middleware: Middleware for request/response processing
+            middleware: Agent or chat middleware for request/response processing
             frequency_penalty: Penalize frequent token usage (-2.0 to 2.0)
             logit_bias: Modify likelihood of specific tokens
             max_tokens: Maximum tokens in the response
@@ -673,14 +681,14 @@ class AgentBuilder:
             store: Whether to store conversation history
             temperature: Sampling temperature (0.0 to 2.0)
             tool_choice: Tool selection mode ("auto", "required", "none", or specific tool)
-            tools: Tools available to the agent (MCP tools, callables, or tool protocols)
+            tools: Tools available to the agent (MCP tools, callables, or generic tool objects)
             top_p: Nucleus sampling parameter
             user: User identifier for tracking
             additional_chat_options: Provider-specific options
             **kwargs: Additional keyword arguments
 
         Returns:
-            ChatAgent: Configured chat agent instance that can be used directly or with async context manager
+            Agent: Configured chat agent instance that can be used directly or with async context manager
 
         Examples:
             Non-streaming example (from azure_response_client_basic.py):
@@ -755,10 +763,10 @@ class AgentBuilder:
 
         Note:
             When the agent has MCP tools or needs proper resource cleanup, use it with
-            ``async with`` to ensure proper initialization and cleanup via the ChatAgent's
+            ``async with`` to ensure proper initialization and cleanup via the Agent's
             async context manager protocol.
         """
-        return ChatAgent(
+        return Agent(
             chat_client=chat_client,
             instructions=instructions,
             id=id,

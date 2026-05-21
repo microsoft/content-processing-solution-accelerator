@@ -16,9 +16,9 @@ from typing import Never, cast
 
 import yaml
 from agent_framework import (
-    ChatClientProtocol,
-    ChatMessage,
     Executor,
+    Message,
+    SupportsChatGetResponse,
     WorkflowContext,
     handler,
 )
@@ -166,7 +166,7 @@ class GapExecutor(Executor):
 
         if agent_client is None:
             raise RuntimeError("Chat client 'default' is not configured.")
-        agent_client = cast(ChatClientProtocol, agent_client)
+        agent_client = cast(SupportsChatGetResponse, agent_client)
 
         claim_gap_analysis_prompt = self._load_prompt_and_rules()
 
@@ -180,7 +180,7 @@ class GapExecutor(Executor):
         )
 
         model_response = await agent.run(
-            ChatMessage(
+            Message(
                 role="user",
                 contents=[
                     "Now analyze the following document extracts:\n\n"

@@ -4,7 +4,7 @@
 """Agent metadata container with Jinja2 template rendering.
 
 This module defines ``AgentInfo``, a Pydantic model that bundles the configuration
-needed to instantiate a ``ChatAgent`` via ``AgentBuilder.create_agent_by_agentinfo``:
+needed to instantiate an ``Agent`` via ``AgentBuilder.create_agent_by_agentinfo``:
 
 - **Identity** — agent name, description, and ``ClientType`` selector.
 - **Prompts** — a system prompt *or* an instruction string, either of which may
@@ -21,7 +21,6 @@ Typical lifecycle:
 
 from typing import Any, Callable, MutableMapping, Sequence
 
-from agent_framework import ToolProtocol
 from jinja2 import Template
 from openai import BaseModel
 from pydantic import Field
@@ -30,7 +29,7 @@ from .agent_framework_helper import AgentFrameworkHelper, ClientType
 
 
 class AgentInfo(BaseModel):
-    """Immutable metadata bundle for a single ChatAgent.
+    """Immutable metadata bundle for a single Agent.
 
     Fields
     ------
@@ -47,7 +46,7 @@ class AgentInfo(BaseModel):
         when both are set). Supports Jinja2 templates.
     agent_framework_helper : AgentFrameworkHelper | None
         Reference to the shared helper that owns client settings and cached clients.
-    tools : ToolProtocol | Callable | Sequence | None
+    tools : Any | Callable | Sequence | None
         Tools to bind to the agent (MCP tools, plain callables, or tool dicts).
     """
 
@@ -58,10 +57,10 @@ class AgentInfo(BaseModel):
     agent_instruction: str | None = Field(default=None)
     agent_framework_helper: AgentFrameworkHelper | None = Field(default=None)
     tools: (
-        ToolProtocol
+        Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
         | None
     ) = Field(default=None)
 

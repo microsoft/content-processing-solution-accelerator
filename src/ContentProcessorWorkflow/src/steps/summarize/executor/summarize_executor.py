@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import cast
 
 from agent_framework import (
-    ChatClientProtocol,
-    ChatMessage,
     Executor,
+    Message,
+    SupportsChatGetResponse,
     WorkflowContext,
     handler,
 )
@@ -167,7 +167,7 @@ class SummarizeExecutor(Executor):
 
         if agent_client is None:
             raise RuntimeError("Chat client 'default' is not configured.")
-        agent_client = cast(ChatClientProtocol, agent_client)
+        agent_client = cast(SupportsChatGetResponse, agent_client)
 
         claim_summarization_prompt = self._load_claim_summarization_prompt()
 
@@ -181,7 +181,7 @@ class SummarizeExecutor(Executor):
         )
 
         model_response = await agent.run(
-            ChatMessage(
+            Message(
                 role="user",
                 contents=[
                     "Now summarize the following document extracts: : \n\n".join(
