@@ -14,8 +14,11 @@ TEMP_FILES=()
 cleanup_temp_files() {
   local f
   for f in "${TEMP_FILES[@]:-}"; do
-    [[ -n "$f" ]] && rm -f "$f"
+    if [[ -n "$f" ]]; then
+      rm -f "$f" || true
+    fi
   done
+  return 0
 }
 
 make_temp_file() {
