@@ -37,8 +37,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Go from infra/scripts → root → src
 DATA_SCRIPT_PATH="$SCRIPT_DIR/../../src/ContentProcessorAPI/samples/schemas"
 
-# Normalize the path (optional, in case of ../..)
-DATA_SCRIPT_PATH="$(realpath "$DATA_SCRIPT_PATH")"
+# Normalize the directory path portably (resolves ../.. without requiring realpath)
+DATA_SCRIPT_PATH="$(cd "$DATA_SCRIPT_PATH" && pwd -P)"
 
 POST_DEPLOYMENT_MODE="${POST_DEPLOYMENT_MODE:-all}"
 case "$POST_DEPLOYMENT_MODE" in

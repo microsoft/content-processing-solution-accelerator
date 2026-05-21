@@ -9,6 +9,29 @@
 
 set -euo pipefail
 
+TEMP_FILES=()
+
+cleanup_temp_files() {
+  local f
+  for f in "${TEMP_FILES[@]:-}"; do
+    [[ -n "$f" ]] && rm -f "$f"
+  done
+}
+
+make_temp_file() {
+  local prefix="$1"
+  local tmp_file
+  if ! tmp_file="$(mktemp "${TMPDIR:-/tmp}/${prefix}.XXXXXX" 2>/dev/null)"; then
+    tmp_file="$(mktemp -t "${prefix}.XXXXXX" 2>/dev/null)" || {
+      echo "❌ Failed to create temp file for ${prefix}" >&2
+      exit 1
+    }
+  fi
+  TEMP_FILES+=("$tmp_file")
+  printf '%s\n' "$tmp_file"
+}
+
+trap cleanup_temp_files EXIT
 if [[ "${AZURE_SKIP_AUTH_SETUP:-false}" == "true" ]]; then
   echo "⏭️  AZURE_SKIP_AUTH_SETUP=true — skipping auth configuration."
   exit 0
@@ -343,7 +366,8 @@ API_SCOPE_ID="$(az ad app show --id "$API_CLIENT_ID" \
   --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv)"
 if [[ -z "$API_SCOPE_ID" || "$API_SCOPE_ID" == "null" ]]; then
   API_SCOPE_ID="$(generate_uuid)"
-  cat > /tmp/api_scope_patch.json <<EOF
+  api_scope_patch_file="$(make_temp_file api_scope_patch)"
+  cat > "$api_scope_patch_file" <<EOF
 {
   "identifierUris": ["$API_IDENTIFIER_URI"],
   "api": {
@@ -363,8 +387,7 @@ EOF
   retry az rest --method PATCH \
     --url "https://graph.microsoft.com/v1.0/applications/${API_APP_OBJECT_ID}" \
     --headers "Content-Type=application/json" \
-    --body @/tmp/api_scope_patch.json >/dev/null
-  rm -f /tmp/api_scope_patch.json
+    --body @"$api_scope_patch_file" >/dev/null
   echo "  ✓ Exposed scope api://${API_CLIENT_ID}/user_impersonation"
 else
   echo "  ↺ API scope already exposed"
@@ -408,7 +431,8 @@ WEB_SCOPE_ID="$(az ad app show --id "$WEB_CLIENT_ID" \
   --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" -o tsv)"
 [[ -z "$WEB_SCOPE_ID" || "$WEB_SCOPE_ID" == "null" ]] && WEB_SCOPE_ID="$(generate_uuid)"
 
-cat > /tmp/web_patch.json <<EOF
+web_patch_file="$(make_temp_file web_patch)"
+cat > "$web_patch_file" <<EOF
 {
   "identifierUris": ["$WEB_IDENTIFIER_URI"],
   "spa": { "redirectUris": ["$WEB_URL", "$WEB_URL/"] },
@@ -440,8 +464,7 @@ EOF
 retry az rest --method PATCH \
   --url "https://graph.microsoft.com/v1.0/applications/${WEB_APP_OBJECT_ID}" \
   --headers "Content-Type=application/json" \
-  --body @/tmp/web_patch.json >/dev/null
-rm -f /tmp/web_patch.json
+  --body @"$web_patch_file" >/dev/null
 echo "  ✓ Web SPA redirect, scope, and required permissions configured"
 
 WEB_SCOPE_VALUE="api://${WEB_CLIENT_ID}/user_impersonation"
@@ -452,13 +475,13 @@ WEB_SCOPE_VALUE="api://${WEB_CLIENT_ID}/user_impersonation"
 echo ""
 echo "➡️  Step 3/6: Granting admin consent"
 CONSENT_OK=true
-if ! retry az ad app permission admin-consent --id "$WEB_CLIENT_ID" 2>/tmp/consent_err; then
+consent_err_file="$(make_temp_file consent_err)"
+if ! retry az ad app permission admin-consent --id "$WEB_CLIENT_ID" 2>"$consent_err_file"; then
   CONSENT_OK=false
   echo "  ⚠️ Admin consent failed. Sign-in may fail until a tenant admin runs:"
   echo "       az ad app permission admin-consent --id $WEB_CLIENT_ID"
   echo "     Or visit: https://login.microsoftonline.com/${TENANT_ID}/adminconsent?client_id=${WEB_CLIENT_ID}"
-  cat /tmp/consent_err | sed 's/^/       /'
-  rm -f /tmp/consent_err
+  sed 's/^/       /' "$consent_err_file"
 else
   echo "  ✓ Admin consent granted"
 fi
@@ -608,11 +631,11 @@ else:
     gv['redirectToProvider'] = 'azureactivedirectory'
 print(json.dumps(d))
 ")"
-  echo "$patched" > /tmp/authconfig_patch.json
+  authconfig_patch_file="$(make_temp_file authconfig_patch)"
+  echo "$patched" > "$authconfig_patch_file"
   retry az rest --method put --url "$url" \
     --headers "Content-Type=application/json" \
-    --body @/tmp/authconfig_patch.json >/dev/null
-  rm -f /tmp/authconfig_patch.json
+    --body @"$authconfig_patch_file" >/dev/null
 }
 
 patch_authconfig "$API_NAME" "$API_CLIENT_ID" "true"
