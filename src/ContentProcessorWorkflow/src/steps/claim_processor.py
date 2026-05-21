@@ -150,44 +150,32 @@ class ClaimProcessor:
             The built workflow ready to execute.
         """
 
+        # Create executor instances
+        document_processing = DocumentProcessExecutor(
+            id="document_processing", app_context=self.app_context
+        )
+        rai_analysis = RAIExecutor(id="rai_analysis", app_context=self.app_context)
+        summarizing = SummarizeExecutor(id="summarizing", app_context=self.app_context)
+        gap_analysis = GapExecutor(id="gap_analysis", app_context=self.app_context)
+
         workflow = (
-            WorkflowBuilder(start_executor="document_processing")
-            .register_executor(
-                lambda: DocumentProcessExecutor(
-                    id="document_processing", app_context=self.app_context
-                ),
-                name="document_processing",
-            )
-            .register_executor(
-                lambda: RAIExecutor(id="rai_analysis", app_context=self.app_context),
-                name="rai_analysis",
-            )
-            .register_executor(
-                lambda: SummarizeExecutor(
-                    id="summarizing", app_context=self.app_context
-                ),
-                name="summarizing",
-            )
-            .register_executor(
-                lambda: GapExecutor(id="gap_analysis", app_context=self.app_context),
-                name="gap_analysis",
-            )
+            WorkflowBuilder(start_executor=document_processing)
             # Edges define the execution flow and can include conditions for branching logic.
             # In this case, we conditionally branch to the RAI analysis step based on the
             # application configuration, allowing it to be toggled on/off without code changes.
             .add_edge(
-                source="document_processing",
-                target="rai_analysis",
+                source=document_processing,
+                target=rai_analysis,
                 condition=lambda _: self.app_context.configuration.app_rai_enabled,
             )
-            .add_edge(source="rai_analysis", target="summarizing")
+            .add_edge(source=rai_analysis, target=summarizing)
             # If RAI analysis is disabled, the summarizing step will execute immediately after document processing
             .add_edge(
-                source="document_processing",
-                target="summarizing",
+                source=document_processing,
+                target=summarizing,
                 condition=lambda _: not self.app_context.configuration.app_rai_enabled,
             )
-            .add_edge(source="summarizing", target="gap_analysis")
+            .add_edge(source=summarizing, target=gap_analysis)
             .build()
         )
 
