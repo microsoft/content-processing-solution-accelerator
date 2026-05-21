@@ -323,13 +323,6 @@ Run schema registration first to:
 **macOS/Linux:**
 
 ```bash
-normalize_script() {
-   local file="$1"
-   tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
-}
-
-normalize_script ./infra/scripts/register_schemas.sh
-normalize_script ./infra/scripts/post_deployment.sh
 bash ./infra/scripts/register_schemas.sh
 ```
 
@@ -353,13 +346,6 @@ After schema registration completes, upload the sample bundles as a separate exp
 **macOS/Linux:**
 
 ```bash
-normalize_script() {
-   local file="$1"
-   tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
-}
-
-normalize_script ./infra/scripts/upload_sample_data.sh
-normalize_script ./infra/scripts/post_deployment.sh
 bash ./infra/scripts/upload_sample_data.sh
 ```
 
@@ -376,13 +362,6 @@ Run authentication setup as an explicit step after post-deployment data setup:
 **macOS/Linux:**
 
 ```bash
-normalize_script() {
-   local file="$1"
-   tr -d '\r' < "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
-}
-
-normalize_script ./infra/scripts/setup_auth.sh
-normalize_script ./infra/scripts/configure_auth.sh
 bash ./infra/scripts/setup_auth.sh
 ```
 
