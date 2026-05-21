@@ -100,7 +100,7 @@ class TestCreateClient:
         mock_token.return_value = lambda: "token"
 
         with patch(
-            "agent_framework.azure.AzureOpenAIChatClient"
+            "agent_framework.openai.OpenAIChatCompletionClient"
         ) as mock_cls:
             mock_cls.return_value = "chat_client"
             client = AgentFrameworkHelper.create_client(
@@ -115,7 +115,7 @@ class TestCreateClient:
         mock_token.return_value = lambda: "token"
 
         with patch(
-            "agent_framework.azure.AzureOpenAIResponsesClient"
+            "agent_framework.openai.OpenAIChatClient"
         ) as mock_cls:
             mock_cls.return_value = "response_client"
             client = AgentFrameworkHelper.create_client(
