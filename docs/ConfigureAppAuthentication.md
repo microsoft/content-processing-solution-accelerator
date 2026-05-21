@@ -11,10 +11,7 @@
 >
 > **macOS/Linux:**
 > ```bash
-> # Remove Windows line endings and run the auth setup script
-> tr -d '\r' < ./infra/scripts/setup_auth.sh > ./infra/scripts/setup_auth.sh.tmp && \
->   mv ./infra/scripts/setup_auth.sh.tmp ./infra/scripts/setup_auth.sh && \
->   bash ./infra/scripts/setup_auth.sh
+> bash ./infra/scripts/setup_auth.sh
 > ```
 >
 > See [DeploymentGuide.md § 5.3](./DeploymentGuide.md#53-configure-authentication-manual-script) for step-by-step instructions.
