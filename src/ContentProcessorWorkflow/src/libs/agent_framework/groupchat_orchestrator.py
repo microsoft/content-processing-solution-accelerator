@@ -628,7 +628,7 @@ class GroupChatOrchestrator(ABC, Generic[TInput, TOutput]):
             # Execute with streaming
             conversation: list[Message] = []
 
-            async for event in group_chat_workflow.run_stream(task_prompt):
+            async for event in group_chat_workflow.run(task_prompt, stream=True):
                 # Enforce wall-clock timeout if configured.
                 if self.max_seconds is not None:
                     elapsed = (datetime.now() - start_time).total_seconds()

@@ -215,7 +215,7 @@ class ClaimProcessor:
         last_invoked_executor_id: str | None = None
 
         try:
-            async for event in self.workflow.run_stream(input_data):
+            async for event in self.workflow.run(input_data, stream=True):
                 event: WorkflowEvent
                 if event.type == "started":
                     logger.info("Workflow started (%s)", event.origin.value)
