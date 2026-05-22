@@ -131,7 +131,7 @@ class TestWithKwargs:
 class TestAdditionalChatOptions:
     def test_stores_options(self):
         client = _fake_chat_client()
-        opts = {"reasoning": {"effort": "high"}}
+        opts = {"reasoning_effort": "high"}
         builder = AgentBuilder(client).with_additional_chat_options(opts)
         assert builder._additional_chat_options == opts
 

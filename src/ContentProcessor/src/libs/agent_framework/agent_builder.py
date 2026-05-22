@@ -774,7 +774,7 @@ class AgentBuilder:
                     temperature=0.7,
                     max_tokens=500,
                     additional_chat_options={
-                        "reasoning": {"effort": "high", "summary": "concise"}
+                        "reasoning_effort": "high"
                     },  # OpenAI-specific reasoning options
                 )
 

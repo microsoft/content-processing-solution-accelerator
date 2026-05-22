@@ -250,7 +250,7 @@ Return ONLY valid JSON matching this schema:
             .with_top_p(0.1)
             .with_response_format(schema_class)
             .with_additional_chat_options({
-                "reasoning": {"effort": "high", "summary": "detailed"}
+                "reasoning_effort": "high"
             })
             .build()
         )
