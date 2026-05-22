@@ -64,6 +64,26 @@ function Azd-Get($key, $default = "") {
 $EnvName        = Azd-Get "AZURE_ENV_NAME" "cps"
 $ResourceGroup  = Azd-Get "AZURE_RESOURCE_GROUP"
 $SubscriptionId = Azd-Get "AZURE_SUBSCRIPTION_ID"
+
+# If already logged in, pin Azure CLI context to the azd environment subscription.
+# If not logged in, preflight check 1 will provide the auth guidance.
+if ($SubscriptionId) {
+  $currentSub = (az account show --query id -o tsv 2>$null)
+  if ($currentSub) {
+    az account set --subscription $SubscriptionId 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      Write-Error "Failed to switch Azure CLI context to subscription '$SubscriptionId'. Verify access and re-run."
+      exit 1
+    }
+
+    $activeSub = (az account show --query id -o tsv 2>$null)
+    if (-not $activeSub -or $activeSub -ne $SubscriptionId) {
+      Write-Error "Azure CLI active subscription '$activeSub' does not match AZURE_SUBSCRIPTION_ID '$SubscriptionId'."
+      exit 1
+    }
+  }
+}
+
 $TenantId = (az account show --query tenantId -o tsv 2>$null)
 if (-not $TenantId) { $TenantId = Azd-Get "AZURE_TENANT_ID" "" }
 # (Preflight Check 1 will catch missing authentication with a clear error message)

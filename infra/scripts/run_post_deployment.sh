@@ -64,7 +64,8 @@ normalize_line_endings() {
     echo "  ❌ Failed to normalize line endings for: $script_file" >&2
     exit 1
   fi
-  mv "$tmp_file" "$script_file"
+  chmod +x "$tmp_file"
+  echo "$tmp_file"
 }
 
 print_banner
@@ -101,11 +102,11 @@ else
     exit 1
   fi
 
-  normalize_line_endings "$STEP1_SCRIPT"
-  chmod +x "$STEP1_SCRIPT"
+  STEP1_RUNNER="$(normalize_line_endings "$STEP1_SCRIPT")"
 
   STEP1_EXIT=0
-  bash "$STEP1_SCRIPT" || STEP1_EXIT=$?
+  ORIGINAL_SCRIPT_DIR="$SCRIPT_DIR" bash "$STEP1_RUNNER" || STEP1_EXIT=$?
+  rm -f "$STEP1_RUNNER"
 
   if [[ $STEP1_EXIT -eq 0 ]]; then
     step_ok 1
@@ -132,11 +133,11 @@ else
     exit 1
   fi
 
-  normalize_line_endings "$STEP2_SCRIPT"
-  chmod +x "$STEP2_SCRIPT"
+  STEP2_RUNNER="$(normalize_line_endings "$STEP2_SCRIPT")"
 
   STEP2_EXIT=0
-  bash "$STEP2_SCRIPT" || STEP2_EXIT=$?
+  ORIGINAL_SCRIPT_DIR="$SCRIPT_DIR" bash "$STEP2_RUNNER" || STEP2_EXIT=$?
+  rm -f "$STEP2_RUNNER"
 
   if [[ $STEP2_EXIT -eq 0 ]]; then
     step_ok 2
@@ -179,11 +180,11 @@ else
     exit 1
   fi
 
-  normalize_line_endings "$STEP3_SCRIPT"
-  chmod +x "$STEP3_SCRIPT"
+  STEP3_RUNNER="$(normalize_line_endings "$STEP3_SCRIPT")"
 
   STEP3_EXIT=0
-  bash "$STEP3_SCRIPT" || STEP3_EXIT=$?
+  ORIGINAL_SCRIPT_DIR="$SCRIPT_DIR" bash "$STEP3_RUNNER" || STEP3_EXIT=$?
+  rm -f "$STEP3_RUNNER"
 
   if [[ $STEP3_EXIT -eq 0 ]]; then
     step_ok 3

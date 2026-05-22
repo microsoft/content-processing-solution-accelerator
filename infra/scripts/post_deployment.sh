@@ -18,6 +18,24 @@ CONTAINER_WORKFLOW_APP_NAME=$(azd env get-value CONTAINER_WORKFLOW_APP_NAME)
 SUBSCRIPTION_ID=$(azd env get-value AZURE_SUBSCRIPTION_ID)
 RESOURCE_GROUP=$(azd env get-value AZURE_RESOURCE_GROUP)
 
+# If already logged in, pin Azure CLI context to the azd environment subscription.
+# If not logged in, the az command that needs auth will surface the login guidance.
+if [ -n "$SUBSCRIPTION_ID" ]; then
+  CURRENT_SUB=$(az account show --query id -o tsv 2>/dev/null || true)
+  if [ -n "$CURRENT_SUB" ]; then
+    if ! az account set --subscription "$SUBSCRIPTION_ID" >/dev/null 2>&1; then
+      echo "❌ Failed to switch Azure CLI context to subscription '$SUBSCRIPTION_ID'. Verify access and re-run." >&2
+      exit 1
+    fi
+
+    ACTIVE_SUB=$(az account show --query id -o tsv 2>/dev/null || true)
+    if [ -z "$ACTIVE_SUB" ] || [ "$ACTIVE_SUB" != "$SUBSCRIPTION_ID" ]; then
+      echo "❌ Azure CLI active subscription '$ACTIVE_SUB' does not match AZURE_SUBSCRIPTION_ID '$SUBSCRIPTION_ID'." >&2
+      exit 1
+    fi
+  fi
+fi
+
 # Construct Azure Portal URLs
 WEB_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
 API_APP_PORTAL_URL="https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
@@ -32,7 +50,7 @@ echo "  🔗 Web App Portal URL: $WEB_APP_PORTAL_URL"
 echo "  🔗 API App Portal URL: $API_APP_PORTAL_URL"
 
 # Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${ORIGINAL_SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 
 # Go from infra/scripts → root → src
 DATA_SCRIPT_PATH="$SCRIPT_DIR/../../src/ContentProcessorAPI/samples/schemas"

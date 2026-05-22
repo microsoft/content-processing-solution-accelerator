@@ -87,6 +87,25 @@ fi
 ENV_NAME="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || echo "")"
 RESOURCE_GROUP="$(azd env get-value AZURE_RESOURCE_GROUP 2>/dev/null || true)"
 SUBSCRIPTION_ID="$(azd env get-value AZURE_SUBSCRIPTION_ID 2>/dev/null || true)"
+
+# If already logged in, pin Azure CLI context to the azd environment subscription.
+# If not logged in, preflight check 1 will provide the auth guidance.
+if [[ -n "$SUBSCRIPTION_ID" ]]; then
+  CURRENT_SUB="$(az account show --query id -o tsv 2>/dev/null || true)"
+  if [[ -n "$CURRENT_SUB" ]]; then
+    if ! az account set --subscription "$SUBSCRIPTION_ID" >/dev/null 2>&1; then
+      echo "❌ Failed to switch Azure CLI context to subscription '$SUBSCRIPTION_ID'. Verify access and re-run." >&2
+      exit 1
+    fi
+
+    ACTIVE_SUB="$(az account show --query id -o tsv 2>/dev/null || true)"
+    if [[ -z "$ACTIVE_SUB" || "$ACTIVE_SUB" != "$SUBSCRIPTION_ID" ]]; then
+      echo "❌ Azure CLI active subscription '$ACTIVE_SUB' does not match AZURE_SUBSCRIPTION_ID '$SUBSCRIPTION_ID'." >&2
+      exit 1
+    fi
+  fi
+fi
+
 TENANT_ID="$(az account show --query tenantId -o tsv 2>/dev/null || true)"
 if [[ -z "$TENANT_ID" ]]; then
   TENANT_ID="$(azd env get-value AZURE_TENANT_ID 2>/dev/null || true)"
