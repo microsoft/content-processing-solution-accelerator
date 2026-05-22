@@ -29,6 +29,7 @@ Returns exit-code 0 when no errors are found, 1 when errors are found (in --stri
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -346,13 +347,14 @@ def print_report(results: list[ValidationResult], *, use_color: bool = True) -> 
 # ---------------------------------------------------------------------------
 
 def _html_escape(text: str) -> str:
-    """Escape HTML special characters."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+    """Escape HTML special characters (including quotes) for safe use in
+    both element content and attribute values.
+
+    Thin wrapper around :func:`html.escape` so we can keep a single, stable
+    call-site in this module while delegating the actual escaping rules to
+    the stdlib.
+    """
+    return html.escape(text, quote=True)
 
 
 def generate_html_report(

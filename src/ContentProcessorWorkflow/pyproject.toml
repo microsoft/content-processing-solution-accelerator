@@ -24,7 +24,7 @@ dependencies = [
     "mcp==1.25.0",
     "openai==2.15.0",
     "psutil==7.2.1",
-    "python-multipart==0.0.26",
+    "python-multipart==0.0.27",
     "pytz==2025.2",
     "sas-cosmosdb==0.1.4",
     "sas-storage==1.0.0",
