@@ -305,7 +305,7 @@ azd up
 
 > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
 
-`azd up` now provisions infrastructure and application containers only. Post-provision data setup is split into **separate manual steps** so you can run, retry, or skip them independently.
+Schema registration is **not** run automatically by `azd up`. The `azd up` command provisions infrastructure and application containers only, and post-provision data setup is split into **separate manual steps** so you can run, retry, or skip them independently.
 
 Run schema registration first to:
 
@@ -367,16 +367,6 @@ bash ./infra/scripts/setup_auth.sh
 
 The auth script is idempotent and performs preflight validation before making changes.
 
-#### Skipping auth setup
-
-If your tenant blocks programmatic app registration, or you need to defer authentication setup, you can skip this step:
-
-```powershell
-azd env set AZURE_SKIP_AUTH_SETUP true
-```
-
-Then follow the manual instructions in [App Authentication Configuration](./ConfigureAppAuthentication.md). To re-enable later, set the value to `false` and re-run `setup_auth.ps1`.
-
 #### Required Permissions for auth setup
 
 - Create/update app registrations: **Application Administrator**, **Cloud Application Administrator**, or **Global Administrator**
@@ -386,12 +376,6 @@ Then follow the manual instructions in [App Authentication Configuration](./Conf
 If permissions are insufficient, the script exits early (or warns before consent) with clear remediation guidance.
 
 > **Note:** EasyAuth can take up to 10 minutes to fully propagate. If the Web app returns 500/401 immediately after setup, wait a few minutes and retry.
-
-#### WAF (Well-Architected Framework) deployments
-
-Authentication script execution is fully compatible with the WAF / production profile (`main.waf.parameters.json`, which enables `enablePrivateNetworking`, `enableRedundancy`, and `enableScalability`). The Web and API container apps keep external ingress in the default WAF profile, so registered redirect URIs (`https://<fqdn>/.auth/login/aad/callback`) remain valid public entry points.
-
-> If you customize WAF to make Web or API ingress internal-only, run the auth script from an environment that can reach those private endpoints (for example, the deployed jumpbox or a VPN-connected host).
 
 ### 5.4 Verify Deployment
 
