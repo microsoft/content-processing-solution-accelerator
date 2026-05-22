@@ -104,7 +104,7 @@ You are performing a systematic code-quality pass on a TypeScript/React codebase
 
 - **Group imports** in this order, separated by blank lines:
   1. React / React DOM
-  2. Third-party libraries (`@fluentui/*`, `react-redux`, `axios`, `react-router-dom`, etc.)
+  2. Third-party libraries (`@fluentui/*`, `react-redux`, `react-router-dom`, etc.)
   3. Internal modules — hooks, services, store, types
   4. Sibling / relative components
   5. Style imports (`.scss`, `.css`)

@@ -20,12 +20,12 @@ Copy Resource ID that is your Workspace ID
 
 ![alt text](./images/re_use_log/logAnalyticsJson.png)
 
-### 4. Set the Workspace ID in Your Environment
+### 4. Set the Workspace Resource ID in Your Environment
 Run the following command in your terminal
 ```bash
-azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID '<Existing Log Analytics Workspace Id>'
+azd env set AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID '<Existing Log Analytics Workspace Resource Id>'
 ```
-Replace `<Existing Log Analytics Workspace Id>` with the value obtained from Step 3.
+Replace `<Existing Log Analytics Workspace Resource Id>` with the value obtained from Step 3.
 
 ### 5. Continue Deployment
 Proceed with the next steps in the [deployment guide](/docs/DeploymentGuide.md#deployment-options--steps).

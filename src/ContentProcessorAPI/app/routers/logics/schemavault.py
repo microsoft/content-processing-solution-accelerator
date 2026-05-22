@@ -67,7 +67,13 @@ class Schemas(BaseModel):
         self.mongoHelper.insert_document(schema.model_dump(mode="json"))
         return schema
 
-    def Update(self, file: UploadFile, schema_id: str, class_name: str) -> Schema:
+    def Update(
+        self,
+        file: UploadFile,
+        schema_id: str,
+        class_name: str,
+        storage_format: str = "json",
+    ) -> Schema:
         """Replace the schema file in blob storage and update Cosmos metadata."""
         schemas = self.mongoHelper.find_document(query={"Id": schema_id})
         if not schemas:
@@ -79,7 +85,8 @@ class Schemas(BaseModel):
         )
 
         schema_object.ClassName = class_name
-        schema_object.ContentType = file.content_type
+        schema_object.ContentType = "application/json"
+        schema_object.Format = storage_format
         schema_object.Updated_On = result["date"]
 
         self.mongoHelper.update_document(

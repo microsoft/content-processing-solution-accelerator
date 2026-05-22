@@ -8,11 +8,14 @@ mounts API routers, and binds scoped service dependencies into the
 application context used by request handlers.
 """
 
+import logging
 import os
 import warnings
 from datetime import datetime
 
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.libs.base.application_base import Application_Base
 from app.libs.base.typed_fastapi import TypedFastAPI
@@ -25,6 +28,31 @@ from app.routers.logics.claimbatchpocessor import (
 from app.routers.logics.contentprocessor import ContentProcessor
 from app.routers.logics.schemasetvault import SchemaSets
 from app.routers.logics.schemavault import Schemas
+
+# Azure Monitor and OpenTelemetry imports
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry import trace
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+
+from app.utils.telemetry_filter import install_noise_filter
+
+
+class UserIdMiddleware(BaseHTTPMiddleware):
+    """Extract user identity from EasyAuth headers and set on the current span."""
+
+    async def dispatch(self, request: Request, call_next):
+        span = trace.get_current_span()
+        user_id = (
+            request.headers.get("X-MS-CLIENT-PRINCIPAL-NAME")
+            or request.headers.get("X-MS-CLIENT-PRINCIPAL-ID")
+            or "anonymous"
+        )
+        span.set_attribute("enduser.id", user_id)
+        return await call_next(request)
+
+
+logger = logging.getLogger(__name__)
 
 # PyMongo emits a compatibility warning when it detects Azure Cosmos DB (Mongo API).
 # This is informational and is commonly suppressed to keep logs clean.
@@ -53,6 +81,7 @@ class Application(Application_Base):
 
     def __init__(self):
         super().__init__(env_file_path=os.path.join(os.path.dirname(__file__), ".env"))
+        self.bootstrap()
 
     def initialize(self):
         """Build the FastAPI app, attach middleware, routers, and dependencies.
@@ -75,10 +104,12 @@ class Application(Application_Base):
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        self.app.add_middleware(UserIdMiddleware)
 
         self.app.include_router(http_probes)
         self._register_dependencies()
         self._config_routers()
+        self._configure_telemetry()
 
     def _config_routers(self):
         """Mount feature routers onto the FastAPI application."""
@@ -119,3 +150,29 @@ class Application(Application_Base):
 
     def run(self, host: str = "0.0.0.0", port: int = 8000, reload: bool = True):
         """No-op; the ASGI server (uvicorn) is launched externally."""
+
+    def _configure_telemetry(self):
+        """Configure Azure Monitor and instrument FastAPI for OpenTelemetry."""
+        connection_string = self.application_context.configuration.applicationinsights_connection_string
+        if connection_string:
+            configure_azure_monitor(
+                connection_string=connection_string,
+                enable_live_metrics=True,
+                resource=Resource.create({"service.name": "ContentProcessorAPI"}),
+                logger_name="app",
+            )
+            FastAPIInstrumentor.instrument_app(
+                self.app,
+                excluded_urls="startup,health,openapi.json",
+            )
+            install_noise_filter(
+                noisy_names=frozenset({"ContainerClient.exists", "GET /msi/token"}),
+                noisy_suffixes=(" http send", " http receive"),
+            )
+            logger.info(
+                "Application Insights configured with live metrics and FastAPI instrumentation enabled"
+            )
+        else:
+            logger.warning(
+                "No Application Insights connection string found. Telemetry disabled."
+            )

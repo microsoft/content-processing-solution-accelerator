@@ -20,8 +20,9 @@ def test_configuration_reads_alias_env_vars(monkeypatch) -> None:
     assert cfg.storage_queue_name == "q1"
 
 
-def test_configuration_boolean_parsing(monkeypatch) -> None:
-    # pydantic-settings parses common truthy strings.
-    monkeypatch.setenv("APP_LOGGING_ENABLE", "true")
+def test_configuration_logging_fields(monkeypatch) -> None:
+    monkeypatch.setenv("AZURE_PACKAGE_LOGGING_LEVEL", "ERROR")
+    monkeypatch.setenv("AZURE_LOGGING_PACKAGES", "azure.core,azure.storage")
     cfg = Configuration()
-    assert cfg.app_logging_enable is True
+    assert cfg.azure_package_logging_level == "ERROR"
+    assert cfg.azure_logging_packages == "azure.core,azure.storage"

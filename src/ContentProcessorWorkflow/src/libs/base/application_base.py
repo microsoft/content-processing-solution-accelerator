@@ -15,7 +15,7 @@ The constructor performs the following steps in order:
        key-value pairs into ``os.environ``.
     4. Build the typed ``Configuration`` object (Pydantic merges env
        vars, ``.env``, and App Config values automatically).
-    5. Configure Python ``logging`` when ``app_logging_enable`` is set.
+    5. Configure Python ``logging`` unconditionally.
     6. Initialise ``AgentFrameworkSettings`` for LLM service access.
 
 Subclass contract::
@@ -98,9 +98,8 @@ class ApplicationBase(ABC):
                all settings into ``os.environ``.
             4. Build the typed ``Configuration`` (Pydantic picks up the
                enriched environment automatically).
-            5. If ``app_logging_enable`` is ``True``, configure Python
-               ``logging`` at the level specified by
-               ``app_logging_level``.
+            5. Configure Python ``logging`` unconditionally at the level
+               specified by ``app_logging_level``.
             6. Initialise ``AgentFrameworkSettings`` with Entra ID auth
                and any custom service prefixes.
 
@@ -129,11 +128,34 @@ class ApplicationBase(ABC):
 
         self.application_context.set_configuration(Configuration())
 
-        if self.application_context.configuration.app_logging_enable:
-            logging_level = getattr(
-                logging, self.application_context.configuration.app_logging_level
+        # Configure logging unconditionally
+        logging_level = getattr(
+            logging,
+            self.application_context.configuration.app_logging_level,
+            logging.INFO,
+        )
+        logging.basicConfig(
+            level=logging_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+
+        # Suppress noisy Azure SDK loggers based on configured packages
+        if self.application_context.configuration.azure_logging_packages:
+            azure_level = getattr(
+                logging,
+                self.application_context.configuration.azure_package_logging_level.upper(),
+                logging.WARNING,
             )
-            logging.basicConfig(level=logging_level)
+            for logger_name in filter(
+                None,
+                (
+                    pkg.strip()
+                    for pkg in self.application_context.configuration.azure_logging_packages.split(
+                        ","
+                    )
+                ),
+            ):
+                logging.getLogger(logger_name).setLevel(azure_level)
 
         self.application_context.llm_settings = AgentFrameworkSettings(
             use_entra_id=True, custom_service_prefixes={"PHI4": "PHI4"}

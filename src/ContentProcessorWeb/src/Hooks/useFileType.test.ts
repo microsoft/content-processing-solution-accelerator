@@ -5,7 +5,7 @@
  * @file Tests for useFileType — MIME type resolution based on file extension.
  */
 
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import useFileType from './useFileType';
 import type { FileWithExtension } from './useFileType';
 

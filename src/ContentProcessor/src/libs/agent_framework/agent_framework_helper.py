@@ -143,7 +143,7 @@ class AgentFrameworkHelper:
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
     ) -> "AzureOpenAIChatClient":
-        ...
+        pass
 
     @overload
     @staticmethod
@@ -166,7 +166,7 @@ class AgentFrameworkHelper:
         instruction_role: str | None = None,
         retry_config: RateLimitRetryConfig | None = None,
     ) -> AzureOpenAIChatClientWithRetry:
-        ...
+        pass
 
     @overload
     @staticmethod
@@ -190,7 +190,7 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
     ) -> "AzureOpenAIAssistantsClient":
-        ...
+        pass
 
     @overload
     @staticmethod
@@ -212,7 +212,7 @@ class AgentFrameworkHelper:
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
     ) -> "AzureOpenAIResponsesClient":
-        ...
+        pass
 
     @overload
     @staticmethod
@@ -235,7 +235,7 @@ class AgentFrameworkHelper:
         instruction_role: str | None = None,
         retry_config: RateLimitRetryConfig | None = None,
     ) -> AzureOpenAIResponseClientWithRetry:
-        ...
+        pass
 
     @overload
     @staticmethod
@@ -252,7 +252,7 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
     ) -> "AzureAIAgentClient":
-        ...
+        pass
 
     @staticmethod
     def create_client(

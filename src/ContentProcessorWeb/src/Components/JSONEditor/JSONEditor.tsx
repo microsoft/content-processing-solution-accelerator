@@ -47,7 +47,7 @@ const JSONEditor: React.FC<JSONEditorProps> = () => {
       if (Object.keys(store.contentData).length > 0) {
         const formattedJson = store.contentData.result;
         const data = {
-          ...formattedJson
+          ...(formattedJson as Record<string, unknown>)
         }
         setJsonData(data);
       } else {
@@ -116,7 +116,7 @@ const JSONEditor: React.FC<JSONEditorProps> = () => {
                   }
                 }]}
                 onUpdate={({ newData }) => {
-                  onUpdateHandle(newData)
+                  onUpdateHandle(newData as Record<string, unknown>)
                 }}
                 restrictDelete={true}
                 showIconTooltips={true}

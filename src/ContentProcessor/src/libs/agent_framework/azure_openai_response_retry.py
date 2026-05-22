@@ -616,8 +616,15 @@ class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
                 if callable(close):
                     try:
                         await close()
-                    except Exception:
-                        pass
+                    except Exception as close_exc:
+                        # Best-effort stream cleanup: ignore close failures so we preserve
+                        # the original exception/retry path.
+                        logger.debug(
+                            "[AOAI_RETRY_STREAM] ignoring stream close failure during retry handling: %s",
+                            _format_exc_brief(close_exc)
+                            if isinstance(close_exc, BaseException)
+                            else str(close_exc),
+                        )
 
                 # One-shot retry for context-length failures.
                 if (
@@ -802,8 +809,13 @@ class AzureOpenAIChatClientWithRetry(AzureOpenAIChatClient):
                 if callable(close):
                     try:
                         await close()
-                    except Exception:
-                        pass
+                    except Exception as close_error:
+                        # Intentionally suppress close-time failures so we do not
+                        # mask the original streaming exception that triggered retry handling.
+                        logger.debug(
+                            "[AOAI_RETRY_STREAM] ignoring stream close failure during error handling",
+                            exc_info=close_error,
+                        )
 
                 # One-shot retry for context-length failures.
                 if (

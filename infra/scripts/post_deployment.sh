@@ -98,8 +98,8 @@ else
 
   # Read schema entries from manifest
   SCHEMA_COUNT=$(cat "$SCHEMA_INFO_FILE" | grep -o '"File"' | wc -l)
-  REGISTERED_IDS=""
-  REGISTERED_NAMES=""
+  REGISTERED_IDS=()
+  REGISTERED_NAMES=()
 
   for idx in $(seq 0 $((SCHEMA_COUNT - 1))); do
     # Parse entry fields using grep/sed (no python needed)
@@ -128,18 +128,27 @@ else
 
     if [ -n "$EXISTING_ID" ]; then
       echo "  Schema '$CLASS_NAME' already exists with ID: $EXISTING_ID"
-      REGISTERED_IDS="$REGISTERED_IDS $EXISTING_ID"
-      REGISTERED_NAMES="$REGISTERED_NAMES $CLASS_NAME"
+      REGISTERED_IDS+=("$EXISTING_ID")
+      REGISTERED_NAMES+=("$CLASS_NAME")
       continue
     fi
 
     echo "  Registering new schema '$CLASS_NAME'..."
     DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
 
+    # Only JSON Schema descriptors are accepted. The legacy .py format
+    # was removed as part of the schemavault RCE remediation.
+    EXT=$(echo "${FILE_NAME##*.}" | tr '[:upper:]' '[:lower:]')
+    if [ "$EXT" != "json" ]; then
+      echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Only .json is accepted. Skipping..."
+      continue
+    fi
+    CONTENT_TYPE="application/json"
+
     RESPONSE=$(curl -s -w "\n%{http_code}" \
       -X POST "$SCHEMAVAULT_URL" \
       -F "data=$DATA_PAYLOAD" \
-      -F "file=@$SCHEMA_FILE;type=text/x-python" \
+      -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
       --connect-timeout 60)
 
     HTTP_CODE=$(echo "$RESPONSE" | tail -1)
@@ -148,8 +157,8 @@ else
     if [ "$HTTP_CODE" = "200" ]; then
       SCHEMA_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
       echo "  Successfully registered: $DESCRIPTION's Schema Id - $SCHEMA_ID"
-      REGISTERED_IDS="$REGISTERED_IDS $SCHEMA_ID"
-      REGISTERED_NAMES="$REGISTERED_NAMES $CLASS_NAME"
+      REGISTERED_IDS+=("$SCHEMA_ID")
+      REGISTERED_NAMES+=("$CLASS_NAME")
     else
       echo "  Failed to upload '$FILE_NAME'. HTTP Status: $HTTP_CODE"
       echo "  Error Response: $BODY"
@@ -205,10 +214,9 @@ else
     ALREADY_IN_SET=$(curl -s "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
 
     # Iterate over registered schemas
-    IDX=0
-    for SCHEMA_ID in $REGISTERED_IDS; do
-      IDX=$((IDX + 1))
-      CLASS_NAME=$(echo "$REGISTERED_NAMES" | tr ' ' '\n' | sed -n "${IDX}p")
+    for i in "${!REGISTERED_IDS[@]}"; do
+      SCHEMA_ID="${REGISTERED_IDS[$i]}"
+      CLASS_NAME="${REGISTERED_NAMES[$i]}"
 
       if echo "$ALREADY_IN_SET" | grep -q "\"Id\"[[:space:]]*:[[:space:]]*\"$SCHEMA_ID\""; then
         echo "  Schema '$CLASS_NAME' ($SCHEMA_ID) already in schema set - skipped"
@@ -236,5 +244,29 @@ else
   echo ""
   echo "============================================================"
   echo "Schema registration process completed."
+  echo "  Schemas registered: ${#REGISTERED_IDS[@]}"
   echo "============================================================"
+fi
+
+# --- Refresh Content Understanding Cognitive Services account ---
+echo ""
+echo "============================================================"
+echo "Refreshing Content Understanding Cognitive Services account..."
+echo "============================================================"
+
+CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>/dev/null || echo "")
+
+if [ -z "$CU_ACCOUNT_NAME" ]; then
+  echo "  ⚠️ CONTENT_UNDERSTANDING_ACCOUNT_NAME not found in azd env. Skipping refresh."
+else
+  echo "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
+  if az cognitiveservices account update \
+    -g "$RESOURCE_GROUP" \
+    -n "$CU_ACCOUNT_NAME" \
+    --tags refresh=true \
+    --output none; then
+    echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
+  else
+    echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
+  fi
 fi

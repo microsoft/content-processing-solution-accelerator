@@ -9,15 +9,18 @@ Delegates business logic to ClaimBatchProcessor and persists state via
 ClaimBatchProcessRepository.
 """
 
+import logging
 import uuid
 from enum import Enum
 
 from fastapi import APIRouter, Body, File, Request, UploadFile
 from fastapi.responses import JSONResponse
+from opentelemetry import trace
 from sas.cosmosdb.base.repository_base import SortDirection
 from sas.cosmosdb.mongo.repository import SortField
 
 from app.libs.base.typed_fastapi import TypedFastAPI
+from app.libs.logging.event_utils import track_event_if_configured
 from app.routers.logics.claimbatchpocessor import (
     ClaimBatchProcessor,
     ClaimBatchProcessRepository,
@@ -38,6 +41,8 @@ from .models.contentprocessor.claim import (
     ClaimCreateRequest,
     ClaimItem,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/claimprocessor",
@@ -166,8 +171,10 @@ async def delete_claim_container(claim_id: str, request: Request = None):
     )
     try:
         claim_processor.delete_claim_container(claim_id=claim_id)
-    except Exception:
-        pass
+    except Exception as ex:
+        # Best-effort cleanup: continue deleting the claim-process record even if
+        # the backing claim container is already missing or cannot be deleted.
+        print(f"Failed to delete claim container for '{claim_id}': {ex}")
 
     batch_process_repository: ClaimBatchProcessRepository = app.app_context.get_service(
         ClaimBatchProcessRepository
@@ -324,6 +331,11 @@ async def start_claim_process(
     try:
         batch_processor.enqueue_claim_request_for_processing(claim_process_request=data)
     except Exception as e:
+        track_event_if_configured("ClaimProcessError", {
+            "claim_id": data.claim_process_id,
+            "error": str(e),
+            "error_type": type(e).__name__,
+        })
         return JSONResponse(
             status_code=400,
             content={
@@ -343,6 +355,15 @@ async def start_claim_process(
             status=Claim_Steps.PENDING,
         )
     )
+
+    track_event_if_configured("ClaimProcessSubmitted", {
+        "claim_id": data.claim_process_id,
+    })
+
+    # Add claim tracking to the current request span
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("claim_process_id", data.claim_process_id)
 
     return JSONResponse(
         status_code=202,

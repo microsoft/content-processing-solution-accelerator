@@ -4,8 +4,10 @@
 """Abstract base for the application bootstrap sequence.
 
 Orchestrates the startup order: load .env → read Azure App Configuration →
-populate AppContext with configuration and credentials → configure logging →
-call the concrete ``initialize()`` implemented by the subclass.
+populate AppContext with configuration and credentials → configure logging.
+The concrete ``initialize()`` hook is invoked
+explicitly via ``bootstrap()``
+after construction is complete.
 """
 
 import inspect
@@ -53,13 +55,13 @@ class Application_Base(ABC):
         )
 
     def __init__(self, env_file_path: str | None = None, **data):
-        """Execute the full bootstrap sequence.
+        """Execute base bootstrap setup.
 
         Steps:
             1. Load ``.env`` from *env_file_path* (or derive from subclass location).
             2. Read Azure App Configuration and inject values into ``os.environ``.
             3. Populate ``application_context`` with config and Azure credentials.
-            4. Configure Python logging if enabled in config.
+            4. Configure Python logging unconditionally.
             5. Call ``self.initialize()``.
 
         Args:
@@ -80,29 +82,42 @@ class Application_Base(ABC):
 
         self.application_context.set_configuration(AppConfiguration())
 
-        if self.application_context.configuration.app_logging_enable:
-            logging_level = getattr(
-                logging, self.application_context.configuration.app_logging_level
+        # Configure logging unconditionally
+        logging_level = getattr(
+            logging,
+            self.application_context.configuration.app_logging_level,
+            logging.INFO,
+        )
+        logging.basicConfig(
+            level=logging_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+
+        # Suppress noisy Azure SDK and OpenTelemetry internal loggers
+        logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+        logging.getLogger("azure.core.pipeline.policies._universal").setLevel(logging.WARNING)
+        logging.getLogger("opentelemetry.sdk").setLevel(logging.WARNING)
+        logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(logging.WARNING)
+
+        if self.application_context.configuration.azure_logging_packages:
+            azure_level = getattr(
+                logging,
+                self.application_context.configuration.azure_package_logging_level.upper(),
+                logging.WARNING,
             )
-            logging.basicConfig(level=logging_level)
+            for logger_name in filter(
+                None,
+                (
+                    pkg.strip()
+                    for pkg in self.application_context.configuration.azure_logging_packages.split(
+                        ","
+                    )
+                ),
+            ):
+                logging.getLogger(logger_name).setLevel(azure_level)
 
-            if self.application_context.configuration.azure_logging_packages:
-                azure_level = getattr(
-                    logging,
-                    self.application_context.configuration.azure_package_logging_level.upper(),
-                    logging.WARNING,
-                )
-                for logger_name in filter(
-                    None,
-                    (
-                        pkg.strip()
-                        for pkg in self.application_context.configuration.azure_logging_packages.split(
-                            ","
-                        )
-                    ),
-                ):
-                    logging.getLogger(logger_name).setLevel(azure_level)
-
+    def bootstrap(self):
+        """Run subclass initialization after construction has completed."""
         self.initialize()
 
     def _load_env(self, env_file_path: str | None = None):

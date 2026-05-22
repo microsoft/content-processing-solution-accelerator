@@ -10,15 +10,18 @@ original uploaded file.  Persists state in Cosmos DB and Azure Blob Storage.
 
 import datetime
 import io
+import logging
 import urllib.parse
 import uuid
 from enum import Enum
 
 from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
+from opentelemetry import trace
 from pymongo.results import UpdateResult
 
 from app.libs.base.typed_fastapi import TypedFastAPI
+from app.libs.logging.event_utils import track_event_if_configured
 from app.routers.logics.claimbatchpocessor import ClaimBatchProcessRepository
 from app.utils.mime_types import MimeTypesDetection
 from app.utils.upload_validation import (
@@ -46,6 +49,8 @@ from .models.contentprocessor.model import (
     Status,
     Steps,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/contentprocessor",
@@ -204,6 +209,21 @@ async def Submit_File_With_MetaData(
 
     content_processor.enqueue_message(submit_queue_message)
 
+    # Add process tracking to the current request span
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("process_id", process_id)
+        span.set_attribute("document_name", safe_filename)
+        span.set_attribute("schema_id", schema_id)
+
+    track_event_if_configured("FileSubmitted", {
+        "process_id": process_id,
+        "file_name": safe_filename,
+        "schema_id": schema_id,
+        "metadata_id": metadata_id,
+        "size_bytes": str(size_bytes),
+    })
+
     file_size_mb = size_bytes / (1024 * 1024)
 
     status_url = f"/contentprocessor/status/{process_id}"
@@ -270,6 +290,15 @@ async def get_status(
         database_name=app.app_context.configuration.app_cosmos_database,
         collection_name=app.app_context.configuration.app_cosmos_container_process,
     )
+
+    track_event_if_configured("ProcessStatusQueried", {
+        "process_id": process_id,
+    })
+
+    # Add process tracking to the current request span
+    span = trace.get_current_span()
+    if span.is_recording():
+        span.set_attribute("process_id", process_id)
 
     if process_status is None:
         return JSONResponse(
@@ -481,6 +510,16 @@ async def update_process_result(
             },
         )
     else:
+        # Add process tracking to the current request span
+        span = trace.get_current_span()
+        if span.is_recording():
+            span.set_attribute("process_id", process_id)
+            span.set_attribute("update_type", type(content_update_request).__name__)
+
+        track_event_if_configured("ProcessResultUpdated", {
+            "process_id": process_id,
+            "update_type": type(content_update_request).__name__,
+        })
         return JSONResponse(
             status_code=200,
             content={

@@ -5,14 +5,11 @@ IFS=', ' read -ra REGIONS <<< "$AZURE_REGIONS"
 
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
 GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY}"
-AZURE_CLIENT_ID="${AZURE_CLIENT_ID}"
-AZURE_TENANT_ID="${AZURE_TENANT_ID}"
-AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET}"
 
-# Authenticate using Managed Identity
-echo "Authentication using Managed Identity..."
-if ! az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"; then
-   echo "❌ Error: Failed to login using Managed Identity."
+# Verify Azure CLI is already authenticated (via OIDC in the workflow)
+echo "Verifying Azure CLI authentication..."
+if ! az account show > /dev/null 2>&1; then
+   echo "❌ Error: Azure CLI is not authenticated. Please log in using 'az login'"
    exit 1
 fi
 

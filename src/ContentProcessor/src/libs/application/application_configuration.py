@@ -74,6 +74,7 @@ class AppConfiguration(_configuration_base):
     app_cosmos_database: str
     app_cosmos_container_process: str
     app_cosmos_container_schema: str
+    applicationinsights_connection_string: str = ""
 
     @field_validator("app_process_steps", mode="before")
     @classmethod

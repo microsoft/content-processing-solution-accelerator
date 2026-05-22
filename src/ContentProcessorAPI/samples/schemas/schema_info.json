@@ -1,22 +1,22 @@
 {
     "schemas": [
         {
-            "File": "autoclaim.py",
+            "File": "autoclaim.json",
             "ClassName": "AutoInsuranceClaimForm",
             "Description": "Auto Insurance Claim Form"
         },
         {
-            "File": "damagedcarimage.py",
+            "File": "damagedcarimage.json",
             "ClassName": "DamagedVehicleImageAssessment",
             "Description": "Damaged Vehicle Image Assessment"
         },
         {
-            "File": "policereport.py",
+            "File": "policereport.json",
             "ClassName": "PoliceReportDocument",
             "Description": "Police Report Document"
         },
         {
-            "File": "repairestimate.py",
+            "File": "repairestimate.json",
             "ClassName": "RepairEstimateDocument",
             "Description": "Repair Estimate Document"
         }

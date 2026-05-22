@@ -15,6 +15,7 @@ import logging
 from abc import ABC, abstractmethod
 
 from azure.storage.queue import QueueClient
+from opentelemetry import trace
 from libs.application.application_context import AppContext
 from libs.base.application_models import AppModelBase
 from libs.models.content_process import ContentProcess, Step_Outputs
@@ -122,13 +123,28 @@ class HandlerBase(AppModelBase, ABC):
 
                         self._current_message_context.data_pipeline.pipeline_status.active_step = self.handler_name
 
+                        process_id = self._current_message_context.data_pipeline.pipeline_status.process_id
+                        document_name = self._current_message_context.data_pipeline.files[0].name
+
+                        # Add process_id and document tracking to the current span
+                        current_span = trace.get_current_span()
+                        if current_span.is_recording():
+                            current_span.set_attribute("process_id", process_id)
+                            current_span.set_attribute("document_name", document_name)
+                            current_span.set_attribute("pipeline_stage", self.handler_name)
+
+                        logging.info(
+                            "Pipeline stage started: process_id=%s, document=%s, stage=%s",
+                            process_id,
+                            document_name,
+                            self.handler_name,
+                        )
+
                         # Update status to the currently running step BEFORE execution
                         # so the UI reflects real-time progress.
                         ContentProcess(
-                            process_id=self._current_message_context.data_pipeline.pipeline_status.process_id,
-                            processed_file_name=self._current_message_context.data_pipeline.files[
-                                0
-                            ].name,
+                            process_id=process_id,
+                            processed_file_name=document_name,
                             processed_file_mime_type=self._current_message_context.data_pipeline.files[
                                 0
                             ].mime_type,
@@ -148,13 +164,30 @@ class HandlerBase(AppModelBase, ABC):
                         print(
                             f"Start Processing : {self.handler_name}"
                         ) if show_information else None
-                        with stopwatch.Stopwatch() as timer:
-                            step_result = await self.execute(
-                                self._current_message_context
-                            )
+                        tracer = trace.get_tracer(__name__)
+                        with tracer.start_as_current_span(
+                            f"pipeline.{self.handler_name}",
+                            attributes={
+                                "process_id": process_id,
+                                "document_name": document_name,
+                                "pipeline_stage": self.handler_name,
+                            },
+                        ):
+                            with stopwatch.Stopwatch() as timer:
+                                step_result = await self.execute(
+                                    self._current_message_context
+                                )
                         print(
                             f"Completed : {self.handler_name} - Elapsed :{timer.elapsed_string}"
                         ) if show_information else None
+
+                        logging.info(
+                            "Pipeline stage completed: process_id=%s, document=%s, stage=%s, elapsed=%s",
+                            process_id,
+                            document_name,
+                            self.handler_name,
+                            timer.elapsed_string,
+                        )
                         step_result.elapsed = timer.elapsed_string
 
                         step_result.save_to_persistent_storage(
@@ -208,7 +241,17 @@ class HandlerBase(AppModelBase, ABC):
                         logging.error("Message is not a valid model.")
                         self._move_to_dead_letter_queue(queue_message)
                 except Exception as e:
-                    logging.error(f"Error Occurred: {e}")
+                    logging.error(
+                        "Pipeline error: process_id=%s, stage=%s, error=%s",
+                        data_pipeline.pipeline_status.process_id if data_pipeline else "unknown",
+                        self.handler_name,
+                        e,
+                    )
+                    error_span = trace.get_current_span()
+                    if error_span.is_recording():
+                        error_span.set_attribute("process_id", data_pipeline.pipeline_status.process_id if data_pipeline else "unknown")
+                        error_span.set_attribute("pipeline_stage", self.handler_name)
+                        error_span.set_attribute("error", True)
 
                     def _get_artifact_type(step_name: str) -> ArtifactType:
                         if step_name == "extract":

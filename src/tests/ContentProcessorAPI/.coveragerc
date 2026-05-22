@@ -1,0 +1,28 @@
+# Coverage configuration for ContentProcessorAPI
+# Excludes integration/entry point files from coverage measurement
+
+[run]
+source = ../../ContentProcessorAPI/app
+
+[report]
+# Files to exclude from coverage measurement
+omit =
+    # FastAPI application entry points (integration code)
+    */app/main.py
+    */app/application.py
+    
+    # Large lookup tables/static data
+    */app/utils/mime_types.py
+    
+    # File upload validation (requires FastAPI request context)
+    */app/utils/upload_validation.py
+    
+    # Test files themselves
+    */tests/*
+    */test_*
+
+precision = 2
+show_missing = True
+
+# To run coverage with this config:
+# pytest --cov-config=.coveragerc --cov-report=term --cov-report=html:htmlcov_core

@@ -46,7 +46,6 @@ class AppConfiguration(ModelBaseSettings):
         app_message_queue_extract: Extraction message-queue name.
         app_cps_max_filesize_mb: Maximum upload file size in megabytes.
         app_logging_level: Application log level.
-        app_logging_enable: Whether application logging is enabled.
         azure_package_logging_level: Log level for Azure SDK packages.
         azure_logging_packages: Comma-separated Azure package logger names.
     """
@@ -65,6 +64,6 @@ class AppConfiguration(ModelBaseSettings):
     app_message_queue_extract: str
     app_cps_max_filesize_mb: int
     app_logging_level: str
-    app_logging_enable: bool = False
     azure_package_logging_level: str
     azure_logging_packages: str
+    applicationinsights_connection_string: str = ""

@@ -3,6 +3,9 @@ trigger:
     include:
       - main
       - frontend_dev
+  paths:
+    include:
+      - src/ContentProcessorWeb/**
 
   # When multiple commits land quickly on main, only run the latest.
   batch: true

@@ -18,9 +18,7 @@ import {
 import { Tooltip, Button } from "@fluentui/react-components";
 import {
     TableBody, TableCell, TableRow, Table,
-    TableHeader, TableHeaderCell, TableCellLayout, createTableColumn, useTableFeatures,
-    useTableSelection, useTableSort, TableColumnId, 
-    TableRowId
+    TableHeader, TableHeaderCell, TableCellLayout
 } from "@fluentui/react-components";
 
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
@@ -90,7 +88,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
     useEffect(() => {
         if (!store.gridLoader) {
             if (store.gridData.items && store.gridData.items.length > 0) {
-                const claimRows: ClaimRowData[] = store.gridData.items.map((item: ClaimItem) => ({
+                const claimRows: ClaimRowData[] = (store.gridData.items as unknown as ClaimItem[]).map((item: ClaimItem) => ({
                     claim: item,
                     isExpanded: false,
                     isSelected: false,
@@ -115,7 +113,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                     setSelectedDocumentId(null);
                     dispatch(
                         setSelectedClaim({
-                            claim: firstClaim,
+                            claim: firstClaim as unknown as Record<string, unknown>,
                         })
                     );
                 }
@@ -151,7 +149,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
         // Dispatch the claim selection
         dispatch(
             setSelectedClaim({
-                claim: claim,
+                claim: claim as unknown as Record<string, unknown>,
             })
         );
     };
@@ -162,7 +160,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
         dispatch(
             setSelectedGridRow({
                 processId: document.process_id,
-                item: document,
+                item: document as unknown as Record<string, unknown>,
             })
         );
     };
