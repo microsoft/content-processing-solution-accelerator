@@ -40,7 +40,6 @@ from agent_framework import (
     FunctionInvocationContext,
     FunctionMiddleware,
     Message,
-    Role,
 )
 
 logger = logging.getLogger(__name__)

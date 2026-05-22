@@ -11,7 +11,6 @@ client classes.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import random
@@ -611,4 +610,3 @@ class AzureOpenAIChatClientWithRetry(OpenAIChatCompletionClient):
                 ),
                 config=self._retry_config,
             )
-

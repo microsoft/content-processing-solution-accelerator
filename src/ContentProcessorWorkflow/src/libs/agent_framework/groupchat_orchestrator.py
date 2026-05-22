@@ -57,7 +57,6 @@ from agent_framework import (
     ChatOptions,
     Executor,
     Message,
-    Role,
     SupportsAgentRun,
     Workflow,
     WorkflowEvent,
