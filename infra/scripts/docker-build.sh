@@ -55,7 +55,17 @@ echo "Checking Azure login status..."
 if ! az account show --only-show-errors &>/dev/null; then
     echo "No active Azure session found. Logging in..."
     az login --only-show-errors
-    az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+fi
+
+if ! az account set --subscription "$AZURE_SUBSCRIPTION_ID" >/dev/null 2>&1; then
+    echo "❌ Failed to set Azure subscription to '$AZURE_SUBSCRIPTION_ID'." >&2
+    exit 1
+fi
+
+ACTIVE_SUBSCRIPTION_ID=$(az account show --query id -o tsv --only-show-errors 2>/dev/null || true)
+if [ -z "$ACTIVE_SUBSCRIPTION_ID" ] || [ "$ACTIVE_SUBSCRIPTION_ID" != "$AZURE_SUBSCRIPTION_ID" ]; then
+    echo "❌ Azure CLI active subscription '$ACTIVE_SUBSCRIPTION_ID' does not match AZURE_SUBSCRIPTION_ID '$AZURE_SUBSCRIPTION_ID'." >&2
+    exit 1
 fi
 
 # Deploy container registry

@@ -16,6 +16,23 @@ $CONTAINER_WORKFLOW_APP_NAME = azd env get-value CONTAINER_WORKFLOW_APP_NAME
 $SUBSCRIPTION_ID = azd env get-value AZURE_SUBSCRIPTION_ID
 $RESOURCE_GROUP = azd env get-value AZURE_RESOURCE_GROUP
 
+# If already logged in, pin Azure CLI context to the azd environment subscription.
+# If not logged in, the az command that needs auth will surface the login guidance.
+if ($SUBSCRIPTION_ID) {
+    $CurrentSub = (az account show --query id -o tsv 2>$null)
+    if ($CurrentSub) {
+        az account set --subscription $SUBSCRIPTION_ID 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to switch Azure CLI context to subscription '$SUBSCRIPTION_ID'. Verify access and re-run."
+        }
+
+        $ActiveSub = (az account show --query id -o tsv 2>$null)
+        if (-not $ActiveSub -or $ActiveSub -ne $SUBSCRIPTION_ID) {
+            throw "Azure CLI active subscription '$ActiveSub' does not match AZURE_SUBSCRIPTION_ID '$SUBSCRIPTION_ID'."
+        }
+    }
+}
+
 # Construct Azure Portal URLs
 $WEB_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
 $API_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
@@ -409,6 +426,31 @@ if (-not $ApiReady) {
         Write-Host "Sample data upload skipped because required schemas or schema set were not found."
         Write-Host "Run schema registration first, then re-run with POST_DEPLOYMENT_MODE=sample-data."
         Write-Host ("=" * 60)
+    }
+}
+
+# --- Refresh Content Understanding Cognitive Services account ---
+Write-Host ""
+Write-Host ("=" * 60)
+Write-Host "Refreshing Content Understanding Cognitive Services account..."
+Write-Host ("=" * 60)
+
+$CuAccountName = azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>$null
+
+if (-not $CuAccountName) {
+    Write-Host "  ⚠️ CONTENT_UNDERSTANDING_ACCOUNT_NAME not found in azd env. Skipping refresh."
+} else {
+    Write-Host "  Refreshing account: $CuAccountName in resource group: $RESOURCE_GROUP"
+    az cognitiveservices account update `
+        -g $RESOURCE_GROUP `
+        -n $CuAccountName `
+        --tags refresh=true `
+        --output none
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  ✅ Successfully refreshed Cognitive Services account '$CuAccountName'."
+    } else {
+        Write-Host "  ❌ Failed to refresh Cognitive Services account '$CuAccountName'."
     }
 }
 

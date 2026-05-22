@@ -61,12 +61,19 @@ function Ensure-AzLogin {
             exit 1
         }
 
-        # Set Azure subscription
-        az account set --subscription "$AZURE_SUBSCRIPTION_ID"
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to set Azure subscription."
-            exit 1
-        }
+    }
+
+    # Always pin the Azure CLI context to the azd environment subscription.
+    az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to set Azure subscription to '$AZURE_SUBSCRIPTION_ID'."
+        exit 1
+    }
+
+    $activeSubscriptionId = az account show --query id -o tsv --only-show-errors 2>$null
+    if (-not $activeSubscriptionId -or $activeSubscriptionId -ne $AZURE_SUBSCRIPTION_ID) {
+        Write-Error "Azure CLI active subscription '$activeSubscriptionId' does not match AZURE_SUBSCRIPTION_ID '$AZURE_SUBSCRIPTION_ID'."
+        exit 1
     }
 }
 

@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${ORIGINAL_SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+tmp_file=""
+cleanup() {
+  if [[ -n "$tmp_file" ]]; then
+    rm -f "$tmp_file" || true
+  fi
+}
+trap cleanup EXIT
+
 if ! tmp_file="$(mktemp "${TMPDIR:-/tmp}/cpsa-sample.XXXXXX" 2>/dev/null)"; then
   tmp_file="$(mktemp -t cpsa-sample.XXXXXX 2>/dev/null)" || {
     echo "Failed to create temp file" >&2
@@ -13,7 +21,5 @@ if ! tr -d '\r' < "$SCRIPT_DIR/post_deployment.sh" > "$tmp_file"; then
   echo "Failed to normalize line endings for: $SCRIPT_DIR/post_deployment.sh" >&2
   exit 1
 fi
-mv "$tmp_file" "$SCRIPT_DIR/post_deployment.sh"
-chmod +x "$SCRIPT_DIR/post_deployment.sh"
-
-POST_DEPLOYMENT_MODE=sample-data bash "$SCRIPT_DIR/post_deployment.sh"
+chmod +x "$tmp_file"
+ORIGINAL_SCRIPT_DIR="$SCRIPT_DIR" POST_DEPLOYMENT_MODE=sample-data bash "$tmp_file"
