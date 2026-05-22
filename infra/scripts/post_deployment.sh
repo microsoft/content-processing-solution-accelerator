@@ -299,7 +299,7 @@ else
     echo "Step 4: Process sample file bundles"
     echo "============================================================"
 
-    SAMPLES_DIR="$(realpath "$SCRIPT_DIR/../../src/ContentProcessorAPI/samples")"
+    SAMPLES_DIR="$(cd "$SCRIPT_DIR/../../src/ContentProcessorAPI/samples" && pwd -P)"
     CLAIM_PROCESSOR_URL="$API_BASE_URL/claimprocessor/claims"
 
     for BUNDLE in claim_date_of_loss claim_hail; do

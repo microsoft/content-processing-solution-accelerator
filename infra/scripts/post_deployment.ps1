@@ -371,6 +371,9 @@ if (-not $ApiReady) {
                     default { "application/octet-stream" }
                 }
 
+                $multipartContent = $null
+                $response = $null
+
                 try {
                     $multipartContent = New-Object System.Net.Http.MultipartFormDataContent
                     $jsonContent = [System.Net.Http.StringContent]::new($dataPayload, [System.Text.Encoding]::UTF8, "application/json")
@@ -395,6 +398,13 @@ if (-not $ApiReady) {
                 } catch {
                     Write-Host "    - Failed to upload '$fileName'. Error: $_"
                     $uploadSuccess = $false
+                } finally {
+                    if ($null -ne $response) {
+                        $response.Dispose()
+                    }
+                    if ($null -ne $multipartContent) {
+                        $multipartContent.Dispose()
+                    }
                 }
             }
             $httpClient.Dispose()
