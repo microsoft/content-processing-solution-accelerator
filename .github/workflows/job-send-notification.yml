@@ -130,6 +130,17 @@ jobs:
           EXP_LABEL=$( [ "$EXP" = "true" ] && echo "EXP" || echo "Non-EXP" )
           echo "CONFIG_LABEL=${WAF_LABEL} + ${EXP_LABEL}" >> $GITHUB_OUTPUT
 
+      - name: Prepare HTML Escape Helper
+        shell: bash
+        run: |
+          HTML_ESCAPE_HELPER="$RUNNER_TEMP/html_escape_helper.sh"
+          cat > "$HTML_ESCAPE_HELPER" <<'EOF'
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
+          }
+          EOF
+          echo "HTML_ESCAPE_HELPER=$HTML_ESCAPE_HELPER" >> "$GITHUB_ENV"
+
       # ------------------------------------------------------------------
       # Quota failure
       # ------------------------------------------------------------------
@@ -144,7 +155,10 @@ jobs:
           CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
         run: |
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          ACTOR="$(html_escape "$GITHUB_ACTOR")"
+          BRANCH="$(html_escape "$BRANCH_NAME")"
           PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           DEPLOY_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
           E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
@@ -178,9 +192,9 @@ jobs:
                   <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Deployment Details</h3>
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Triggered By</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827;">${ACTOR}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${BRANCH}</td></tr>
                   </table>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
                     <a href="${RUN_URL}" style="display:inline-block; background:#dc2626; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">VIEW PIPELINE RUN</a>
@@ -219,8 +233,11 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
         run: |
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
+          RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
+          ACTOR="$(html_escape "$GITHUB_ACTOR")"
+          BRANCH="$(html_escape "$BRANCH_NAME")"
           PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           DEPLOY_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
           E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
@@ -256,9 +273,9 @@ jobs:
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Resource Group</td>
                         <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${RESOURCE_GROUP}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827;">${ACTOR}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${BRANCH}</td></tr>
                   </table>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
                     <a href="${RUN_URL}" style="display:inline-block; background:#dc2626; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">INVESTIGATE FAILURE</a>
@@ -302,14 +319,13 @@ jobs:
           CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           WEBAPP_URL="$(html_escape "${INPUT_CONTAINER_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}")"
           RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
           TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          ACTOR="$(html_escape "$GITHUB_ACTOR")"
+          BRANCH="$(html_escape "$BRANCH_NAME")"
           PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
 
@@ -353,9 +369,9 @@ jobs:
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Web App URL</td>
                         <td style="padding:8px 0; font-size:13px;"><a href="${WEBAPP_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${WEBAPP_URL}</a></td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827;">${ACTOR}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${BRANCH}</td></tr>
                     ${TEST_DETAIL_ROWS}
                   </table>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
@@ -399,14 +415,13 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           WEBAPP_URL="$(html_escape "${INPUT_CONTAINER_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}")"
           RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
           TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          ACTOR="$(html_escape "$GITHUB_ACTOR")"
+          BRANCH="$(html_escape "$BRANCH_NAME")"
           PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
           E2E_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
@@ -441,9 +456,9 @@ jobs:
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Web App URL</td>
                         <td style="padding:8px 0; font-size:13px;"><a href="${WEBAPP_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${WEBAPP_URL}</a></td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827;">${ACTOR}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${BRANCH}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Suite</td>
                         <td style="padding:8px 0; font-size:13px; color:#111827;">${TEST_SUITE_NAME}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Report</td>
@@ -488,13 +503,12 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           EXISTING_URL="$(html_escape "$INPUT_EXISTING_WEBAPP_URL")"
           TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          ACTOR="$(html_escape "$GITHUB_ACTOR")"
+          BRANCH="$(html_escape "$BRANCH_NAME")"
           PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
           E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
@@ -532,9 +546,9 @@ jobs:
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Target URL</td>
                         <td style="padding:8px 0; font-size:13px;"><a href="${EXISTING_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${EXISTING_URL}</a></td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827;">${ACTOR}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${BRANCH}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Suite</td>
                         <td style="padding:8px 0; font-size:13px; color:#111827;">${TEST_SUITE_NAME}</td></tr>
                     ${REPORT_ROW}
@@ -578,13 +592,12 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           EXISTING_URL="$(html_escape "$INPUT_EXISTING_WEBAPP_URL")"
           TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          ACTOR="$(html_escape "$GITHUB_ACTOR")"
+          BRANCH="$(html_escape "$BRANCH_NAME")"
           PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
           E2E_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
@@ -622,9 +635,9 @@ jobs:
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Target URL</td>
                         <td style="padding:8px 0; font-size:13px;"><a href="${EXISTING_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${EXISTING_URL}</a></td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827;">${ACTOR}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
-                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                      <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${BRANCH}</td></tr>
                     <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Suite</td>
                         <td style="padding:8px 0; font-size:13px; color:#111827;">${TEST_SUITE_NAME}</td></tr>
                     ${REPORT_ROW}
