@@ -130,6 +130,17 @@ jobs:
           EXP_LABEL=$( [ "$EXP" = "true" ] && echo "EXP" || echo "Non-EXP" )
           echo "CONFIG_LABEL=${WAF_LABEL} + ${EXP_LABEL}" >> $GITHUB_OUTPUT
 
+      - name: Prepare HTML Escape Helper
+        shell: bash
+        run: |
+          HTML_ESCAPE_HELPER="$RUNNER_TEMP/html_escape_helper.sh"
+          cat > "$HTML_ESCAPE_HELPER" <<'EOF'
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
+          }
+          EOF
+          echo "HTML_ESCAPE_HELPER=$HTML_ESCAPE_HELPER" >> "$GITHUB_ENV"
+
       # ------------------------------------------------------------------
       # Quota failure
       # ------------------------------------------------------------------
@@ -144,10 +155,7 @@ jobs:
           CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           ACTOR="$(html_escape "$GITHUB_ACTOR")"
           BRANCH="$(html_escape "$BRANCH_NAME")"
@@ -225,10 +233,7 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
           ACTOR="$(html_escape "$GITHUB_ACTOR")"
@@ -314,10 +319,7 @@ jobs:
           CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           WEBAPP_URL="$(html_escape "${INPUT_CONTAINER_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}")"
           RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
@@ -413,10 +415,7 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           WEBAPP_URL="$(html_escape "${INPUT_CONTAINER_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}")"
           RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
@@ -504,10 +503,7 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           EXISTING_URL="$(html_escape "$INPUT_EXISTING_WEBAPP_URL")"
           TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
@@ -596,10 +592,7 @@ jobs:
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
-          html_escape() {
-            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
-          }
+          . "$HTML_ESCAPE_HELPER"
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           EXISTING_URL="$(html_escape "$INPUT_EXISTING_WEBAPP_URL")"
           TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
