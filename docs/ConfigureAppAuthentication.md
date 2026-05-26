@@ -1,24 +1,10 @@
 # Set up Authentication in Azure Container App
 
-> ### ✅ Recommended: run the authentication script first
->
-> `azd up` no longer runs authentication setup automatically. Run the script below after deployment:
->
-> **Windows:**
-> ```powershell
-> ./infra/scripts/setup_auth.ps1
-> ```
->
-> **macOS/Linux:**
-> ```bash
-> bash ./infra/scripts/setup_auth.sh
-> ```
->
-> See [DeploymentGuide.md § 5.3](./DeploymentGuide.md#53-configure-authentication-manual-script) for step-by-step instructions.
->
-> Follow the portal/manual steps below if:
-> - Your tenant policy prohibits programmatic app registration or secret creation
-> - The script reports a permission or policy failure that cannot be resolved in your current identity
+This guide describes the portal/manual steps to configure authentication after deployment.
+
+Use this path when:
+- Your tenant policy prohibits programmatic app registration or secret creation
+- Script-based setup is not available in your current identity
 
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 

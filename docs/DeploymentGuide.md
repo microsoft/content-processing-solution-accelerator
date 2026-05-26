@@ -349,31 +349,15 @@ After schema registration completes, upload the sample bundles as a separate exp
 bash ./infra/scripts/upload_sample_data.sh
 ```
 
-### 5.3 Configure Authentication (Manual Script)
+### 5.3 Configure Authentication (Portal)
 
-Run authentication setup as an explicit step after post-deployment data setup:
+Configure authentication as an explicit step after post-deployment data setup by following:
 
-**Windows (PowerShell):**
+- [Set up Authentication in Azure Container App](./ConfigureAppAuthentication.md)
 
-```powershell
-./infra/scripts/setup_auth.ps1
-```
+If your tenant policy blocks automatic app registration/secret creation in the portal flow, use:
 
-**macOS/Linux:**
-
-```bash
-bash ./infra/scripts/setup_auth.sh
-```
-
-The auth script is idempotent and performs preflight validation before making changes.
-
-#### Required Permissions for auth setup
-
-- Create/update app registrations: **Application Administrator**, **Cloud Application Administrator**, or **Global Administrator**
-- Grant admin consent: **Cloud Application Administrator** or **Global Administrator**
-- Update Container Apps auth/secret settings: **Contributor** on the deployment resource group
-
-If permissions are insufficient, the script exits early (or warns before consent) with clear remediation guidance.
+- [Manual App Registration Configuration](./ManualAppRegistrationConfiguration.md)
 
 > **Note:** EasyAuth can take up to 10 minutes to fully propagate. If the Web app returns 500/401 immediately after setup, wait a few minutes and retry.
 
