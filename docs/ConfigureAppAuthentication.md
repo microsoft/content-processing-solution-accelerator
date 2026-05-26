@@ -1,5 +1,11 @@
 # Set up Authentication in Azure Container App
 
+This guide describes the portal/manual steps to configure authentication after deployment.
+
+Use this path when:
+- Your tenant policy prohibits programmatic app registration or secret creation
+- Script-based setup is not available in your current identity
+
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 
 > **Note:** The solution deploys four container apps. Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues using managed identity — they do not expose public endpoints.
