@@ -26,6 +26,11 @@ on:
         required: false
         default: false
         type: boolean
+      enableScalability:
+        description: 'Enable Scalability (WAF only - opt-in)'
+        required: false
+        default: false
+        type: boolean
       EXP:
         description: 'Enable EXP'
         required: false
@@ -400,15 +405,19 @@ jobs:
         id: check_create_rg
         shell: bash
         run: |
-          set -e  
+          set -e
+          OWNER_TAG_VALUE="${{ github.actor }}"
           echo "🔍 Checking if resource group '$RESOURCE_GROUP_NAME' exists..."
           rg_exists=$(az group exists --name $RESOURCE_GROUP_NAME)
           if [ "$rg_exists" = "false" ]; then
             echo "📦 Resource group does not exist. Creating new resource group '$RESOURCE_GROUP_NAME' in location '$AZURE_LOCATION'..."
-            az group create --name $RESOURCE_GROUP_NAME --location $AZURE_LOCATION --tags ${{ env.RG_TAGS }} || { echo "❌ Error creating resource group"; exit 1; }
+            echo "🏷️  Adding Owner tag: Owner=${OWNER_TAG_VALUE}"
+            az group create --name $RESOURCE_GROUP_NAME --location $AZURE_LOCATION --tags ${{ env.RG_TAGS }} "Owner=${OWNER_TAG_VALUE}" || { echo "❌ Error creating resource group"; exit 1; }
             echo "✅ Resource group '$RESOURCE_GROUP_NAME' created successfully."
           else
             echo "✅ Resource group '$RESOURCE_GROUP_NAME' already exists. Deploying to existing resource group."
+            echo "🏷️  Merging Owner tag on existing resource group: Owner=${OWNER_TAG_VALUE}"
+            az group update --name "$RESOURCE_GROUP_NAME" --set tags.Owner="${OWNER_TAG_VALUE}" --output none || echo "⚠️  Warning: failed to update Owner tag on existing resource group '$RESOURCE_GROUP_NAME'."
           fi
           echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
           echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_ENV
@@ -536,6 +545,7 @@ jobs:
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
       EXP: ${{ needs.azure-setup.outputs.EXP_ENABLED }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      ENABLE_SCALABILITY: ${{ inputs.enableScalability == true && 'true' || 'false' }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
     secrets: inherit
@@ -554,6 +564,7 @@ jobs:
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
       EXP: ${{ needs.azure-setup.outputs.EXP_ENABLED }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      ENABLE_SCALABILITY: ${{ inputs.enableScalability == true && 'true' || 'false' }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
     secrets: inherit

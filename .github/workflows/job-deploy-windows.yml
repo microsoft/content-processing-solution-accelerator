@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: "false"
+      ENABLE_SCALABILITY:
+        description: 'Enable Scalability (WAF only - opt-in)'
+        required: false
+        type: string
+        default: "false"
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID:
         required: false
         type: string
@@ -188,12 +193,24 @@ jobs:
         shell: bash
         env:
           WAF_ENABLED: ${{ inputs.WAF_ENABLED }}
+          ENABLE_SCALABILITY: ${{ inputs.ENABLE_SCALABILITY }}
         run: |
           if [[ "$WAF_ENABLED" == "true" ]]; then
             cp infra/main.waf.parameters.json infra/main.parameters.json
             echo "✅ Successfully copied WAF parameters to main parameters file"
+            SCALABILITY_VAL="${ENABLE_SCALABILITY:-false}"
+            if [[ "$SCALABILITY_VAL" != "true" && "$SCALABILITY_VAL" != "false" ]]; then
+              echo "⚠️  Invalid ENABLE_SCALABILITY value '$SCALABILITY_VAL'; defaulting to false."
+              SCALABILITY_VAL="false"
+            fi
+            echo "🔧 Setting enableScalability=$SCALABILITY_VAL in infra/main.parameters.json (WAF deployment)"
+            jq --argjson val "$SCALABILITY_VAL" '.parameters.enableScalability.value = $val' infra/main.parameters.json > infra/main.parameters.tmp.json \
+              && mv infra/main.parameters.tmp.json infra/main.parameters.json
           else
             echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
+            if [[ "${ENABLE_SCALABILITY:-false}" == "true" ]]; then
+              echo "ℹ️  enableScalability=true was provided but WAF is disabled; the flag will be ignored for this deployment."
+            fi
           fi
 
       - name: Setup Azure Developer CLI (Windows)
