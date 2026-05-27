@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 from agent_framework import Message
-from agent_framework._types import TextContent
+from agent_framework._types import Content
 
 from libs.agent_framework.azure_openai_response_retry import (
     ContextTrimConfig,
@@ -148,7 +148,7 @@ class TestSetMessageText:
         result = _set_message_text(m, "truncated")
         assert result.text == "truncated"
         assert len(result.contents) == 1
-        assert isinstance(result.contents[0], TextContent)
+        assert isinstance(result.contents[0], Content)
 
 
 class TestTrimMessagesWithChatMessage:
