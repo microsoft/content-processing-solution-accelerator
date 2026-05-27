@@ -30,6 +30,7 @@ Supported configuration axes:
     - Provider-specific options: ``additional_chat_options`` dict.
 """
 
+import logging
 from collections.abc import Callable, MutableMapping, Sequence
 from typing import Any, Literal
 
@@ -47,6 +48,47 @@ from pydantic import BaseModel
 
 from libs.agent_framework.agent_info import AgentInfo
 from utils.credential_util import get_bearer_token_provider
+
+logger = logging.getLogger(__name__)
+
+# Reasoning models that do not support custom temperature/top_p values.
+_REASONING_MODEL_PREFIXES = ("o1", "o3", "o4", "gpt-5")
+
+
+def _is_reasoning_model(model_name: str) -> bool:
+    """Check if a model is a reasoning model based on its deployment name."""
+    name = model_name.lower()
+    return any(name.startswith(prefix) for prefix in _REASONING_MODEL_PREFIXES)
+
+
+def _resolve_model_name(client: Any, model_id: str | None = None) -> str | None:
+    """Extract model/deployment name from the client or explicit model_id."""
+    if model_id:
+        return model_id
+    for attr in ("model", "_model", "model_id"):
+        val = getattr(client, attr, None)
+        if isinstance(val, str):
+            return val
+    return None
+
+
+def _strip_unsupported_reasoning_params(
+    options: dict[str, Any], model_name: str | None
+) -> dict[str, Any]:
+    """Remove temperature and top_p for reasoning models that don't support them."""
+    if model_name and _is_reasoning_model(model_name):
+        removed = []
+        for param in ("temperature", "top_p"):
+            if param in options:
+                del options[param]
+                removed.append(param)
+        if removed:
+            logger.info(
+                "Stripped unsupported params %s for reasoning model '%s'",
+                removed,
+                model_name,
+            )
+    return options
 
 
 class AgentBuilder:
@@ -518,6 +560,9 @@ class AgentBuilder:
         if self._additional_chat_options:
             options.update(self._additional_chat_options)
 
+        model_name = _resolve_model_name(self._chat_client, self._model_id)
+        _strip_unsupported_reasoning_params(options, model_name)
+
         default_options: ChatOptions | None = ChatOptions(**options) if options else None
 
         return Agent(
@@ -868,6 +913,9 @@ class AgentBuilder:
             options["conversation_id"] = conversation_id
         if additional_chat_options:
             options.update(additional_chat_options)
+
+        model_name = _resolve_model_name(chat_client, model_id)
+        _strip_unsupported_reasoning_params(options, model_name)
 
         default_options: ChatOptions | None = ChatOptions(**options) if options else None
 
