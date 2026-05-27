@@ -36,7 +36,7 @@ import logging
 from datetime import datetime
 from typing import Any, Callable, Optional
 
-from agent_framework import AgentMiddleware, AgentRunContext
+from agent_framework import AgentContext, AgentMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class AgentSpeakingCaptureMiddleware(AgentMiddleware):
             str, list[str]
         ] = {}  # Buffer for streaming responses
 
-    async def process(self, context: AgentRunContext, next):
+    async def process(self, context: AgentContext, next):
         """Intercept an agent invocation, delegate execution, then capture the response.
 
         Processing steps:

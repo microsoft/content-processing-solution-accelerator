@@ -34,14 +34,14 @@ from collections.abc import Callable, MutableMapping, Sequence
 from typing import Any, Literal
 
 from agent_framework import (
-    AggregateContextProvider,
-    ChatAgent,
-    ChatClientProtocol,
-    ChatMessageStoreProtocol,
+    Agent,
+    AgentMiddleware,
+    ChatMiddleware,
+    ChatOptions,
     ContextProvider,
-    Middleware,
+    HistoryProvider,
+    SupportsChatGetResponse,
     ToolMode,
-    ToolProtocol,
 )
 from pydantic import BaseModel
 
@@ -86,7 +86,7 @@ class AgentBuilder:
             )
     """
 
-    def __init__(self, chat_client: ChatClientProtocol):
+    def __init__(self, chat_client: SupportsChatGetResponse):
         """Initialize the builder with a chat client and default-None fields.
 
         All configuration is stored as private attributes.  None of them are
@@ -102,14 +102,15 @@ class AgentBuilder:
         self._id: str | None = None
         self._name: str | None = None
         self._description: str | None = None
-        self._chat_message_store_factory: (
-            Callable[[], ChatMessageStoreProtocol] | None
-        ) = None
+        self._chat_message_store_factory: Callable[[], HistoryProvider] | None = None
         self._conversation_id: str | None = None
-        self._context_providers: (
-            ContextProvider | list[ContextProvider] | AggregateContextProvider | None
+        self._context_providers: ContextProvider | list[ContextProvider] | None = None
+        self._middleware: (
+            AgentMiddleware
+            | ChatMiddleware
+            | list[AgentMiddleware | ChatMiddleware]
+            | None
         ) = None
-        self._middleware: Middleware | list[Middleware] | None = None
         self._frequency_penalty: float | None = None
         self._logit_bias: dict[str | int, float] | None = None
         self._max_tokens: int | None = None
@@ -125,10 +126,10 @@ class AgentBuilder:
             ToolMode | Literal["auto", "required", "none"] | dict[str, Any] | None
         ) = "auto"
         self._tools: (
-            ToolProtocol
+            Any
             | Callable[..., Any]
             | MutableMapping[str, Any]
-            | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+            | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
             | None
         ) = None
         self._top_p: float | None = None
@@ -210,10 +211,10 @@ class AgentBuilder:
 
     def with_tools(
         self,
-        tools: ToolProtocol
+        tools: Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]],
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]],
     ) -> "AgentBuilder":
         """Set the tools available to the agent.
 
@@ -242,7 +243,10 @@ class AgentBuilder:
         return self
 
     def with_middleware(
-        self, middleware: Middleware | list[Middleware]
+        self,
+        middleware: AgentMiddleware
+        | ChatMiddleware
+        | list[AgentMiddleware | ChatMiddleware],
     ) -> "AgentBuilder":
         """Set middleware for request/response processing.
 
@@ -257,9 +261,7 @@ class AgentBuilder:
 
     def with_context_providers(
         self,
-        context_providers: ContextProvider
-        | list[ContextProvider]
-        | AggregateContextProvider,
+        context_providers: ContextProvider | list[ContextProvider],
     ) -> "AgentBuilder":
         """Set context providers for additional conversation context.
 
@@ -417,7 +419,7 @@ class AgentBuilder:
         return self
 
     def with_message_store_factory(
-        self, factory: Callable[[], ChatMessageStoreProtocol]
+        self, factory: Callable[[], HistoryProvider]
     ) -> "AgentBuilder":
         """Set the message store factory.
 
@@ -454,7 +456,7 @@ class AgentBuilder:
         self._kwargs.update(kwargs)
         return self
 
-    def build(self) -> ChatAgent:
+    def build(self) -> Agent:
         """Construct a ``ChatAgent`` from the accumulated configuration.
 
         Processing steps:
@@ -482,32 +484,52 @@ class AgentBuilder:
                 async with agent:
                     response = await agent.run("Hello!")
         """
-        return ChatAgent(
-            chat_client=self._chat_client,
+        options: dict[str, Any] = {}
+        if self._frequency_penalty is not None:
+            options["frequency_penalty"] = self._frequency_penalty
+        if self._logit_bias is not None:
+            options["logit_bias"] = self._logit_bias
+        if self._max_tokens is not None:
+            options["max_tokens"] = self._max_tokens
+        if self._metadata is not None:
+            options["metadata"] = self._metadata
+        if self._model_id is not None:
+            options["model"] = self._model_id
+        if self._presence_penalty is not None:
+            options["presence_penalty"] = self._presence_penalty
+        if self._response_format is not None:
+            options["response_format"] = self._response_format
+        if self._seed is not None:
+            options["seed"] = self._seed
+        if self._stop is not None:
+            options["stop"] = self._stop
+        if self._store is not None:
+            options["store"] = self._store
+        if self._temperature is not None:
+            options["temperature"] = self._temperature
+        if self._tool_choice is not None:
+            options["tool_choice"] = self._tool_choice
+        if self._top_p is not None:
+            options["top_p"] = self._top_p
+        if self._user is not None:
+            options["user"] = self._user
+        if self._conversation_id is not None:
+            options["conversation_id"] = self._conversation_id
+        if self._additional_chat_options:
+            options.update(self._additional_chat_options)
+
+        default_options: ChatOptions | None = ChatOptions(**options) if options else None
+
+        return Agent(
+            client=self._chat_client,
             instructions=self._instructions,
             id=self._id,
             name=self._name,
             description=self._description,
-            chat_message_store_factory=self._chat_message_store_factory,
-            conversation_id=self._conversation_id,
+            tools=self._tools,
+            default_options=default_options,
             context_providers=self._context_providers,
             middleware=self._middleware,
-            frequency_penalty=self._frequency_penalty,
-            logit_bias=self._logit_bias,
-            max_tokens=self._max_tokens,
-            metadata=self._metadata,
-            model_id=self._model_id,
-            presence_penalty=self._presence_penalty,
-            response_format=self._response_format,
-            seed=self._seed,
-            stop=self._stop,
-            store=self._store,
-            temperature=self._temperature,
-            tool_choice=self._tool_choice,
-            tools=self._tools,
-            top_p=self._top_p,
-            user=self._user,
-            additional_chat_options=self._additional_chat_options,
             **self._kwargs,
         )
 
@@ -517,14 +539,12 @@ class AgentBuilder:
         agent_info: AgentInfo,
         *,
         id: str | None = None,
-        chat_message_store_factory: Callable[[], ChatMessageStoreProtocol]
-        | None = None,
+        chat_message_store_factory: Callable[[], HistoryProvider] | None = None,
         conversation_id: str | None = None,
-        context_providers: ContextProvider
-        | list[ContextProvider]
-        | AggregateContextProvider
-        | None = None,
-        middleware: Middleware | list[Middleware] | None = None,
+        context_providers: ContextProvider | list[ContextProvider] | None = None,
+        middleware: (
+            AgentMiddleware | ChatMiddleware | list[AgentMiddleware | ChatMiddleware] | None
+        ) = None,
         frequency_penalty: float | None = None,
         logit_bias: dict[str | int, float] | None = None,
         max_tokens: int | None = None,
@@ -540,16 +560,16 @@ class AgentBuilder:
         | Literal["auto", "required", "none"]
         | dict[str, Any]
         | None = "auto",
-        tools: ToolProtocol
+        tools: Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
         | None = None,
         top_p: float | None = None,
         user: str | None = None,
         additional_chat_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> ChatAgent:
+    ) -> Agent:
         """Create a ``ChatAgent`` from an ``AgentInfo`` metadata bundle.
 
         This factory resolves the chat client automatically by reading the
@@ -664,20 +684,18 @@ class AgentBuilder:
 
     @staticmethod
     def create_agent(
-        chat_client: ChatClientProtocol,
+        chat_client: SupportsChatGetResponse,
         instructions: str | None = None,
         *,
         id: str | None = None,
         name: str | None = None,
         description: str | None = None,
-        chat_message_store_factory: Callable[[], ChatMessageStoreProtocol]
-        | None = None,
+        chat_message_store_factory: Callable[[], HistoryProvider] | None = None,
         conversation_id: str | None = None,
-        context_providers: ContextProvider
-        | list[ContextProvider]
-        | AggregateContextProvider
-        | None = None,
-        middleware: Middleware | list[Middleware] | None = None,
+        context_providers: ContextProvider | list[ContextProvider] | None = None,
+        middleware: (
+            AgentMiddleware | ChatMiddleware | list[AgentMiddleware | ChatMiddleware] | None
+        ) = None,
         frequency_penalty: float | None = None,
         logit_bias: dict[str | int, float] | None = None,
         max_tokens: int | None = None,
@@ -693,16 +711,16 @@ class AgentBuilder:
         | Literal["auto", "required", "none"]
         | dict[str, Any]
         | None = "auto",
-        tools: ToolProtocol
+        tools: Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
         | None = None,
         top_p: float | None = None,
         user: str | None = None,
         additional_chat_options: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> ChatAgent:
+    ) -> Agent:
         """Create a Chat Client Agent.
 
         Factory method that creates a ChatAgent instance with the specified configuration.
@@ -804,7 +822,7 @@ class AgentBuilder:
                     temperature=0.7,
                     max_tokens=500,
                     additional_chat_options={
-                        "reasoning": {"effort": "high", "summary": "concise"}
+                        "reasoning_effort": "high"
                     },  # OpenAI-specific reasoning options
                 )
 
@@ -817,31 +835,51 @@ class AgentBuilder:
             ``async with`` to ensure proper initialization and cleanup via the ChatAgent's
             async context manager protocol.
         """
-        return ChatAgent(
-            chat_client=chat_client,
+        options: dict[str, Any] = {}
+        if frequency_penalty is not None:
+            options["frequency_penalty"] = frequency_penalty
+        if logit_bias is not None:
+            options["logit_bias"] = logit_bias
+        if max_tokens is not None:
+            options["max_tokens"] = max_tokens
+        if metadata is not None:
+            options["metadata"] = metadata
+        if model_id is not None:
+            options["model"] = model_id
+        if presence_penalty is not None:
+            options["presence_penalty"] = presence_penalty
+        if response_format is not None:
+            options["response_format"] = response_format
+        if seed is not None:
+            options["seed"] = seed
+        if stop is not None:
+            options["stop"] = stop
+        if store is not None:
+            options["store"] = store
+        if temperature is not None:
+            options["temperature"] = temperature
+        if tool_choice is not None:
+            options["tool_choice"] = tool_choice
+        if top_p is not None:
+            options["top_p"] = top_p
+        if user is not None:
+            options["user"] = user
+        if conversation_id is not None:
+            options["conversation_id"] = conversation_id
+        if additional_chat_options:
+            options.update(additional_chat_options)
+
+        default_options: ChatOptions | None = ChatOptions(**options) if options else None
+
+        return Agent(
+            client=chat_client,
             instructions=instructions,
             id=id,
             name=name,
             description=description,
-            chat_message_store_factory=chat_message_store_factory,
-            conversation_id=conversation_id,
+            tools=tools,
+            default_options=default_options,
             context_providers=context_providers,
             middleware=middleware,
-            frequency_penalty=frequency_penalty,
-            logit_bias=logit_bias,
-            max_tokens=max_tokens,
-            metadata=metadata,
-            model_id=model_id,
-            presence_penalty=presence_penalty,
-            response_format=response_format,
-            seed=seed,
-            stop=stop,
-            store=store,
-            temperature=temperature,
-            tool_choice=tool_choice,
-            tools=tools,
-            top_p=top_p,
-            user=user,
-            additional_chat_options=additional_chat_options,
             **kwargs,
         )

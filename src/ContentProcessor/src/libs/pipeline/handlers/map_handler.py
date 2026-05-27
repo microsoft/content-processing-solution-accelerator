@@ -14,7 +14,7 @@ import logging
 import os
 from typing import Literal
 
-from agent_framework import ChatMessage, Content
+from agent_framework import Content, Message
 from pdf2image import convert_from_bytes
 
 from libs.agent_framework.agent_builder import AgentBuilder
@@ -250,13 +250,13 @@ Return ONLY valid JSON matching this schema:
             .with_top_p(0.1)
             .with_response_format(schema_class)
             .with_additional_chat_options({
-                "reasoning": {"effort": "high", "summary": "detailed"}
+                "reasoning_effort": "high"
             })
             .build()
         )
 
         gpt_response = await agent.run(
-            messages=ChatMessage(
+            messages=Message(
                 "user",
                 contents=self._to_agent_framework_contents(user_content),
             ),
