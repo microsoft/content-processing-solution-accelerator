@@ -17,7 +17,7 @@ from typing import Literal
 from agent_framework import Content, Message
 from pdf2image import convert_from_bytes
 
-from libs.agent_framework.agent_builder import AgentBuilder
+from libs.agent_framework.agent_builder import AgentBuilder, _is_reasoning_model, _resolve_model_name
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.agent_framework.azure_openai_response_retry import ContextTrimConfig
 from libs.application.application_context import AppContext
@@ -255,12 +255,19 @@ Return ONLY valid JSON matching this schema:
             .build()
         )
 
+        # logprobs is not supported by reasoning models (o1, o3, gpt-5.x)
+        model_name = _resolve_model_name(agent_client)
+        if model_name and _is_reasoning_model(model_name):
+            run_options = {}
+        else:
+            run_options = {"logprobs": True, "top_logprobs": 5}
+
         gpt_response = await agent.run(
             messages=Message(
                 "user",
                 contents=self._to_agent_framework_contents(user_content),
             ),
-            options={"logprobs": True, "top_logprobs": 5},
+            options=run_options,
         )
 
         response_content = gpt_response.text  # Json format string
