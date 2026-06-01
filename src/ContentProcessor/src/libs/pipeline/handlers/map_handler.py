@@ -28,7 +28,8 @@ from libs.pipeline.entities.pipeline_message_context import MessageContext
 from libs.pipeline.entities.pipeline_step_result import StepResult
 from libs.pipeline.entities.schema import Schema
 from libs.pipeline.queue_handler_base import HandlerBase
-from libs.token_usage_utils import emit_agent_token_event, extract_token_usage
+from libs.llm_token_telemetry import TokenUsageScope
+from libs.telemetry import token_emitter
 from libs.utils.remote_schema_loader import load_schema_from_blob_json
 
 logger = logging.getLogger(__name__)
@@ -265,13 +266,13 @@ Return ONLY valid JSON matching this schema:
         )
 
         # Track token usage for this LLM call
-        token_usage = extract_token_usage(gpt_response)
-        emit_agent_token_event(
+        with TokenUsageScope(
+            token_emitter,
             agent_name="MapHandler",
             model_deployment_name=self.application_context.configuration.app_azure_openai_model,
-            usage=token_usage,
             process_id=context.data_pipeline.pipeline_status.process_id,
-        )
+        ) as scope:
+            scope.add(gpt_response)
 
         response_content = gpt_response.text  # Json format string
 

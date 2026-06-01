@@ -1,18 +1,20 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Tests for libs.token_usage_utils (token usage extraction and event emission)."""
+"""Tests for libs.llm_token_telemetry (standardized token usage telemetry)."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from libs.token_usage_utils import (
+from libs.llm_token_telemetry import (
+    TokenUsage,
+    TokenUsageEmitter,
+    TokenUsageScope,
     _to_int,
-    emit_agent_token_event,
-    emit_model_token_event,
-    emit_summary_token_event,
-    extract_token_usage,
+    extract_usage,
+    extract_usage_from_dict,
+    detect_invoked_tools,
 )
 
 
@@ -45,10 +47,46 @@ class TestToInt:
         assert _to_int(None, default=5) == 5
 
 
-# ── extract_token_usage ────────────────────────────────────────────────
+# ── TokenUsage dataclass ──────────────────────────────────────────────
 
 
-class TestExtractTokenUsage:
+class TestTokenUsage:
+    """Immutable token-usage record with addition support."""
+
+    def test_defaults_to_zero(self):
+        usage = TokenUsage()
+        assert usage.input_tokens == 0
+        assert usage.output_tokens == 0
+        assert usage.total_tokens == 0
+        assert not usage.has_any
+
+    def test_has_any_true_when_nonzero(self):
+        assert TokenUsage(input_tokens=1).has_any
+        assert TokenUsage(output_tokens=1).has_any
+        assert TokenUsage(total_tokens=1).has_any
+
+    def test_addition(self):
+        a = TokenUsage(input_tokens=100, output_tokens=50, total_tokens=150)
+        b = TokenUsage(input_tokens=200, output_tokens=80, total_tokens=280)
+        result = a + b
+        assert result.input_tokens == 300
+        assert result.output_tokens == 130
+        assert result.total_tokens == 430
+
+    def test_to_event_props(self):
+        usage = TokenUsage(input_tokens=10, output_tokens=5, total_tokens=15)
+        props = usage.to_event_props()
+        assert props == {
+            "input_tokens": "10",
+            "output_tokens": "5",
+            "total_tokens": "15",
+        }
+
+
+# ── extract_usage ──────────────────────────────────────────────────────
+
+
+class TestExtractUsage:
     """Token extraction from various response shapes."""
 
     def test_usage_details_dict_with_standard_keys(self):
@@ -58,12 +96,8 @@ class TestExtractTokenUsage:
             "output_token_count": 50,
             "total_token_count": 150,
         }
-        result = extract_token_usage(response)
-        assert result == {
-            "input_tokens": 100,
-            "output_tokens": 50,
-            "total_tokens": 150,
-        }
+        result = extract_usage(response)
+        assert result == TokenUsage(input_tokens=100, output_tokens=50, total_tokens=150)
 
     def test_usage_details_dict_with_openai_keys(self):
         response = MagicMock()
@@ -72,44 +106,40 @@ class TestExtractTokenUsage:
             "completion_tokens": 80,
             "total_tokens": 280,
         }
-        result = extract_token_usage(response)
-        assert result == {
-            "input_tokens": 200,
-            "output_tokens": 80,
-            "total_tokens": 280,
-        }
+        result = extract_usage(response)
+        assert result == TokenUsage(input_tokens=200, output_tokens=80, total_tokens=280)
 
     def test_usage_details_none_falls_to_raw_representation(self):
         response = MagicMock()
         response.usage_details = None
+        response.usage = None
         usage_obj = MagicMock()
         usage_obj.prompt_tokens = 300
         usage_obj.completion_tokens = 120
         usage_obj.total_tokens = 420
         usage_obj.input_tokens = 0
         usage_obj.output_tokens = 0
+        usage_obj.input_token_count = 0
+        usage_obj.output_token_count = 0
+        usage_obj.total_token_count = 0
+        usage_obj.promptTokens = 0
+        usage_obj.completionTokens = 0
+        usage_obj.totalTokens = 0
         response.raw_representation.usage = usage_obj
-        result = extract_token_usage(response)
-        assert result == {
-            "input_tokens": 300,
-            "output_tokens": 120,
-            "total_tokens": 420,
-        }
+        result = extract_usage(response)
+        assert result == TokenUsage(input_tokens=300, output_tokens=120, total_tokens=420)
 
     def test_raw_representation_dict_usage(self):
         response = MagicMock()
         response.usage_details = None
+        response.usage = None
         response.raw_representation.usage = {
             "prompt_tokens": 50,
             "completion_tokens": 25,
             "total_tokens": 75,
         }
-        result = extract_token_usage(response)
-        assert result == {
-            "input_tokens": 50,
-            "output_tokens": 25,
-            "total_tokens": 75,
-        }
+        result = extract_usage(response)
+        assert result == TokenUsage(input_tokens=50, output_tokens=25, total_tokens=75)
 
     def test_usage_details_object_with_attributes(self):
         """Handle UsageDetails object (not dict) from agent framework."""
@@ -119,23 +149,20 @@ class TestExtractTokenUsage:
         usage_obj.output_token_count = 150
         usage_obj.total_token_count = 550
         response.usage_details = usage_obj
-        result = extract_token_usage(response)
-        assert result == {
-            "input_tokens": 400,
-            "output_tokens": 150,
-            "total_tokens": 550,
-        }
+        result = extract_usage(response)
+        assert result == TokenUsage(input_tokens=400, output_tokens=150, total_tokens=550)
 
-    def test_no_usage_returns_zeros(self):
+    def test_none_returns_none(self):
+        assert extract_usage(None) is None
+
+    def test_no_usage_returns_none(self):
         response = MagicMock()
         response.usage_details = None
+        response.usage = None
         response.raw_representation = None
-        result = extract_token_usage(response)
-        assert result == {
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
-        }
+        response.messages = None
+        result = extract_usage(response)
+        assert result is None
 
     def test_total_computed_from_input_output_when_missing(self):
         response = MagicMock()
@@ -143,104 +170,203 @@ class TestExtractTokenUsage:
             "input_token_count": 100,
             "output_token_count": 50,
         }
-        result = extract_token_usage(response)
-        assert result["total_tokens"] == 150
+        result = extract_usage(response)
+        assert result.total_tokens == 150
 
 
-# ── emit_agent_token_event ─────────────────────────────────────────────
+# ── extract_usage_from_dict ───────────────────────────────────────────
 
 
-class TestEmitAgentTokenEvent:
-    """Custom event emission for per-agent token usage."""
+class TestExtractUsageFromDict:
+    """Extraction from raw dict / SDK usage objects."""
 
-    @patch("libs.token_usage_utils._track_event_if_configured")
-    def test_emits_correct_event(self, mock_track):
-        usage = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}
-        emit_agent_token_event(
+    def test_dict_with_standard_keys(self):
+        result = extract_usage_from_dict({
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+        })
+        assert result == TokenUsage(input_tokens=100, output_tokens=50, total_tokens=150)
+
+    def test_none_returns_none(self):
+        assert extract_usage_from_dict(None) is None
+
+
+# ── detect_invoked_tools ──────────────────────────────────────────────
+
+
+class TestDetectInvokedTools:
+    """Tool detection from agent result messages."""
+
+    def test_detects_function_calls(self):
+        content1 = MagicMock()
+        content1.type = "function_call"
+        content1.name = "product_agent"
+        content2 = MagicMock()
+        content2.type = "text"
+        content2.name = None
+        msg = MagicMock()
+        msg.contents = [content1, content2]
+        result_obj = MagicMock()
+        result_obj.messages = [msg]
+        invoked = detect_invoked_tools(result_obj)
+        assert invoked == {"product_agent"}
+
+    def test_returns_empty_for_none(self):
+        assert detect_invoked_tools(None) == set()
+
+
+# ── TokenUsageEmitter ─────────────────────────────────────────────────
+
+
+class TestTokenUsageEmitter:
+    """Custom event emission via the standardized emitter."""
+
+    def test_emit_agent_calls_sink(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(
+            connection_string="test",
+            event_sink=sink,
+            static_dimensions={"app": "content-processing"},
+        )
+        usage = TokenUsage(input_tokens=100, output_tokens=50, total_tokens=150)
+        emitter.emit_agent(
             agent_name="MapHandler",
             model_deployment_name="gpt-4o",
             usage=usage,
             process_id="proc-123",
         )
-        mock_track.assert_called_once_with("LLM_Agent_Token_Usage", {
-            "agent_name": "MapHandler",
-            "input_tokens": "100",
-            "output_tokens": "50",
-            "total_tokens": "150",
-            "model_deployment_name": "gpt-4o",
-            "process_id": "proc-123",
-        })
+        sink.assert_called_once()
+        call_args = sink.call_args
+        assert call_args[0][0] == "LLM_Agent_Token_Usage"
+        props = call_args[0][1]
+        assert props["agent_name"] == "MapHandler"
+        assert props["input_tokens"] == "100"
+        assert props["app"] == "content-processing"
 
-
-# ── emit_model_token_event ─────────────────────────────────────────────
-
-
-class TestEmitModelTokenEvent:
-    """Custom event emission for per-model token usage."""
-
-    @patch("libs.token_usage_utils._track_event_if_configured")
-    def test_emits_correct_event(self, mock_track):
-        usage = {"input_tokens": 200, "output_tokens": 80, "total_tokens": 280}
-        emit_model_token_event(
+    def test_emit_all_emits_agent_model_summary(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(
+            connection_string="test",
+            event_sink=sink,
+            static_dimensions={"app": "content-processing"},
+        )
+        usage = TokenUsage(input_tokens=200, output_tokens=80, total_tokens=280)
+        emitter.emit_all(
+            agent_name="RAI",
             model_deployment_name="gpt-4o",
             usage=usage,
             process_id="proc-456",
         )
-        mock_track.assert_called_once_with("LLM_Model_Token_Usage", {
-            "model_deployment_name": "gpt-4o",
-            "input_tokens": "200",
-            "output_tokens": "80",
-            "total_tokens": "280",
-            "process_id": "proc-456",
-        })
+        event_names = [call[0][0] for call in sink.call_args_list]
+        assert "LLM_Agent_Token_Usage" in event_names
+        assert "LLM_Model_Token_Usage" in event_names
+        assert "LLM_Token_Usage_Summary" in event_names
 
-
-# ── emit_summary_token_event ──────────────────────────────────────────
-
-
-class TestEmitSummaryTokenEvent:
-    """Custom event emission for document-level token summary."""
-
-    @patch("libs.token_usage_utils._track_event_if_configured")
-    def test_emits_correct_event(self, mock_track):
-        emit_summary_token_event(
-            total_input_tokens=500,
-            total_output_tokens=200,
-            total_tokens=700,
-            process_id="proc-789",
-            file_name="test.pdf",
-            file_mime_type="application/pdf",
-            agent_count=2,
-            model_count=1,
+    def test_emit_all_agent_count_correct(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(
+            connection_string="test",
+            event_sink=sink,
         )
-        mock_track.assert_called_once_with("LLM_Token_Usage_Summary", {
-            "total_input_tokens": "500",
-            "total_output_tokens": "200",
-            "total_tokens": "700",
-            "process_id": "proc-789",
-            "file_name": "test.pdf",
-            "file_mime_type": "application/pdf",
-            "agent_count": "2",
-            "model_count": "1",
-        })
+        usage = TokenUsage(input_tokens=100, output_tokens=50, total_tokens=150)
+        emitter.emit_all(
+            agent_name="MapHandler",
+            model_deployment_name="gpt-4o",
+            usage=usage,
+        )
+        # Find the summary event call
+        summary_call = next(
+            call for call in sink.call_args_list
+            if call[0][0] == "LLM_Token_Usage_Summary"
+        )
+        props = summary_call[0][1]
+        assert props["agent_count"] == "1"
+        assert props["model_count"] == "1"
+
+    def test_emit_skips_when_not_configured(self):
+        emitter = TokenUsageEmitter(connection_string=None, event_sink=None)
+        assert not emitter.enabled
+        # Should not raise
+        emitter.emit("test_event", key="value")
+
+    def test_perf_stats(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(connection_string="test", event_sink=sink)
+        emitter.emit("test_event")
+        stats = emitter.perf_stats()
+        assert stats["emit_count"] == 1.0
+        assert stats["total_ms"] >= 0
 
 
-# ── _track_event_if_configured ────────────────────────────────────────
+# ── TokenUsageScope ──────────────────────────────────────────────────
 
 
-class TestTrackEventIfConfigured:
-    """Application Insights event tracking guard."""
+class TestTokenUsageScope:
+    """Context manager that accumulates usage and emits on exit."""
 
-    @patch.dict("os.environ", {"APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=test"})
-    @patch("azure.monitor.events.extension.track_event")
-    def test_tracks_when_configured(self, mock_track_event):
-        from libs.token_usage_utils import _track_event_if_configured
+    def test_scope_emits_on_exit(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(
+            connection_string="test",
+            event_sink=sink,
+            static_dimensions={"app": "content-processing"},
+        )
+        response = MagicMock()
+        response.usage_details = {
+            "input_token_count": 100,
+            "output_token_count": 50,
+            "total_token_count": 150,
+        }
+        with TokenUsageScope(
+            emitter,
+            agent_name="MapHandler",
+            model_deployment_name="gpt-4o",
+            process_id="proc-123",
+        ) as scope:
+            scope.add(response)
 
-        _track_event_if_configured("test_event", {"key": "value"})
-        mock_track_event.assert_called_once_with("test_event", {"key": "value"})
+        assert scope.usage.input_tokens == 100
+        assert scope.usage.output_tokens == 50
+        event_names = [call[0][0] for call in sink.call_args_list]
+        assert "LLM_Agent_Token_Usage" in event_names
+        assert "LLM_Token_Usage_Summary" in event_names
 
-    @patch.dict("os.environ", {}, clear=True)
-    def test_skips_when_not_configured(self):
-        from libs.token_usage_utils import _track_event_if_configured
+    def test_scope_handles_no_usage(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(connection_string="test", event_sink=sink)
+        response = MagicMock()
+        response.usage_details = None
+        response.usage = None
+        response.raw_representation = None
+        response.messages = None
+        with TokenUsageScope(
+            emitter,
+            agent_name="Test",
+            model_deployment_name="gpt-4o",
+        ) as scope:
+            scope.add(response)
 
-        _track_event_if_configured("test_event", {"key": "value"})
+        assert not scope.usage.has_any
+        # No events should fire for zero usage
+        sink.assert_not_called()
+
+    def test_scope_accumulates_multiple_adds(self):
+        sink = MagicMock()
+        emitter = TokenUsageEmitter(connection_string="test", event_sink=sink)
+        r1 = MagicMock()
+        r1.usage_details = {"input_token_count": 100, "output_token_count": 50, "total_token_count": 150}
+        r2 = MagicMock()
+        r2.usage_details = {"input_token_count": 200, "output_token_count": 80, "total_token_count": 280}
+        with TokenUsageScope(
+            emitter,
+            agent_name="Test",
+            model_deployment_name="gpt-4o",
+        ) as scope:
+            scope.add(r1)
+            scope.add(r2)
+
+        assert scope.usage.input_tokens == 300
+        assert scope.usage.output_tokens == 130
+        assert scope.usage.total_tokens == 430
+
