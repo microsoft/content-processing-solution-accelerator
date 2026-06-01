@@ -15,7 +15,7 @@ colorama==0.4.6
 coverage==7.13.5
 cryptography==47.0.0
 dnspython==2.8.0
-idna==3.13
+idna==3.17
 iniconfig==2.3.0
 isodate==0.7.2
 mongomock==4.3.0
