@@ -102,10 +102,12 @@ jobs:
         id: check_create_rg
         run: |
           set -e  
+          OWNER_TAG_VALUE="${{ github.actor }}"
           echo "Checking if resource group exists..."
           rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
           if [ "$rg_exists" = "false" ]; then
             echo "Resource group does not exist. Creating..."
+            echo "🏷️  Adding Owner tag: Owner=${OWNER_TAG_VALUE}"
 
             # Generate current timestamp in desired format: YYYY-MM-DDTHH:MM:SS.SSSSSSSZ
             current_date=$(date -u +"%Y-%m-%dT%H:%M:%S.%7NZ")
@@ -115,9 +117,12 @@ jobs:
                                    "Purpose=Deploying and Cleaning Up Resources for Validation" \
                                    "CreatedDate=$current_date" \
                                    "ApplicationName=Content Processing Accelerator" \
+                                   "Owner=${OWNER_TAG_VALUE}" \
             || { echo "Error creating resource group"; exit 1; }
           else
             echo "Resource group already exists."
+            echo "🏷️  Merging Owner tag on existing resource group: Owner=${OWNER_TAG_VALUE}"
+            az group update --name "${{ env.RESOURCE_GROUP_NAME }}" --set tags.Owner="${OWNER_TAG_VALUE}" --output none || echo "⚠️  Warning: failed to update Owner tag on existing resource group '${{ env.RESOURCE_GROUP_NAME }}'."
           fi
 
       - name: Generate Environment Name
@@ -146,7 +151,6 @@ jobs:
             --parameters \
               solutionName="${{ env.ENVIRONMENT_NAME }}" \
               enablePrivateNetworking="false" \
-              contentUnderstandingLocation="WestUS" \
               deploymentType="GlobalStandard" \
               gptModelName="gpt-5.1" \
               gptModelVersion="2025-11-13" \

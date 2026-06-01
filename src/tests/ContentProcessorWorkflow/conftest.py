@@ -9,10 +9,4 @@ workflow_src_path = Path(__file__).resolve().parent.parent.parent / "ContentProc
 if str(workflow_src_path) not in sys.path:
     sys.path.insert(0, str(workflow_src_path))
 
-# Import sitecustomize if available
-try:
-    import sitecustomize  # noqa: F401
-except Exception:
-    pass
-
 pytest_plugins = ["pytest_mock"]

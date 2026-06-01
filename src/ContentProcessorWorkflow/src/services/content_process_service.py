@@ -297,7 +297,7 @@ class ContentProcessService:
             if on_poll is not None:
                 poll_handler = on_poll(result)
                 if inspect.isawaitable(poll_handler):
-                    await poll_handler
+                    _ = await poll_handler
 
             status = result.get("status", "processing")
             if status in ("Completed", "Error"):

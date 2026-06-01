@@ -17,6 +17,12 @@ from config.constants import URL
 SCREENSHOTS_DIR = os.path.join(os.path.dirname(__file__), "screenshots")
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+
+# Report path constant (must match --html= in workflow)
+REPORT_PATH = os.path.join("report", "report.html")
+
 
 @pytest.fixture
 def subtests(request):
@@ -145,7 +151,7 @@ def pytest_runtest_makereport(item, call):
                     # Use relative path from report.html location
                     relative_path = os.path.relpath(
                         screenshot_path,
-                        os.path.dirname(os.path.abspath("report.html"))
+                        os.path.dirname(os.path.abspath(REPORT_PATH))
                     )
 
                     # pytest-html expects this format for extras
@@ -163,9 +169,10 @@ def pytest_runtest_makereport(item, call):
         handler.flush()
         log_output = stream.getvalue()
 
-        # Only remove the handler, don't close the stream yet
-        logger = logging.getLogger()
-        logger.removeHandler(handler)
+        # Only remove the handler on teardown phase so call-phase logs are captured
+        if report.when == 'teardown':
+            logger = logging.getLogger()
+            logger.removeHandler(handler)
 
         # Check if there are subtests
         subtests_html = ""
@@ -206,8 +213,9 @@ def pytest_runtest_makereport(item, call):
         else:
             report.description = f"<pre>{log_output.strip()}</pre>"
 
-        # Clean up references
-        log_streams.pop(item.nodeid, None)
+        # Clean up references only on teardown phase
+        if report.when == 'teardown':
+            log_streams.pop(item.nodeid, None)
     else:
         report.description = ""
 
@@ -232,7 +240,7 @@ def pytest_collection_modifyitems(items):
 
 def rename_duration_column():
     """Rename Duration column to Execution Time in HTML report"""
-    report_path = os.path.abspath("report.html")
+    report_path = os.path.abspath(REPORT_PATH)
     if not os.path.exists(report_path):
         print("Report file not found, skipping column rename.")
         return

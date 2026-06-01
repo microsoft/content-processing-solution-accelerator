@@ -9,7 +9,7 @@ format for a particular document type.
 """
 
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -21,10 +21,13 @@ class Schema(BaseModel):
 
     Attributes:
         Id: Unique schema identifier.
-        ClassName: Python class name in the remote module.
+        ClassName: Class name to materialise from the schema artifact.
         Description: Human-readable description.
-        FileName: Blob filename containing the schema class.
+        FileName: Blob filename containing the schema artifact.
         ContentType: Target content type this schema handles.
+        Format: Storage format of the schema artifact. Always
+            ``"json"`` — declarative JSON Schema descriptors are the
+            only supported format.
     """
 
     Id: str
@@ -32,6 +35,7 @@ class Schema(BaseModel):
     Description: str
     FileName: str
     ContentType: str
+    Format: Literal["json"] = Field(default="json")
     Created_On: Optional[datetime.datetime] = Field(default=None)
     Updated_On: Optional[datetime.datetime] = Field(default=None)
 

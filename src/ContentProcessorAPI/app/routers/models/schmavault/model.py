@@ -5,7 +5,7 @@
 
 import datetime
 import json
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -15,10 +15,14 @@ class Schema(BaseModel):
 
     Attributes:
         Id: Unique schema identifier.
-        ClassName: Python class name of the schema.
+        ClassName: Class name of the schema (the JSON Schema ``title``
+            field, or a sanitised fallback derived from the filename).
         Description: Human-readable description.
         FileName: Source filename for the schema definition.
         ContentType: Expected content/MIME type.
+        Format: Storage format of the schema artifact. Always
+            ``"json"`` — declarative JSON Schema descriptors are the
+            only supported format.
         Created_On: UTC timestamp when the schema was registered.
         Updated_On: UTC timestamp of the last update.
     """
@@ -28,6 +32,7 @@ class Schema(BaseModel):
     Description: str
     FileName: str
     ContentType: str
+    Format: Literal["json"] = Field(default="json")
     Created_On: Optional[datetime.datetime] = Field(default=None)
     Updated_On: Optional[datetime.datetime] = Field(default=None)
     model_config = ConfigDict(from_attributes=True)

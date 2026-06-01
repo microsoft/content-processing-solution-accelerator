@@ -28,7 +28,7 @@ from libs.pipeline.entities.pipeline_message_context import MessageContext
 from libs.pipeline.entities.pipeline_step_result import StepResult
 from libs.pipeline.entities.schema import Schema
 from libs.pipeline.queue_handler_base import HandlerBase
-from libs.utils.remote_module_loader import load_schema_from_blob
+from libs.utils.remote_schema_loader import load_schema_from_blob_json
 
 logger = logging.getLogger(__name__)
 
@@ -151,12 +151,21 @@ class MapHandler(HandlerBase):
             schema_id=context.data_pipeline.pipeline_status.schema_id,
         )
 
-        # Load the schema class for structured output
-        schema_class = load_schema_from_blob(
+        # Load the schema class for structured output. Only JSON schemas
+        # are supported; the worker materialises the descriptor as an
+        # in-memory Pydantic model without ever executing uploaded code.
+        if not selected_schema.FileName.lower().endswith(".json"):
+            raise ValueError(
+                f"Schema {selected_schema.Id} has a non-JSON file "
+                f"'{selected_schema.FileName}'. Re-register the schema as a "
+                "JSON Schema (.json) document; legacy Python (.py) schemas "
+                "are no longer supported."
+            )
+        schema_class = load_schema_from_blob_json(
             account_url=self.application_context.configuration.app_storage_blob_url,
             container_name=f"{self.application_context.configuration.app_cps_configuration}/Schemas/{context.data_pipeline.pipeline_status.schema_id}",
             blob_name=selected_schema.FileName,
-            module_name=selected_schema.ClassName,
+            model_name=selected_schema.ClassName,
         )
 
         # Invoke Model with Agent Framework SDK

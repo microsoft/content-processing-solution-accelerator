@@ -121,7 +121,7 @@ The final stage applies **YAML-based rules** to detect missing documents and cro
 
 1. **Create Custom Schema**
    - Follow the [Custom Schema Guide](./CustomizeSchemaData.md)
-   - Define your document structure and required fields (Pydantic model)
+   - Define your document structure and required fields (JSON Schema)
 
 2. **Register Your Schema**
    - Add your schema to `schema_info.json` and run `register_schema.py`

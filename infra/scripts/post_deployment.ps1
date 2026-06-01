@@ -124,6 +124,15 @@ if (-not $ApiReady) {
 
         Write-Host "  Registering new schema '$ClassName'..."
 
+        # Only JSON Schema descriptors are accepted. The legacy .py format
+        # was removed as part of the schemavault RCE remediation.
+        $extension = [System.IO.Path]::GetExtension($SchemaFile).ToLowerInvariant()
+        if ($extension -ne '.json') {
+            Write-Host "  Unsupported schema extension '$extension' for '$SchemaFile'. Only .json is accepted. Skipping..."
+            continue
+        }
+        $contentType = 'application/json'
+
         # Build multipart form data
         $dataPayload = @{ ClassName = $ClassName; Description = $Description } | ConvertTo-Json -Compress
         $fileBytes   = [System.IO.File]::ReadAllBytes($SchemaFile)
@@ -137,7 +146,7 @@ if (-not $ApiReady) {
             $dataPayload,
             "--$boundary",
             "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-            "Content-Type: text/x-python$LF",
+            "Content-Type: $contentType$LF",
             [System.Text.Encoding]::UTF8.GetString($fileBytes),
             "--$boundary--$LF"
         ) -join $LF

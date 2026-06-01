@@ -11,6 +11,11 @@
             "shellautocompletion": true,
             "version": "latest"
         },
+        "ghcr.io/devcontainers/features/azure-cli:1": {
+            "installBicep": true,
+            "version": "latest",
+            "bicepVersion": "latest"
+        },
         "azure-cli": "latest"
     },
     "customizations": {

@@ -120,7 +120,7 @@ def test_count_documents(mock_certifi, mock_mongo_client):
     result = helper.count_documents({"key": "value"})
     assert result == 42
 
-    result = helper.count_documents()
+    helper.count_documents()
     mock_container.count_documents.assert_called_with({})
 
 

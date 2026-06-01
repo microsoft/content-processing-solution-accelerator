@@ -35,19 +35,19 @@ param deployments deploymentType[]?
 @description('Optional. Key vault reference and secret settings for the module\'s secrets export.')
 param secretsExportConfiguration secretsExportConfigurationType?
 
-import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointSingleServiceType[]?
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
@@ -187,12 +187,12 @@ var formattedRoleAssignments = [
 
 var enableReferencedModulesTelemetry = false
 
-resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-07-01-preview' existing = {
+resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: name
 }
 
 @batchSize(1)
-resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-07-01-preview' = [
+resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [
   for (deployment, index) in (deployments ?? []): {
     parent: cognitiveService
     name: deployment.?name ?? '${name}-deployments'
@@ -251,7 +251,7 @@ resource cognitiveService_diagnosticSettings 'Microsoft.Insights/diagnosticSetti
   }
 ]
 
-module cognitiveService_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.11.0' = [
+module cognitiveService_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.12.0' = [
   for (privateEndpoint, index) in (privateEndpoints ?? []): {
     name: '${uniqueString(deployment().name, location)}-cognitiveService-PrivateEndpoint-${index}'
     scope: resourceGroup(
@@ -364,7 +364,7 @@ module aiProject 'project.bicep' = if(!empty(projectName) || !empty(azureExistin
   }
 }
 
-import { secretsOutputType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { secretsOutputType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('A hashtable of references to the secrets exported to the provided Key Vault. The key of each reference is each secret\'s name.')
 output exportedSecrets secretsOutputType = (secretsExportConfiguration != null)
   ? toObject(secretsExport.outputs.secretsSet, secret => last(split(secret.secretResourceId, '/')), secret => secret)

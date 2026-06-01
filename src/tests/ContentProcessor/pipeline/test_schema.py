@@ -22,8 +22,8 @@ class TestSchema:
             Id="s-1",
             ClassName="InvoiceSchema",
             Description="Invoice extraction",
-            FileName="invoice_schema.py",
-            ContentType="application/pdf",
+            FileName="invoice_schema.json",
+            ContentType="application/json",
         )
         assert schema.Id == "s-1"
         assert schema.ClassName == "InvoiceSchema"
@@ -46,8 +46,8 @@ class TestSchema:
                 "Id": "s-1",
                 "ClassName": "MySchema",
                 "Description": "desc",
-                "FileName": "file.py",
-                "ContentType": "text/plain",
+                "FileName": "file.json",
+                "ContentType": "application/json",
             }
         ]
         result = Schema.get_schema("connstr", "db", "coll", "s-1")

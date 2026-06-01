@@ -136,10 +136,19 @@ else
     echo "  Registering new schema '$CLASS_NAME'..."
     DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
 
+    # Only JSON Schema descriptors are accepted. The legacy .py format
+    # was removed as part of the schemavault RCE remediation.
+    EXT=$(echo "${FILE_NAME##*.}" | tr '[:upper:]' '[:lower:]')
+    if [ "$EXT" != "json" ]; then
+      echo "  Unsupported schema extension '.$EXT' for '$FILE_NAME'. Only .json is accepted. Skipping..."
+      continue
+    fi
+    CONTENT_TYPE="application/json"
+
     RESPONSE=$(curl -s -w "\n%{http_code}" \
       -X POST "$SCHEMAVAULT_URL" \
       -F "data=$DATA_PAYLOAD" \
-      -F "file=@$SCHEMA_FILE;type=text/x-python" \
+      -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
       --connect-timeout 60)
 
     HTTP_CODE=$(echo "$RESPONSE" | tail -1)

@@ -159,6 +159,7 @@ Select one of the following options to deploy the Content Processing Solution Ac
 **Required Tools:**
 - [PowerShell 7.0+](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell) 
 - [Azure Developer CLI (azd) 1.18.0+](https://aka.ms/install-azd)
+- [Bicep CLI 0.33.0+](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/install)
 - [Python 3.9+](https://www.python.org/downloads/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [Git](https://git-scm.com/downloads)

@@ -8,9 +8,6 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "contentUnderstandingLocation": {
-      "value": "${AZURE_ENV_CU_LOCATION}"
-    },
     "azureAiServiceLocation": {
       "value": "${AZURE_ENV_AI_SERVICE_LOCATION}"
     },

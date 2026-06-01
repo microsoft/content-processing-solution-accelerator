@@ -33,7 +33,7 @@ class TestSingleton:
         assert a is b
 
     def test_with_factory(self) -> None:
-        ctx = AppContext().add_singleton(_S1, lambda: _S1())
+        ctx = AppContext().add_singleton(_S1, _S1)
         a = ctx.get_service(_S1)
         b = ctx.get_service(_S1)
         assert a is b

@@ -635,7 +635,7 @@ class HttpRequestClient:
             if on_poll is not None:
                 maybe_awaitable = on_poll(resp)
                 if inspect.isawaitable(maybe_awaitable):
-                    await maybe_awaitable
+                    _ = await maybe_awaitable
 
             if resp.status in done:
                 return resp
