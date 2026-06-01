@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from libs.llm_token_telemetry import (
     TokenUsage,
@@ -369,4 +369,3 @@ class TestTokenUsageScope:
         assert scope.usage.input_tokens == 300
         assert scope.usage.output_tokens == 130
         assert scope.usage.total_tokens == 430
-
