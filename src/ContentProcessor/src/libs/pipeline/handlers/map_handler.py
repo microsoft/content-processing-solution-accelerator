@@ -266,11 +266,14 @@ Return ONLY valid JSON matching this schema:
         )
 
         # Track token usage for this LLM call
+        source_file = context.data_pipeline.get_source_files()[0]
         with TokenUsageScope(
             token_emitter,
             agent_name="MapHandler",
             model_deployment_name=self.application_context.configuration.app_azure_openai_model,
             process_id=context.data_pipeline.pipeline_status.process_id,
+            file_name=source_file.name,
+            file_mime_type=source_file.mime_type or "",
         ) as scope:
             scope.add(gpt_response)
 

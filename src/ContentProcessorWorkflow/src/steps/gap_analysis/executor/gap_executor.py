@@ -197,11 +197,15 @@ class GapExecutor(Executor):
 
         # Track token usage for gap analysis
         model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
+        file_names = ", ".join(f.file_name for f in processed_files) if processed_files else ""
+        file_types = ", ".join(set(f.mime_type for f in processed_files if f.mime_type)) if processed_files else ""
         with TokenUsageScope(
             token_emitter,
             agent_name="GapAnalysis",
             model_deployment_name=model_name,
             process_id=result.claim_process_id,
+            file_name=file_names,
+            file_mime_type=file_types,
         ) as scope:
             scope.add(model_response)
 
