@@ -58,4 +58,4 @@ uvicorn==0.46.0
 watchfiles==1.1.1
 websockets==16.0
 opentelemetry-api==1.40.0
-opentelemetry-sdk==1.41.1
+opentelemetry-sdk==1.40.0
