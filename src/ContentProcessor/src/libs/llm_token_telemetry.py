@@ -326,11 +326,11 @@ def extract_realtime_usage(response_obj: Any) -> Optional[TokenUsage]:
         input_tokens=inp,
         output_tokens=out,
         total_tokens=tot,
-        input_audio_tokens=_to_int(_get(in_details, "audio_tokens")),
-        input_text_tokens=_to_int(_get(in_details, "text_tokens")),
-        input_cached_tokens=_to_int(_get(in_details, "cached_tokens")),
-        output_audio_tokens=_to_int(_get(out_details, "audio_tokens")),
-        output_text_tokens=_to_int(_get(out_details, "text_tokens")),
+        input_audio_tokens=_to_int(_get(in_details, "audio_tokens")) if _get(in_details, "audio_tokens") is not None else None,
+        input_text_tokens=_to_int(_get(in_details, "text_tokens")) if _get(in_details, "text_tokens") is not None else None,
+        input_cached_tokens=_to_int(_get(in_details, "cached_tokens")) if _get(in_details, "cached_tokens") is not None else None,
+        output_audio_tokens=_to_int(_get(out_details, "audio_tokens")) if _get(out_details, "audio_tokens") is not None else None,
+        output_text_tokens=_to_int(_get(out_details, "text_tokens")) if _get(out_details, "text_tokens") is not None else None,
     )
     if record.has_any or any(
         v for v in (
@@ -776,7 +776,7 @@ class TokenUsageEmitter:
             **dimensions,
         )
 
-        self._log.info(
+        self._log.debug(
             "[TOKEN USAGE] agent=%s model=%s input=%d output=%d total=%d %s",
             agent_name,
             model_deployment_name,
@@ -856,7 +856,7 @@ class TokenUsageScope(AbstractContextManager):
         """
         start_ns = time.perf_counter_ns()
         try:
-            found = extract_usage(source) or extract_usage_from_stream_chunk(source)
+            found = extract_usage(source)
         except Exception as exc:
             logger.debug("TokenUsageScope.add failed: %s", exc, exc_info=True)
             return None

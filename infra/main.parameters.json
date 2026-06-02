@@ -36,7 +36,7 @@
       "value": "${AZURE_ENV_IMAGETAG=latest_v2}"
     },
     "enableMonitoring": {
-      "value": true
+      "value": false
     }
   }
 }
