@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import hashlib
 import logging
 import os
 import random
@@ -525,6 +526,18 @@ class TokenUsageEmitter:
                     if v is None or v == "":
                         continue
                 props[k] = v if isinstance(v, str) else str(v)
+
+            # Deterministic event_id for deduplication across services.
+            # Key fields: event_name + process_id + agent_name + model
+            dedup_parts = [
+                event_name,
+                props.get("process_id", ""),
+                props.get("agent_name", ""),
+                props.get("model_deployment_name", ""),
+            ]
+            props["event_id"] = hashlib.sha256(
+                "|".join(dedup_parts).encode()
+            ).hexdigest()[:16]
 
             if not self.enabled:
                 self._log.debug(
