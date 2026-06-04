@@ -17,7 +17,7 @@ from typing import Literal
 from agent_framework import Content, Message
 from pdf2image import convert_from_bytes
 
-from libs.agent_framework.agent_builder import AgentBuilder, _is_reasoning_model, _resolve_model_name
+from libs.agent_framework.agent_builder import AgentBuilder, is_reasoning_model, resolve_model_name
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.agent_framework.azure_openai_response_retry import ContextTrimConfig
 from libs.application.application_context import AppContext
@@ -256,8 +256,8 @@ Return ONLY valid JSON matching this schema:
         )
 
         # logprobs is not supported by reasoning models (o1, o3, gpt-5.x)
-        model_name = _resolve_model_name(agent_client)
-        if model_name and _is_reasoning_model(model_name):
+        model_name = resolve_model_name(agent_client)
+        if model_name and is_reasoning_model(model_name):
             run_options = {}
         else:
             run_options = {"logprobs": True, "top_logprobs": 5}
