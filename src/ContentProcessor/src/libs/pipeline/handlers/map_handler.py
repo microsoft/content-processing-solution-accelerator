@@ -263,7 +263,7 @@ Return ONLY valid JSON matching this schema:
             run_options = {"logprobs": True, "top_logprobs": 5}
 
         gpt_response = await agent.run(
-            messages=Message(
+            Message(
                 "user",
                 contents=self._to_agent_framework_contents(user_content),
             ),
