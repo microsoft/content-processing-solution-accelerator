@@ -67,7 +67,7 @@ class TestFluentBuilder:
         assert builder._store is True
         assert builder._conversation_id == "conv-1"
 
-    @patch("libs.agent_framework.agent_builder.ChatAgent")
+    @patch("libs.agent_framework.agent_builder.Agent")
     def test_build_delegates_to_chat_agent(self, mock_chat_agent):
         client = _fake_chat_client()
         mock_chat_agent.return_value = "agent_instance"
@@ -85,14 +85,14 @@ class TestFluentBuilder:
         call_kwargs = mock_chat_agent.call_args
         assert call_kwargs.kwargs["name"] == "Bot"
         assert call_kwargs.kwargs["instructions"] == "Do stuff"
-        assert call_kwargs.kwargs["temperature"] == 0.5
+        assert call_kwargs.kwargs["default_options"]["temperature"] == 0.5
 
 
 # ── Static factory ───────────────────────────────────────────────────────────
 
 
 class TestStaticFactory:
-    @patch("libs.agent_framework.agent_builder.ChatAgent")
+    @patch("libs.agent_framework.agent_builder.Agent")
     def test_create_agent_delegates_to_chat_agent(self, mock_chat_agent):
         client = _fake_chat_client()
         mock_chat_agent.return_value = "agent_instance"
@@ -107,14 +107,14 @@ class TestStaticFactory:
         assert agent == "agent_instance"
         call_kwargs = mock_chat_agent.call_args
         assert call_kwargs.kwargs["name"] == "Bot"
-        assert call_kwargs.kwargs["temperature"] == 0.3
+        assert call_kwargs.kwargs["default_options"]["temperature"] == 0.3
 
 
 # ── with_kwargs ──────────────────────────────────────────────────────────────
 
 
 class TestWithKwargs:
-    @patch("libs.agent_framework.agent_builder.ChatAgent")
+    @patch("libs.agent_framework.agent_builder.Agent")
     def test_extra_kwargs_forwarded(self, mock_chat_agent):
         client = _fake_chat_client()
         mock_chat_agent.return_value = "agent_instance"
@@ -131,7 +131,7 @@ class TestWithKwargs:
 class TestAdditionalChatOptions:
     def test_stores_options(self):
         client = _fake_chat_client()
-        opts = {"reasoning": {"effort": "high"}}
+        opts = {"reasoning_effort": "high"}
         builder = AgentBuilder(client).with_additional_chat_options(opts)
         assert builder._additional_chat_options == opts
 
