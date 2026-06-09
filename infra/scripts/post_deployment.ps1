@@ -268,18 +268,26 @@ if ($CU_ACCOUNT_NAME) {
 }
 
 if (-not $CU_ACCOUNT_NAME) {
-    $DiscoveredCuAccount = (az cognitiveservices account list -g $RESOURCE_GROUP --query "[?kind=='AIServices'].name | [0]" -o tsv 2>$null)
-    if ($DiscoveredCuAccount) {
-        Write-Host "  Discovered AIServices account in resource group: $DiscoveredCuAccount"
-        $CU_ACCOUNT_NAME = $DiscoveredCuAccount
+    # Enumerate ALL AIServices accounts (not just the first). When the resource
+    # group contains exactly one we auto-recover; when it contains more than one
+    # we refuse to guess and ask the user to set the env value explicitly, to
+    # avoid persisting the wrong account name into azd env.
+    $CuAccounts = @(az cognitiveservices account list -g $RESOURCE_GROUP --query "[?kind=='AIServices'].name" -o tsv 2>$null)
+    $CuAccounts = @($CuAccounts | Where-Object { $_ -and $_.Trim() -ne "" })
+    if ($CuAccounts.Count -eq 1) {
+        $CU_ACCOUNT_NAME = $CuAccounts[0]
+        Write-Host "  Discovered AIServices account in resource group: $CU_ACCOUNT_NAME"
         # Refresh the azd env so subsequent runs use the correct value.
         try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+    } elseif ($CuAccounts.Count -gt 1) {
+        Write-Host "  [Warn] Multiple AIServices accounts found in resource group '$RESOURCE_GROUP': $($CuAccounts -join ', ')"
+        Write-Host "         Please set CONTENT_UNDERSTANDING_ACCOUNT_NAME in azd env to the correct account name. Skipping refresh."
+    } else {
+        Write-Host "  [Warn] No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
     }
 }
 
-if (-not $CU_ACCOUNT_NAME) {
-    Write-Host "  [Warn] No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
-} else {
+if ($CU_ACCOUNT_NAME) {
     Write-Host "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
     az cognitiveservices account update -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --tags refresh=true --output none 2>$null
     if ($LASTEXITCODE -eq 0) {

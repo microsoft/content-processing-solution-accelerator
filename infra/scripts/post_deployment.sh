@@ -269,21 +269,28 @@ if [ -n "$CU_ACCOUNT_NAME" ]; then
 fi
 
 if [ -z "$CU_ACCOUNT_NAME" ]; then
-  DISCOVERED_CU_ACCOUNT=$(az cognitiveservices account list \
+  # Enumerate ALL AIServices accounts (not just the first). When the resource
+  # group contains exactly one we auto-recover; when it contains more than one
+  # we refuse to guess and ask the user to set the env value explicitly, to
+  # avoid persisting the wrong account name into azd env.
+  mapfile -t CU_ACCOUNTS < <(az cognitiveservices account list \
     -g "$RESOURCE_GROUP" \
-    --query "[?kind=='AIServices'].name | [0]" \
-    -o tsv 2>/dev/null || echo "")
-  if [ -n "$DISCOVERED_CU_ACCOUNT" ]; then
-    echo "  Discovered AIServices account in resource group: $DISCOVERED_CU_ACCOUNT"
-    CU_ACCOUNT_NAME="$DISCOVERED_CU_ACCOUNT"
+    --query "[?kind=='AIServices'].name" \
+    -o tsv 2>/dev/null || true)
+  if [ "${#CU_ACCOUNTS[@]}" -eq 1 ]; then
+    CU_ACCOUNT_NAME="${CU_ACCOUNTS[0]}"
+    echo "  Discovered AIServices account in resource group: $CU_ACCOUNT_NAME"
     # Refresh the azd env so subsequent runs use the correct value.
     azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME "$CU_ACCOUNT_NAME" >/dev/null 2>&1 || true
+  elif [ "${#CU_ACCOUNTS[@]}" -gt 1 ]; then
+    echo "  ⚠️ Multiple AIServices accounts found in resource group '$RESOURCE_GROUP': ${CU_ACCOUNTS[*]}"
+    echo "     Please set CONTENT_UNDERSTANDING_ACCOUNT_NAME in azd env to the correct account name. Skipping refresh."
+  else
+    echo "  ⚠️ No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
   fi
 fi
 
-if [ -z "$CU_ACCOUNT_NAME" ]; then
-  echo "  ⚠️ No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
-else
+if [ -n "$CU_ACCOUNT_NAME" ]; then
   echo "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
   if az cognitiveservices account update \
     -g "$RESOURCE_GROUP" \
