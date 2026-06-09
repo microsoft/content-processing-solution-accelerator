@@ -239,3 +239,52 @@ if (-not $ApiReady) {
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
 }
+
+# --- Refresh Content Understanding Cognitive Services account ---
+Write-Host ""
+Write-Host ("=" * 60)
+Write-Host "Refreshing Content Understanding Cognitive Services account..."
+Write-Host ("=" * 60)
+
+$CU_ACCOUNT_NAME = ""
+try {
+    $CU_ACCOUNT_NAME = (azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>$null)
+    if (-not $CU_ACCOUNT_NAME) { $CU_ACCOUNT_NAME = "" }
+} catch {
+    $CU_ACCOUNT_NAME = ""
+}
+
+# Verify the account from the env value still exists; if not, fall back to discovering
+# the AIServices account in the resource group. This protects against stale .env values
+# left over from prior deployments (different template/fork) and against the env value
+# pointing to a resource that no longer exists.
+if ($CU_ACCOUNT_NAME) {
+    az cognitiveservices account show -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --output none 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  [Warn] Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
+        Write-Host "         The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
+        $CU_ACCOUNT_NAME = ""
+    }
+}
+
+if (-not $CU_ACCOUNT_NAME) {
+    $DiscoveredCuAccount = (az cognitiveservices account list -g $RESOURCE_GROUP --query "[?kind=='AIServices'].name | [0]" -o tsv 2>$null)
+    if ($DiscoveredCuAccount) {
+        Write-Host "  Discovered AIServices account in resource group: $DiscoveredCuAccount"
+        $CU_ACCOUNT_NAME = $DiscoveredCuAccount
+        # Refresh the azd env so subsequent runs use the correct value.
+        try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+    }
+}
+
+if (-not $CU_ACCOUNT_NAME) {
+    Write-Host "  [Warn] No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
+} else {
+    Write-Host "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
+    az cognitiveservices account update -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --tags refresh=true --output none 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  [OK] Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
+    } else {
+        Write-Host "  [Warn] Could not refresh Cognitive Services account '$CU_ACCOUNT_NAME'. Continuing - this step is non-fatal."
+    }
+}

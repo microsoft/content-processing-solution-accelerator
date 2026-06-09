@@ -256,17 +256,42 @@ echo "============================================================"
 
 CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>/dev/null || echo "")
 
+# Verify the account from the env value still exists; if not, fall back to discovering
+# the AIServices account in the resource group. This protects against stale .env values
+# left over from prior deployments (different template/fork) and against the env value
+# pointing to a resource that no longer exists.
+if [ -n "$CU_ACCOUNT_NAME" ]; then
+  if ! az cognitiveservices account show -g "$RESOURCE_GROUP" -n "$CU_ACCOUNT_NAME" --output none 2>/dev/null; then
+    echo "  ⚠️ Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
+    echo "     The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
+    CU_ACCOUNT_NAME=""
+  fi
+fi
+
 if [ -z "$CU_ACCOUNT_NAME" ]; then
-  echo "  ⚠️ CONTENT_UNDERSTANDING_ACCOUNT_NAME not found in azd env. Skipping refresh."
+  DISCOVERED_CU_ACCOUNT=$(az cognitiveservices account list \
+    -g "$RESOURCE_GROUP" \
+    --query "[?kind=='AIServices'].name | [0]" \
+    -o tsv 2>/dev/null || echo "")
+  if [ -n "$DISCOVERED_CU_ACCOUNT" ]; then
+    echo "  Discovered AIServices account in resource group: $DISCOVERED_CU_ACCOUNT"
+    CU_ACCOUNT_NAME="$DISCOVERED_CU_ACCOUNT"
+    # Refresh the azd env so subsequent runs use the correct value.
+    azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME "$CU_ACCOUNT_NAME" >/dev/null 2>&1 || true
+  fi
+fi
+
+if [ -z "$CU_ACCOUNT_NAME" ]; then
+  echo "  ⚠️ No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
 else
   echo "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
   if az cognitiveservices account update \
     -g "$RESOURCE_GROUP" \
     -n "$CU_ACCOUNT_NAME" \
     --tags refresh=true \
-    --output none; then
+    --output none 2>/dev/null; then
     echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
   else
-    echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
+    echo "  ⚠️ Could not refresh Cognitive Services account '$CU_ACCOUNT_NAME'. Continuing — this step is non-fatal."
   fi
 fi
