@@ -261,10 +261,29 @@ CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>/dev/nu
 # left over from prior deployments (different template/fork) and against the env value
 # pointing to a resource that no longer exists.
 if [ -n "$CU_ACCOUNT_NAME" ]; then
-  if ! az cognitiveservices account show -g "$RESOURCE_GROUP" -n "$CU_ACCOUNT_NAME" --output none 2>/dev/null; then
-    echo "  ⚠️ Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
-    echo "     The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
-    CU_ACCOUNT_NAME=""
+  # Capture stderr so we can distinguish a real "not found" response from a
+  # transient/auth/CLI failure. Only treat the env value as stale when Azure
+  # actually reports the resource is missing; for any other error keep the
+  # env value untouched and log the underlying error for diagnosability.
+  # `set +e` is required because `set -e` (enabled at the top of the script)
+  # would otherwise exit the script as soon as `az ... show` returns non-zero,
+  # before we can inspect $? and decide whether to fall back to discovery.
+  set +e
+  CU_SHOW_ERR=$(az cognitiveservices account show \
+    -g "$RESOURCE_GROUP" \
+    -n "$CU_ACCOUNT_NAME" \
+    --output none 2>&1)
+  CU_SHOW_EC=$?
+  set -e
+  if [ $CU_SHOW_EC -ne 0 ]; then
+    if echo "$CU_SHOW_ERR" | grep -qiE "ResourceNotFound|was not found|could not be found"; then
+      echo "  ⚠️ Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
+      echo "     The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
+      CU_ACCOUNT_NAME=""
+    else
+      echo "  ⚠️ Could not verify Cognitive Services account '$CU_ACCOUNT_NAME' (transient or CLI error). Keeping env value and skipping discovery."
+      echo "     az error: $CU_SHOW_ERR"
+    fi
   fi
 fi
 
@@ -273,7 +292,13 @@ if [ -z "$CU_ACCOUNT_NAME" ]; then
   # group contains exactly one we auto-recover; when it contains more than one
   # we refuse to guess and ask the user to set the env value explicitly, to
   # avoid persisting the wrong account name into azd env.
-  mapfile -t CU_ACCOUNTS < <(az cognitiveservices account list \
+  # Use a portable `while read` loop instead of `mapfile`, because `mapfile`
+  # requires bash 4+ and the azd postprovision hook also runs on macOS where
+  # the default shell is still bash 3.2.
+  CU_ACCOUNTS=()
+  while IFS= read -r _cu_acct; do
+    [ -n "$_cu_acct" ] && CU_ACCOUNTS+=("$_cu_acct")
+  done < <(az cognitiveservices account list \
     -g "$RESOURCE_GROUP" \
     --query "[?kind=='AIServices'].name" \
     -o tsv 2>/dev/null || true)
@@ -292,13 +317,23 @@ fi
 
 if [ -n "$CU_ACCOUNT_NAME" ]; then
   echo "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
-  if az cognitiveservices account update \
+  # Capture stderr so that any Azure CLI error is preserved in deployment
+  # logs even though this refresh step is non-fatal.
+  # `set +e` is required because `set -e` (enabled at the top of the script)
+  # would otherwise exit the script as soon as `az ... update` returns
+  # non-zero, defeating the explicit "non-fatal" handling below.
+  set +e
+  CU_UPDATE_ERR=$(az cognitiveservices account update \
     -g "$RESOURCE_GROUP" \
     -n "$CU_ACCOUNT_NAME" \
     --tags refresh=true \
-    --output none 2>/dev/null; then
+    --output none 2>&1)
+  CU_UPDATE_EC=$?
+  set -e
+  if [ $CU_UPDATE_EC -eq 0 ]; then
     echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
   else
     echo "  ⚠️ Could not refresh Cognitive Services account '$CU_ACCOUNT_NAME'. Continuing — this step is non-fatal."
+    echo "     az error: $CU_UPDATE_ERR"
   fi
 fi

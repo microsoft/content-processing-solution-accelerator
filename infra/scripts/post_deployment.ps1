@@ -259,11 +259,21 @@ try {
 # left over from prior deployments (different template/fork) and against the env value
 # pointing to a resource that no longer exists.
 if ($CU_ACCOUNT_NAME) {
-    az cognitiveservices account show -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --output none 2>$null
+    # Capture stderr so we can distinguish a real "not found" response from a
+    # transient/auth/CLI failure. Only treat the env value as stale when Azure
+    # actually reports the resource is missing; for any other error keep the
+    # env value untouched and log the underlying error for diagnosability.
+    $ShowOutput = az cognitiveservices account show -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --output none 2>&1
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "  [Warn] Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
-        Write-Host "         The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
-        $CU_ACCOUNT_NAME = ""
+        $ShowOutputStr = ($ShowOutput | Out-String).Trim()
+        if ($ShowOutputStr -match '(?i)ResourceNotFound|was not found|could not be found') {
+            Write-Host "  [Warn] Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
+            Write-Host "         The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
+            $CU_ACCOUNT_NAME = ""
+        } else {
+            Write-Host "  [Warn] Could not verify Cognitive Services account '$CU_ACCOUNT_NAME' (transient or CLI error). Keeping env value and skipping discovery."
+            Write-Host "         az error: $ShowOutputStr"
+        }
     }
 }
 
@@ -289,10 +299,14 @@ if (-not $CU_ACCOUNT_NAME) {
 
 if ($CU_ACCOUNT_NAME) {
     Write-Host "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
-    az cognitiveservices account update -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --tags refresh=true --output none 2>$null
+    # Capture stderr so that any Azure CLI error is preserved in deployment
+    # logs even though this refresh step is non-fatal.
+    $UpdateOutput = az cognitiveservices account update -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --tags refresh=true --output none 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [OK] Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
     } else {
+        $UpdateOutputStr = ($UpdateOutput | Out-String).Trim()
         Write-Host "  [Warn] Could not refresh Cognitive Services account '$CU_ACCOUNT_NAME'. Continuing - this step is non-fatal."
+        Write-Host "         az error: $UpdateOutputStr"
     }
 }
