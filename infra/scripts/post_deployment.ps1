@@ -239,3 +239,74 @@ if (-not $ApiReady) {
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
 }
+
+# --- Refresh Content Understanding Cognitive Services account ---
+Write-Host ""
+Write-Host ("=" * 60)
+Write-Host "Refreshing Content Understanding Cognitive Services account..."
+Write-Host ("=" * 60)
+
+$CU_ACCOUNT_NAME = ""
+try {
+    $CU_ACCOUNT_NAME = (azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>$null)
+    if (-not $CU_ACCOUNT_NAME) { $CU_ACCOUNT_NAME = "" }
+} catch {
+    $CU_ACCOUNT_NAME = ""
+}
+
+# Verify the account from the env value still exists; if not, fall back to discovering
+# the AIServices account in the resource group. This protects against stale .env values
+# left over from prior deployments (different template/fork) and against the env value
+# pointing to a resource that no longer exists.
+if ($CU_ACCOUNT_NAME) {
+    # Capture stderr so we can distinguish a real "not found" response from a
+    # transient/auth/CLI failure. Only treat the env value as stale when Azure
+    # actually reports the resource is missing; for any other error keep the
+    # env value untouched and log the underlying error for diagnosability.
+    $ShowOutput = az cognitiveservices account show -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --output none 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $ShowOutputStr = ($ShowOutput | Out-String).Trim()
+        if ($ShowOutputStr -match '(?i)ResourceNotFound|was not found|could not be found') {
+            Write-Host "  [Warn] Cognitive Services account '$CU_ACCOUNT_NAME' from azd env was not found in resource group '$RESOURCE_GROUP'."
+            Write-Host "         The azd env value may be stale. Attempting to discover the AIServices account in the resource group..."
+            $CU_ACCOUNT_NAME = ""
+        } else {
+            Write-Host "  [Warn] Could not verify Cognitive Services account '$CU_ACCOUNT_NAME' (transient or CLI error). Keeping env value and skipping discovery."
+            Write-Host "         az error: $ShowOutputStr"
+        }
+    }
+}
+
+if (-not $CU_ACCOUNT_NAME) {
+    # Enumerate ALL AIServices accounts (not just the first). When the resource
+    # group contains exactly one we auto-recover; when it contains more than one
+    # we refuse to guess and ask the user to set the env value explicitly, to
+    # avoid persisting the wrong account name into azd env.
+    $CuAccounts = @(az cognitiveservices account list -g $RESOURCE_GROUP --query "[?kind=='AIServices'].name" -o tsv 2>$null)
+    $CuAccounts = @($CuAccounts | Where-Object { $_ -and $_.Trim() -ne "" })
+    if ($CuAccounts.Count -eq 1) {
+        $CU_ACCOUNT_NAME = $CuAccounts[0]
+        Write-Host "  Discovered AIServices account in resource group: $CU_ACCOUNT_NAME"
+        # Refresh the azd env so subsequent runs use the correct value.
+        try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+    } elseif ($CuAccounts.Count -gt 1) {
+        Write-Host "  [Warn] Multiple AIServices accounts found in resource group '$RESOURCE_GROUP': $($CuAccounts -join ', ')"
+        Write-Host "         Please set CONTENT_UNDERSTANDING_ACCOUNT_NAME in azd env to the correct account name. Skipping refresh."
+    } else {
+        Write-Host "  [Warn] No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
+    }
+}
+
+if ($CU_ACCOUNT_NAME) {
+    Write-Host "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
+    # Capture stderr so that any Azure CLI error is preserved in deployment
+    # logs even though this refresh step is non-fatal.
+    $UpdateOutput = az cognitiveservices account update -g $RESOURCE_GROUP -n $CU_ACCOUNT_NAME --tags refresh=true --output none 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  [OK] Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
+    } else {
+        $UpdateOutputStr = ($UpdateOutput | Out-String).Trim()
+        Write-Host "  [Warn] Could not refresh Cognitive Services account '$CU_ACCOUNT_NAME'. Continuing - this step is non-fatal."
+        Write-Host "         az error: $UpdateOutputStr"
+    }
+}
