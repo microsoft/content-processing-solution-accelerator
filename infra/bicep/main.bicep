@@ -163,7 +163,7 @@ var effectiveContainerRegistryEndpoint = empty(containerRegistryEndpoint) ? cont
 var apiAppFqdn = '${contentProcessorApiName}.${containerAppEnvironment.outputs.defaultDomain}'
 var webAppFqdn = '${contentProcessorWebName}.${containerAppEnvironment.outputs.defaultDomain}'
 var workflowAppFqdn = '${contentProcessorWorkflowName}.${containerAppEnvironment.outputs.defaultDomain}'
-var cosmosDbEndpoint = 'https://${cosmosDb.name}.mongo.cosmos.azure.com:443/'
+var cosmosDbEndpoint = cosmosDBModule.outputs.endpoint
 
 var sharedEnv = [
   {
@@ -395,66 +395,28 @@ resource storageQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@20
 // Resources — Cosmos DB
 // ============================================================================
 
-resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-  name: cosmosDbName
-  location: location
-  kind: 'MongoDB'
-  tags: tags
-  properties: {
-    databaseAccountOfferType: 'Standard'
-    locations: [
+module cosmosDBModule './modules/data/cosmos-db-mongo.bicep' = {
+  name: take('module.cosmos-db-mongo.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: cosmosDbName
+    location: location
+    tags: tags
+    databaseName: cosmosDatabaseName
+    collections: [
       {
-        locationName: location
-        failoverPriority: 0
-        isZoneRedundant: enableRedundancy
+        name: cosmosContainerName
+        shardKey: { id: 'Hash' }
+        indexes: [
+          { key: { keys: ['_id'] } }
+        ]
       }
     ]
-    capabilities: [
-      {
-        name: 'EnableMongo'
-      }
-    ]
-    apiProperties: {
-      serverVersion: '7.0'
-    }
-    disableLocalAuth: false
+    serverVersion: '7.0'
+    consistencyLevel: 'Session'
+    zoneRedundant: enableRedundancy
     enableAutomaticFailover: false
-    enableMultipleWriteLocations: false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-  }
-}
-
-resource cosmosMongoDatabase 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases@2023-04-15' = {
-  parent: cosmosDb
-  name: cosmosDatabaseName
-  properties: {
-    resource: {
-      id: cosmosDatabaseName
-    }
-    options: {}
-  }
-}
-
-resource cosmosMongoCollection 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases/collections@2023-04-15' = {
-  parent: cosmosMongoDatabase
-  name: cosmosContainerName
-  properties: {
-    resource: {
-      id: cosmosContainerName
-      shardKey: {
-        id: 'Hash'
-      }
-      indexes: [
-        {
-          key: {
-            keys: [
-              '_id'
-            ]
-          }
-        }
-      ]
-    }
-    options: {}
   }
 }
 

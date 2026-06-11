@@ -1554,56 +1554,26 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
   }
 }
 
-module avmCosmosDB 'br/public:avm/res/document-db/database-account:0.19.0' = {
-  name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
+module avmCosmosDB './modules/data/cosmos-db-mongo.bicep' = {
+  name: take('module.cosmos-db-mongo.${solutionSuffix}', 64)
   params: {
+    solutionName: solutionSuffix
     name: 'cosmos-${solutionSuffix}'
     location: location
-    mongodbDatabases: [
-      {
-        name: 'default'
-        tag: 'default database'
-      }
-    ]
     tags: tags
     enableTelemetry: enableTelemetry
-    databaseAccountOfferType: 'Standard'
-    enableAutomaticFailover: false
+    databaseName: 'default'
+    collections: []
     serverVersion: '7.0'
-    capabilitiesToAdd: [
-      'EnableMongo'
-    ]
-    defaultConsistencyLevel: 'Session'
-    maxIntervalInSeconds: 5
-    maxStalenessPrefix: 100
-    zoneRedundant: false
-
-    // WAF related parameters
-    networkRestrictions: {
-      publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
-      ipRules: []
-      virtualNetworkRules: []
-    }
-
-    privateEndpoints: (enablePrivateNetworking)
-      ? [
-          {
-            name: 'pep-cosmosdb-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-cosmosdb-${solutionSuffix}'
-            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'cosmosdb-dns-zone-group'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cosmosDB]!.outputs.resourceId
-                }
-              ]
-            }
-            service: 'MongoDB'
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
-          }
-        ]
-      : []
+    consistencyLevel: 'Session'
+    zoneRedundant: enableRedundancy
+    enableAutomaticFailover: enableRedundancy
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      avmPrivateDnsZones[dnsZoneIndex.cosmosDB]!.outputs.resourceId
+    ] : []
   }
 }
 
