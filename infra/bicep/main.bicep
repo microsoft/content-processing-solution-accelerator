@@ -1,34 +1,136 @@
+// ============================================================================
+// Main Deployment Template
+// ============================================================================
+
 targetScope = 'resourceGroup'
 
 metadata name = 'Content Processing Solution Accelerator - Bicep'
 metadata description = 'Deploys Content Processing resources using the restored private-repo module interfaces.'
 
+// ============================================================================
+// Parameters — Core
+// ============================================================================
+
 @minLength(3)
 @maxLength(20)
+@description('Optional. Name of the solution to deploy. This should be 3-20 characters long.')
 param solutionName string = 'cps'
 
+@maxLength(5)
+@description('Optional. A unique text value for the solution. This is used to ensure resource names are unique for global resources.')
+param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
+
 @metadata({ azd: { type: 'location' } })
+@description('Required. Azure region for all services.')
 param location string
 
-@metadata({ azd: { type: 'location' } })
-param azureAiServiceLocation string
-
-param gptModelName string = 'gpt-5.1'
-param containerRegistryEndpoint string = ''
-param imageTag string = 'latest_v2'
-param enablePrivateNetworking bool = false
-param enableMonitoring bool = false
-param enableRedundancy bool = false
-param enableScalability bool = false
-param enableTelemetry bool = true
-param enablePurgeProtection bool = false
+@description('Optional. Tags to be applied to the resources.')
 param tags object = {
   app: 'Content Processing Solution Accelerator'
   location: resourceGroup().location
 }
 
-var uniqueToken = substring(uniqueString(subscription().subscriptionId, resourceGroup().id, solutionName), 0, 5)
-var solutionSuffix = toLower(replace(replace(replace('${solutionName}${uniqueToken}', '-', ''), '_', ''), '.', ''))
+@minLength(1)
+@allowed([
+  'australiaeast'
+  'eastus'
+  'eastus2'
+  'japaneast'
+  'southcentralus'
+  'southeastasia'
+  'swedencentral'
+  'uksouth'
+  'westeurope'
+  'westus'
+  'westus3'
+])
+@description('Required. Location for the Azure AI Services deployment.')
+@metadata({
+  azd: {
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt-5.1,300'
+    ]
+  }
+})
+param azureAiServiceLocation string
+
+// ============================================================================
+// Parameters — AI Configuration
+// ============================================================================
+
+@description('Optional. Type of GPT deployment to use: Standard | GlobalStandard.')
+@allowed([
+  'Standard'
+  'GlobalStandard'
+])
+param deploymentType string = 'GlobalStandard'
+
+@description('Optional. Name of the GPT model to deploy.')
+param gptModelName string = 'gpt-5.1'
+
+@description('Optional. Version of the GPT model to deploy. Empty string uses the latest available version.')
+param gptModelVersion string = ''
+
+@minValue(1)
+@description('Optional. Capacity of the GPT deployment.')
+param gptDeploymentCapacity int = 10
+
+// ============================================================================
+// Parameters — Compute
+// ============================================================================
+
+@description('Optional. The container registry login server or endpoint for the container images.')
+param containerRegistryEndpoint string = ''
+
+@description('Optional. The image tag for the container images.')
+param imageTag string = 'latest_v2'
+
+// ============================================================================
+// Parameters — WAF Feature Flags
+// ============================================================================
+
+@description('Optional. Enable private networking for the deployment.')
+param enablePrivateNetworking bool = false
+
+@description('Optional. Enable monitoring applicable resources.')
+param enableMonitoring bool = false
+
+@description('Optional. Enable redundancy for applicable resources.')
+param enableRedundancy bool = false
+
+@description('Optional. Enable scalability for applicable resources.')
+param enableScalability bool = false
+
+@description('Optional. Enable or disable usage telemetry for the deployment.')
+param enableTelemetry bool = true
+
+@description('Optional. Enable purge protection.')
+param enablePurgeProtection bool = false
+
+// ============================================================================
+// Parameters — Existing Resources
+// ============================================================================
+
+@description('Optional. Existing Log Analytics Workspace resource ID.')
+param existingLogAnalyticsWorkspaceId string = ''
+
+@description('Optional. Existing Azure AI Foundry project resource ID.')
+param existingFoundryProjectResourceId string = ''
+
+// ============================================================================
+// Variables
+// ============================================================================
+
+var solutionSuffix = toLower(trim(replace(
+  replace(
+    replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
+    ' ',
+    ''
+  ),
+  '*',
+  ''
+)))
 
 var managedIdentityName = 'id-${solutionSuffix}'
 var containerRegistryName = replace('cr${solutionSuffix}', '-', '')
@@ -56,208 +158,6 @@ var appConfigurationDataReaderRoleId = subscriptionResourceId('Microsoft.Authori
 var cognitiveServicesOpenAiUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
 var cognitiveServicesUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
 var azureAiDeveloperRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')
-
-module logAnalytics './modules/monitoring/log-analytics.bicep' = if (enableMonitoring) {
-  name: take('module.log-analytics.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: location
-    tags: tags
-  }
-}
-
-module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
-  name: take('module.app-insights.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: location
-    workspaceResourceId: logAnalytics!.outputs.resourceId
-    tags: tags
-  }
-}
-
-module managedIdentity './modules/identity/managed-identity.bicep' = {
-  name: take('module.managed-identity.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    identityName: managedIdentityName
-    location: location
-    tags: tags
-  }
-}
-
-module containerRegistry './modules/compute/container-registry.bicep' = {
-  name: take('module.container-registry.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: containerRegistryName
-    location: location
-    sku: enableRedundancy ? 'Premium' : 'Standard'
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    tags: tags
-  }
-}
-
-module storageAccount './modules/data/storage-account.bicep' = {
-  name: take('module.storage-account.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: storageAccountName
-    location: location
-    skuName: enableRedundancy ? 'Standard_ZRS' : 'Standard_LRS'
-    containers: [
-      {
-        name: storageContainerName
-        publicAccess: 'None'
-      }
-    ]
-    tags: tags
-  }
-}
-
-resource storageAccountResource 'Microsoft.Storage/storageAccounts@2025-08-01' existing = {
-  name: storageAccountName
-}
-
-resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2025-08-01' = {
-  parent: storageAccountResource
-  name: 'default'
-}
-
-resource storageQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2025-08-01' = {
-  parent: queueService
-  name: storageQueueName
-}
-
-resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-  name: cosmosDbName
-  location: location
-  kind: 'MongoDB'
-  tags: tags
-  properties: {
-    databaseAccountOfferType: 'Standard'
-    locations: [
-      {
-        locationName: location
-        failoverPriority: 0
-        isZoneRedundant: enableRedundancy
-      }
-    ]
-    capabilities: [
-      {
-        name: 'EnableMongo'
-      }
-    ]
-    apiProperties: {
-      serverVersion: '7.0'
-    }
-    disableLocalAuth: false
-    enableAutomaticFailover: false
-    enableMultipleWriteLocations: false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-  }
-}
-
-resource cosmosMongoDatabase 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases@2023-04-15' = {
-  parent: cosmosDb
-  name: cosmosDatabaseName
-  properties: {
-    resource: {
-      id: cosmosDatabaseName
-    }
-    options: {}
-  }
-}
-
-resource cosmosMongoCollection 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases/collections@2023-04-15' = {
-  parent: cosmosMongoDatabase
-  name: cosmosContainerName
-  properties: {
-    resource: {
-      id: cosmosContainerName
-      shardKey: {
-        id: 'Hash'
-      }
-      indexes: [
-        {
-          key: {
-            keys: [
-              '_id'
-            ]
-          }
-        }
-      ]
-    }
-    options: {}
-  }
-}
-
-module aiFoundry './modules/ai/ai-foundry.bicep' = {
-  name: take('module.ai-foundry.${solutionSuffix}', 64)
-  params: {
-    name: aiServicesName
-    location: azureAiServiceLocation
-    principalIds: []
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    tags: union(tags, {
-      location: azureAiServiceLocation
-    })
-  }
-}
-
-resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: aiServicesName
-}
-
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = {
-  parent: aiServicesAccount
-  name: aiProjectName
-  location: azureAiServiceLocation
-  kind: 'AIServices'
-  identity: {
-    type: 'SystemAssigned'
-  }
-  tags: union(tags, {
-    location: azureAiServiceLocation
-  })
-  properties: {}
-}
-
-module modelDeployment './modules/ai/ai-foundry-model-deployment.bicep' = {
-  name: take('module.ai-model.${solutionSuffix}', 64)
-  params: {
-    aiServicesAccountName: aiFoundry.outputs.name
-    deploymentName: modelDeploymentName
-    modelName: gptModelName
-    skuName: 'GlobalStandard'
-    skuCapacity: 10
-  }
-}
-
-module aiSearch './modules/ai/ai-search.bicep' = {
-  name: take('module.ai-search.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: aiSearchName
-    location: location
-    replicaCount: enableRedundancy ? 2 : 1
-    partitionCount: enableScalability ? 2 : 1
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    tags: tags
-  }
-}
-
-module containerAppEnvironment './modules/compute/container-app-environment.bicep' = {
-  name: take('module.container-app-environment.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: containerAppEnvironmentName
-    location: location
-    logAnalyticsWorkspaceResourceId: enableMonitoring ? logAnalytics!.outputs.resourceId : ''
-    zoneRedundant: enableRedundancy
-    tags: tags
-  }
-}
 
 var effectiveContainerRegistryEndpoint = empty(containerRegistryEndpoint) ? containerRegistry.outputs.loginServer : containerRegistryEndpoint
 var apiAppFqdn = '${contentProcessorApiName}.${containerAppEnvironment.outputs.defaultDomain}'
@@ -395,8 +295,263 @@ var appConfigurationValues = [
   }
 ]
 
+// ============================================================================
+// Module — Monitoring — Log Analytics
+// ============================================================================
+
+module logAnalytics './modules/monitoring/log-analytics.bicep' = if (enableMonitoring) {
+  name: take('module.log-analytics.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Module — Monitoring — Application Insights
+// ============================================================================
+
+module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
+  name: take('module.app-insights.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    workspaceResourceId: logAnalytics!.outputs.resourceId
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Module — Identity — Managed Identity
+// ============================================================================
+
+module managedIdentity './modules/identity/managed-identity.bicep' = {
+  name: take('module.managed-identity.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    identityName: managedIdentityName
+    location: location
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Module — Compute — Container Registry
+// ============================================================================
+
+module containerRegistry './modules/compute/container-registry.bicep' = {
+  name: take('module.container-registry.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: containerRegistryName
+    location: location
+    sku: enableRedundancy ? 'Premium' : 'Standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Module — Data — Storage Account
+// ============================================================================
+
+module storageAccount './modules/data/storage-account.bicep' = {
+  name: take('module.storage-account.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: storageAccountName
+    location: location
+    skuName: enableRedundancy ? 'Standard_ZRS' : 'Standard_LRS'
+    containers: [
+      {
+        name: storageContainerName
+        publicAccess: 'None'
+      }
+    ]
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Resources — Storage Queue
+// ============================================================================
+
+resource storageAccountResource 'Microsoft.Storage/storageAccounts@2025-08-01' existing = {
+  name: storageAccountName
+}
+
+resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2025-08-01' = {
+  parent: storageAccountResource
+  name: 'default'
+}
+
+resource storageQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2025-08-01' = {
+  parent: queueService
+  name: storageQueueName
+}
+
+// ============================================================================
+// Resources — Cosmos DB
+// ============================================================================
+
+resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+  name: cosmosDbName
+  location: location
+  kind: 'MongoDB'
+  tags: tags
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: enableRedundancy
+      }
+    ]
+    capabilities: [
+      {
+        name: 'EnableMongo'
+      }
+    ]
+    apiProperties: {
+      serverVersion: '7.0'
+    }
+    disableLocalAuth: false
+    enableAutomaticFailover: false
+    enableMultipleWriteLocations: false
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+  }
+}
+
+resource cosmosMongoDatabase 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases@2023-04-15' = {
+  parent: cosmosDb
+  name: cosmosDatabaseName
+  properties: {
+    resource: {
+      id: cosmosDatabaseName
+    }
+    options: {}
+  }
+}
+
+resource cosmosMongoCollection 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases/collections@2023-04-15' = {
+  parent: cosmosMongoDatabase
+  name: cosmosContainerName
+  properties: {
+    resource: {
+      id: cosmosContainerName
+      shardKey: {
+        id: 'Hash'
+      }
+      indexes: [
+        {
+          key: {
+            keys: [
+              '_id'
+            ]
+          }
+        }
+      ]
+    }
+    options: {}
+  }
+}
+
+// ============================================================================
+// Module — AI — AI Foundry
+// ============================================================================
+
+module aiFoundry './modules/ai/ai-foundry.bicep' = {
+  name: take('module.ai-foundry.${solutionSuffix}', 64)
+  params: {
+    name: aiServicesName
+    location: azureAiServiceLocation
+    principalIds: []
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    tags: union(tags, {
+      location: azureAiServiceLocation
+    })
+  }
+}
+
+// ============================================================================
+// Resources — AI Project
+// ============================================================================
+
+resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
+  name: aiServicesName
+}
+
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = {
+  parent: aiServicesAccount
+  name: aiProjectName
+  location: azureAiServiceLocation
+  kind: 'AIServices'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  tags: union(tags, {
+    location: azureAiServiceLocation
+  })
+  properties: {}
+}
+
+// ============================================================================
+// Module — AI — Model Deployment
+// ============================================================================
+
+module modelDeployment './modules/ai/ai-foundry-model-deployment.bicep' = {
+  name: take('module.model-deployment.${solutionSuffix}', 64)
+  params: {
+    aiServicesAccountName: aiFoundry.outputs.name
+    deploymentName: modelDeploymentName
+    modelName: gptModelName
+    modelVersion: gptModelVersion
+    skuName: deploymentType
+    skuCapacity: gptDeploymentCapacity
+  }
+}
+
+// ============================================================================
+// Module — AI — Search
+// ============================================================================
+
+module aiSearch './modules/ai/ai-search.bicep' = {
+  name: take('module.ai-search.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: aiSearchName
+    location: location
+    replicaCount: enableRedundancy ? 2 : 1
+    partitionCount: enableScalability ? 2 : 1
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Module — Compute — Container App Environment
+// ============================================================================
+
+module containerAppEnvironment './modules/compute/container-app-environment.bicep' = {
+  name: take('module.container-app-environment.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: containerAppEnvironmentName
+    location: location
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? logAnalytics!.outputs.resourceId : ''
+    zoneRedundant: enableRedundancy
+    tags: tags
+  }
+}
+
+// ============================================================================
+// Module — Data — App Configuration
+// ============================================================================
+
 module appConfiguration './modules/data/app-configuration.bicep' = {
-  name: take('module.app-config.${solutionSuffix}', 64)
+  name: take('module.app-configuration.${solutionSuffix}', 64)
   params: {
     solutionName: solutionSuffix
     name: appConfigurationName
@@ -406,8 +561,12 @@ module appConfiguration './modules/data/app-configuration.bicep' = {
   }
 }
 
+// ============================================================================
+// Module — Compute — Content Processor App
+// ============================================================================
+
 module contentProcessorApp './modules/compute/container-app.bicep' = {
-  name: take('module.content-app.${solutionSuffix}', 64)
+  name: take('module.content-processor-app.${solutionSuffix}', 64)
   params: {
     name: contentProcessorAppName
     location: location
@@ -449,8 +608,12 @@ module contentProcessorApp './modules/compute/container-app.bicep' = {
   }
 }
 
+// ============================================================================
+// Module — Compute — Content Processor API
+// ============================================================================
+
 module contentProcessorApi './modules/compute/container-app.bicep' = {
-  name: take('module.content-api.${solutionSuffix}', 64)
+  name: take('module.content-processor-api.${solutionSuffix}', 64)
   params: {
     name: contentProcessorApiName
     location: location
@@ -494,8 +657,12 @@ module contentProcessorApi './modules/compute/container-app.bicep' = {
   }
 }
 
+// ============================================================================
+// Module — Compute — Content Processor Web
+// ============================================================================
+
 module contentProcessorWeb './modules/compute/container-app.bicep' = {
-  name: take('module.content-web.${solutionSuffix}', 64)
+  name: take('module.content-processor-web.${solutionSuffix}', 64)
   params: {
     name: contentProcessorWebName
     location: location
@@ -557,8 +724,12 @@ module contentProcessorWeb './modules/compute/container-app.bicep' = {
   }
 }
 
+// ============================================================================
+// Module — Compute — Content Processor Workflow
+// ============================================================================
+
 module contentProcessorWorkflow './modules/compute/container-app.bicep' = {
-  name: take('module.content-workflow.${solutionSuffix}', 64)
+  name: take('module.content-processor-workflow.${solutionSuffix}', 64)
   params: {
     name: contentProcessorWorkflowName
     location: location
@@ -601,6 +772,10 @@ module contentProcessorWorkflow './modules/compute/container-app.bicep' = {
   }
 }
 
+// ============================================================================
+// Resources — Existing Resource References
+// ============================================================================
+
 resource containerRegistryResource 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
   name: containerRegistryName
 }
@@ -608,6 +783,10 @@ resource containerRegistryResource 'Microsoft.ContainerRegistry/registries@2025-
 resource appConfigurationResource 'Microsoft.AppConfiguration/configurationStores@2023-03-01' existing = {
   name: appConfigurationName
 }
+
+// ============================================================================
+// Resources — Role Assignments
+// ============================================================================
 
 resource acrPullAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(containerRegistryName, managedIdentityName, 'acr-pull')
@@ -778,6 +957,10 @@ resource contentProcessorWorkflowAiUserAssignment 'Microsoft.Authorization/roleA
     roleDefinitionId: cognitiveServicesUserRoleId
   }
 }
+
+// ============================================================================
+// Outputs
+// ============================================================================
 
 output SOLUTION_NAME string = solutionName
 output CONTAINER_WEB_APP_NAME string = contentProcessorWeb.outputs.name
