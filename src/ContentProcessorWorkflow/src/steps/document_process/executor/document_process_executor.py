@@ -339,5 +339,5 @@ class DocumentProcessExecutor(Executor):
             )
         )
 
-        await ctx.set_shared_state("workflow_output", workflow_output)
+        ctx.set_state("workflow_output", workflow_output)
         await ctx.send_message(workflow_output)

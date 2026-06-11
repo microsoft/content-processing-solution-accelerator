@@ -33,14 +33,13 @@ import time
 from collections.abc import Awaitable, Callable
 
 from agent_framework import (
+    AgentContext,
     AgentMiddleware,
-    AgentRunContext,
     ChatContext,
-    ChatMessage,
     ChatMiddleware,
     FunctionInvocationContext,
     FunctionMiddleware,
-    Role,
+    Message,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,8 +60,8 @@ class DebuggingMiddleware(AgentMiddleware):
 
     async def process(
         self,
-        context: AgentRunContext,
-        next: Callable[[AgentRunContext], Awaitable[None]],
+        context: AgentContext,
+        next: Callable[[AgentContext], Awaitable[None]],
     ) -> None:
         """Print run diagnostics, inject debug flag, and delegate to next.
 
@@ -241,18 +240,18 @@ class InputObserverMiddleware(ChatMiddleware):
 
         for i, message in enumerate(context.messages):
             content = message.text if message.text else str(message.contents)
-            logger.debug("  Message %d (%s): %s", i + 1, message.role.value, content)
+            logger.debug("  Message %d (%s): %s", i + 1, message.role, content)
 
         logger.debug(
             "[InputObserverMiddleware] Total messages: %d", len(context.messages)
         )
 
         # Modify user messages by creating new messages with enhanced text
-        modified_messages: list[ChatMessage] = []
+        modified_messages: list[Message] = []
         modified_count = 0
 
         for message in context.messages:
-            if message.role == Role.USER and message.text:
+            if message.role == "user" and message.text:
                 original_text = message.text
                 updated_text = original_text
 
@@ -264,7 +263,9 @@ class InputObserverMiddleware(ChatMiddleware):
                         updated_text,
                     )
 
-                modified_message = ChatMessage(role=message.role, text=updated_text)
+                modified_message = Message(
+                    role=message.role, contents=[updated_text]
+                )
                 modified_messages.append(modified_message)
                 modified_count += 1
             else:

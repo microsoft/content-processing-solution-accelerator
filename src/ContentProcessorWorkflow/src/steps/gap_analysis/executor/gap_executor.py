@@ -16,9 +16,9 @@ from typing import Never, cast
 
 import yaml
 from agent_framework import (
-    ChatClientProtocol,
-    ChatMessage,
     Executor,
+    Message,
+    SupportsChatGetResponse,
     WorkflowContext,
     handler,
 )
@@ -145,7 +145,7 @@ class GapExecutor(Executor):
                 )
             )
 
-            await ctx.set_shared_state("workflow_output", result)
+            ctx.set_state("workflow_output", result)
             await ctx.yield_output(result)
             return
 
@@ -169,7 +169,7 @@ class GapExecutor(Executor):
 
         if agent_client is None:
             raise RuntimeError("Chat client 'default' is not configured.")
-        agent_client = cast(ChatClientProtocol, agent_client)
+        agent_client = cast(SupportsChatGetResponse, agent_client)
 
         claim_gap_analysis_prompt = self._load_prompt_and_rules()
 
@@ -183,15 +183,17 @@ class GapExecutor(Executor):
         )
 
         model_response = await agent.run(
-            ChatMessage(
+            Message(
                 role="user",
-                text="Now analyze the following document extracts:\n\n"
-                + "\n\n".join(
-                    [
-                        f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
-                        for file in processed_files
-                    ]
-                ),
+                contents=[
+                    "Now analyze the following document extracts:\n\n"
+                    + "\n\n".join(
+                        [
+                            f"Document: {file.file_name} ({file.mime_type})\nExtracted Values with Schema (JSON):\n{file.extracted_content}"
+                            for file in processed_files
+                        ]
+                    )
+                ],
             )
         )
 
@@ -220,7 +222,7 @@ class GapExecutor(Executor):
             Executor_Output(step_name="gap_analysis", output_data=gap_result)
         )
 
-        await ctx.set_shared_state("workflow_output", result)
+        ctx.set_state("workflow_output", result)
         await ctx.yield_output(result)
 
     async def fetch_processed_result(self, process_id: str) -> dict | None:

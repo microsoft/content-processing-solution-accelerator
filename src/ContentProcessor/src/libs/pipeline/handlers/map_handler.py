@@ -14,10 +14,10 @@ import logging
 import os
 from typing import Literal
 
-from agent_framework import ChatMessage, Content
+from agent_framework import Content, Message
 from pdf2image import convert_from_bytes
 
-from libs.agent_framework.agent_builder import AgentBuilder
+from libs.agent_framework.agent_builder import AgentBuilder, is_reasoning_model, resolve_model_name
 from libs.agent_framework.agent_framework_helper import AgentFrameworkHelper
 from libs.agent_framework.azure_openai_response_retry import ContextTrimConfig
 from libs.application.application_context import AppContext
@@ -252,17 +252,24 @@ Return ONLY valid JSON matching this schema:
             .with_top_p(0.1)
             .with_response_format(schema_class)
             .with_additional_chat_options({
-                "reasoning": {"effort": "high", "summary": "detailed"}
+                "reasoning_effort": "high"
             })
             .build()
         )
 
+        # logprobs is not supported by reasoning models (o1, o3, gpt-5.x)
+        model_name = resolve_model_name(agent_client)
+        if model_name and is_reasoning_model(model_name):
+            run_options = {}
+        else:
+            run_options = {"logprobs": True, "top_logprobs": 5}
+
         gpt_response = await agent.run(
-            messages=ChatMessage(
+            Message(
                 "user",
                 contents=self._to_agent_framework_contents(user_content),
             ),
-            options={"logprobs": True, "top_logprobs": 5},
+            options=run_options,
         )
 
         # Track token usage for this LLM call

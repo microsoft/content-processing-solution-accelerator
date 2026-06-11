@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import cast
 
 from agent_framework import (
-    ChatClientProtocol,
-    ChatMessage,
     Executor,
+    Message,
+    SupportsChatGetResponse,
     WorkflowContext,
     handler,
 )
@@ -126,7 +126,7 @@ class SummarizeExecutor(Executor):
                 Executor_Output(step_name="summarizing", output_data=summarized_result)
             )
 
-            await ctx.set_shared_state("workflow_output", result)
+            ctx.set_state("workflow_output", result)
             await ctx.send_message(result)
             return
 
@@ -170,7 +170,7 @@ class SummarizeExecutor(Executor):
 
         if agent_client is None:
             raise RuntimeError("Chat client 'default' is not configured.")
-        agent_client = cast(ChatClientProtocol, agent_client)
+        agent_client = cast(SupportsChatGetResponse, agent_client)
 
         claim_summarization_prompt = self._load_claim_summarization_prompt()
 
@@ -184,14 +184,16 @@ class SummarizeExecutor(Executor):
         )
 
         model_response = await agent.run(
-            ChatMessage(
+            Message(
                 role="user",
-                text="Now summarize the following document extracts: : \n\n".join(
-                    [
-                        f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
-                        for file in processed_files
-                    ]
-                ),
+                contents=[
+                    "Now summarize the following document extracts: : \n\n".join(
+                        [
+                            f"Document: {file.file_name}\nContent:\n{file.extracted_content}"
+                            for file in processed_files
+                        ]
+                    )
+                ],
             )
         )
 
@@ -219,7 +221,7 @@ class SummarizeExecutor(Executor):
             Executor_Output(step_name="summarizing", output_data=summarized_result)
         )
 
-        await ctx.set_shared_state("workflow_output", result)
+        ctx.set_state("workflow_output", result)
         await ctx.send_message(result)
 
     async def fetch_processed_steps_result(self, process_id: str) -> dict | None:
