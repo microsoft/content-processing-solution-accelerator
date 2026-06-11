@@ -192,7 +192,7 @@ class RAIExecutor(Executor):
         # Track token usage for RAI check
         model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
         file_names = ", ".join(f.file_name for f in processed_files) if processed_files else ""
-        file_types = ", ".join(set(f.mime_type for f in processed_files if f.mime_type)) if processed_files else ""
+        file_types = ", ".join(sorted(set(f.mime_type for f in processed_files if f.mime_type))) if processed_files else ""
         with TokenUsageScope(
             token_emitter,
             agent_name="RAI",

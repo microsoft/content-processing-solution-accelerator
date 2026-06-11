@@ -773,6 +773,8 @@ class TokenUsageEmitter:
             primary_model=model_deployment_name,
             additional_agents=additional_agents,
             telemetry_overhead_ms=f"{batch_overhead_ms:.3f}",
+            agent_name=agent_name,
+            model_deployment_name=model_deployment_name,
             **dimensions,
         )
 
