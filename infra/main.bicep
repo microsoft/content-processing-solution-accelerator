@@ -42,6 +42,7 @@ param contentUnderstandingLocation string = 'WestUS'
   'japaneast'
   'northeurope'
   'southeastasia'
+  'swedencentral'
   'uksouth'
 ])
 @description('Required. Location for the Azure AI Services deployment.')
@@ -827,6 +828,11 @@ module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoi
     }
     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
   }
+  dependsOn: [
+    avmAiServices
+    virtualNetwork
+    avmPrivateDnsZones
+  ]
 }
 
 module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.1' = {
