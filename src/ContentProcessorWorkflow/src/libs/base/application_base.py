@@ -36,6 +36,7 @@ import os
 from abc import ABC, abstractmethod
 
 from azure.identity import DefaultAzureCredential
+from utils.credential_util import get_azure_credential
 from src.utils.credential_util import get_azure_credential
 from dotenv import load_dotenv
 
