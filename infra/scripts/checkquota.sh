@@ -77,6 +77,7 @@ for REGION in "${REGIONS[@]}"; do
 
     if [ "$INSUFFICIENT_QUOTA" = false ]; then
         VALID_REGION="$REGION"
+        VALID_REGION_AVAILABLE_CAPACITY=$AVAILABLE
         break
     fi
 
@@ -88,6 +89,8 @@ if [ -z "$VALID_REGION" ]; then
     exit 0
 else
     echo "✅ Suggested Region: $VALID_REGION"
+    echo "✅ Available Capacity: $VALID_REGION_AVAILABLE_CAPACITY"
     echo "VALID_REGION=$VALID_REGION" >> "$GITHUB_ENV"
+    echo "AVAILABLE_CAPACITY=$VALID_REGION_AVAILABLE_CAPACITY" >> "$GITHUB_ENV"
     exit 0
 fi

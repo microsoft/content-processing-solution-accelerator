@@ -34,6 +34,10 @@ on:
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
         required: false
         type: string
+      AZURE_ENV_GPT_MODEL_CAPACITY:
+        required: false
+        type: string
+        default: "100"
     outputs:
       CONTAINER_WEB_APPURL:
         description: "Container Web App URL"
@@ -45,6 +49,7 @@ jobs:
     environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
+      AZURE_ENV_GPT_MODEL_CAPACITY: ${{ inputs.AZURE_ENV_GPT_MODEL_CAPACITY || '100' }}
     outputs:
       CONTAINER_WEB_APPURL: ${{ steps.get_output_windows.outputs.CONTAINER_WEB_APPURL }}
     steps:
@@ -244,6 +249,9 @@ jobs:
           azd env set AZURE_LOCATION="$env:AZURE_LOCATION"
           azd env set AZURE_RESOURCE_GROUP="$env:RESOURCE_GROUP_NAME"
           azd env set AZURE_ENV_IMAGETAG="$env:IMAGE_TAG"
+          # Use available quota capacity discovered by checkquota.sh; fall back to 100 if not set
+          $gptCapacity = if ($env:AZURE_ENV_GPT_MODEL_CAPACITY) { $env:AZURE_ENV_GPT_MODEL_CAPACITY } else { "100" }
+          azd env set AZURE_ENV_GPT_MODEL_CAPACITY="$gptCapacity"
 
           # Set ACR name only when building Docker image
           if ($env:BUILD_DOCKER_IMAGE -eq "true") {
