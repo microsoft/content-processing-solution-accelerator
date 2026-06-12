@@ -36,6 +36,7 @@ import os
 from abc import ABC, abstractmethod
 
 from azure.identity import DefaultAzureCredential
+from src.utils.credential_util import get_azure_credential
 from dotenv import load_dotenv
 
 from libs.agent_framework.agent_framework_settings import AgentFrameworkSettings
@@ -117,7 +118,7 @@ class ApplicationBase(ABC):
         self._load_env(env_file_path=env_file_path)
 
         self.application_context = AppContext()
-        self.application_context.set_credential(DefaultAzureCredential())
+        self.application_context.set_credential(get_azure_credential())
 
         app_config_url: str | None = _envConfiguration().app_config_endpoint
         if app_config_url != "" and app_config_url is not None:

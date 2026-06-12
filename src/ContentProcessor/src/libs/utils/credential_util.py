@@ -130,7 +130,11 @@ def get_azure_credential():
     logging.info(
         "[AUTH] All CLI credentials failed - falling back to DefaultAzureCredential"
     )
-    return DefaultAzureCredential()
+    raise RuntimeError(
+        "No Azure authentication available. "
+        "Use Managed Identity in Azure or run "
+        "'az login' / 'azd auth login' locally."
+    )
 
 
 def get_async_azure_credential():
