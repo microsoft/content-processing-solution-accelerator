@@ -91,7 +91,13 @@ class AppConfigurationHelper:
             ValueError: If *app_configuration_url* is ``None`` or the
                 credential is missing after defaulting.
         """
-        self.credential = credential or DefaultAzureCredential()
+        if credential is None:
+            raise ValueError(
+                "Azure credential is required. "
+                "Use Managed Identity, AzureCliCredential, or AzureDeveloperCliCredential."
+            )
+
+        self.credential = credential
         self.app_config_endpoint = app_configuration_url
         self._initialize_client()
 
