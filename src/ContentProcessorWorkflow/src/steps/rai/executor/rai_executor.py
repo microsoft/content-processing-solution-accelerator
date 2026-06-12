@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import cast
 
 from agent_framework import (
-    ChatClientProtocol,
-    ChatMessage,
     Executor,
+    Message,
+    SupportsChatGetResponse,
     WorkflowContext,
     handler,
 )
@@ -118,7 +118,7 @@ class RAIExecutor(Executor):
                 Executor_Output(step_name="rai_analysis", output_data=rai_result)
             )
 
-            await ctx.set_shared_state("workflow_output", result)
+            ctx.set_state("workflow_output", result)
             await ctx.send_message(result)
             return
 
@@ -161,7 +161,7 @@ class RAIExecutor(Executor):
 
         if agent_client is None:
             raise RuntimeError("Chat client 'default' is not configured.")
-        agent_client = cast(ChatClientProtocol, agent_client)
+        agent_client = cast(SupportsChatGetResponse, agent_client)
 
         rai_executor_prompt = self._load_rai_executor_prompt()
 
@@ -180,9 +180,9 @@ class RAIExecutor(Executor):
         )
 
         model_response = await agent.run(
-            ChatMessage(
+            Message(
                 role="user",
-                text=document_text,
+                contents=[document_text],
             )
         )
 

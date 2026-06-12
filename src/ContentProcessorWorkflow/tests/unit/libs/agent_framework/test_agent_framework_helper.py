@@ -95,7 +95,7 @@ class TestCreateClient:
     def test_azure_chat_completion_creates_client(self, mock_token):
         mock_token.return_value = lambda: "token"
 
-        with patch("agent_framework.azure.AzureOpenAIChatClient") as mock_cls:
+        with patch("agent_framework.openai.OpenAIChatCompletionClient") as mock_cls:
             mock_cls.return_value = "chat_client"
             client = AgentFrameworkHelper.create_client(
                 client_type=ClientType.AzureOpenAIChatCompletion,
@@ -108,7 +108,7 @@ class TestCreateClient:
     def test_azure_response_creates_client(self, mock_token):
         mock_token.return_value = lambda: "token"
 
-        with patch("agent_framework.azure.AzureOpenAIResponsesClient") as mock_cls:
+        with patch("agent_framework.openai.OpenAIChatClient") as mock_cls:
             mock_cls.return_value = "response_client"
             client = AgentFrameworkHelper.create_client(
                 client_type=ClientType.AzureOpenAIResponse,

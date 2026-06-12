@@ -34,14 +34,9 @@ from datetime import datetime
 from typing import Any
 
 from agent_framework import (
-    ExecutorCompletedEvent,
-    ExecutorFailedEvent,
-    ExecutorInvokedEvent,
     Workflow,
     WorkflowBuilder,
-    WorkflowFailedEvent,
-    WorkflowOutputEvent,
-    WorkflowStartedEvent,
+    WorkflowEvent,
 )
 from art import text2art
 
@@ -155,45 +150,27 @@ class ClaimProcessor:
             The built workflow ready to execute.
         """
 
+        document_processing = DocumentProcessExecutor(
+            id="document_processing", app_context=self.app_context
+        )
+        rai_analysis = RAIExecutor(id="rai_analysis", app_context=self.app_context)
+        summarizing = SummarizeExecutor(id="summarizing", app_context=self.app_context)
+        gap_analysis = GapExecutor(id="gap_analysis", app_context=self.app_context)
+
         workflow = (
-            WorkflowBuilder()
-            .register_executor(
-                lambda: DocumentProcessExecutor(
-                    id="document_processing", app_context=self.app_context
-                ),
-                name="document_processing",
-            )
-            .register_executor(
-                lambda: RAIExecutor(id="rai_analysis", app_context=self.app_context),
-                name="rai_analysis",
-            )
-            .register_executor(
-                lambda: SummarizeExecutor(
-                    id="summarizing", app_context=self.app_context
-                ),
-                name="summarizing",
-            )
-            .register_executor(
-                lambda: GapExecutor(id="gap_analysis", app_context=self.app_context),
-                name="gap_analysis",
-            )
-            .set_start_executor("document_processing")
-            # Edges define the execution flow and can include conditions for branching logic.
-            # In this case, we conditionally branch to the RAI analysis step based on the
-            # application configuration, allowing it to be toggled on/off without code changes.
+            WorkflowBuilder(start_executor=document_processing)
             .add_edge(
-                source="document_processing",
-                target="rai_analysis",
+                source=document_processing,
+                target=rai_analysis,
                 condition=lambda _: self.app_context.configuration.app_rai_enabled,
             )
-            .add_edge(source="rai_analysis", target="summarizing")
-            # If RAI analysis is disabled, the summarizing step will execute immediately after document processing
+            .add_edge(source=rai_analysis, target=summarizing)
             .add_edge(
-                source="document_processing",
-                target="summarizing",
+                source=document_processing,
+                target=summarizing,
                 condition=lambda _: not self.app_context.configuration.app_rai_enabled,
             )
-            .add_edge(source="summarizing", target="gap_analysis")
+            .add_edge(source=summarizing, target=gap_analysis)
             .build()
         )
 
@@ -233,10 +210,11 @@ class ClaimProcessor:
         last_invoked_executor_id: str | None = None
 
         try:
-            async for event in self.workflow.run_stream(input_data):
-                if isinstance(event, WorkflowStartedEvent):
+            async for event in self.workflow.run(input_data, stream=True):
+                event: WorkflowEvent
+                if event.type == "started":
                     logger.info("Workflow started (%s)", event.origin.value)
-                elif isinstance(event, WorkflowOutputEvent):
+                elif event.type == "output":
                     claim_process_repository = self.app_context.get_service(
                         Claim_Processes
                     )
@@ -244,9 +222,9 @@ class ClaimProcessor:
                         process_id=input_data, new_status=Claim_Steps.COMPLETED
                     )
                     return event.data
-                elif isinstance(event, ExecutorFailedEvent):
+                elif event.type == "executor_failed":
                     last_failed_executor_id = event.executor_id
-                elif isinstance(event, WorkflowFailedEvent):
+                elif event.type == "failed":
                     batch_id = input_data
                     executor_id = (
                         event.details.executor_id
@@ -266,7 +244,7 @@ class ClaimProcessor:
                     )
                     raise WorkflowExecutorFailedException(event.details)
 
-                elif isinstance(event, ExecutorInvokedEvent):
+                elif event.type == "executor_invoked":
                     last_invoked_executor_id = event.executor_id
                     logger.info("\n%s", text2art(event.executor_id.capitalize()))
                     claim_process_repository = self.app_context.get_service(
@@ -287,7 +265,7 @@ class ClaimProcessor:
                         await claim_process_repository.Update_Claim_Process_Status(
                             process_id=input_data, new_status=new_status
                         )
-                elif isinstance(event, ExecutorCompletedEvent):
+                elif event.type == "executor_completed":
                     pass
                 else:
                     pass
