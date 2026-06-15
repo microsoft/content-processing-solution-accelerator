@@ -46,7 +46,7 @@ jobs:
         id: quota-check
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          GPT_MIN_CAPACITY: "100"
+          GPT_MIN_CAPACITY: "300"
           AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
           chmod +x infra/scripts/checkquota.sh
@@ -150,7 +150,7 @@ jobs:
               deploymentType="GlobalStandard" \
               gptModelName="gpt-5.1" \
               gptModelVersion="2025-11-13" \
-              gptDeploymentCapacity="100" \
+              gptDeploymentCapacity="300" \
               azureAiServiceLocation="${{ env.AZURE_LOCATION }}" \
               imageTag="latest_v2" \
               tags="{'CreatedBy':'Pipeline', 'Purpose':'Deploying and Cleaning Up Resources for Validation','CreatedDate':'$current_date'}" \
