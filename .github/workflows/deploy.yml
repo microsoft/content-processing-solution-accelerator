@@ -46,7 +46,7 @@ jobs:
         id: quota-check
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          GPT_MIN_CAPACITY: "100"
+          GPT_MIN_CAPACITY: "300"
           AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
           chmod +x infra/scripts/checkquota.sh
