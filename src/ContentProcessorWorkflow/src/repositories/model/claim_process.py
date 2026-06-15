@@ -77,13 +77,13 @@ class Content_Process(EntityBase):
     mime_type: Optional[str] = Field(
         description="MIME type of the processed content file", default=None
     )
-    entity_score: float = Field(
-        description="Score indicating the quality of entity extraction from the content",
-        default=0.0,
+    entity_score: Optional[float] = Field(
+        description="Score indicating the quality of entity extraction from the content. ``None`` means the score was not available (e.g. logprobs unavailable on reasoning models, image-only flow without Content Understanding).",
+        default=None,
     )
-    schema_score: float = Field(
-        description="Score indicating the quality of schema matching for the content",
-        default=0.0,
+    schema_score: Optional[float] = Field(
+        description="Score indicating the quality of schema matching for the content. ``None`` means the score was not available.",
+        default=None,
     )
     status: Optional[str] = Field(
         description="Indicates the current status in the content processing pipeline",

@@ -17,10 +17,23 @@ export interface ProcessedDocument {
     readonly file_name: string;
     /** MIME type of the document. */
     readonly mime_type: string;
-    /** Entity extraction confidence score (0–1). */
-    readonly entity_score: number;
-    /** Schema compliance score (0–1). */
-    readonly schema_score: number;
+    /**
+     * Entity extraction confidence score in the range 0–1.
+     *
+     * ``null``/``undefined`` means the score was not produced by the backend
+     * (for example: logprobs were unavailable on a reasoning model, or the
+     * pipeline didn't reach the evaluate step). In that case the UI shows
+     * "N/A" rather than a misleading "0%". A genuine numeric ``0`` is still
+     * rendered as ``0%``.
+     */
+    readonly entity_score: number | null | undefined;
+    /**
+     * Schema compliance score in the range 0–1.
+     *
+     * ``null``/``undefined`` means the score was not produced. See
+     * {@link entity_score} for rendering semantics.
+     */
+    readonly schema_score: number | null | undefined;
     /** Current processing status. */
     readonly status: string;
     /** Duration string for processing time (HH:MM:SS). */

@@ -134,9 +134,9 @@ class ContentProcess(BaseModel):
     )
     last_modified_by: Optional[str] = None
     status: Optional[str] = None
-    entity_score: Optional[float] = 0.0
-    min_extracted_entity_score: Optional[float] = 0.0
-    schema_score: Optional[float] = 0.0
+    entity_score: Optional[float] = None
+    min_extracted_entity_score: Optional[float] = None
+    schema_score: Optional[float] = None
     result: Optional[dict] = None
     confidence: Optional[dict] = None
     target_schema: Optional[Schema] = None

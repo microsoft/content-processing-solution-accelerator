@@ -112,20 +112,15 @@ class SaveHandler(HandlerBase):
             )
         )
 
-        total_evaluated_fields_count = evaluated_result.confidence.get(
-            "total_evaluated_fields_count", 0
-        )
-        schema_score = (
-            0
-            if total_evaluated_fields_count == 0
-            else round(
-                (
-                    len(evaluated_result.comparison_result.items)
-                    - evaluated_result.confidence["zero_confidence_fields_count"]
-                )
-                / len(evaluated_result.comparison_result.items),
-                3,
-            )
+        # Determine whether per-field confidence could actually be computed.
+        # When `total_evaluated_fields_count == 0`, no field-level confidence
+        # signal was produced (e.g. logprobs unavailable on reasoning models, or
+        # an image flow with no Content Understanding signal). In that case the
+        # entity/schema scores are *unavailable* rather than genuinely zero, and
+        # we propagate ``None`` so downstream consumers (API + UI) can render
+        # an explicit "N/A" instead of a misleading "0%".
+        entity_score, schema_score, min_extracted_entity_score = (
+            self._derive_aggregate_scores(evaluated_result)
         )
 
         processed_result = ContentProcess(
@@ -143,11 +138,9 @@ class SaveHandler(HandlerBase):
                 self._current_message_context.data_pipeline.pipeline_status.creation_time,
                 "%Y-%m-%dT%H:%M:%S.%fZ",
             ),
-            entity_score=evaluated_result.confidence["overall_confidence"],
+            entity_score=entity_score,
             schema_score=schema_score,
-            min_extracted_entity_score=evaluated_result.confidence[
-                "min_extracted_field_confidence"
-            ],
+            min_extracted_entity_score=min_extracted_entity_score,
             prompt_tokens=evaluated_result.prompt_tokens,
             completion_tokens=evaluated_result.completion_tokens,
             target_schema=Schema.get_schema(
@@ -241,3 +234,41 @@ class SaveHandler(HandlerBase):
         # Format the total elapsed time as a string
         formatted_elapsed_time = f"{total_hours:02}:{total_minutes:02}:{total_seconds:02}.{total_milliseconds:03}"
         return formatted_elapsed_time
+
+    @staticmethod
+    def _derive_aggregate_scores(
+        evaluated_result: DataExtractionResult,
+    ) -> tuple[float | None, float | None, float | None]:
+        """Compute ``(entity_score, schema_score, min_extracted_entity_score)``.
+
+        Returns ``(None, None, None)`` when no per-field confidence signal was
+        produced (i.e. ``total_evaluated_fields_count == 0`` or there are no
+        comparison items). This happens, for example, when the LLM call could
+        not return logprobs (reasoning models) and there is no Content
+        Understanding signal to fall back on. Treating that case as "unknown"
+        rather than ``0.0`` lets the API and UI render "N/A" instead of a
+        misleading "0%".
+
+        A genuine zero confidence (e.g. a model that emitted fields but
+        every token had ``logprob == -inf``) is preserved verbatim.
+        """
+        confidence = evaluated_result.confidence or {}
+        total_evaluated_fields_count = confidence.get(
+            "total_evaluated_fields_count", 0
+        )
+        comparison_items = (
+            evaluated_result.comparison_result.items
+            if evaluated_result.comparison_result is not None
+            else []
+        )
+        if total_evaluated_fields_count == 0 or not comparison_items:
+            return (None, None, None)
+
+        zero_count = confidence.get("zero_confidence_fields_count", 0)
+        schema_score = round(
+            (len(comparison_items) - zero_count) / len(comparison_items),
+            3,
+        )
+        entity_score = confidence.get("overall_confidence")
+        min_extracted_entity_score = confidence.get("min_extracted_field_confidence")
+        return (entity_score, schema_score, min_extracted_entity_score)

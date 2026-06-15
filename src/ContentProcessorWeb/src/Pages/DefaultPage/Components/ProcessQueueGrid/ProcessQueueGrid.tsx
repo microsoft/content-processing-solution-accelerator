@@ -373,7 +373,11 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                                                         <CustomCellRender
                                                             type="percentage"
                                                             props={{
-                                                                valueText: doc.entity_score.toString(),
+                                                                valueText:
+                                                                    doc.entity_score === null ||
+                                                                    doc.entity_score === undefined
+                                                                        ? undefined
+                                                                        : doc.entity_score.toString(),
                                                                 status: doc.status,
                                                             }}
                                                         />
@@ -382,7 +386,11 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                                                         <CustomCellRender
                                                             type="percentage"
                                                             props={{
-                                                                valueText: doc.schema_score.toString(),
+                                                                valueText:
+                                                                    doc.schema_score === null ||
+                                                                    doc.schema_score === undefined
+                                                                        ? undefined
+                                                                        : doc.schema_score.toString(),
                                                                 status: doc.status,
                                                             }}
                                                         />

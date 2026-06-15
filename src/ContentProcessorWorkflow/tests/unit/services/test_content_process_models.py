@@ -152,6 +152,16 @@ class TestContentProcessRecord:
         assert rec.id == "r1"
         assert rec.process_id == ""
         assert rec.status is None
+        # ``None`` (rather than ``0.0``) is the sentinel for "score unavailable"
+        # so the UI can render "N/A" instead of a misleading "0%".
+        assert rec.entity_score is None
+        assert rec.schema_score is None
+
+    def test_explicit_zero_score_preserved(self):
+        """A literal ``0.0`` must survive round-trip and not be coerced to ``None``."""
+        rec = ContentProcessRecord(
+            id="r1", process_id="r1", entity_score=0.0, schema_score=0.0
+        )
         assert rec.entity_score == 0.0
         assert rec.schema_score == 0.0
 
