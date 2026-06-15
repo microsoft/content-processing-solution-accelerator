@@ -5,12 +5,14 @@
 ALLOWED_REGIONS=("australiaeast" "centralus" "eastasia" "eastus2" "japaneast" "northeurope" "southeastasia" "swedencentral" "uksouth")
 
 # Get requested regions from environment variable, default to all allowed regions
+# Supports comma-separated or space-separated (or mixed) AZURE_REGIONS values.
 if [[ -n "$AZURE_REGIONS" ]]; then
-    IFS=',' read -ra REQUESTED_REGIONS <<< "$AZURE_REGIONS"
+    IFS=', ' read -ra REQUESTED_REGIONS <<< "$AZURE_REGIONS"
     # Filter requested regions to only include those in ALLOWED_REGIONS
     REGIONS=()
     for req_region in "${REQUESTED_REGIONS[@]}"; do
         req_region=$(echo "$req_region" | xargs)  # trim whitespace
+        [[ -z "$req_region" ]] && continue  # skip empty tokens from double-delimiters
         for allowed in "${ALLOWED_REGIONS[@]}"; do
             if [[ "$req_region" == "$allowed" ]]; then
                 REGIONS+=("$req_region")
@@ -109,7 +111,7 @@ done
 if [ -z "$VALID_REGION" ]; then
     echo "❌ No region with sufficient quota found. Blocking deployment."
     echo "QUOTA_FAILED=true" >> "$GITHUB_ENV"
-    exit 0
+    exit 1
 else
     echo "✅ Suggested Region: $VALID_REGION"
     echo "✅ Available Capacity: $VALID_REGION_AVAILABLE_CAPACITY"
