@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "5358772599129171911"
+      "templateHash": "2597731928932727268"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -66,6 +66,7 @@
         "japaneast",
         "northeurope",
         "southeastasia",
+        "swedencentral",
         "uksouth"
       ],
       "metadata": {
@@ -35187,8 +35188,8 @@
         "avmContainerApp_API",
         "avmContainerApp_Workflow",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "virtualNetwork"
       ]
     },
@@ -41721,10 +41722,7 @@
       },
       "dependsOn": [
         "avmAiServices",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "avmPrivateDnsZones",
         "virtualNetwork"
       ]
     },
@@ -68557,6 +68555,13 @@
         "description": "The login server of the Azure Container Registry."
       },
       "value": "[reference('avmContainerRegistry').outputs.loginServer.value]"
+    },
+    "CONTENT_UNDERSTANDING_ACCOUNT_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Content Understanding AI Services account."
+      },
+      "value": "[reference('avmAiServices_cu').outputs.name.value]"
     },
     "AZURE_RESOURCE_GROUP": {
       "type": "string",
