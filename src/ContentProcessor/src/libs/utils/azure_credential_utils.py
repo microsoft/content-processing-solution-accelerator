@@ -19,7 +19,6 @@ from typing import Any
 from azure.identity import (
     AzureCliCredential,
     AzureDeveloperCliCredential,
-    DefaultAzureCredential,
     ManagedIdentityCredential,
 )
 from azure.identity import (
