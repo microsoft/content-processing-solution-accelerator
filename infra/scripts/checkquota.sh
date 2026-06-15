@@ -1,7 +1,30 @@
 #!/bin/bash
 
-# List of Azure regions to check for quota (update as needed)
-IFS=', ' read -ra REGIONS <<< "$AZURE_REGIONS"
+# List of valid Azure regions for AI Services (must match Bicep @allowed values)
+# These are the only regions where GPT-5.1 GlobalStandard is available
+ALLOWED_REGIONS=("australiaeast" "centralus" "eastasia" "eastus2" "japaneast" "northeurope" "southeastasia" "swedencentral" "uksouth")
+
+# Get requested regions from environment variable, default to all allowed regions
+if [[ -n "$AZURE_REGIONS" ]]; then
+    IFS=',' read -ra REQUESTED_REGIONS <<< "$AZURE_REGIONS"
+    # Filter requested regions to only include those in ALLOWED_REGIONS
+    REGIONS=()
+    for req_region in "${REQUESTED_REGIONS[@]}"; do
+        req_region=$(echo "$req_region" | xargs)  # trim whitespace
+        for allowed in "${ALLOWED_REGIONS[@]}"; do
+            if [[ "$req_region" == "$allowed" ]]; then
+                REGIONS+=("$req_region")
+                break
+            fi
+        done
+    done
+    if [[ ${#REGIONS[@]} -eq 0 ]]; then
+        echo "⚠️ WARNING: No valid regions found in AZURE_REGIONS. Using all allowed regions."
+        REGIONS=("${ALLOWED_REGIONS[@]}")
+    fi
+else
+    REGIONS=("${ALLOWED_REGIONS[@]}")
+fi
 
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
 GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY}"
