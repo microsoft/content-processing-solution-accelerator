@@ -250,14 +250,20 @@ CU_ACCOUNT_NAME=$(azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>/dev/nu
 if [ -z "$CU_ACCOUNT_NAME" ]; then
   echo "  ⚠️ CONTENT_UNDERSTANDING_ACCOUNT_NAME not found in azd env. Skipping refresh."
 else
-  echo "  Refreshing account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
-  if az cognitiveservices account update \
+  echo "  Checking account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
+  
+  # Check if the resource group exists first
+  if ! az group exists -n "$RESOURCE_GROUP" --output none 2>/dev/null; then
+    echo "  ⚠️ Resource group '$RESOURCE_GROUP' does not exist yet. Skipping refresh (expected on fresh deployment)."
+  elif ! az cognitiveservices account show -g "$RESOURCE_GROUP" -n "$CU_ACCOUNT_NAME" --output none 2>/dev/null; then
+    echo "  ⚠️ Cognitive Services account '$CU_ACCOUNT_NAME' not found. Skipping refresh (expected on fresh deployment)."
+  elif az cognitiveservices account update \
     -g "$RESOURCE_GROUP" \
     -n "$CU_ACCOUNT_NAME" \
     --tags refresh=true \
-    --output none; then
+    --output none 2>/dev/null; then
     echo "  ✅ Successfully refreshed Cognitive Services account '$CU_ACCOUNT_NAME'."
   else
-    echo "  ❌ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME'."
+    echo "  ⚠️ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME' (non-critical)."
   fi
 fi
