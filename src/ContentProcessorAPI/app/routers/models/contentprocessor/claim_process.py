@@ -53,13 +53,13 @@ class Content_Process(EntityBase):
     mime_type: Optional[str] = Field(
         description="MIME type of the processed content file", default=None
     )
-    entity_score: Optional[float] = Field(
-        description="Score indicating the quality of entity extraction from the content. ``None`` means the score was not available (e.g. logprobs unavailable on reasoning models).",
-        default=None,
+    entity_score: float = Field(
+        description="Score indicating the quality of entity extraction from the content. For Completed runs this is either the probabilistic confidence (when logprobs are available) or a structural completeness fallback (fraction of expected fields actually filled). Failed runs and genuinely empty extractions remain at ``0.0``.",
+        default=0.0,
     )
-    schema_score: Optional[float] = Field(
-        description="Score indicating the quality of schema matching for the content. ``None`` means the score was not available.",
-        default=None,
+    schema_score: float = Field(
+        description="Score indicating the quality of schema matching for the content. For Completed runs this is either the probabilistic above-threshold ratio or a structural completeness fallback. Failed runs remain at ``0.0``.",
+        default=0.0,
     )
     status: Optional[str] = Field(
         description="Indicates the current status in the content processing pipeline",

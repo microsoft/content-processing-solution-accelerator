@@ -218,10 +218,10 @@ class TestContentProcessRecord:
         assert record.process_id == ""
         assert record.processed_file_name is None
         assert record.processed_file_mime_type is None
-        # ``None`` is the sentinel for "score unavailable" so the UI can render
-        # "N/A" rather than "0%".
-        assert record.entity_score is None
-        assert record.schema_score is None
+        # Defaults stay at ``0.0`` so failed/pre-save records render as 0%
+        # in the UI.
+        assert record.entity_score == 0.0
+        assert record.schema_score == 0.0
 
     def test_to_cosmos_dict(self):
         """Test ContentProcessRecord.to_cosmos_dict method"""

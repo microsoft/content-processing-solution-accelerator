@@ -242,11 +242,12 @@ class DocumentProcessExecutor(Executor):
 
                     status_text = poll_result.get("status", "Failed")
 
-                    # ``None`` here represents "score is not yet available" rather
-                    # than a genuine zero. Preserved through to the API/UI so a
-                    # missing score renders as "N/A" instead of a misleading 0%.
-                    schema_score_f: float | None = None
-                    entity_score_f: float | None = None
+                    # Failed / not-yet-scored documents default to ``0.0``;
+                    # save_handler always emits numeric scores for Completed
+                    # runs (probabilistic if available, otherwise structural
+                    # completeness fallback).
+                    schema_score_f: float = 0.0
+                    entity_score_f: float = 0.0
                     processed_time = ""
                     result_payload = None
 
@@ -257,19 +258,14 @@ class DocumentProcessExecutor(Executor):
                         if isinstance(final_payload, dict):
                             status_text = final_payload.get("status") or status_text
 
-                            def _coerce_score(value: object) -> float | None:
-                                """Convert a raw score payload to ``float`` or ``None``.
-
-                                Unlike the previous ``float(... or 0.0)`` form, an
-                                explicit ``None`` (score unavailable) is preserved
-                                instead of being silently coerced to ``0.0``.
-                                """
+                            def _coerce_score(value: object) -> float:
+                                """Coerce a raw score payload to ``float`` (default ``0.0``)."""
                                 if value is None:
-                                    return None
+                                    return 0.0
                                 try:
                                     return float(value)
                                 except (TypeError, ValueError):
-                                    return None
+                                    return 0.0
 
                             schema_score_f = _coerce_score(
                                 final_payload.get("schema_score")

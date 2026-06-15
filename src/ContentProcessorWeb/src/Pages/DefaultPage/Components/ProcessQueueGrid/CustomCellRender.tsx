@@ -29,12 +29,7 @@ interface DeleteItem {
 interface CellRendererExtraProps {
   readonly txt?: string;
   readonly timeString?: string;
-  /**
-   * Stringified score value. ``undefined`` (or ``null``) means the score is
-   * not available — the percentage renderer will show "N/A" instead of "0%"
-   * to distinguish "unavailable" from a genuine zero.
-   */
-  readonly valueText?: string | null;
+  readonly valueText?: string;
   readonly status?: string;
   readonly lastModifiedBy?: string;
   readonly text?: string | number;
@@ -96,31 +91,9 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
   };
 
   // Render for percentage
-  const renderPercentage = (valueText: string | null | undefined, status: string) => {
-    // ``null``/``undefined``/empty string === score unavailable. Render an
-    // explicit "N/A" so users can distinguish missing scores from a genuine
-    // zero. (Backends emit ``None``/``null`` when, for example, logprobs were
-    // unavailable on a reasoning model and confidence couldn't be computed.)
-    if (valueText === null || valueText === undefined || valueText === '') {
-      return (
-        <div className="percentageContainer" title="Score not available">
-          <span className="textClass">N/A</span>
-        </div>
-      );
-    }
-
+  const renderPercentage = (valueText: string, status: string) => {
     const decimalValue = Number(valueText);
-    if (isNaN(decimalValue)) {
-      return (
-        <div className="percentageContainer" title="Score not available">
-          <span className="textClass">N/A</span>
-        </div>
-      );
-    }
-
-    // Score is numeric (including a genuine 0): only show "..." while the
-    // document is still being processed.
-    if (status !== 'Completed') {
+    if (isNaN(decimalValue) || status !== 'Completed') {
       return <div className="percentageContainer"><span className="textClass">...</span></div>;
     }
 
@@ -151,7 +124,7 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
   };
 
   // Render for schema score
-  const calculateSchemaScore = (valueText: string | null | undefined, lastModifiedBy: string, status: string) => {
+  const calculateSchemaScore = (valueText: string, lastModifiedBy: string, status: string) => {
     if (lastModifiedBy === 'user') {
       return (
         <div className="percentageContainer">
@@ -213,9 +186,9 @@ const CellRenderer: React.FC<CellRendererProps> = ({ type, props }) => {
     case 'processTime':
       return renderProcessTimeInSeconds(timeString || '');
     case 'percentage':
-      return renderPercentage(valueText, status || '');
+      return renderPercentage(valueText || '', status || '');
     case 'schemaScore':
-      return calculateSchemaScore(valueText, lastModifiedBy || '', status || '');
+      return calculateSchemaScore(valueText || '', lastModifiedBy || '', status || '');
     case 'text':
       return renderText(text ?? '', 'center');
     case 'date':

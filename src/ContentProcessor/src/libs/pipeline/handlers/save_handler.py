@@ -112,13 +112,12 @@ class SaveHandler(HandlerBase):
             )
         )
 
-        # Determine whether per-field confidence could actually be computed.
-        # When `total_evaluated_fields_count == 0`, no field-level confidence
-        # signal was produced (e.g. logprobs unavailable on reasoning models, or
-        # an image flow with no Content Understanding signal). In that case the
-        # entity/schema scores are *unavailable* rather than genuinely zero, and
-        # we propagate ``None`` so downstream consumers (API + UI) can render
-        # an explicit "N/A" instead of a misleading "0%".
+        # Compute the aggregate scores. Successful (Completed) processing
+        # always yields numeric scores: when probabilistic confidence is
+        # available (logprobs from non-reasoning models / Content Understanding
+        # signal) we use it; otherwise we fall back to a structural
+        # completeness score (fraction of expected fields actually filled).
+        # Failed runs and genuinely empty extractions remain at ``0.0``.
         entity_score, schema_score, min_extracted_entity_score = (
             self._derive_aggregate_scores(evaluated_result)
         )
@@ -236,21 +235,50 @@ class SaveHandler(HandlerBase):
         return formatted_elapsed_time
 
     @staticmethod
+    def _is_filled_value(value: object) -> bool:
+        """Heuristic: does an extracted value count as "actually filled"?
+
+        Treats ``None``, empty strings, whitespace-only strings, and empty
+        containers as *not* filled. Recursively descends into dicts/lists so a
+        nested object that contains only nulls is still counted as empty.
+        """
+        if value is None:
+            return False
+        if isinstance(value, bool):
+            return True
+        if isinstance(value, str):
+            return value.strip() != ""
+        if isinstance(value, dict):
+            return any(SaveHandler._is_filled_value(v) for v in value.values())
+        if isinstance(value, (list, tuple, set)):
+            return any(SaveHandler._is_filled_value(v) for v in value)
+        return True
+
+    @staticmethod
     def _derive_aggregate_scores(
         evaluated_result: DataExtractionResult,
-    ) -> tuple[float | None, float | None, float | None]:
+    ) -> tuple[float, float, float]:
         """Compute ``(entity_score, schema_score, min_extracted_entity_score)``.
 
-        Returns ``(None, None, None)`` when no per-field confidence signal was
-        produced (i.e. ``total_evaluated_fields_count == 0`` or there are no
-        comparison items). This happens, for example, when the LLM call could
-        not return logprobs (reasoning models) and there is no Content
-        Understanding signal to fall back on. Treating that case as "unknown"
-        rather than ``0.0`` lets the API and UI render "N/A" instead of a
-        misleading "0%".
+        Score selection order:
 
-        A genuine zero confidence (e.g. a model that emitted fields but
-        every token had ``logprob == -inf``) is preserved verbatim.
+        1. **Probabilistic confidence** — when the evaluate step produced
+           per-field confidence (``total_evaluated_fields_count > 0``), use the
+           probabilistic ``overall_confidence`` plus the ratio of
+           above-threshold fields. This is the highest-fidelity signal.
+
+        2. **Structural completeness fallback** — when no probabilistic
+           signal was produced (e.g. reasoning models like ``gpt-5``/``o1``/``o3``
+           don't return logprobs, and image-only flow has no Content
+           Understanding signal), but extraction still produced a comparison
+           table, score by *how much of the schema was actually filled*. This
+           replaces the old behaviour of falsely emitting ``0%`` for completed
+           runs that simply lacked logprobs.
+
+        3. **Zero** — only when there is literally no extraction data
+           (failed pipeline / genuinely empty result). Failed processing
+           continues to surface as ``0`` so the UI consistently renders
+           ``0%`` for failures and genuine zeros.
         """
         confidence = evaluated_result.confidence or {}
         total_evaluated_fields_count = confidence.get(
@@ -261,14 +289,29 @@ class SaveHandler(HandlerBase):
             if evaluated_result.comparison_result is not None
             else []
         )
-        if total_evaluated_fields_count == 0 or not comparison_items:
-            return (None, None, None)
 
-        zero_count = confidence.get("zero_confidence_fields_count", 0)
-        schema_score = round(
-            (len(comparison_items) - zero_count) / len(comparison_items),
-            3,
-        )
-        entity_score = confidence.get("overall_confidence")
-        min_extracted_entity_score = confidence.get("min_extracted_field_confidence")
-        return (entity_score, schema_score, min_extracted_entity_score)
+        # Path 1: probabilistic confidence
+        if total_evaluated_fields_count > 0 and comparison_items:
+            zero_count = confidence.get("zero_confidence_fields_count", 0)
+            schema_score = round(
+                (len(comparison_items) - zero_count) / len(comparison_items),
+                3,
+            )
+            entity_score = float(confidence.get("overall_confidence") or 0.0)
+            min_extracted_entity_score = float(
+                confidence.get("min_extracted_field_confidence") or 0.0
+            )
+            return (entity_score, schema_score, min_extracted_entity_score)
+
+        # Path 2: structural completeness fallback
+        if comparison_items:
+            filled = sum(
+                1
+                for item in comparison_items
+                if SaveHandler._is_filled_value(item.Extracted)
+            )
+            ratio = round(filled / len(comparison_items), 3)
+            return (ratio, ratio, ratio)
+
+        # Path 3: nothing to score on
+        return (0.0, 0.0, 0.0)

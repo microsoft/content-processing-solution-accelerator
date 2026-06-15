@@ -376,7 +376,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                                                                 valueText:
                                                                     doc.entity_score === null ||
                                                                     doc.entity_score === undefined
-                                                                        ? undefined
+                                                                        ? "0"
                                                                         : doc.entity_score.toString(),
                                                                 status: doc.status,
                                                             }}
@@ -389,7 +389,7 @@ const ProcessQueueGrid: React.FC<GridComponentProps> = () => {
                                                                 valueText:
                                                                     doc.schema_score === null ||
                                                                     doc.schema_score === undefined
-                                                                        ? undefined
+                                                                        ? "0"
                                                                         : doc.schema_score.toString(),
                                                                 status: doc.status,
                                                             }}

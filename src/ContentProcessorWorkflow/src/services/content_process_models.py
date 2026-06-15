@@ -80,8 +80,8 @@ class ContentProcessRecord(RootEntityBase):
     processed_time: Optional[str] = None
     imported_time: Optional[datetime] = None
     status: Optional[str] = None
-    entity_score: Optional[float] = None
-    schema_score: Optional[float] = None
+    entity_score: Optional[float] = 0.0
+    schema_score: Optional[float] = 0.0
     result: Optional[Any] = None
     confidence: Optional[Any] = None
 

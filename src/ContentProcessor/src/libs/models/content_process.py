@@ -67,9 +67,9 @@ class ContentProcess(BaseModel):
     last_modified_time: datetime.datetime = datetime.datetime.now(datetime.UTC)
     last_modified_by: Optional[str] = None
     status: str
-    entity_score: Optional[float] = None
-    min_extracted_entity_score: Optional[float] = None
-    schema_score: Optional[float] = None
+    entity_score: Optional[float] = 0.0
+    min_extracted_entity_score: Optional[float] = 0.0
+    schema_score: Optional[float] = 0.0
     result: Optional[dict] = None
     confidence: Optional[dict] = None
     target_schema: Optional[Schema] = None

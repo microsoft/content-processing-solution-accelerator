@@ -42,10 +42,9 @@ class TestContentProcess:
         assert cp.process_id == "p1"
         assert cp.file_name == "doc.pdf"
         assert cp.mime_type is None
-        # ``None`` is now the default for "score unavailable" so the UI can
-        # render "N/A" rather than a misleading "0%".
-        assert cp.entity_score is None
-        assert cp.schema_score is None
+        # Defaults stay at ``0.0`` so failed/pre-save records render as 0%.
+        assert cp.entity_score == 0.0
+        assert cp.schema_score == 0.0
         assert cp.status is None
         assert cp.processed_time == ""
 
@@ -60,7 +59,7 @@ class TestContentProcess:
         assert cp.schema_score == 0.87
 
     def test_explicit_zero_score_preserved(self):
-        """A literal ``0`` is a real score and must not become ``None``."""
+        """A literal ``0`` is a real score and must survive round-trip."""
         cp = Content_Process(
             process_id="p1",
             file_name="doc.pdf",
@@ -70,16 +69,16 @@ class TestContentProcess:
         assert cp.entity_score == 0.0
         assert cp.schema_score == 0.0
 
-    def test_failed_processing_keeps_scores_none(self):
-        """A failed file must surface unknown scores rather than ``0.0``."""
+    def test_failed_processing_keeps_default_zero(self):
+        """A failed file uses the ``0.0`` default so the UI renders ``0%``."""
         cp = Content_Process(
             process_id="p1",
             file_name="doc.pdf",
             status="Failed",
         )
         assert cp.status == "Failed"
-        assert cp.entity_score is None
-        assert cp.schema_score is None
+        assert cp.entity_score == 0.0
+        assert cp.schema_score == 0.0
 
 
 # ── Claim_Process ────────────────────────────────────────────────────────────
