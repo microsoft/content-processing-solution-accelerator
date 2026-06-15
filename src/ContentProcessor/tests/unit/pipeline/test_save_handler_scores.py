@@ -234,4 +234,3 @@ class TestIsFilledValue:
     def test_nested_with_value_is_filled(self):
         assert SaveHandler._is_filled_value({"a": None, "b": "x"}) is True
         assert SaveHandler._is_filled_value([None, "x"]) is True
-
