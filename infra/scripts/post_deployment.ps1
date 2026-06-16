@@ -1,5 +1,6 @@
-# Stop script on any error
-$ErrorActionPreference = "Stop"
+# Keep post-deployment best-effort so provisioning does not fail.
+$ErrorActionPreference = "Continue"
+$PSNativeCommandUseErrorActionPreference = $false
 
 Write-Host "[Search] Fetching container app info from azd environment..."
 
@@ -336,3 +337,5 @@ with open(out_path, "w", encoding="utf-8") as f:
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
 }
+
+exit 0

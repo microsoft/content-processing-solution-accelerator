@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Stop script on any error
-set -e
+# Keep post-deployment best-effort so provisioning does not fail.
+set +e
 
 echo "🔍 Fetching container app info from azd environment..."
 
@@ -134,6 +134,10 @@ PY
   SCHEMA_COUNT=$(cat "$SCHEMA_INFO_FILE" | grep -o '"File"' | wc -l)
   REGISTERED_IDS=()
   REGISTERED_NAMES=()
+
+  if [ "$SCHEMA_COUNT" -eq 0 ]; then
+    echo "No schemas found in manifest. Skipping schema registration."
+  fi
 
   for idx in $(seq 0 $((SCHEMA_COUNT - 1))); do
     # Parse entry fields using grep/sed (no python needed)
@@ -321,7 +325,7 @@ else
   echo "  Checking account: $CU_ACCOUNT_NAME in resource group: $RESOURCE_GROUP"
   
   # Check if the resource group exists first
-  if ! az group exists -n "$RESOURCE_GROUP" --output none 2>/dev/null; then
+  if ! az group show -n "$RESOURCE_GROUP" --output none 2>/dev/null; then
     echo "  ⚠️ Resource group '$RESOURCE_GROUP' does not exist yet. Skipping refresh (expected on fresh deployment)."
   elif ! az cognitiveservices account show -g "$RESOURCE_GROUP" -n "$CU_ACCOUNT_NAME" --output none 2>/dev/null; then
     echo "  ⚠️ Cognitive Services account '$CU_ACCOUNT_NAME' not found. Skipping refresh (expected on fresh deployment)."
@@ -335,3 +339,5 @@ else
     echo "  ⚠️ Failed to refresh Cognitive Services account '$CU_ACCOUNT_NAME' (non-critical)."
   fi
 fi
+
+exit 0
