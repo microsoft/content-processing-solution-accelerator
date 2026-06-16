@@ -32,7 +32,7 @@ dependencies = [
     "authlib==1.6.12",
     "protobuf==6.33.6",
     "cryptography==46.0.7",
-    "pyjwt==2.12.1",
+    "pyjwt==2.13.0",
     "pyasn1==0.6.3",
 ]
 
