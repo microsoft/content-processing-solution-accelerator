@@ -100,7 +100,10 @@ else
     "$PYTHON_BIN" - "$py_file" "$class_name" "$output_file" <<'PY'
 import importlib.util
 import json
+import inspect
 import sys
+
+from pydantic import BaseModel
 
 py_path, class_name, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
 spec = importlib.util.spec_from_file_location("schema_module", py_path)
@@ -108,6 +111,14 @@ if spec is None or spec.loader is None:
     raise RuntimeError(f"Unable to load schema module from {py_path}")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+
+for obj in module.__dict__.values():
+  if inspect.isclass(obj) and issubclass(obj, BaseModel):
+    try:
+      obj.model_rebuild(_types_namespace=module.__dict__)
+    except Exception:
+      pass
+
 cls = getattr(module, class_name, None)
 if cls is None:
     raise RuntimeError(f"Class '{class_name}' not found in {py_path}")
