@@ -1,11 +1,10 @@
 // ============================================================================
-// Main Deployment Template
+// main.bicep — Orchestrator
+// Description: Pure orchestrator for Content Processing Solution Accelerator
+//              All resource names are derived from params — no hardcoded names.
+//              This file only calls modules; no inline resource definitions.
 // ============================================================================
-
 targetScope = 'resourceGroup'
-
-metadata name = 'Content Processing Solution Accelerator - Bicep'
-metadata description = 'Deploys Content Processing resources using the restored private-repo module interfaces.'
 
 // ============================================================================
 // Parameters — Core
@@ -22,13 +21,10 @@ param solutionUniqueText string = substring(uniqueString(subscription().id, reso
 
 @metadata({ azd: { type: 'location' } })
 @description('Required. Azure region for all services.')
-param location string
+param location string = resourceGroup().location
 
 @description('Optional. Tags to be applied to the resources.')
-param tags object = {
-  app: 'Content Processing Solution Accelerator'
-  location: resourceGroup().location
-}
+param tags object = {}
 
 @minLength(1)
 @allowed([
@@ -81,7 +77,7 @@ param gptDeploymentCapacity int = 10
 // ============================================================================
 
 @description('Optional. The container registry login server or endpoint for the container images.')
-param containerRegistryEndpoint string = ''
+param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
 param imageTag string = 'latest_v2'
@@ -122,53 +118,61 @@ param existingFoundryProjectResourceId string = ''
 // Variables
 // ============================================================================
 
-var solutionSuffix = toLower(trim(replace(
-  replace(
-    replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
-    ' ',
-    ''
-  ),
-  '*',
-  ''
-)))
+var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))
 
-var managedIdentityName = 'id-${solutionSuffix}'
+var deployerInfo = deployer()
+var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
+var existingTags = resourceGroup().tags ?? {}
+
+// NOTE: managedIdentityName removed — migrated to system-assigned identity
+
 var containerRegistryName = replace('cr${solutionSuffix}', '-', '')
+
 var storageAccountName = take(replace('st${solutionSuffix}', '-', ''), 24)
+
 var cosmosDbName = 'cosmos-${solutionSuffix}'
+
 var cosmosDatabaseName = 'contentprocessing'
+
 var cosmosContainerName = 'documents'
+
 var aiServicesName = 'aif-${solutionSuffix}'
+
 var aiProjectName = 'proj-${solutionSuffix}'
-var aiSearchName = 'srch-${solutionSuffix}'
+
 var appConfigurationName = 'appcs-${solutionSuffix}'
+
 var containerAppEnvironmentName = 'cae-${solutionSuffix}'
+
 var contentProcessorAppName = 'ca-${solutionSuffix}-app'
+
 var contentProcessorApiName = 'ca-${solutionSuffix}-api'
+
 var contentProcessorWebName = 'ca-${solutionSuffix}-web'
+
 var contentProcessorWorkflowName = 'ca-${solutionSuffix}-wkfl'
+
 var modelDeploymentName = 'gpt-${solutionSuffix}'
+
 var storageContainerName = 'content'
+
 var storageQueueName = 'content'
 
-var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-var storageBlobDataContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-var storageQueueDataContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-var appConfigurationDataReaderRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '516239f1-63e1-4d78-a4de-a74fb236a071')
-var cognitiveServicesOpenAiUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
-var cognitiveServicesUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')
-var azureAiDeveloperRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')
+var effectiveContainerRegistryEndpoint = empty(containerRegistryEndpoint) ? container_registry.outputs.loginServer : containerRegistryEndpoint
+var useExternalRegistry = !empty(containerRegistryEndpoint)
 
-var effectiveContainerRegistryEndpoint = empty(containerRegistryEndpoint) ? containerRegistry.outputs.loginServer : containerRegistryEndpoint
-var apiAppFqdn = '${contentProcessorApiName}.${containerAppEnvironment.outputs.defaultDomain}'
-var webAppFqdn = '${contentProcessorWebName}.${containerAppEnvironment.outputs.defaultDomain}'
-var workflowAppFqdn = '${contentProcessorWorkflowName}.${containerAppEnvironment.outputs.defaultDomain}'
-var cosmosDbEndpoint = cosmosDBModule.outputs.endpoint
+var apiAppFqdn = '${contentProcessorApiName}.${container_app_environment.outputs.defaultDomain}'
+
+var webAppFqdn = '${contentProcessorWebName}.${container_app_environment.outputs.defaultDomain}'
+
+var workflowAppFqdn = '${contentProcessorWorkflowName}.${container_app_environment.outputs.defaultDomain}'
+
+var cosmosDbEndpoint = cosmos_db.outputs.endpoint
 
 var sharedEnv = [
   {
     name: 'APP_CONFIG_ENDPOINT'
-    value: appConfiguration.outputs.endpoint
+    value: app_configuration.outputs.endpoint
   }
   {
     name: 'APP_ENV'
@@ -184,7 +188,7 @@ var sharedEnv = [
   }
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-    value: enableMonitoring ? appInsights!.outputs.connectionString : ''
+    value: enableMonitoring ? app_insights!.outputs.connectionString : ''
   }
 ]
 
@@ -227,7 +231,7 @@ var apiProbes = [
 var appConfigurationValues = [
   {
     name: 'APP_AZURE_OPENAI_ENDPOINT'
-    value: aiFoundry.outputs.endpoint
+    value: ai_foundry.outputs.endpoint
   }
   {
     name: 'APP_AZURE_OPENAI_MODEL'
@@ -235,11 +239,11 @@ var appConfigurationValues = [
   }
   {
     name: 'APP_CONTENT_UNDERSTANDING_ENDPOINT'
-    value: aiFoundry.outputs.endpoint
+    value: ai_foundry.outputs.endpoint
   }
   {
     name: 'APP_AI_PROJECT_ENDPOINT'
-    value: aiProject.properties.endpoints['AI Foundry API']
+    value: ai_foundry.outputs.projectEndpoint
   }
   {
     name: 'APP_COSMOS_DB_ENDPOINT'
@@ -255,27 +259,19 @@ var appConfigurationValues = [
   }
   {
     name: 'APP_STORAGE_ACCOUNT_NAME'
-    value: storageAccount.outputs.name
+    value: storage_account.outputs.name
   }
   {
     name: 'APP_STORAGE_BLOB_ENDPOINT'
-    value: storageAccount.outputs.blobEndpoint
+    value: storage_account.outputs.blobEndpoint
   }
   {
     name: 'APP_STORAGE_QUEUE_ENDPOINT'
-    value: storageAccount.outputs.serviceEndpoints.queue
+    value: storage_account.outputs.serviceEndpoints.queue
   }
   {
     name: 'APP_STORAGE_CONTAINER_NAME'
     value: storageContainerName
-  }
-  {
-    name: 'APP_AI_SEARCH_ENDPOINT'
-    value: aiSearch.outputs.endpoint
-  }
-  {
-    name: 'APP_AI_SEARCH_INDEX'
-    value: 'content-index'
   }
   {
     name: 'APP_WORKFLOW_APP_ENDPOINT'
@@ -295,12 +291,30 @@ var appConfigurationValues = [
   }
 ]
 
+var resourceTags = union(existingTags, tags, {
+  TemplateName: 'Content Processing'
+  CreatedBy: createdBy
+  DeploymentName: deployment().name
+  Type: 'Non-WAF'
+})
+
 // ============================================================================
-// Module — Monitoring — Log Analytics
+// Resource Group Tags
 // ============================================================================
 
-module logAnalytics './modules/monitoring/log-analytics.bicep' = if (enableMonitoring) {
-  name: take('module.log-analytics.${solutionSuffix}', 64)
+resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
+  name: 'default'
+  properties: {
+    tags: resourceTags
+  }
+}
+
+// ============================================================================
+// Module: Monitoring
+// ============================================================================
+
+module log_analytics './modules/monitoring/log-analytics.bicep' = if (enableMonitoring) {
+  name: take('module.log-analytics.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     location: location
@@ -308,56 +322,52 @@ module logAnalytics './modules/monitoring/log-analytics.bicep' = if (enableMonit
   }
 }
 
-// ============================================================================
-// Module — Monitoring — Application Insights
-// ============================================================================
-
-module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
-  name: take('module.app-insights.${solutionSuffix}', 64)
+module app_insights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
+  name: take('module.app-insights.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     location: location
-    workspaceResourceId: logAnalytics!.outputs.resourceId
+    workspaceResourceId: log_analytics!.outputs.resourceId
     tags: tags
   }
 }
 
 // ============================================================================
-// Module — Identity — Managed Identity
+// Module: AI Services
 // ============================================================================
 
-module managedIdentity './modules/identity/managed-identity.bicep' = {
-  name: take('module.managed-identity.${solutionSuffix}', 64)
+module ai_foundry './modules/ai/ai-foundry.bicep' = {
+  name: take('module.ai-foundry.${solutionName}', 64)
   params: {
-    solutionName: solutionSuffix
-    identityName: managedIdentityName
-    location: location
-    tags: tags
-  }
-}
-
-// ============================================================================
-// Module — Compute — Container Registry
-// ============================================================================
-
-module containerRegistry './modules/compute/container-registry.bicep' = {
-  name: take('module.container-registry.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: containerRegistryName
-    location: location
-    sku: enableRedundancy ? 'Premium' : 'Standard'
+    name: aiServicesName
+    location: azureAiServiceLocation
+    principalIds: []
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    tags: tags
+    projectName: aiProjectName
+    tags: union(tags, {
+      location: azureAiServiceLocation
+    })
+  }
+}
+
+module model_deployment './modules/ai/ai-foundry-model-deployment.bicep' = {
+  name: take('module.model-deployment.${solutionName}', 64)
+  params: {
+    aiServicesAccountName: ai_foundry.outputs.name
+    deploymentName: modelDeploymentName
+    modelName: gptModelName
+    modelVersion: gptModelVersion
+    skuName: deploymentType
+    skuCapacity: gptDeploymentCapacity
   }
 }
 
 // ============================================================================
-// Module — Data — Storage Account
+// Module: Data
 // ============================================================================
 
-module storageAccount './modules/data/storage-account.bicep' = {
-  name: take('module.storage-account.${solutionSuffix}', 64)
+module storage_account './modules/data/storage-account.bicep' = {
+  name: take('module.storage-account.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     name: storageAccountName
@@ -369,34 +379,15 @@ module storageAccount './modules/data/storage-account.bicep' = {
         publicAccess: 'None'
       }
     ]
+    queues: [
+      storageQueueName
+    ]
     tags: tags
   }
 }
 
-// ============================================================================
-// Resources — Storage Queue
-// ============================================================================
-
-resource storageAccountResource 'Microsoft.Storage/storageAccounts@2025-08-01' existing = {
-  name: storageAccountName
-}
-
-resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2025-08-01' = {
-  parent: storageAccountResource
-  name: 'default'
-}
-
-resource storageQueue 'Microsoft.Storage/storageAccounts/queueServices/queues@2025-08-01' = {
-  parent: queueService
-  name: storageQueueName
-}
-
-// ============================================================================
-// Resources — Cosmos DB
-// ============================================================================
-
-module cosmosDBModule './modules/data/cosmos-db-mongo.bicep' = {
-  name: take('module.cosmos-db-mongo.${solutionSuffix}', 64)
+module cosmos_db './modules/data/cosmos-db-mongo.bicep' = {
+  name: take('module.cosmos-db-mongo.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     name: cosmosDbName
@@ -420,100 +411,8 @@ module cosmosDBModule './modules/data/cosmos-db-mongo.bicep' = {
   }
 }
 
-// ============================================================================
-// Module — AI — AI Foundry
-// ============================================================================
-
-module aiFoundry './modules/ai/ai-foundry.bicep' = {
-  name: take('module.ai-foundry.${solutionSuffix}', 64)
-  params: {
-    name: aiServicesName
-    location: azureAiServiceLocation
-    principalIds: []
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    tags: union(tags, {
-      location: azureAiServiceLocation
-    })
-  }
-}
-
-// ============================================================================
-// Resources — AI Project
-// ============================================================================
-
-resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: aiServicesName
-}
-
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = {
-  parent: aiServicesAccount
-  name: aiProjectName
-  location: azureAiServiceLocation
-  kind: 'AIServices'
-  identity: {
-    type: 'SystemAssigned'
-  }
-  tags: union(tags, {
-    location: azureAiServiceLocation
-  })
-  properties: {}
-}
-
-// ============================================================================
-// Module — AI — Model Deployment
-// ============================================================================
-
-module modelDeployment './modules/ai/ai-foundry-model-deployment.bicep' = {
-  name: take('module.model-deployment.${solutionSuffix}', 64)
-  params: {
-    aiServicesAccountName: aiFoundry.outputs.name
-    deploymentName: modelDeploymentName
-    modelName: gptModelName
-    modelVersion: gptModelVersion
-    skuName: deploymentType
-    skuCapacity: gptDeploymentCapacity
-  }
-}
-
-// ============================================================================
-// Module — AI — Search
-// ============================================================================
-
-module aiSearch './modules/ai/ai-search.bicep' = {
-  name: take('module.ai-search.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: aiSearchName
-    location: location
-    replicaCount: enableRedundancy ? 2 : 1
-    partitionCount: enableScalability ? 2 : 1
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    tags: tags
-  }
-}
-
-// ============================================================================
-// Module — Compute — Container App Environment
-// ============================================================================
-
-module containerAppEnvironment './modules/compute/container-app-environment.bicep' = {
-  name: take('module.container-app-environment.${solutionSuffix}', 64)
-  params: {
-    solutionName: solutionSuffix
-    name: containerAppEnvironmentName
-    location: location
-    logAnalyticsWorkspaceResourceId: enableMonitoring ? logAnalytics!.outputs.resourceId : ''
-    zoneRedundant: enableRedundancy
-    tags: tags
-  }
-}
-
-// ============================================================================
-// Module — Data — App Configuration
-// ============================================================================
-
-module appConfiguration './modules/data/app-configuration.bicep' = {
-  name: take('module.app-configuration.${solutionSuffix}', 64)
+module app_configuration './modules/data/app-configuration.bicep' = {
+  name: take('module.app-configuration.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     name: appConfigurationName
@@ -524,15 +423,41 @@ module appConfiguration './modules/data/app-configuration.bicep' = {
 }
 
 // ============================================================================
-// Module — Compute — Content Processor App
+// Module: Compute
+// NOTE: Migrated from user-assigned to system-assigned managed identity.
+// Container Apps use their system-assigned identity for ACR pull and role assignments.
 // ============================================================================
 
-module contentProcessorApp './modules/compute/container-app.bicep' = {
-  name: take('module.content-processor-app.${solutionSuffix}', 64)
+module container_registry './modules/compute/container-registry.bicep' = {
+  name: take('module.container-registry.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: containerRegistryName
+    location: location
+    sku: enableRedundancy || enablePrivateNetworking ? 'Premium' : 'Standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    tags: tags
+  }
+}
+
+module container_app_environment './modules/compute/container-app-environment.bicep' = {
+  name: take('module.container-app-environment.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: containerAppEnvironmentName
+    location: location
+    logAnalyticsWorkspaceResourceId: enableMonitoring ? log_analytics!.outputs.resourceId : ''
+    zoneRedundant: enableRedundancy
+    tags: tags
+  }
+}
+
+module container_app_processor './modules/compute/container-app.bicep' = {
+  name: take('module.content-processor-app.${solutionName}', 64)
   params: {
     name: contentProcessorAppName
     location: location
-    environmentResourceId: containerAppEnvironment.outputs.resourceId
+    environmentResourceId: container_app_environment.outputs.resourceId
     disableIngress: true
     containers: [
       {
@@ -552,14 +477,11 @@ module contentProcessorApp './modules/compute/container-app.bicep' = {
     ]
     managedIdentities: {
       systemAssigned: true
-      userAssignedResourceIds: [
-        managedIdentity.outputs.resourceId
-      ]
     }
-    registries: [
+    registries: useExternalRegistry ? null : [
       {
         server: effectiveContainerRegistryEndpoint
-        identity: managedIdentity.outputs.resourceId
+        identity: 'system'
       }
     ]
     scaleSettings: {
@@ -570,16 +492,12 @@ module contentProcessorApp './modules/compute/container-app.bicep' = {
   }
 }
 
-// ============================================================================
-// Module — Compute — Content Processor API
-// ============================================================================
-
-module contentProcessorApi './modules/compute/container-app.bicep' = {
-  name: take('module.content-processor-api.${solutionSuffix}', 64)
+module container_app_api './modules/compute/container-app.bicep' = {
+  name: take('module.content-processor-api.${solutionName}', 64)
   params: {
     name: contentProcessorApiName
     location: location
-    environmentResourceId: containerAppEnvironment.outputs.resourceId
+    environmentResourceId: container_app_environment.outputs.resourceId
     ingressExternal: true
     ingressTargetPort: 80
     containers: [
@@ -601,14 +519,11 @@ module contentProcessorApi './modules/compute/container-app.bicep' = {
     ]
     managedIdentities: {
       systemAssigned: true
-      userAssignedResourceIds: [
-        managedIdentity.outputs.resourceId
-      ]
     }
-    registries: [
+    registries: useExternalRegistry ? null : [
       {
         server: effectiveContainerRegistryEndpoint
-        identity: managedIdentity.outputs.resourceId
+        identity: 'system'
       }
     ]
     scaleSettings: {
@@ -619,16 +534,12 @@ module contentProcessorApi './modules/compute/container-app.bicep' = {
   }
 }
 
-// ============================================================================
-// Module — Compute — Content Processor Web
-// ============================================================================
-
-module contentProcessorWeb './modules/compute/container-app.bicep' = {
-  name: take('module.content-processor-web.${solutionSuffix}', 64)
+module container_app_web './modules/compute/container-app.bicep' = {
+  name: take('module.content-processor-web.${solutionName}', 64)
   params: {
     name: contentProcessorWebName
     location: location
-    environmentResourceId: containerAppEnvironment.outputs.resourceId
+    environmentResourceId: container_app_environment.outputs.resourceId
     ingressExternal: true
     ingressTargetPort: 80
     containers: [
@@ -653,14 +564,11 @@ module contentProcessorWeb './modules/compute/container-app.bicep' = {
     ]
     managedIdentities: {
       systemAssigned: true
-      userAssignedResourceIds: [
-        managedIdentity.outputs.resourceId
-      ]
     }
-    registries: [
+    registries: useExternalRegistry ? null : [
       {
         server: effectiveContainerRegistryEndpoint
-        identity: managedIdentity.outputs.resourceId
+        identity: 'system'
       }
     ]
     corsPolicy: {
@@ -686,16 +594,12 @@ module contentProcessorWeb './modules/compute/container-app.bicep' = {
   }
 }
 
-// ============================================================================
-// Module — Compute — Content Processor Workflow
-// ============================================================================
-
-module contentProcessorWorkflow './modules/compute/container-app.bicep' = {
-  name: take('module.content-processor-workflow.${solutionSuffix}', 64)
+module container_app_workflow './modules/compute/container-app.bicep' = {
+  name: take('module.content-processor-workflow.${solutionName}', 64)
   params: {
     name: contentProcessorWorkflowName
     location: location
-    environmentResourceId: containerAppEnvironment.outputs.resourceId
+    environmentResourceId: container_app_environment.outputs.resourceId
     ingressExternal: true
     ingressTargetPort: 80
     containers: [
@@ -716,14 +620,11 @@ module contentProcessorWorkflow './modules/compute/container-app.bicep' = {
     ]
     managedIdentities: {
       systemAssigned: true
-      userAssignedResourceIds: [
-        managedIdentity.outputs.resourceId
-      ]
     }
-    registries: [
+    registries: useExternalRegistry ? null : [
       {
         server: effectiveContainerRegistryEndpoint
-        identity: managedIdentity.outputs.resourceId
+        identity: 'system'
       }
     ]
     scaleSettings: {
@@ -735,188 +636,22 @@ module contentProcessorWorkflow './modules/compute/container-app.bicep' = {
 }
 
 // ============================================================================
-// Resources — Existing Resource References
+// Module: Identity (Role Assignments)
 // ============================================================================
 
-resource containerRegistryResource 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
-  name: containerRegistryName
-}
-
-resource appConfigurationResource 'Microsoft.AppConfiguration/configurationStores@2023-03-01' existing = {
-  name: appConfigurationName
-}
-
-// ============================================================================
-// Resources — Role Assignments
-// ============================================================================
-
-resource acrPullAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(containerRegistryName, managedIdentityName, 'acr-pull')
-  scope: containerRegistryResource
-  properties: {
-    principalId: managedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: acrPullRoleId
-  }
-}
-
-resource contentProcessorBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountName, contentProcessorAppName, 'blob')
-  scope: storageAccountResource
-  properties: {
-    principalId: contentProcessorApp.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: storageBlobDataContributorRoleId
-  }
-}
-
-resource contentProcessorApiBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountName, contentProcessorApiName, 'blob')
-  scope: storageAccountResource
-  properties: {
-    principalId: contentProcessorApi.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: storageBlobDataContributorRoleId
-  }
-}
-
-resource contentProcessorWorkflowBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountName, contentProcessorWorkflowName, 'blob')
-  scope: storageAccountResource
-  properties: {
-    principalId: contentProcessorWorkflow.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: storageBlobDataContributorRoleId
-  }
-}
-
-resource contentProcessorQueueRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountName, contentProcessorAppName, 'queue')
-  scope: storageAccountResource
-  properties: {
-    principalId: contentProcessorApp.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: storageQueueDataContributorRoleId
-  }
-}
-
-resource contentProcessorApiQueueRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountName, contentProcessorApiName, 'queue')
-  scope: storageAccountResource
-  properties: {
-    principalId: contentProcessorApi.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: storageQueueDataContributorRoleId
-  }
-}
-
-resource contentProcessorWorkflowQueueRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountName, contentProcessorWorkflowName, 'queue')
-  scope: storageAccountResource
-  properties: {
-    principalId: contentProcessorWorkflow.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: storageQueueDataContributorRoleId
-  }
-}
-
-resource contentProcessorAppConfigRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(appConfigurationName, contentProcessorAppName, 'appconfig')
-  scope: appConfigurationResource
-  properties: {
-    principalId: contentProcessorApp.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: appConfigurationDataReaderRoleId
-  }
-}
-
-resource contentProcessorApiAppConfigRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(appConfigurationName, contentProcessorApiName, 'appconfig')
-  scope: appConfigurationResource
-  properties: {
-    principalId: contentProcessorApi.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: appConfigurationDataReaderRoleId
-  }
-}
-
-resource contentProcessorWebAppConfigRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(appConfigurationName, contentProcessorWebName, 'appconfig')
-  scope: appConfigurationResource
-  properties: {
-    principalId: contentProcessorWeb.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: appConfigurationDataReaderRoleId
-  }
-}
-
-resource contentProcessorWorkflowAppConfigRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(appConfigurationName, contentProcessorWorkflowName, 'appconfig')
-  scope: appConfigurationResource
-  properties: {
-    principalId: contentProcessorWorkflow.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: appConfigurationDataReaderRoleId
-  }
-}
-
-resource contentProcessorOpenAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiServicesName, contentProcessorAppName, 'openai-user')
-  scope: aiServicesAccount
-  properties: {
-    principalId: contentProcessorApp.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: cognitiveServicesOpenAiUserRoleId
-  }
-}
-
-resource contentProcessorWorkflowOpenAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiServicesName, contentProcessorWorkflowName, 'openai-user')
-  scope: aiServicesAccount
-  properties: {
-    principalId: contentProcessorWorkflow.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: cognitiveServicesOpenAiUserRoleId
-  }
-}
-
-resource contentProcessorAiDeveloperAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiServicesName, contentProcessorAppName, 'ai-developer')
-  scope: aiServicesAccount
-  properties: {
-    principalId: contentProcessorApp.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: azureAiDeveloperRoleId
-  }
-}
-
-resource contentProcessorWorkflowAiDeveloperAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiServicesName, contentProcessorWorkflowName, 'ai-developer')
-  scope: aiServicesAccount
-  properties: {
-    principalId: contentProcessorWorkflow.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: azureAiDeveloperRoleId
-  }
-}
-
-resource contentProcessorAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiServicesName, contentProcessorAppName, 'cog-user')
-  scope: aiServicesAccount
-  properties: {
-    principalId: contentProcessorApp.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: cognitiveServicesUserRoleId
-  }
-}
-
-resource contentProcessorWorkflowAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(aiServicesName, contentProcessorWorkflowName, 'cog-user')
-  scope: aiServicesAccount
-  properties: {
-    principalId: contentProcessorWorkflow.outputs.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: cognitiveServicesUserRoleId
+module role_assignments './modules/identity/role-assignments.bicep' = {
+  name: take('module.role-assignments.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    containerRegistryName: containerRegistryName
+    storageAccountName: storageAccountName
+    appConfigurationName: appConfigurationName
+    aiServicesName: ai_foundry.outputs.name
+    managedIdentityPrincipalId: container_app_processor.outputs.principalId
+    contentProcessorAppPrincipalId: container_app_processor.outputs.principalId
+    contentProcessorApiPrincipalId: container_app_api.outputs.principalId
+    contentProcessorWebPrincipalId: container_app_web.outputs.principalId
+    contentProcessorWorkflowPrincipalId: container_app_workflow.outputs.principalId
   }
 }
 
@@ -924,16 +659,41 @@ resource contentProcessorWorkflowAiUserAssignment 'Microsoft.Authorization/roleA
 // Outputs
 // ============================================================================
 
+@description('The solution name.')
 output SOLUTION_NAME string = solutionName
-output CONTAINER_WEB_APP_NAME string = contentProcessorWeb.outputs.name
-output CONTAINER_API_APP_NAME string = contentProcessorApi.outputs.name
+
+@description('The name of the Container App used for Web App.')
+output CONTAINER_WEB_APP_NAME string = container_app_web.outputs.name
+
+@description('The name of the Container App used for API.')
+output CONTAINER_API_APP_NAME string = container_app_api.outputs.name
+
+@description('The FQDN of the Container App Web.')
 output CONTAINER_WEB_APP_FQDN string = webAppFqdn
+
+@description('The FQDN of the Container App API.')
 output CONTAINER_API_APP_FQDN string = apiAppFqdn
-output CONTAINER_APP_NAME string = contentProcessorApp.outputs.name
-output CONTAINER_WORKFLOW_APP_NAME string = contentProcessorWorkflow.outputs.name
-output CONTAINER_APP_USER_IDENTITY_ID string = managedIdentity.outputs.resourceId
-output CONTAINER_APP_USER_PRINCIPAL_ID string = managedIdentity.outputs.principalId
-output CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
-output CONTAINER_REGISTRY_LOGIN_SERVER string = containerRegistry.outputs.loginServer
-output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = aiFoundry.outputs.name
+
+@description('The name of the Container App used for APP.')
+output CONTAINER_APP_NAME string = container_app_processor.outputs.name
+
+@description('The name of the Container App used for Workflow.')
+output CONTAINER_WORKFLOW_APP_NAME string = container_app_workflow.outputs.name
+
+@description('The system-assigned identity resource ID used for the Container App.')
+output CONTAINER_APP_USER_IDENTITY_ID string = container_app_processor.outputs.resourceId
+
+@description('The system-assigned identity Principal ID used for the Container App.')
+output CONTAINER_APP_USER_PRINCIPAL_ID string = container_app_processor.outputs.principalId
+
+@description('The name of the Azure Container Registry.')
+output CONTAINER_REGISTRY_NAME string = container_registry.outputs.name
+
+@description('The login server of the Azure Container Registry.')
+output CONTAINER_REGISTRY_LOGIN_SERVER string = container_registry.outputs.loginServer
+
+@description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding.')
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = ai_foundry.outputs.name
+
+@description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name

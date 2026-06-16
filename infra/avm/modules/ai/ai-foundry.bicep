@@ -95,6 +95,12 @@ import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
+@description('Optional. Principal ID of the processor container app managed identity.')
+param processorPrincipalId string = ''
+
+@description('Optional. Principal ID of the workflow container app managed identity.')
+param workflowPrincipalId string = ''
+
 @description('Optional. Tags of the resource.')
 param tags object?
 
@@ -137,6 +143,18 @@ param enableTelemetry bool = true
 @description('Optional. Array of deployments about cognitive service accounts to create.')
 param deployments deploymentType[]?
 
+@description('Optional. GPT model name used to build the default deployment.')
+param gptModelName string = ''
+
+@description('Optional. GPT model version used to build the default deployment.')
+param gptModelVersion string = ''
+
+@description('Optional. Deployment SKU name for the default GPT deployment.')
+param gptDeploymentSkuName string = ''
+
+@description('Optional. Deployment capacity for the default GPT deployment.')
+param gptDeploymentCapacity int = -1
+
 @description('Optional. Key vault reference and secret settings for the module\'s secrets export.')
 param secretsExportConfiguration secretsExportConfigurationType?
 
@@ -148,6 +166,74 @@ var formattedUserAssignedIdentities = reduce(
   {},
   (cur, next) => union(cur, next)
 ) // Converts the flat array to an object like { '${id1}': {}, '${id2}': {} }
+
+var resolvedRoleAssignments = !empty(roleAssignments ?? [])
+  ? roleAssignments
+  : concat(
+      !empty(processorPrincipalId)
+        ? [
+            {
+              principalId: processorPrincipalId
+              roleDefinitionIdOrName: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
+              principalType: 'ServicePrincipal'
+            }
+            {
+              principalId: processorPrincipalId
+              roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+              principalType: 'ServicePrincipal'
+            }
+            {
+              principalId: processorPrincipalId
+              roleDefinitionIdOrName: 'Azure AI Developer'
+              principalType: 'ServicePrincipal'
+            }
+            {
+              principalId: processorPrincipalId
+              roleDefinitionIdOrName: 'Cognitive Services User'
+              principalType: 'ServicePrincipal'
+            }
+          ]
+        : [],
+      !empty(workflowPrincipalId)
+        ? [
+            {
+              principalId: workflowPrincipalId
+              roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+              principalType: 'ServicePrincipal'
+            }
+            {
+              principalId: workflowPrincipalId
+              roleDefinitionIdOrName: 'Azure AI Developer'
+              principalType: 'ServicePrincipal'
+            }
+            {
+              principalId: workflowPrincipalId
+              roleDefinitionIdOrName: 'Cognitive Services User'
+              principalType: 'ServicePrincipal'
+            }
+          ]
+        : []
+    )
+
+var resolvedDeployments = !empty(deployments ?? [])
+  ? deployments
+  : (!empty(gptModelName) && !empty(gptModelVersion) && !empty(gptDeploymentSkuName) && gptDeploymentCapacity > 0
+      ? [
+          {
+            name: gptModelName
+            model: {
+              format: 'OpenAI'
+              name: gptModelName
+              version: gptModelVersion
+            }
+            sku: {
+              name: gptDeploymentSkuName
+              capacity: gptDeploymentCapacity
+            }
+            raiPolicyName: 'Microsoft.Default'
+          }
+        ]
+      : [])
 
 var identity = !empty(managedIdentities)
   ? {
@@ -260,11 +346,11 @@ module cognitive_service_dependencies './modules/dependencies.bicep' = if(!useEx
     projectDescription: projectDescription
     name:  cognitiveServiceNew.name 
     location: location
-    deployments: deployments
+    deployments: resolvedDeployments
     diagnosticSettings: diagnosticSettings
     lock: lock
     privateEndpoints: privateEndpoints
-    roleAssignments: roleAssignments
+    roleAssignments: resolvedRoleAssignments
     secretsExportConfiguration: secretsExportConfiguration
     sku: sku
     tags: tags
@@ -278,11 +364,11 @@ module existing_cognitive_service_dependencies './modules/dependencies.bicep' = 
     projectDescription: projectDescription
     azureExistingAIProjectResourceId: existingFoundryProjectResourceId
     location: location
-    deployments: deployments
+    deployments: resolvedDeployments
     diagnosticSettings: diagnosticSettings
     lock: lock
     privateEndpoints: privateEndpoints
-    roleAssignments: roleAssignments
+    roleAssignments: resolvedRoleAssignments
     secretsExportConfiguration: secretsExportConfiguration
     sku: sku
     tags: tags

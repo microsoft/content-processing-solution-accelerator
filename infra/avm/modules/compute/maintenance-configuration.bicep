@@ -1,15 +1,11 @@
 // ============================================================================
 // Module: Maintenance Configuration
 // Description: AVM wrapper for Azure Maintenance Configuration
-// AVM Module: avm/res/maintenance/maintenance-configuration
-// WAF: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/virtual-machines
+// AVM Module: avm/res/maintenance/maintenance-configuration:0.4.0
 // ============================================================================
 
-@description('Solution name suffix used to derive the resource name.')
-param solutionName string
-
 @description('Name of the maintenance configuration.')
-param name string = 'mc-${solutionName}'
+param name string
 
 @description('Azure region for the resource.')
 param location string
@@ -17,48 +13,24 @@ param location string
 @description('Tags to apply to the resource.')
 param tags object = {}
 
-@description('Maintenance scope.')
-param maintenanceScope string = 'InGuestPatch'
-
-@description('Visibility of the configuration.')
-param visibility string = 'Custom'
-
-@description('Extension properties.')
-param extensionProperties object = {
-  InGuestPatchMode: 'User'
-}
-
-@description('Maintenance window configuration.')
-param maintenanceWindow object = {
-  startDateTime: '2024-06-16 00:00'
-  duration: '03:55'
-  timeZone: 'W. Europe Standard Time'
-  recurEvery: '1Day'
-}
-
-@description('Install patches configuration.')
-param installPatches object = {
-  rebootSetting: 'IfRequired'
-  windowsParameters: {
-    classificationsToInclude: [
-      'Critical'
-      'Security'
-    ]
-  }
-  linuxParameters: {
-    classificationsToInclude: [
-      'Critical'
-      'Security'
-    ]
-  }
-}
-
-@description('Enable Azure telemetry collection.')
+@description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-// ============================================================================
-// AVM Module Deployment
-// ============================================================================
+@description('Optional. Extension properties for the maintenance configuration.')
+param extensionProperties object = {}
+
+@description('Maintenance scope for the configuration.')
+param maintenanceScope string
+
+@description('Maintenance window configuration.')
+param maintenanceWindow object
+
+@description('Visibility of the maintenance configuration.')
+param visibility string = 'Custom'
+
+@description('Install patches configuration.')
+param installPatches object
+
 module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.4.0' = {
   name: take('avm.res.maintenance.maintenance-configuration.${name}', 64)
   params: {
@@ -74,9 +46,6 @@ module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-confi
   }
 }
 
-// ============================================================================
-// Outputs
-// ============================================================================
 @description('Resource ID of the maintenance configuration.')
 output resourceId string = maintenanceConfiguration.outputs.resourceId
 

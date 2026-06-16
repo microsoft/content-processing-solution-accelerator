@@ -275,8 +275,8 @@ module logAnalyticsWorkspace './modules/monitoring/log-analytics.bicep' = if (en
   }
 }
 
-module applicationInsights 'br/public:avm/res/insights/component:0.7.1' = if (enableMonitoring) {
-  name: take('avm.res.insights.component.${solutionSuffix}', 64)
+module applicationInsights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
+  name: take('module.app-insights.${solutionSuffix}', 64)
   params: {
     name: 'appi-${solutionSuffix}'
     location: location
@@ -292,8 +292,8 @@ module applicationInsights 'br/public:avm/res/insights/component:0.7.1' = if (en
   }
 }
 
-module windowsVmDataCollectionRules 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
-  name: take('avm.res.insights.data-collection-rule.${solutionSuffix}', 64)
+module windowsVmDataCollectionRules './modules/monitoring/data-collection-rule.bicep' = if (enablePrivateNetworking && enableMonitoring) {
+  name: take('module.data-collection-rule.${solutionSuffix}', 64)
   params: {
     name: dataCollectionRulesResourceName
     tags: tags
@@ -422,8 +422,8 @@ module virtualNetwork './modules/networking/virtual-network.bicep' = if (enableP
   }
 }
 
-module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = if (enablePrivateNetworking) {
-  name: take('avm.res.network.bastion-host.${solutionSuffix}', 64)
+module bastionHost './modules/networking/bastion-host.bicep' = if (enablePrivateNetworking) {
+  name: take('module.bastion-host.${solutionSuffix}', 64)
   params: {
     name: bastionHostName
     skuName: 'Standard'
@@ -451,8 +451,8 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = if (enablePr
   }
 }
 
-module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enablePrivateNetworking) {
-  name: take('avm.res.compute.virtual-machine.${solutionSuffix}', 64)
+module jumpboxVM './modules/compute/virtual-machine.bicep' = if (enablePrivateNetworking) {
+  name: take('module.virtual-machine.${solutionSuffix}', 64)
   params: {
     name: jumpboxVmName
     location: location
@@ -484,7 +484,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enable
       createOption: 'FromImage'
       deleteOption: 'Delete'
       diskSizeGB: 128
-      managedDisk: { 
+      managedDisk: {
         // WAF aligned configuration - use Premium storage for better SLA when redundancy is enabled
         storageAccountType: enableRedundancy ? 'Premium_LRS' : 'Standard_LRS'
       }
@@ -494,14 +494,14 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enable
         name: 'nic-${jumpboxVmName}'
         tags: tags
         deleteOption: 'Delete'
-        diagnosticSettings: enableMonitoring //WAF aligned configuration for Monitoring
+        diagnosticSettings: enableMonitoring
           ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }]
           : null
         ipConfigurations: [
           {
             name: '${jumpboxVmName}-nic01-ipconfig01'
             subnetResourceId: virtualNetwork!.outputs.administrationSubnetResourceId
-            diagnosticSettings: enableMonitoring //WAF aligned configuration for Monitoring
+            diagnosticSettings: enableMonitoring
               ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }]
               : null
           }
@@ -531,7 +531,6 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enable
       }
       tags: tags
     }
-    //WAF aligned configuration for Monitoring
     extensionMonitoringAgentConfig: enableMonitoring
       ? {
           dataCollectionRuleAssociations: [
@@ -551,8 +550,8 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enable
   }
 }
 
-module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.4.0' = if (enablePrivateNetworking) {
-  name: take('avm.res.maintenance.maintenance-configuration.${solutionSuffix}', 64)
+module maintenanceConfiguration './modules/compute/maintenance-configuration.bicep' = if (enablePrivateNetworking) {
+  name: take('module.maintenance-configuration.${solutionSuffix}', 64)
   params: {
     name: 'mc-${jumpboxVmName}'
     location: location
@@ -588,9 +587,9 @@ module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-confi
 }
 
 @batchSize(5)
-module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
+module avmPrivateDnsZones './modules/networking/private-dns-zone.bicep' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
-    name: take('avm.res.network.private-dns-zone.${solutionSuffix}.${i}', 64)
+    name: take('module.private-dns-zone.${solutionSuffix}.${i}', 64)
     params: {
       name: zone
       tags: tags
@@ -600,8 +599,8 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
   }
 ]
 
-module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
-  name: take('avm.res.network.private-endpoint.${solutionSuffix}', 64)
+module cognitiveServicePrivateEndpoint './modules/networking/private-endpoint.bicep' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
+  name: take('module.private-endpoint.${solutionSuffix}', 64)
   params: {
     name: 'pep-aiservices-${solutionSuffix}'
     location: location
@@ -655,10 +654,11 @@ module avmManagedIdentity './modules/identity/managed-identity.bicep' = {
   }
 }
 
-module avmContainerRegistryReader 'br/public:avm/res/managed-identity/user-assigned-identity:0.5.0' = {
-  name: take('avm.res.managed-identity.user-assigned-identity.${solutionSuffix}', 64)
+module avmContainerRegistryReader './modules/identity/managed-identity.bicep' = {
+  name: take('module.managed-identity-acr.${solutionSuffix}', 64)
   params: {
-    name: 'id-acr-${solutionSuffix}'
+    solutionName: solutionSuffix
+    identityName: 'id-acr-${solutionSuffix}'
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -690,8 +690,8 @@ module avmContainerRegistry './modules/compute/container-registry.bicep' = {
   }
 }
 
-module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
-  name: take('avm.res.app.managed-environment.${solutionSuffix}', 64)
+module avmContainerAppEnv './modules/compute/container-app-environment.bicep' = {
+  name: take('module.container-app-environment.${solutionSuffix}', 64)
   params: {
     name: 'cae-${solutionSuffix}'
     location: location
@@ -713,646 +713,148 @@ module avmContainerAppEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
       }
     ]
     enableTelemetry: enableTelemetry
-    publicNetworkAccess: 'Enabled' // Always enabled for Container Apps Environment
-
-    // <========== WAF related parameters
-
+    publicNetworkAccess: 'Enabled'
     platformReservedCidr: '172.17.17.0/24'
     platformReservedDnsIP: '172.17.17.17'
-    zoneRedundant: (enablePrivateNetworking) ? true : false // Enable zone redundancy if private networking is enabled
+    zoneRedundant: (enablePrivateNetworking) ? true : false
     infrastructureSubnetResourceId: (enablePrivateNetworking)
-      ? virtualNetwork!.outputs.webserverfarmSubnetResourceId // Use the container app subnet
-      : null // Use the container app subnet
+      ? virtualNetwork!.outputs.webserverfarmSubnetResourceId
+      : null
   }
 }
 
-module avmContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app.${solutionSuffix}', 64)
+module avmContainerApp './modules/compute/container-app-processor.bicep' = {
+  name: take('module.container-app-processor.${solutionSuffix}', 64)
   params: {
-    name: 'ca-${solutionSuffix}-app'
+    solutionSuffix: solutionSuffix
     location: location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
-    enableTelemetry: enableTelemetry
-    registries: null
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
-
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: ''
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessor'
-          }
-        ]
-      }
-    ]
-    activeRevisionsMode: 'Single'
-    ingressExternal: false
-    disableIngress: true
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-    }
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
+    enableMonitoring: enableMonitoring
+    appInsightsConnectionString: enableMonitoring ? applicationInsights.outputs.connectionString : ''
     tags: tags
-  }
-}
-
-module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app-api.${solutionSuffix}', 64)
-  params: {
-    name: 'ca-${solutionSuffix}-api'
-    location: location
-    environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
-    tags: tags
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}-api'
-        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: ''
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessorAPI'
-          }
-        ]
-        probes: [
-          // Liveness Probe - Checks if the app is still running
-          {
-            type: 'Liveness'
-            httpGet: {
-              path: '/startup' // Your app must expose this endpoint
-              port: 80
-              scheme: 'HTTP'
-            }
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
-          }
-          // Readiness Probe - Checks if the app is ready to receive traffic
-          {
-            type: 'Readiness'
-            httpGet: {
-              path: '/startup'
-              port: 80
-              scheme: 'HTTP'
-            }
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
-          }
-          {
-            type: 'Startup'
-            httpGet: {
-              path: '/startup'
-              port: 80
-              scheme: 'HTTP'
-            }
-            initialDelaySeconds: 20 // Wait 10s before checking
-            periodSeconds: 5 // Check every 15s
-            failureThreshold: 10 // Restart if it fails 5 times
-          }
-        ]
-      }
-    ]
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-      rules: [
-        {
-          name: 'http-scaler'
-          http: {
-            metadata: {
-              concurrentRequests: '100'
-            }
-          }
-        }
-      ]
-    }
-    ingressExternal: true
-    activeRevisionsMode: 'Single'
-    ingressTransport: 'auto'
-    ingressAllowInsecure: false
-    corsPolicy: {
-      allowedOrigins: [
-        '*'
-      ]
-      allowedMethods: [
-        'GET'
-        'POST'
-        'PUT'
-        'DELETE'
-        'OPTIONS'
-      ]
-      allowedHeaders: [
-        'Authorization'
-        'Content-Type'
-        '*'
-      ]
-    }
-  }
-}
-
-module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app-web.${solutionSuffix}', 64)
-  params: {
-    name: 'ca-${solutionSuffix}-web'
-    location: location
-    environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
-    enableTelemetry: enableTelemetry
-    registries: null
-    tags: tags
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-    ingressExternal: true
-    ingressTargetPort: 3000
-    activeRevisionsMode: 'Single'
-    ingressTransport: 'auto'
-    ingressAllowInsecure: false
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-      rules: [
-        {
-          name: 'http-scaler'
-          http: {
-            metadata: {
-              concurrentRequests: '100'
-            }
-          }
-        }
-      ]
-    }
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}-web'
-        image: '${containerRegistryEndpoint}/contentprocessorweb:${imageTag}'
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_API_BASE_URL'
-            value: 'https://${avmContainerApp_API.outputs.fqdn}'
-          }
-          {
-            name: 'APP_WEB_CLIENT_ID'
-            value: '<APP_REGISTRATION_CLIENTID>'
-          }
-          {
-            name: 'APP_WEB_AUTHORITY'
-            value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
-          }
-          {
-            name: 'APP_WEB_SCOPE'
-            value: '<FRONTEND_API_SCOPE>'
-          }
-          {
-            name: 'APP_API_SCOPE'
-            value: '<BACKEND_API_SCOPE>'
-          }
-          {
-            name: 'APP_REDIRECT_URL'
-            value: '/'
-          }
-          {
-            name: 'APP_POST_REDIRECT_URL'
-            value: '/'
-          }
-          {
-            name: 'APP_CONSOLE_LOG_ENABLED'
-            value: 'false'
-          }
-        ]
-      }
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
     ]
   }
 }
 
-module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app-wkfl.${solutionSuffix}', 64)
+module avmContainerApp_API './modules/compute/container-app-api.bicep' = {
+  name: take('module.container-app-api.${solutionSuffix}', 64)
   params: {
-    name: 'ca-${solutionSuffix}-wkfl'
+    solutionSuffix: solutionSuffix
     location: location
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
-    enableTelemetry: enableTelemetry
-    registries: null
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
+    enableMonitoring: enableMonitoring
+    appInsightsConnectionString: enableMonitoring ? applicationInsights.outputs.connectionString : ''
     tags: tags
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: ''
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessorWorkflow'
-          }
-        ]
-      }
+    enableTelemetry: enableTelemetry
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
     ]
-    activeRevisionsMode: 'Single'
-    ingressExternal: false
-    disableIngress: true
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-    }
   }
 }
 
-module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app-update.${solutionSuffix}', 64)
+module avmContainerApp_Web './modules/compute/container-app-web.bicep' = {
+  name: take('module.container-app-web.${solutionSuffix}', 64)
   params: {
-    name: 'ca-${solutionSuffix}-app'
+    solutionSuffix: solutionSuffix
     location: location
-    enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
-    registries: null
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
     tags: tags
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
-
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessor'
-          }
-        ]
-      }
+    enableTelemetry: enableTelemetry
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
     ]
-    activeRevisionsMode: 'Single'
-    ingressExternal: false
-    disableIngress: true
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-      rules: enableScalability
-        ? [
-            {
-              name: 'http-scaler'
-              http: {
-                metadata: {
-                  concurrentRequests: 100
-                }
-              }
-            }
-          ]
-        : []
-    }
+    apiAppFqdn: avmContainerApp_API.outputs.fqdn
   }
-  dependsOn: [
-    cognitiveServicePrivateEndpoint
-  ]
 }
 
-module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app-api.update.${solutionSuffix}', 64)
+module avmContainerApp_Workflow './modules/compute/container-app-workflow.bicep' = {
+  name: take('module.container-app-workflow.${solutionSuffix}', 64)
   params: {
-    name: 'ca-${solutionSuffix}-api'
+    solutionSuffix: solutionSuffix
     location: location
-    enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
-    registries: null
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
+    enableMonitoring: enableMonitoring
+    appInsightsConnectionString: enableMonitoring ? applicationInsights.outputs.connectionString : ''
     tags: tags
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}-api'
-        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessorAPI'
-          }
-        ]
-        probes: [
-          // Liveness Probe - Checks if the app is still running
-          {
-            type: 'Liveness'
-            httpGet: {
-              path: '/startup' // Your app must expose this endpoint
-              port: 80
-              scheme: 'HTTP'
-            }
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
-          }
-          // Readiness Probe - Checks if the app is ready to receive traffic
-          {
-            type: 'Readiness'
-            httpGet: {
-              path: '/startup'
-              port: 80
-              scheme: 'HTTP'
-            }
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
-          }
-          {
-            type: 'Startup'
-            httpGet: {
-              path: '/startup'
-              port: 80
-              scheme: 'HTTP'
-            }
-            initialDelaySeconds: 20 // Wait 10s before checking
-            periodSeconds: 5 // Check every 15s
-            failureThreshold: 10 // Restart if it fails 5 times
-          }
-        ]
-      }
+    enableTelemetry: enableTelemetry
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
     ]
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-      rules: [
-        {
-          name: 'http-scaler'
-          http: {
-            metadata: {
-              concurrentRequests: '100'
-            }
-          }
-        }
-      ]
-    }
-    ingressExternal: true
-    activeRevisionsMode: 'Single'
-    ingressTransport: 'auto'
-    ingressAllowInsecure: false
-    corsPolicy: {
-      allowedOrigins: [
-        '*'
-      ]
-      allowedMethods: [
-        'GET'
-        'POST'
-        'PUT'
-        'DELETE'
-        'OPTIONS'
-      ]
-      allowedHeaders: [
-        'Authorization'
-        'Content-Type'
-        '*'
-      ]
-    }
   }
-  dependsOn: [
-    cognitiveServicePrivateEndpoint
-  ]
 }
 
-module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app-wkfl.update.${solutionSuffix}', 64)
+module avmContainerApp_update './modules/compute/container-app-processor.bicep' = {
+  name: take('module.container-app-processor.update.${solutionSuffix}', 64)
   params: {
-    name: 'ca-${solutionSuffix}-wkfl'
+    solutionSuffix: solutionSuffix
     location: location
-    enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
-    workloadProfileName: 'Consumption'
-    registries: null
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
+    enableMonitoring: enableMonitoring
+    appInsightsConnectionString: enableMonitoring ? applicationInsights.outputs.connectionString : ''
     tags: tags
-    managedIdentities: {
-      systemAssigned: true
-      userAssignedResourceIds: [
-        avmContainerRegistryReader.outputs.resourceId
-      ]
-    }
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: avmAppConfig.outputs.endpoint
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessorWorkflow'
-          }
-        ]
-      }
+    enableTelemetry: enableTelemetry
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
     ]
-    activeRevisionsMode: 'Single'
-    ingressExternal: false
-    disableIngress: true
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-    }
+    appConfigEndpoint: avmAppConfig.outputs.endpoint
+  }
+}
+
+module avmContainerApp_API_update './modules/compute/container-app-api.bicep' = {
+  name: take('module.container-app-api.update.${solutionSuffix}', 64)
+  params: {
+    solutionSuffix: solutionSuffix
+    location: location
+    environmentResourceId: avmContainerAppEnv.outputs.resourceId
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
+    enableMonitoring: enableMonitoring
+    appInsightsConnectionString: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+    tags: tags
+    enableTelemetry: enableTelemetry
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
+    ]
+    appConfigEndpoint: avmAppConfig.outputs.endpoint
+  }
+}
+
+module avmContainerApp_Workflow_update './modules/compute/container-app-workflow.bicep' = {
+  name: take('module.container-app-workflow.update.${solutionSuffix}', 64)
+  params: {
+    solutionSuffix: solutionSuffix
+    location: location
+    environmentResourceId: avmContainerAppEnv.outputs.resourceId
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    enableScalability: enableScalability
+    enableMonitoring: enableMonitoring
+    appInsightsConnectionString: enableMonitoring ? applicationInsights.outputs.connectionString : ''
+    tags: tags
+    enableTelemetry: enableTelemetry
+    userAssignedResourceIds: [
+      avmContainerRegistryReader.outputs.resourceId
+    ]
+    appConfigEndpoint: avmAppConfig.outputs.endpoint
   }
 }
 
@@ -1461,8 +963,8 @@ module avmAiSearch './modules/ai/ai-search.bicep' = {
 // Module: Data (Storage, Cosmos DB, App Configuration)
 // ============================================================================
 
-module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
-  name: take('avm.res.storage.storage-account.${solutionSuffix}', 64)
+module avmStorageAccount './modules/data/storage-account.bicep' = {
+  name: take('module.storage-account.${solutionSuffix}', 64)
   params: {
     name: 'st${replace(solutionSuffix, '-', '')}'
     location: location
@@ -1515,8 +1017,6 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
     supportsHttpsTrafficOnly: true
     accessTier: 'Hot'
     tags: tags
-
-    //<======================= WAF related parameters
     allowBlobPublicAccess: false
     publicNetworkAccess: (enablePrivateNetworking) ? 'Disabled' : 'Enabled'
     privateEndpoints: (enablePrivateNetworking)
@@ -1532,7 +1032,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
                 }
               ]
             }
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'blob'
           }
           {
@@ -1546,7 +1046,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
                 }
               ]
             }
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'queue'
           }
         ]
@@ -1577,8 +1077,8 @@ module avmCosmosDB './modules/data/cosmos-db-mongo.bicep' = {
   }
 }
 
-module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = {
-  name: take('avm.res.app-configuration.configuration-store.${solutionSuffix}', 64)
+module avmAppConfig './modules/data/app-configuration.bicep' = {
+  name: take('module.app-configuration.${solutionSuffix}', 64)
   params: {
     name: 'appcs-${solutionSuffix}'
     location: location
@@ -1604,7 +1104,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         ]
       : null
     disableLocalAuth: false
-    replicaLocations: enableRedundancy? [{ replicaLocation: replicaLocation }] : []
+    replicaLocations: enableRedundancy ? [{ replicaLocation: replicaLocation }] : []
     roleAssignments: [
       {
         principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId!
@@ -1630,7 +1130,7 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
     keyValues: [
       {
         name: 'APP_AZURE_OPENAI_ENDPOINT'
-        value: avmAiServices.outputs.endpoint //TODO: replace with actual endpoint
+        value: avmAiServices.outputs.endpoint
       }
       {
         name: 'APP_AZURE_OPENAI_MODEL'
@@ -1700,7 +1200,6 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         name: 'APP_COSMOS_CONNSTR'
         value: avmCosmosDB.outputs.primaryReadWriteConnectionString
       }
-      // ===== v2 Workflow Keys ===== //
       {
         name: 'APP_COSMOS_CONTAINER_BATCH_PROCESS'
         value: 'claimprocesses'
@@ -1753,7 +1252,6 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         name: 'AZURE_OPENAI_ENDPOINT_BASE'
         value: avmAiServices.outputs.endpoint
       }
-      // ===== Agent Framework Keys ===== //
       {
         name: 'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME'
         value: ''
@@ -1770,7 +1268,6 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         name: 'GLOBAL_LLM_SERVICE'
         value: 'AzureOpenAI'
       }
-      // ===== GPT-5 Service Prefix Keys ===== //
       {
         name: 'GPT5_API_VERSION'
         value: '2025-03-01-preview'
@@ -1783,7 +1280,6 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         name: 'GPT5_ENDPOINT'
         value: avmAiServices.outputs.endpoint
       }
-      // ===== PHI-4 Service Prefix Keys ===== //
       {
         name: 'PHI4_API_VERSION'
         value: '2024-05-01-preview'
@@ -1797,13 +1293,12 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
         value: avmAiServices.outputs.endpoint
       }
     ]
-
     publicNetworkAccess: 'Enabled'
   }
 }
 
-module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = if (enablePrivateNetworking) {
-  name: take('avm.res.app-configuration.configuration-store.update.${solutionSuffix}', 64)
+module avmAppConfig_update './modules/data/app-configuration.bicep' = if (enablePrivateNetworking) {
+  name: take('module.app-configuration.update.${solutionSuffix}', 64)
   params: {
     name: 'appcs-${solutionSuffix}'
     location: location
@@ -1823,7 +1318,7 @@ module avmAppConfig_update 'br/public:avm/res/app-configuration/configuration-st
             }
           ]
         }
-        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
       }
     ]
   }

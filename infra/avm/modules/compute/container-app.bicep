@@ -1,105 +1,116 @@
 // ============================================================================
-// Module: Azure Container App (AVM)
+// Module: Container App
+// Description: AVM wrapper for Azure Container Apps
 // AVM Module: avm/res/app/container-app:0.22.1
 // ============================================================================
 
 @description('Name of the container app.')
 param name string
 
-@description('Azure region for deployment.')
+@description('Azure region for the resource.')
 param location string
 
-@description('Resource tags.')
+@description('Tags to apply to the resource.')
 param tags object = {}
 
-@description('Resource ID of the Container Apps Environment.')
-param environmentResourceId string
-
-@description('Container definitions.')
-param containers array
-
-@description('Enable external ingress.')
-param ingressExternal bool = true
-
-@description('Target port for ingress.')
-param ingressTargetPort int = 80
-
-@description('Ingress transport protocol.')
-@allowed(['auto', 'http', 'http2', 'tcp'])
-param ingressTransport string = 'auto'
-
-@description('Whether to allow insecure ingress connections.')
-param ingressAllowInsecure bool = false
-
-@description('Disable ingress entirely (for background workers).')
-param disableIngress bool = false
-
-@description('Container registry configurations.')
-param registries array?
-
-@description('Secret definitions.')
-param secrets array?
-
-@description('Managed identity configuration.')
-param managedIdentities object = {}
-
-@description('CORS policy configuration.')
-param corsPolicy object = {}
-
-@description('Active revision mode.')
-@allowed(['Single', 'Multiple'])
-param activeRevisionsMode string = 'Single'
-
-@description('Scale settings (maxReplicas, minReplicas, rules, cooldownPeriod, pollingInterval).')
-param scaleSettings object = {
-  maxReplicas: 10
-  minReplicas: 0
-}
-
-@description('Workload profile name.')
-param workloadProfileName string?
-
-@description('Enable Azure telemetry collection.')
+@description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
+@description('Resource ID of the container app environment.')
+param environmentResourceId string
+
+@description('Optional. Managed identity configuration.')
+param managedIdentities object = {}
+
+@description('Optional. Container registry configuration.')
+param registries array = []
+
+@description('Container definitions for the container app.')
+param containers array
+
+@description('Optional. Active revisions mode.')
+param activeRevisionsMode string = 'Single'
+
+@description('Optional. Minimum replica count alias used when scaleSettings is not supplied.')
+param scaleMinReplicas int = -1
+
+@description('Optional. Maximum replica count alias used when scaleSettings is not supplied.')
+param scaleMaxReplicas int = -1
+
+@description('Optional. Full scale settings object.')
+param scaleSettings object = {}
+
+@description('Optional. Ingress target port.')
+param ingressTargetPort int = -1
+
+@description('Whether ingress is external.')
+param ingressExternal bool = false
+
+@description('Optional. Ingress transport setting.')
+param ingressTransport string = ''
+
+@description('Optional. Secret definitions for the container app.')
+param secrets array = []
+
+@description('Optional. Workload profile name.')
+param workloadProfileName string = ''
+
+@description('Optional. Whether ingress is disabled.')
+param disableIngress bool = false
+
+@description('Optional. Whether insecure ingress traffic is allowed.')
+param ingressAllowInsecure bool = false
+
+@description('Optional. CORS policy configuration.')
+param corsPolicy object = {}
+
+var resolvedScaleSettings = !empty(scaleSettings)
+  ? scaleSettings
+  : (scaleMinReplicas != -1 || scaleMaxReplicas != -1
+      ? union(
+          scaleMinReplicas != -1 ? { minReplicas: scaleMinReplicas } : {},
+          scaleMaxReplicas != -1 ? { maxReplicas: scaleMaxReplicas } : {}
+        )
+      : null)
+
 // ============================================================================
-// Container App (AVM)
+// AVM Module Deployment
 // ============================================================================
 module containerApp 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.containerapp.${name}', 64)
+  name: take('avm.res.app.container-app.${name}', 64)
   params: {
     name: name
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
     environmentResourceId: environmentResourceId
+    managedIdentities: empty(managedIdentities) ? null : managedIdentities
+    registries: !empty(registries) ? registries : null
     containers: containers
-    ingressExternal: disableIngress ? false : ingressExternal
-    ingressTargetPort: ingressTargetPort
-    ingressTransport: ingressTransport
-    ingressAllowInsecure: ingressAllowInsecure
+    activeRevisionsMode: !empty(activeRevisionsMode) ? activeRevisionsMode : null
+    scaleSettings: resolvedScaleSettings
+    ingressTargetPort: ingressTargetPort != -1 ? ingressTargetPort : null
+    ingressExternal: ingressExternal
+    ingressTransport: !empty(ingressTransport) ? ingressTransport : null
+    secrets: !empty(secrets) ? secrets : null
+    workloadProfileName: !empty(workloadProfileName) ? workloadProfileName : null
     disableIngress: disableIngress
-    registries: registries
-    secrets: secrets
-    managedIdentities: !empty(managedIdentities) ? managedIdentities : {}
-    corsPolicy: !empty(corsPolicy) ? corsPolicy : null
-    activeRevisionsMode: activeRevisionsMode
-    scaleSettings: scaleSettings
-    workloadProfileName: workloadProfileName
+    ingressAllowInsecure: ingressAllowInsecure
+    corsPolicy: empty(corsPolicy) ? null : corsPolicy
   }
 }
 
 // ============================================================================
 // Outputs
 // ============================================================================
-@description('The name of the container app.')
-output name string = containerApp.outputs.name
-
-@description('The resource ID of the container app.')
+@description('Resource ID of the container app.')
 output resourceId string = containerApp.outputs.resourceId
 
-@description('The FQDN of the container app.')
+@description('Name of the container app.')
+output name string = containerApp.outputs.name
+
+@description('Fully qualified domain name of the container app.')
 output fqdn string = containerApp.outputs.fqdn
 
-@description('System-assigned identity principal ID.')
-output principalId string = containerApp.outputs.?systemAssignedMIPrincipalId ?? ''
+@description('Principal ID of the system-assigned managed identity.')
+output systemAssignedMIPrincipalId string? = containerApp.outputs.?systemAssignedMIPrincipalId

@@ -32,6 +32,9 @@ param allowBlobPublicAccess bool = false
 @description('Allow shared key access.')
 param allowSharedKeyAccess bool = true
 
+@description('Enable hierarchical namespace (Data Lake Storage Gen2).')
+param enableHierarchicalNamespace bool = false
+
 @description('Blob containers to create.')
 param containers array = [
   {
@@ -39,6 +42,9 @@ param containers array = [
     publicAccess: 'None'
   }
 ]
+
+@description('Queue names to create.')
+param queues array = []
 
 // ============================================================================
 // Resource Deployment
@@ -57,6 +63,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' = {
     allowSharedKeyAccess: allowSharedKeyAccess
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    isHnsEnabled: enableHierarchicalNamespace
     encryption: {
       services: {
         blob: {
@@ -85,6 +92,16 @@ resource blobContainers 'Microsoft.Storage/storageAccounts/blobServices/containe
   }
 }]
 
+resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2025-08-01' = if (!empty(queues)) {
+  parent: storageAccount
+  name: 'default'
+}
+
+resource storageQueues 'Microsoft.Storage/storageAccounts/queueServices/queues@2025-08-01' = [for queue in queues: {
+  parent: queueService
+  name: queue
+}]
+
 // ============================================================================
 // Outputs
 // ============================================================================
@@ -96,6 +113,9 @@ output name string = storageAccount.name
 
 @description('Primary blob endpoint.')
 output blobEndpoint string = storageAccount.properties.primaryEndpoints.blob
+
+@description('Primary queue endpoint.')
+output queueEndpoint string = storageAccount.properties.primaryEndpoints.queue
 
 @description('All service endpoints.')
 output serviceEndpoints object = storageAccount.properties.primaryEndpoints

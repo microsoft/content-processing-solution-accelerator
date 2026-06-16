@@ -32,6 +32,9 @@ param disableIpMasking bool = false
 @description('Flow type for Application Insights.')
 param flowType string = 'Bluefield'
 
+@description('Kind of Application Insights resource.')
+param kind string = 'web'
+
 // ============================================================================
 // Resource
 // ============================================================================
@@ -40,7 +43,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: name
   location: location
   tags: tags
-  kind: 'web'
+  kind: kind
   properties: {
     Application_Type: applicationType
     Flow_Type: flowType

@@ -28,7 +28,30 @@ param appSettings object = {}
 @description('Whether to enable Always On.')
 param alwaysOn bool = true
 
+@description('Optional. Health check path for the app.')
+param healthCheckPath string = ''
+
+@description('Optional. Whether to enable WebSockets.')
+param webSocketsEnabled bool = false
+
+@description('Optional. Command line for the application.')
+param appCommandLine string = ''
+
 @description('Kind of web app.')
+@allowed([
+  'functionapp'
+  'functionapp,linux'
+  'functionapp,workflowapp'
+  'functionapp,workflowapp,linux'
+  'functionapp,linux,container'
+  'functionapp,linux,container,azurecontainerapps'
+  'app,linux'
+  'app'
+  'linux,api'
+  'api'
+  'app,linux,container'
+  'app,container,windows'
+])
 param kind string = 'app,linux'
 
 @description('Subnet resource ID for VNet integration.')
@@ -56,6 +79,10 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
       alwaysOn: alwaysOn
       ftpsState: 'Disabled'
       linuxFxVersion: linuxFxVersion
+      minTlsVersion: '1.2'
+      healthCheckPath: !empty(healthCheckPath) ? healthCheckPath : null
+      webSocketsEnabled: webSocketsEnabled
+      appCommandLine: appCommandLine
     }
     endToEndEncryptionEnabled: true
   }

@@ -1,11 +1,10 @@
 // ============================================================================
 // Module: Private DNS Zone
 // Description: AVM wrapper for Azure Private DNS Zone
-// AVM Module: avm/res/network/private-dns-zone
-// Usage: Call once per DNS zone from main.bicep
+// AVM Module: avm/res/network/private-dns-zone:0.8.1
 // ============================================================================
 
-@description('Name of the private DNS zone (e.g., privatelink.cognitiveservices.azure.com).')
+@description('Name of the private DNS zone.')
 param name string
 
 @description('Tags to apply to the resource.')
@@ -14,12 +13,9 @@ param tags object = {}
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-@description('Virtual network links to associate with the DNS zone.')
+@description('Optional. Virtual network link configurations for the private DNS zone.')
 param virtualNetworkLinks array = []
 
-// ============================================================================
-// AVM Module Deployment
-// ============================================================================
 module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.1' = {
   name: take('avm.res.network.private-dns-zone.${name}', 64)
   params: {
@@ -30,9 +26,6 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.1' = {
   }
 }
 
-// ============================================================================
-// Outputs
-// ============================================================================
 @description('Resource ID of the private DNS zone.')
 output resourceId string = privateDnsZone.outputs.resourceId
 

@@ -1,135 +1,76 @@
 // ============================================================================
 // Module: Storage Account
-// Description: AVM wrapper for Azure Storage Account with WAF alignment
+// Description: AVM wrapper for Azure Storage Account
 // AVM Module: avm/res/storage/storage-account:0.32.0
-// WAF: https://learn.microsoft.com/azure/well-architected/service-guides/storage-accounts
 // ============================================================================
 
-@description('Solution name suffix used to derive the resource name.')
-param solutionName string
-
 @description('Name of the storage account.')
-param name string = take('st${toLower(replace(solutionName, '-', ''))}', 24)
+param name string
 
 @description('Azure region for the resource.')
 param location string
 
-@description('Tags to apply to the resource.')
-param tags object = {}
-
-@description('Storage account SKU.')
-param skuName string = 'Standard_LRS'
-
-@description('Storage account kind.')
-param kind string = 'StorageV2'
-
-@description('Access tier.')
-@allowed(['Hot', 'Cool'])
-param accessTier string = 'Hot'
-
-@description('Allow blob public access.')
-param allowBlobPublicAccess bool = false
-
-@description('Allow shared key access.')
-param allowSharedKeyAccess bool = true
-
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-@description('Blob containers to create.')
-param containers array = [
-  {
-    name: 'default'
-    publicAccess: 'None'
-  }
-]
+@description('Managed identity configuration.')
+param managedIdentities object
 
-// --- WAF: Monitoring ---
-@description('Diagnostic settings for monitoring.')
-param diagnosticSettings array = []
+@description('Minimum TLS version.')
+param minimumTlsVersion string = 'TLS1_2'
 
-// --- WAF: Private Networking ---
+@description('Role assignments for the storage account.')
+param roleAssignments array
+
+@description('Network ACL configuration.')
+param networkAcls object
+
+@description('Whether infrastructure encryption is required.')
+param requireInfrastructureEncryption bool = false
+
+@description('Whether HTTPS traffic only is enforced.')
+param supportsHttpsTrafficOnly bool = true
+
+@description('Access tier for the storage account.')
+param accessTier string = 'Hot'
+
+@description('Tags to apply to the resource.')
+param tags object = {}
+
+@description('Whether blob public access is allowed.')
+param allowBlobPublicAccess bool = false
+
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Network ACLs for the storage account.')
-param networkAcls object = {
-  defaultAction: 'Allow'
-  bypass: 'AzureServices'
-}
+@description('Optional. Private endpoint configuration.')
+param privateEndpoints array = []
 
-@description('Whether to enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for the private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs for Storage (blob).')
-param privateDnsZoneResourceIds array = []
-
-var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'dns-zone-${i}'
-  privateDnsZoneResourceId: zoneId
-}]
-
-// --- Role Assignments ---
-@description('Optional. Array of role assignments to create on the Storage Account.')
-param roleAssignments array = []
-
-// ============================================================================
-// AVM Module Deployment
-// ============================================================================
-module storage 'br/public:avm/res/storage/storage-account:0.32.0' = {
+module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
   name: take('avm.res.storage.storage-account.${name}', 64)
   params: {
     name: name
     location: location
-    tags: tags
     enableTelemetry: enableTelemetry
-    skuName: skuName
-    kind: kind
-    accessTier: accessTier
-    allowBlobPublicAccess: allowBlobPublicAccess
-    allowSharedKeyAccess: allowSharedKeyAccess
-    minimumTlsVersion: 'TLS1_2'
-    supportsHttpsTrafficOnly: true
-    requireInfrastructureEncryption: true
-    publicNetworkAccess: publicNetworkAccess
+    managedIdentities: managedIdentities
+    minimumTlsVersion: minimumTlsVersion
+    roleAssignments: roleAssignments
     networkAcls: networkAcls
-    blobServices: {
-      containers: [for container in containers: {
-        name: container.name
-        publicAccess: container.publicAccess
-      }]
-      diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
-    }
-    diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${name}'
-        customNetworkInterfaceName: 'nic-${name}'
-        subnetResourceId: privateEndpointSubnetId
-        service: 'blob'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
-    roleAssignments: !empty(roleAssignments) ? roleAssignments : []
+    requireInfrastructureEncryption: requireInfrastructureEncryption
+    supportsHttpsTrafficOnly: supportsHttpsTrafficOnly
+    accessTier: accessTier
+    tags: tags
+    allowBlobPublicAccess: allowBlobPublicAccess
+    publicNetworkAccess: publicNetworkAccess
+    privateEndpoints: privateEndpoints
   }
 }
 
-// ============================================================================
-// Outputs
-// ============================================================================
-@description('Resource ID of the Storage Account.')
-output resourceId string = storage.outputs.resourceId
+@description('Resource ID of the storage account.')
+output resourceId string = storageAccount.outputs.resourceId
 
-@description('Name of the Storage Account.')
-output name string = storage.outputs.name
+@description('Name of the storage account.')
+output name string = storageAccount.outputs.name
 
-@description('Primary blob endpoint.')
-output blobEndpoint string = storage.outputs.primaryBlobEndpoint
-
-@description('Service endpoints.')
-output serviceEndpoints object = storage.outputs.serviceEndpoints
+@description('Service endpoints exposed by the storage account.')
+output serviceEndpoints object = storageAccount.outputs.serviceEndpoints

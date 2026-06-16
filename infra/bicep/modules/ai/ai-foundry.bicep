@@ -22,7 +22,7 @@ param publicNetworkAccess string = 'Enabled'
 @description('Optional. Tags to apply to the resource.')
 param tags object = {}
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = {
   name: name
   location: location
   tags: tags
@@ -61,6 +61,27 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
   }
 ]
 
+// ============================================================================
+// AI Foundry Project (child resource of the AI Services account)
+// ============================================================================
+
+@description('Optional. Name of the AI Foundry project to create. If empty, no project is created.')
+param projectName string = ''
+
+var shouldCreateProject = !empty(projectName)
+
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = if (shouldCreateProject) {
+  parent: aiServices
+  name: projectName
+  location: location
+  kind: 'AIServices'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  tags: tags
+  properties: {}
+}
+
 @description('The name of the deployed AI Services account.')
 output name string = aiServices.name
 
@@ -72,3 +93,9 @@ output endpoint string = aiServices.properties.endpoint
 
 @description('The principal ID of the system-assigned managed identity.')
 output systemAssignedPrincipalId string = aiServices.identity.principalId
+
+@description('The AI Foundry project endpoint (empty if no project created).')
+output projectEndpoint string = shouldCreateProject ? aiProject!.properties.endpoints['AI Foundry API'] : ''
+
+@description('The name of the AI Foundry project (empty if no project created).')
+output projectName string = shouldCreateProject ? aiProject!.name : ''

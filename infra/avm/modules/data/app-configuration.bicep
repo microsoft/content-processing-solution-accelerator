@@ -1,98 +1,76 @@
 // ============================================================================
-// Module: Azure App Configuration (AVM)
+// Module: App Configuration
+// Description: AVM wrapper for Azure App Configuration
+// AVM Module: avm/res/app-configuration/configuration-store:0.9.2
 // ============================================================================
-
-@description('Solution name used for naming convention.')
-param solutionName string
 
 @description('Name of the App Configuration store.')
-param name string = 'appcs-${solutionName}'
+param name string
 
-@description('Azure region for deployment.')
+@description('Azure region for the resource.')
 param location string
 
-@description('Resource tags.')
-param tags object = {}
-
-@description('Enable Azure telemetry collection.')
-param enableTelemetry bool = true
-
-@description('SKU for the configuration store.')
-@allowed(['Free', 'Standard'])
-param sku string = 'Standard'
-
-@description('Disable local (key-based) authentication.')
-param disableLocalAuth bool = true
-
-@description('Enable purge protection.')
+@description('Whether purge protection is enabled.')
 param enablePurgeProtection bool = false
 
-@description('Soft delete retention in days.')
-param softDeleteRetentionInDays int = 7
+@description('Tags to apply to the resource.')
+param tags object = {}
+
+@description('Optional. Enable/Disable usage telemetry for module.')
+param enableTelemetry bool = true
 
 @description('Managed identity configuration.')
-param managedIdentities object = {}
+param managedIdentities object?
 
-@description('Role assignments.')
+@description('SKU for the App Configuration store.')
+param sku string = 'Standard'
+
+@description('Optional. Diagnostic settings to apply to the App Configuration store.')
+param diagnosticSettings array?
+
+@description('Whether local authentication is disabled.')
+param disableLocalAuth bool = false
+
+@description('Optional. Replica locations for the App Configuration store.')
+param replicaLocations array = []
+
+@description('Role assignments for the App Configuration store.')
 param roleAssignments array = []
 
-@description('Key-value pairs to store in the configuration.')
+@description('Key-values to create in the App Configuration store.')
 param keyValues array = []
 
-@description('Enable private networking.')
-param enablePrivateNetworking bool = false
+@description('Public network access setting.')
+param publicNetworkAccess string = 'Enabled'
 
-@description('Subnet resource ID for private endpoint.')
-param privateEndpointSubnetId string = ''
+@description('Optional. Private endpoint configuration.')
+param privateEndpoints array = []
 
-@description('Private DNS zone resource IDs.')
-param privateDnsZoneResourceIds array = []
-
-// ============================================================================
-// App Configuration (AVM)
-// ============================================================================
-
-var dnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'config${i}'
-  privateDnsZoneResourceId: zoneId
-}]
-
-var privateEndpointConfig = enablePrivateNetworking && !empty(privateEndpointSubnetId) ? [
-  {
-    subnetResourceId: privateEndpointSubnetId
-    privateDnsZoneGroup: !empty(privateDnsZoneResourceIds) ? {
-      privateDnsZoneGroupConfigs: dnsZoneConfigs
-    } : null
-  }
-] : []
-
-module configStore 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = {
-  name: take('avm.res.appconfiguration.${name}', 64)
+module appConfiguration 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = {
+  name: take('avm.res.app-configuration.configuration-store.${name}', 64)
   params: {
     name: name
     location: location
+    enablePurgeProtection: enablePurgeProtection
     tags: tags
     enableTelemetry: enableTelemetry
+    managedIdentities: managedIdentities
     sku: sku
+    diagnosticSettings: diagnosticSettings
     disableLocalAuth: disableLocalAuth
-    enablePurgeProtection: enablePurgeProtection
-    softDeleteRetentionInDays: softDeleteRetentionInDays
-    managedIdentities: !empty(managedIdentities) ? managedIdentities : {}
-    roleAssignments: !empty(roleAssignments) ? roleAssignments : []
-    keyValues: !empty(keyValues) ? keyValues : []
-    privateEndpoints: privateEndpointConfig
+    replicaLocations: replicaLocations
+    roleAssignments: roleAssignments
+    keyValues: keyValues
+    publicNetworkAccess: publicNetworkAccess
+    privateEndpoints: privateEndpoints
   }
 }
 
-// ============================================================================
-// Outputs
-// ============================================================================
+@description('Resource ID of the App Configuration store.')
+output resourceId string = appConfiguration.outputs.resourceId
 
-@description('The name of the configuration store.')
-output name string = configStore.outputs.name
+@description('Name of the App Configuration store.')
+output name string = appConfiguration.outputs.name
 
-@description('The endpoint of the configuration store.')
-output endpoint string = configStore.outputs.endpoint
-
-@description('The resource ID of the configuration store.')
-output resourceId string = configStore.outputs.resourceId
+@description('Endpoint of the App Configuration store.')
+output endpoint string = appConfiguration.outputs.endpoint

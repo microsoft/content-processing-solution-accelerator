@@ -1,15 +1,11 @@
 // ============================================================================
-// Module: Virtual Machine (Jumpbox)
-// Description: AVM wrapper for Azure Virtual Machine with Entra ID authentication
-// AVM Module: avm/res/compute/virtual-machine
-// Ref: https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication
+// Module: Virtual Machine
+// Description: AVM wrapper for Azure Virtual Machine
+// AVM Module: avm/res/compute/virtual-machine:0.22.0
 // ============================================================================
 
-@description('Solution name suffix used to derive the resource name.')
-param solutionName string
-
 @description('Name of the virtual machine.')
-param name string = 'vm-${solutionName}'
+param name string
 
 @description('Azure region for the resource.')
 param location string
@@ -17,70 +13,67 @@ param location string
 @description('Tags to apply to the resource.')
 param tags object = {}
 
-@description('VM size.')
-param vmSize string = 'Standard_D2s_v5'
-
-@secure()
-@description('Local admin username. Required by Azure at provisioning time but not used for login when Entra ID is enabled.')
-param adminUsername string
-
-@secure()
-@description('Local admin password. Required by Azure at provisioning time but not used for login when Entra ID is enabled.')
-param adminPassword string
-
-@description('Resource ID of the subnet for the VM NIC.')
-param subnetResourceId string
-
-@description('OS type for the VM.')
-param osType string = 'Windows'
-
-@description('Availability zone for the VM.')
-param availabilityZone int = 1
-
-@description('Image reference for the VM.')
-param imageReference object = {
-  publisher: 'microsoft-dsvm'
-  offer: 'dsvm-win-2022'
-  sku: 'winserver-2022'
-  version: 'latest'
-}
-
-@description('OS disk size in GB.')
-param osDiskSizeGB int = 128
-
-@description('Resource ID of the maintenance configuration.')
-param maintenanceConfigurationResourceId string?
-
-@description('Resource ID of the proximity placement group.')
-param proximityPlacementGroupResourceId string?
-
-@description('Monitoring agent extension configuration (data collection rule associations).')
-param extensionMonitoringAgentConfig object?
-
-@description('Diagnostic settings for the resource.')
-param diagnosticSettings array?
-
-@description('Enable Azure telemetry collection.')
+@description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-@description('Deploying user principal ID. Used for default role assignment to grant the deploying user login access to the VM. This is required because with Entra ID authentication enabled, local accounts cannot be used to access the VM, including the local admin account created at provisioning.')
-param deployingUserPrincipalId string
+@description('Optional. Computer name of the virtual machine.')
+param computerName string = ''
 
-@description('Deploying user principal type. Used for default role assignment to grant the deploying user login access to the VM. This is required because with Entra ID authentication enabled, local accounts cannot be used to access the VM, including the local admin account created at provisioning.')
-param deployingUserPrincipalType string = 'User'
+@description('Operating system type.')
+param osType string
 
-@description('Role assignments to apply to the virtual machine.')
-param roleAssignments array = [
-  {
-    roleDefinitionIdOrName: '1c0163c0-47e6-4577-8991-ea5c82e286e4' // Virtual Machine Administrator Login
-    principalId: deployingUserPrincipalId
-    principalType: deployingUserPrincipalType
-  }
-]
+@description('Virtual machine size.')
+param vmSize string
 
-// ============================================================================
-// AVM Module Deployment
-// ============================================================================
+@description('Administrator username for the virtual machine.')
+param adminUsername string
+
+@description('Administrator password for the virtual machine.')
+@secure()
+param adminPassword string
+
+@description('Optional. Managed identity configuration.')
+param managedIdentities object?
+
+@description('Optional. Patch mode for the virtual machine.')
+param patchMode string = ''
+
+@description('Optional. Whether platform safety checks should be bypassed for user schedules.')
+param bypassPlatformSafetyChecksOnUserSchedule bool = false
+
+@description('Optional. Maintenance configuration resource ID.')
+param maintenanceConfigurationResourceId string = ''
+
+@description('Optional. Whether automatic updates are enabled.')
+param enableAutomaticUpdates bool = false
+
+@description('Whether to enable encryption at host.')
+param encryptionAtHost bool = false
+
+@description('Optional. Availability zone for the virtual machine.')
+param availabilityZone int = -1
+
+@description('Image reference used to create the virtual machine.')
+param imageReference object
+
+@description('OS disk configuration for the virtual machine.')
+param osDisk object
+
+@description('Network interface configurations for the virtual machine.')
+param nicConfigurations array
+
+@description('Optional. Azure AD join extension configuration.')
+param extensionAadJoinConfig object?
+
+@description('Optional. Anti-malware extension configuration.')
+param extensionAntiMalwareConfig object?
+
+@description('Optional. Monitoring agent extension configuration.')
+param extensionMonitoringAgentConfig object?
+
+@description('Optional. Network watcher extension configuration.')
+param extensionNetworkWatcherAgentConfig object?
+
 module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
   name: take('avm.res.compute.virtual-machine.${name}', 64)
   params: {
@@ -88,68 +81,28 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
-    computerName: take(name, 15)
+    computerName: !empty(computerName) ? computerName : null
     osType: osType
     vmSize: vmSize
     adminUsername: adminUsername
     adminPassword: adminPassword
-    managedIdentities: { systemAssigned: true }
-    patchMode: 'AutomaticByPlatform'
-    bypassPlatformSafetyChecksOnUserSchedule: true
-    maintenanceConfigurationResourceId: maintenanceConfigurationResourceId
-    enableAutomaticUpdates: true
-    encryptionAtHost: true
+    managedIdentities: managedIdentities
+    patchMode: !empty(patchMode) ? patchMode : null
+    bypassPlatformSafetyChecksOnUserSchedule: bypassPlatformSafetyChecksOnUserSchedule
+    maintenanceConfigurationResourceId: !empty(maintenanceConfigurationResourceId) ? maintenanceConfigurationResourceId : null
+    enableAutomaticUpdates: enableAutomaticUpdates
+    encryptionAtHost: encryptionAtHost
     availabilityZone: availabilityZone
-    proximityPlacementGroupResourceId: proximityPlacementGroupResourceId
     imageReference: imageReference
-    osDisk: {
-      name: 'osdisk-${name}'
-      caching: 'ReadWrite'
-      createOption: 'FromImage'
-      deleteOption: 'Delete'
-      diskSizeGB: osDiskSizeGB
-      managedDisk: { storageAccountType: 'Premium_LRS' }
-    }
-    nicConfigurations: [
-      {
-        name: 'nic-${name}'
-        tags: tags
-        deleteOption: 'Delete'
-        diagnosticSettings: diagnosticSettings
-        ipConfigurations: [
-          {
-            name: '${name}-nic01-ipconfig01'
-            subnetResourceId: subnetResourceId
-            diagnosticSettings: diagnosticSettings
-          }
-        ]
-      }
-    ]
-    roleAssignments: roleAssignments
-    extensionAadJoinConfig: {
-      enabled: true
-      tags: tags
-      typeHandlerVersion: '2.0'
-      settings: { mdmId: '' }
-    }
-    extensionAntiMalwareConfig: {
-      enabled: true
-      settings: {
-        AntimalwareEnabled: 'true'
-        Exclusions: {}
-        RealtimeProtectionEnabled: 'true'
-        ScheduledScanSettings: { day: '7', isEnabled: 'true', scanType: 'Quick', time: '120' }
-      }
-      tags: tags
-    }
+    osDisk: osDisk
+    nicConfigurations: nicConfigurations
+    extensionAadJoinConfig: extensionAadJoinConfig
+    extensionAntiMalwareConfig: extensionAntiMalwareConfig
     extensionMonitoringAgentConfig: extensionMonitoringAgentConfig
-    extensionNetworkWatcherAgentConfig: { enabled: true, tags: tags }
+    extensionNetworkWatcherAgentConfig: extensionNetworkWatcherAgentConfig
   }
 }
 
-// ============================================================================
-// Outputs
-// ============================================================================
 @description('Resource ID of the virtual machine.')
 output resourceId string = virtualMachine.outputs.resourceId
 

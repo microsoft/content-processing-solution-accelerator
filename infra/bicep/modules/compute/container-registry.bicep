@@ -27,9 +27,6 @@ param adminUserEnabled bool = false
 @allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Enabled'
 
-@description('Export policy status.')
-param exportPolicyStatus string = 'enabled'
-
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -45,19 +42,6 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' =
     publicNetworkAccess: publicNetworkAccess
     dataEndpointEnabled: false
     networkRuleBypassOptions: 'AzureServices'
-    policies: {
-      exportPolicy: {
-        status: exportPolicyStatus
-      }
-      retentionPolicy: {
-        status: 'enabled'
-        days: 7
-      }
-      trustPolicy: {
-        status: 'disabled'
-        type: 'Notary'
-      }
-    }
     zoneRedundancy: 'Disabled'
   }
 }

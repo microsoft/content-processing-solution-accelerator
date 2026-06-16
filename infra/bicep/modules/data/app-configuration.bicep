@@ -21,7 +21,7 @@ param tags object = {}
 param sku string = 'Standard'
 
 @description('Disable local (key-based) authentication.')
-param disableLocalAuth bool = true
+param disableLocalAuth bool = false
 
 @description('Key-value pairs to store in the configuration.')
 param keyValues array = []

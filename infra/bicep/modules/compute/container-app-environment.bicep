@@ -25,6 +25,14 @@ param infrastructureSubnetId string = ''
 @description('Enable zone redundancy.')
 param zoneRedundant bool = false
 
+@description('Workload profiles configuration (e.g., Consumption or dedicated D4 profiles).')
+param workloadProfiles array = [
+  {
+    name: 'Consumption'
+    workloadProfileType: 'Consumption'
+  }
+]
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -43,6 +51,7 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' 
     vnetConfiguration: empty(infrastructureSubnetId) ? null : {
       infrastructureSubnetId: infrastructureSubnetId
     }
+    workloadProfiles: workloadProfiles
     zoneRedundant: zoneRedundant
   }
 }
