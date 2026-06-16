@@ -76,12 +76,54 @@ if (-not $ApiReady) {
     Write-Host "  API did not become ready after $MaxRetries attempts. Skipping schema registration."
     Write-Host "  Run manually after the API is ready."
 } else {
-    # ---------- Schema registration (no Python dependency) ----------
+    # ---------- Schema registration ----------
     $SchemaInfoFile = Join-Path $FullPath "schema_info.json"
     $Manifest = Get-Content $SchemaInfoFile -Raw | ConvertFrom-Json
 
     $SchemaVaultUrl   = "$ApiBaseUrl/schemavault/"
     $SchemaSetVaultUrl = "$ApiBaseUrl/schemasetvault/"
+
+    $PythonBin = $null
+    if (Get-Command python3 -ErrorAction SilentlyContinue) {
+        $PythonBin = "python3"
+    } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+        $PythonBin = "python"
+    }
+
+    function Convert-PythonSchemaToJson {
+        param(
+            [Parameter(Mandatory = $true)] [string]$PythonFile,
+            [Parameter(Mandatory = $true)] [string]$ClassName,
+            [Parameter(Mandatory = $true)] [string]$OutputFile,
+            [Parameter(Mandatory = $true)] [string]$PythonCmd
+        )
+
+        $script = @'
+import importlib.util
+import json
+import sys
+
+py_path, class_name, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+spec = importlib.util.spec_from_file_location("schema_module", py_path)
+if spec is None or spec.loader is None:
+    raise RuntimeError(f"Unable to load schema module from {py_path}")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+cls = getattr(module, class_name, None)
+if cls is None:
+    raise RuntimeError(f"Class '{class_name}' not found in {py_path}")
+if not hasattr(cls, "model_json_schema"):
+    raise RuntimeError(f"Class '{class_name}' does not expose model_json_schema()")
+schema = cls.model_json_schema()
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(schema, f, indent=2)
+'@
+
+        $script | & $PythonCmd - $PythonFile $ClassName $OutputFile
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed generating JSON schema from '$PythonFile'."
+        }
+    }
 
     # --- Step 1: Register schemas ---
     Write-Host ""
@@ -104,6 +146,7 @@ if (-not $ApiReady) {
         $ClassName   = $entry.ClassName
         $Description = $entry.Description
         $SchemaFile  = Join-Path $FullPath $entry.File
+        $SchemaFileOriginal = $SchemaFile
 
         Write-Host ""
         Write-Host "Processing schema: $ClassName"
@@ -122,12 +165,34 @@ if (-not $ApiReady) {
             continue
         }
 
+        $UploadFile = $SchemaFile
+        $UploadFileName = [System.IO.Path]::GetFileName($SchemaFile)
+        $UploadContentType = "application/json"
+        $IsGeneratedJson = $false
+
+        if ([System.IO.Path]::GetExtension($SchemaFile).ToLowerInvariant() -eq ".py") {
+            if (-not $PythonBin) {
+                Write-Host "  Error: Python is required to convert '$UploadFileName' to JSON schema. Skipping..."
+                continue
+            }
+
+            $GeneratedJsonPath = Join-Path $FullPath ("{0}.json" -f $ClassName)
+            try {
+                Convert-PythonSchemaToJson -PythonFile $SchemaFile -ClassName $ClassName -OutputFile $GeneratedJsonPath -PythonCmd $PythonBin
+                $UploadFile = $GeneratedJsonPath
+                $UploadFileName = [System.IO.Path]::GetFileNameWithoutExtension($SchemaFile) + ".json"
+                $IsGeneratedJson = $true
+            } catch {
+                Write-Host "  Error: $_"
+                continue
+            }
+        }
+
         Write-Host "  Registering new schema '$ClassName'..."
 
         # Build multipart form data
         $dataPayload = @{ ClassName = $ClassName; Description = $Description } | ConvertTo-Json -Compress
-        $fileBytes   = [System.IO.File]::ReadAllBytes($SchemaFile)
-        $fileName    = [System.IO.Path]::GetFileName($SchemaFile)
+        $fileBytes   = [System.IO.File]::ReadAllBytes($UploadFile)
 
         $boundary = [System.Guid]::NewGuid().ToString()
         $LF = "`r`n"
@@ -136,8 +201,8 @@ if (-not $ApiReady) {
             "Content-Disposition: form-data; name=`"data`"$LF",
             $dataPayload,
             "--$boundary",
-            "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-            "Content-Type: text/x-python$LF",
+            "Content-Disposition: form-data; name=`"file`"; filename=`"$UploadFileName`"",
+            "Content-Type: $UploadContentType$LF",
             [System.Text.Encoding]::UTF8.GetString($fileBytes),
             "--$boundary--$LF"
         ) -join $LF
@@ -150,7 +215,48 @@ if (-not $ApiReady) {
             Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
             $Registered[$ClassName] = $schemaId
         } catch {
-            Write-Host "  Failed to upload '$fileName'. Error: $_"
+            $statusCode = $null
+            $responseBody = ""
+            if ($_.Exception.Response) {
+                $statusCode = [int]$_.Exception.Response.StatusCode
+                try {
+                    $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                    $responseBody = $reader.ReadToEnd()
+                    $reader.Close()
+                } catch {
+                    $responseBody = ""
+                }
+            }
+
+            if ($IsGeneratedJson -and $statusCode -eq 415 -and $responseBody -match "Only \.py schema files are supported") {
+                Write-Host "  API expects legacy .py schemas. Retrying with '$([System.IO.Path]::GetFileName($SchemaFileOriginal))'..."
+                try {
+                    $legacyBytes = [System.IO.File]::ReadAllBytes($SchemaFileOriginal)
+                    $legacyName = [System.IO.Path]::GetFileName($SchemaFileOriginal)
+                    $legacyBoundary = [System.Guid]::NewGuid().ToString()
+                    $legacyBody = (
+                        "--$legacyBoundary",
+                        "Content-Disposition: form-data; name=`"data`"$LF",
+                        $dataPayload,
+                        "--$legacyBoundary",
+                        "Content-Disposition: form-data; name=`"file`"; filename=`"$legacyName`"",
+                        "Content-Type: text/x-python$LF",
+                        [System.Text.Encoding]::UTF8.GetString($legacyBytes),
+                        "--$legacyBoundary--$LF"
+                    ) -join $LF
+
+                    $legacyResp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
+                        -ContentType "multipart/form-data; boundary=$legacyBoundary" `
+                        -Body $legacyBody -TimeoutSec 60 -ErrorAction Stop
+                    $schemaId = $legacyResp.Id
+                    Write-Host "  Successfully registered (legacy): $Description's Schema Id - $schemaId"
+                    $Registered[$ClassName] = $schemaId
+                } catch {
+                    Write-Host "  Failed to upload '$legacyName'. Error: $_"
+                }
+            } else {
+                Write-Host "  Failed to upload '$UploadFileName'. Error: $_"
+            }
         }
     }
 

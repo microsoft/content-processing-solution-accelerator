@@ -80,10 +80,44 @@ if [ "$STATUS" != "200" ]; then
   echo "  API did not become ready after $MAX_RETRIES attempts. Skipping schema registration."
   echo "  Run manually after the API is ready."
 else
-  # ---------- Schema registration (no Python dependency) ----------
+  # ---------- Schema registration ----------
   SCHEMA_INFO_FILE="$DATA_SCRIPT_PATH/schema_info.json"
   SCHEMAVAULT_URL="$API_BASE_URL/schemavault/"
   SCHEMASETVAULT_URL="$API_BASE_URL/schemasetvault/"
+
+  PYTHON_BIN=""
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  fi
+
+  generate_json_schema_from_python() {
+    local py_file="$1"
+    local class_name="$2"
+    local output_file="$3"
+
+    "$PYTHON_BIN" - "$py_file" "$class_name" "$output_file" <<'PY'
+import importlib.util
+import json
+import sys
+
+py_path, class_name, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+spec = importlib.util.spec_from_file_location("schema_module", py_path)
+if spec is None or spec.loader is None:
+    raise RuntimeError(f"Unable to load schema module from {py_path}")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+cls = getattr(module, class_name, None)
+if cls is None:
+    raise RuntimeError(f"Class '{class_name}' not found in {py_path}")
+if not hasattr(cls, "model_json_schema"):
+    raise RuntimeError(f"Class '{class_name}' does not expose model_json_schema()")
+schema = cls.model_json_schema()
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(schema, f, indent=2)
+PY
+  }
 
   # --- Step 1: Register schemas ---
   echo ""
@@ -109,6 +143,7 @@ else
     DESCRIPTION=$(echo "$ENTRY" | grep -o '"Description"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -n "$((idx + 1))p" | sed 's/.*"Description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 
     SCHEMA_FILE="$DATA_SCRIPT_PATH/$FILE_NAME"
+    SCHEMA_FILE_ORIGINAL="$SCHEMA_FILE"
 
     echo ""
     echo "Processing schema: $CLASS_NAME"
@@ -133,17 +168,50 @@ else
       continue
     fi
 
+    UPLOAD_FILE="$SCHEMA_FILE"
+    UPLOAD_FILENAME="$FILE_NAME"
+    UPLOAD_CONTENT_TYPE="application/json"
+    IS_GENERATED_JSON=false
+
+    if [[ "${SCHEMA_FILE,,}" == *.py ]]; then
+      if [ -z "$PYTHON_BIN" ]; then
+        echo "  Error: Python is required to convert '$FILE_NAME' to JSON schema. Skipping..."
+        continue
+      fi
+
+      GENERATED_JSON_FILE="$DATA_SCRIPT_PATH/${CLASS_NAME}.json"
+      if generate_json_schema_from_python "$SCHEMA_FILE" "$CLASS_NAME" "$GENERATED_JSON_FILE"; then
+        UPLOAD_FILE="$GENERATED_JSON_FILE"
+        UPLOAD_FILENAME="${FILE_NAME%.py}.json"
+        IS_GENERATED_JSON=true
+      else
+        echo "  Error: Failed to generate JSON schema from '$FILE_NAME'. Skipping..."
+        continue
+      fi
+    fi
+
     echo "  Registering new schema '$CLASS_NAME'..."
     DATA_PAYLOAD="{\"ClassName\": \"$CLASS_NAME\", \"Description\": \"$DESCRIPTION\"}"
 
     RESPONSE=$(curl -s -w "\n%{http_code}" \
       -X POST "$SCHEMAVAULT_URL" \
       -F "data=$DATA_PAYLOAD" \
-      -F "file=@$SCHEMA_FILE;type=text/x-python" \
+      -F "file=@$UPLOAD_FILE;filename=$UPLOAD_FILENAME;type=$UPLOAD_CONTENT_TYPE" \
       --connect-timeout 60)
 
     HTTP_CODE=$(echo "$RESPONSE" | tail -1)
     BODY=$(echo "$RESPONSE" | sed '$d')
+
+    if [ "$HTTP_CODE" = "415" ] && [ "$IS_GENERATED_JSON" = true ] && echo "$BODY" | grep -q "Only \.py schema files are supported"; then
+      echo "  API expects legacy .py schemas. Retrying with '$FILE_NAME'..."
+      RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X POST "$SCHEMAVAULT_URL" \
+        -F "data=$DATA_PAYLOAD" \
+        -F "file=@$SCHEMA_FILE_ORIGINAL;filename=$FILE_NAME;type=text/x-python" \
+        --connect-timeout 60)
+      HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+      BODY=$(echo "$RESPONSE" | sed '$d')
+    fi
 
     if [ "$HTTP_CODE" = "200" ]; then
       SCHEMA_ID=$(echo "$BODY" | sed 's/.*"Id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
