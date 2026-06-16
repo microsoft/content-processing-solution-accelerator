@@ -31,7 +31,7 @@ dependencies = [
     "tenacity==9.1.2",
     "authlib==1.6.12",
     "protobuf==6.33.6",
-    "cryptography==46.0.7",
+    "cryptography==48.0.1",
     "pyjwt==2.12.1",
     "pyasn1==0.6.3",
 ]
