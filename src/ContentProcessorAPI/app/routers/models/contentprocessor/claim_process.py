@@ -54,11 +54,11 @@ class Content_Process(EntityBase):
         description="MIME type of the processed content file", default=None
     )
     entity_score: float = Field(
-        description="Score indicating the quality of entity extraction from the content",
+        description="Score indicating the quality of entity extraction from the content. For Completed runs this is either the probabilistic confidence (when logprobs are available) or a structural completeness fallback (fraction of expected fields actually filled). Failed runs and genuinely empty extractions remain at ``0.0``.",
         default=0.0,
     )
     schema_score: float = Field(
-        description="Score indicating the quality of schema matching for the content",
+        description="Score indicating the quality of schema matching for the content. For Completed runs this is either the probabilistic above-threshold ratio or a structural completeness fallback. Failed runs remain at ``0.0``.",
         default=0.0,
     )
     status: Optional[str] = Field(

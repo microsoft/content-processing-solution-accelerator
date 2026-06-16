@@ -42,6 +42,7 @@ class TestContentProcess:
         assert cp.process_id == "p1"
         assert cp.file_name == "doc.pdf"
         assert cp.mime_type is None
+        # Defaults stay at ``0.0`` so failed/pre-save records render as 0%.
         assert cp.entity_score == 0.0
         assert cp.schema_score == 0.0
         assert cp.status is None

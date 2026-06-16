@@ -218,6 +218,8 @@ class TestContentProcessRecord:
         assert record.process_id == ""
         assert record.processed_file_name is None
         assert record.processed_file_mime_type is None
+        # Defaults stay at ``0.0`` so failed/pre-save records render as 0%
+        # in the UI.
         assert record.entity_score == 0.0
         assert record.schema_score == 0.0
 
