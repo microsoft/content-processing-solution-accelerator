@@ -830,6 +830,11 @@ module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoi
     }
     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
   }
+  dependsOn: [
+    avmAiServices
+    virtualNetwork
+    avmPrivateDnsZones
+  ]
 }
 
 module avmAiServices_cu 'br/public:avm/res/cognitive-services/account:0.14.1' = {
