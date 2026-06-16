@@ -38,7 +38,7 @@ pydantic-core==2.46.3
 pydantic-extra-types==2.11.1
 pydantic-settings==2.13.1
 pygments==2.20.0
-pyjwt==2.12.1
+pyjwt==2.13.0
 pymongo==4.16.0
 python-dotenv==1.2.2
 python-multipart==0.0.27
