@@ -1,48 +1,71 @@
 #!/bin/bash
 
-# List of Azure regions to check for quota (update as needed)
-IFS=', ' read -ra REGIONS <<< "$AZURE_REGIONS"
+# Enhanced Quota Check Script - Finds available region for GPT-5.1 deployment
+# Automatically falls back to next available region if first choice has insufficient quota
 
+# Configuration
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
-GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY}"
+GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY:-300}"  # Default to 300 TPM if not specified
 
-# Verify Azure CLI is already authenticated (via OIDC in the workflow)
-echo "Verifying Azure CLI authentication..."
-if ! az account show > /dev/null 2>&1; then
-   echo "❌ Error: Azure CLI is not authenticated. Please log in using 'az login'"
-   exit 1
+# List of valid Azure regions for GPT-5.1 GlobalStandard (must match Bicep @allowed values)
+ALLOWED_REGIONS=("australiaeast" "centralus" "eastasia" "eastus2" "japaneast" "northeurope" "southeastasia" "swedencentral" "uksouth")
+
+# Parse user-provided regions or use defaults
+if [[ -n "$AZURE_REGIONS" ]]; then
+    IFS=',' read -ra REGIONS <<< "$AZURE_REGIONS"
+else
+    REGIONS=("${ALLOWED_REGIONS[@]}")
 fi
 
-echo "🔄 Validating required environment variables..."
-if [[ -z "$SUBSCRIPTION_ID" || -z "$GPT_MIN_CAPACITY" || -z "$REGIONS" ]]; then
-    echo "❌ ERROR: Missing required environment variables."
+# Verify Azure CLI is authenticated
+echo "🔐 Verifying Azure CLI authentication..."
+if ! az account show > /dev/null 2>&1; then
+    echo "❌ Error: Azure CLI is not authenticated. Please log in using 'az login'"
     exit 1
 fi
 
-echo "🔄 Setting Azure subscription..."
+# Validate required environment variables
+echo "🔄 Validating required environment variables..."
+if [[ -z "$SUBSCRIPTION_ID" ]]; then
+    echo "❌ ERROR: AZURE_SUBSCRIPTION_ID environment variable is not set."
+    exit 1
+fi
+
+# Set the subscription
+echo "🔄 Setting Azure subscription to: $SUBSCRIPTION_ID"
 if ! az account set --subscription "$SUBSCRIPTION_ID"; then
     echo "❌ ERROR: Invalid subscription ID or insufficient permissions."
     exit 1
 fi
 echo "✅ Azure subscription set successfully."
 
-# Define models and their minimum required capacities
+# Model configuration
 declare -A MIN_CAPACITY=(
     ["OpenAI.GlobalStandard.gpt-5.1"]=$GPT_MIN_CAPACITY
 )
 
-VALID_REGION=""
-for REGION in "${REGIONS[@]}"; do
-    echo "----------------------------------------"
-    echo "🔍 Checking region: $REGION"
+echo "=========================================="
+echo "🔍 Quota Check Summary"
+echo "=========================================="
+echo "Subscription: $SUBSCRIPTION_ID"
+echo "Required Model: OpenAI.GlobalStandard.gpt-5.1"
+echo "Required Capacity: $GPT_MIN_CAPACITY TPM"
+echo "Checking Regions: ${REGIONS[@]}"
+echo "=========================================="
 
-    QUOTA_INFO=$(az cognitiveservices usage list --location "$REGION" --output json)
+# Function to check quota for a region
+check_region_quota() {
+    local region=$1
+    echo ""
+    echo "🔍 Checking region: $region"
+
+    QUOTA_INFO=$(az cognitiveservices usage list --location "$region" --output json 2>/dev/null)
     if [ -z "$QUOTA_INFO" ]; then
-        echo "⚠️ WARNING: Failed to retrieve quota for region $REGION. Skipping."
-        continue
+        echo "⚠️  WARNING: Failed to retrieve quota info for $region (service may be unavailable)"
+        return 1
     fi
 
-    INSUFFICIENT_QUOTA=false
+    local insufficient_quota=false
     for MODEL in "${!MIN_CAPACITY[@]}"; do
         MODEL_INFO=$(echo "$QUOTA_INFO" | awk -v model="\"value\": \"$MODEL\"" '
             BEGIN { RS="},"; FS="," }
@@ -50,9 +73,9 @@ for REGION in "${REGIONS[@]}"; do
         ')
 
         if [ -z "$MODEL_INFO" ]; then
-            echo "⚠️ WARNING: No quota information found for model: $MODEL in $REGION. Skipping."
-            INSUFFICIENT_QUOTA=true
-            continue
+            echo "⚠️  WARNING: Model $MODEL not available in $region"
+            insufficient_quota=true
+            return 1
         fi
 
         CURRENT_VALUE=$(echo "$MODEL_INFO" | awk -F': ' '/"currentValue"/ {print $2}' | tr -d ',' | tr -d ' ')
@@ -66,28 +89,71 @@ for REGION in "${REGIONS[@]}"; do
 
         AVAILABLE=$((LIMIT - CURRENT_VALUE))
 
-        echo "✅ Model: $MODEL | Used: $CURRENT_VALUE | Limit: $LIMIT | Available: $AVAILABLE"
+        echo "   Model: $MODEL"
+        echo "   Used: $CURRENT_VALUE | Limit: $LIMIT | Available: $AVAILABLE TPM"
 
         if [ "$AVAILABLE" -lt "${MIN_CAPACITY[$MODEL]}" ]; then
-            echo "❌ ERROR: $MODEL in $REGION has insufficient quota."
-            INSUFFICIENT_QUOTA=true
-            break
+            echo "   ❌ INSUFFICIENT: Need $((MIN_CAPACITY[$MODEL] - AVAILABLE)) more TPM"
+            insufficient_quota=true
+        else
+            echo "   ✅ SUFFICIENT: $AVAILABLE TPM available (Need: ${MIN_CAPACITY[$MODEL]} TPM)"
         fi
     done
 
-    if [ "$INSUFFICIENT_QUOTA" = false ]; then
+    if [ "$insufficient_quota" = false ]; then
+        return 0  # Region has sufficient quota
+    else
+        return 1  # Region has insufficient quota
+    fi
+}
+
+# Search for a valid region
+VALID_REGION=""
+for REGION in "${REGIONS[@]}"; do
+    if check_region_quota "$REGION"; then
         VALID_REGION="$REGION"
         break
     fi
-
 done
 
+# Output results
+echo ""
+echo "=========================================="
 if [ -z "$VALID_REGION" ]; then
-    echo "❌ No region with sufficient quota found. Blocking deployment."
-    echo "QUOTA_FAILED=true" >> "$GITHUB_ENV"
-    exit 0
+    echo "❌ DEPLOYMENT BLOCKED - No region with sufficient quota"
+    echo "=========================================="
+    echo ""
+    echo "⚠️  All checked regions have insufficient quota for GPT-5.1 GlobalStandard"
+    echo ""
+    echo "Options:"
+    echo "1. Request a quota increase: https://aka.ms/oai/quotarequest"
+    echo "2. Reduce gptDeploymentCapacity parameter (currently set to $GPT_MIN_CAPACITY TPM)"
+    echo "3. Try a different Azure subscription"
+    echo ""
+    echo "Deployment cannot proceed without sufficient quota."
+    
+    # Set failure flag for CI/CD pipelines
+    if [ -n "$GITHUB_ENV" ]; then
+        echo "QUOTA_FAILED=true" >> "$GITHUB_ENV"
+        echo "VALID_REGION=" >> "$GITHUB_ENV"
+    fi
+    exit 0  # Exit cleanly so CI can handle the failure
 else
-    echo "✅ Suggested Region: $VALID_REGION"
-    echo "VALID_REGION=$VALID_REGION" >> "$GITHUB_ENV"
+    echo "✅ DEPLOYMENT APPROVED - Valid region found"
+    echo "=========================================="
+    echo ""
+    echo "Selected Region: $VALID_REGION"
+    echo "This region has sufficient quota for GPT-5.1 GlobalStandard deployment"
+    echo ""
+    
+    # Export for CI/CD pipelines
+    if [ -n "$GITHUB_ENV" ]; then
+        echo "QUOTA_FAILED=false" >> "$GITHUB_ENV"
+        echo "VALID_REGION=$VALID_REGION" >> "$GITHUB_ENV"
+    fi
+    
+    # Also export as environment variable for immediate use
+    export VALID_REGION
+    echo "Environment variable set: VALID_REGION=$VALID_REGION"
     exit 0
 fi

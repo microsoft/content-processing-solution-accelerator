@@ -20,6 +20,7 @@ param solutionName string = 'cps'
   'japaneast'
   'northeurope'
   'southeastasia'
+  'swedencentral'
   'uksouth'
 ])
 param location string
@@ -786,6 +787,11 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
 
 module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
   name: take('avm.res.network.private-endpoint.${solutionSuffix}', 64)
+  dependsOn: [
+    avmAiServices
+    virtualNetwork
+    avmPrivateDnsZones
+  ]
   params: {
     name: 'pep-aiservices-${solutionSuffix}'
     location: location

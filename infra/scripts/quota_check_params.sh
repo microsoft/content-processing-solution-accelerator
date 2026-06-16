@@ -92,8 +92,8 @@ az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 echo "🎯 Active Subscription: $(az account show --query '[name, id]' --output tsv)"
 
 # Default Regions to check (Comma-separated, now configurable)
-# GPT-5.1 Global Standard availability as of 2026-02
-DEFAULT_REGIONS="australiaeast,canadaeast,eastus2,japaneast,koreacentral,swedencentral,switzerlandnorth,uksouth"
+# These regions match Bicep @allowed values and support GPT-5.1 GlobalStandard as of 2026-02
+DEFAULT_REGIONS="eastus2,swedencentral,northeurope,southeastasia,uksouth,japaneast,eastasia,centralus,australiaeast"
 IFS=',' read -r -a DEFAULT_REGION_ARRAY <<< "$DEFAULT_REGIONS"
 
 # Read parameters (if any)
@@ -230,8 +230,23 @@ done
 
 if [ ${#TABLE_ROWS[@]} -eq 0 ]; then
     echo "--------------------------------------------------------------------------------------------------------------------"
-
-    echo "❌ No regions have sufficient quota for all required models. Please request a quota increase: https://aka.ms/oai/stuquotarequest"
+    echo "❌ DEPLOYMENT BLOCKED - No regions have sufficient quota for all required models."
+    echo "--------------------------------------------------------------------------------------------------------------------"
+    echo ""
+    echo "Please request a quota increase: https://aka.ms/oai/quotarequest"
+    echo ""
+    echo "Options:"
+    echo "1. Request quota increase for GPT-5.1 GlobalStandard"
+    echo "2. Reduce the gptDeploymentCapacity parameter (currently: 150 TPM)"
+    echo "3. Use a different Azure subscription"
+    echo ""
+    
+    # Set failure flag for CI/CD
+    if [ -n "$GITHUB_ENV" ]; then
+        echo "QUOTA_CHECK_FAILED=true" >> "$GITHUB_ENV"
+        echo "SELECTED_REGION=" >> "$GITHUB_ENV"
+    fi
+    exit 1
 else
     echo "---------------------------------------------------------------------------------------------------------------------"
     printf "| %-4s | %-20s | %-43s | %-10s | %-10s | %-10s |\n" "No." "Region" "Model Name" "Limit" "Used" "Available"
@@ -240,7 +255,25 @@ else
         echo "$ROW"
     done
     echo "---------------------------------------------------------------------------------------------------------------------"
-    echo "➡️  To request a quota increase, visit: https://aka.ms/oai/stuquotarequest"
+    
+    # Auto-select the first valid region
+    SELECTED_REGION="${VALID_REGIONS[0]}"
+    echo ""
+    echo "✅ DEPLOYMENT APPROVED"
+    echo "---------------------------------------------------------------------------------------------------------------------"
+    echo "Selected Region: $SELECTED_REGION"
+    echo "This region has sufficient quota for GPT-5.1 deployment"
+    echo ""
+    
+    # Export for CI/CD pipelines and future use
+    if [ -n "$GITHUB_ENV" ]; then
+        echo "QUOTA_CHECK_FAILED=false" >> "$GITHUB_ENV"
+        echo "SELECTED_REGION=$SELECTED_REGION" >> "$GITHUB_ENV"
+    fi
+    
+    # Also export as environment variable
+    export SELECTED_REGION
+    echo "Environment variable set: SELECTED_REGION=$SELECTED_REGION"
 fi
 
-echo "✅ Script completed."
+echo "✅ Quota check script completed."
