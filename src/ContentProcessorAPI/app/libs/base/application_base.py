@@ -15,7 +15,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 
-from azure.identity import DefaultAzureCredential
+from app.utils.azure_credential_utils import get_azure_credential
 from dotenv import load_dotenv
 
 from app.libs.application.application_configuration import (
@@ -72,7 +72,7 @@ class Application_Base(ABC):
         self._load_env(env_file_path=env_file_path)
 
         self.application_context = AppContext()
-        self.application_context.set_credential(DefaultAzureCredential())
+        self.application_context.set_credential(get_azure_credential())
 
         app_config_endpoint: str | None = EnvConfiguration().app_config_endpoint
         if app_config_endpoint != "" and app_config_endpoint is not None:

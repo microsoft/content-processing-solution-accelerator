@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 import libs.utils.azure_credential_utils as azure_credential_utils
 
 MODULE = "libs.utils.azure_credential_utils"
@@ -45,16 +47,16 @@ class TestGetAzureCredential:
         mock_managed.assert_called_once_with(client_id="test-client-id")
         assert credential == mock_instance
 
-    @patch(f"{MODULE}.DefaultAzureCredential")
     @patch(f"{MODULE}.AzureDeveloperCliCredential", side_effect=Exception("no azd"))
     @patch(f"{MODULE}.AzureCliCredential", side_effect=Exception("no az"))
     @patch.dict("os.environ", {}, clear=True)
-    def test_falls_back_to_default(self, mock_cli, mock_dev_cli, mock_default):
-        mock_instance = MagicMock()
-        mock_default.return_value = mock_instance
-        credential = azure_credential_utils.get_azure_credential()
-        mock_default.assert_called_once()
-        assert credential == mock_instance
+    def test_raises_when_no_credentials_available(
+        self, mock_cli, mock_dev_cli
+    ):
+        with pytest.raises(RuntimeError) as exc:
+            azure_credential_utils.get_azure_credential()
+
+        assert "No Azure authentication available" in str(exc.value)
 
 
 # ── TestGetAsyncAzureCredential ─────────────────────────────────────────

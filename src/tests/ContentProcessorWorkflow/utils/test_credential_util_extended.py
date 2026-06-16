@@ -1,5 +1,6 @@
 """Extended tests for credential_util.py to improve coverage"""
 from unittest.mock import Mock, patch
+import pytest
 from utils.credential_util import (
     get_azure_credential,
     get_async_azure_credential,
@@ -40,24 +41,27 @@ class TestCredentialUtilExtended:
             assert credential == mock_instance
 
     def test_get_azure_credential_all_cli_fail(self, monkeypatch):
-        """Test fallback when all CLI credentials fail"""
-        for key in ["WEBSITE_SITE_NAME", "AZURE_CLIENT_ID", "MSI_ENDPOINT",
-                    "IDENTITY_ENDPOINT", "KUBERNETES_SERVICE_HOST", "CONTAINER_REGISTRY_LOGIN"]:
+        """Test RuntimeError when all credential options fail"""
+        for key in [
+            "WEBSITE_SITE_NAME",
+            "AZURE_CLIENT_ID",
+            "MSI_ENDPOINT",
+            "IDENTITY_ENDPOINT",
+            "KUBERNETES_SERVICE_HOST",
+            "CONTAINER_REGISTRY_LOGIN",
+        ]:
             monkeypatch.delenv(key, raising=False)
 
         with patch('utils.credential_util.AzureCliCredential') as mock_cli, \
-             patch('utils.credential_util.AzureDeveloperCliCredential') as mock_azd, \
-             patch('utils.credential_util.DefaultAzureCredential') as mock_default:
+             patch('utils.credential_util.AzureDeveloperCliCredential') as mock_azd:
 
             mock_cli.side_effect = Exception("AzureCLI not available")
             mock_azd.side_effect = Exception("AzureDeveloperCLI not available")
-            mock_default_instance = Mock()
-            mock_default.return_value = mock_default_instance
 
-            credential = get_azure_credential()
+            with pytest.raises(RuntimeError) as exc:
+                get_azure_credential()
 
-            assert credential == mock_default_instance
-            mock_default.assert_called_once()
+            assert "No Azure authentication available" in str(exc.value)
 
     def test_get_azure_credential_cli_success(self, monkeypatch):
         """Test successful Azure CLI credential"""

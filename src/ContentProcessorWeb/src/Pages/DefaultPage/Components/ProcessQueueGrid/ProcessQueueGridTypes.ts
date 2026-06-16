@@ -17,7 +17,7 @@ export interface ProcessedDocument {
     readonly file_name: string;
     /** MIME type of the document. */
     readonly mime_type: string;
-    /** Entity extraction confidence score (0–1). */
+    /** Entity extraction score (0–1). */
     readonly entity_score: number;
     /** Schema compliance score (0–1). */
     readonly schema_score: number;

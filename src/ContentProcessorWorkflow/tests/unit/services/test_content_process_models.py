@@ -152,6 +152,17 @@ class TestContentProcessRecord:
         assert rec.id == "r1"
         assert rec.process_id == ""
         assert rec.status is None
+        # Defaults stay at ``0.0`` so failed/pre-save records render as 0%
+        # in the UI; save_handler overwrites with a real numeric score for
+        # Completed runs.
+        assert rec.entity_score == 0.0
+        assert rec.schema_score == 0.0
+
+    def test_explicit_zero_score_preserved(self):
+        """A literal ``0.0`` must survive round-trip."""
+        rec = ContentProcessRecord(
+            id="r1", process_id="r1", entity_score=0.0, schema_score=0.0
+        )
         assert rec.entity_score == 0.0
         assert rec.schema_score == 0.0
 
