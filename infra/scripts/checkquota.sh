@@ -5,14 +5,55 @@
 
 # Configuration
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
-GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY:-300}"  # Default to 300 TPM if not specified
+# AZURE_ENV_GPT_MODEL_CAPACITY is the value used by deployment parameters; default stays at 300.
+DEPLOYMENT_CAPACITY="${AZURE_ENV_GPT_MODEL_CAPACITY:-300}"
+# GPT_MIN_CAPACITY remains supported for backward compatibility in workflows.
+GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY:-0}"
+
+# Prevent quota check/deployment mismatch by always checking at least deployment capacity.
+if [[ "$GPT_MIN_CAPACITY" =~ ^[0-9]+$ ]] && [[ "$DEPLOYMENT_CAPACITY" =~ ^[0-9]+$ ]]; then
+    if [ "$GPT_MIN_CAPACITY" -gt "$DEPLOYMENT_CAPACITY" ]; then
+        REQUIRED_CAPACITY="$GPT_MIN_CAPACITY"
+    else
+        REQUIRED_CAPACITY="$DEPLOYMENT_CAPACITY"
+    fi
+else
+    echo "❌ ERROR: GPT_MIN_CAPACITY and AZURE_ENV_GPT_MODEL_CAPACITY must be integers."
+    exit 1
+fi
 
 # List of valid Azure regions for GPT-5.1 GlobalStandard (must match Bicep @allowed values)
 ALLOWED_REGIONS=("australiaeast" "centralus" "eastasia" "eastus2" "japaneast" "northeurope" "southeastasia" "swedencentral" "uksouth")
 
-# Parse user-provided regions or use defaults
+# Parse user-provided regions or use defaults.
+# If user provides preferred regions, keep that priority and then append any
+# remaining allowed regions as automatic fallback candidates.
 if [[ -n "$AZURE_REGIONS" ]]; then
-    IFS=',' read -ra REGIONS <<< "$AZURE_REGIONS"
+    IFS=',' read -ra USER_REGIONS <<< "$AZURE_REGIONS"
+    REGIONS=()
+
+    # Keep user preference order first.
+    for region in "${USER_REGIONS[@]}"; do
+        clean_region="$(echo "$region" | xargs | tr '[:upper:]' '[:lower:]')"
+        if [[ -n "$clean_region" ]]; then
+            REGIONS+=("$clean_region")
+        fi
+    done
+
+    # Append remaining allowed regions for fallback.
+    for allowed_region in "${ALLOWED_REGIONS[@]}"; do
+        exists=false
+        for current_region in "${REGIONS[@]}"; do
+            if [[ "$current_region" == "$allowed_region" ]]; then
+                exists=true
+                break
+            fi
+        done
+
+        if [[ "$exists" == false ]]; then
+            REGIONS+=("$allowed_region")
+        fi
+    done
 else
     REGIONS=("${ALLOWED_REGIONS[@]}")
 fi
@@ -41,7 +82,7 @@ echo "✅ Azure subscription set successfully."
 
 # Model configuration
 declare -A MIN_CAPACITY=(
-    ["OpenAI.GlobalStandard.gpt-5.1"]=$GPT_MIN_CAPACITY
+    ["OpenAI.GlobalStandard.gpt-5.1"]=$REQUIRED_CAPACITY
 )
 
 echo "=========================================="
@@ -49,7 +90,9 @@ echo "🔍 Quota Check Summary"
 echo "=========================================="
 echo "Subscription: $SUBSCRIPTION_ID"
 echo "Required Model: OpenAI.GlobalStandard.gpt-5.1"
-echo "Required Capacity: $GPT_MIN_CAPACITY TPM"
+echo "Deployment Capacity: $DEPLOYMENT_CAPACITY TPM"
+echo "Minimum Quota Threshold Input: $GPT_MIN_CAPACITY TPM"
+echo "Effective Required Capacity: $REQUIRED_CAPACITY TPM"
 echo "Checking Regions: ${REGIONS[@]}"
 echo "=========================================="
 
@@ -127,7 +170,7 @@ if [ -z "$VALID_REGION" ]; then
     echo ""
     echo "Options:"
     echo "1. Request a quota increase: https://aka.ms/oai/quotarequest"
-    echo "2. Reduce gptDeploymentCapacity parameter (currently set to $GPT_MIN_CAPACITY TPM)"
+    echo "2. Reduce gptDeploymentCapacity parameter (currently set to $DEPLOYMENT_CAPACITY TPM)"
     echo "3. Try a different Azure subscription"
     echo ""
     echo "Deployment cannot proceed without sufficient quota."
