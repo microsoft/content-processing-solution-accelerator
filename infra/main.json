@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.43.8.12551",
-      "templateHash": "12545195410241248179"
+      "version": "0.44.1.10279",
+      "templateHash": "3841741921827855283"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -31,6 +31,7 @@
         "japaneast",
         "northeurope",
         "southeastasia",
+        "swedencentral",
         "uksouth"
       ],
       "metadata": {
@@ -236,6 +237,7 @@
       "japaneast": "eastasia",
       "northeurope": "westeurope",
       "southeastasia": "eastasia",
+      "swedencentral": "northeurope",
       "uksouth": "westeurope",
       "westeurope": "northeurope"
     },
@@ -337,8 +339,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "13206959925771644022"
+              "version": "0.44.1.10279",
+              "templateHash": "4148028483891244972"
             }
           },
           "definitions": {
@@ -19306,8 +19308,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "13200482898648544945"
+              "version": "0.44.1.10279",
+              "templateHash": "14763088429533772999"
             }
           },
           "parameters": {
@@ -23332,8 +23334,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "15729887991536611208"
+              "version": "0.44.1.10279",
+              "templateHash": "14944034125601240095"
             }
           },
           "parameters": {
@@ -23936,8 +23938,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "8672669912945312056"
+              "version": "0.44.1.10279",
+              "templateHash": "3008626070117491750"
             },
             "name": "Container Registry Module"
           },
@@ -36314,8 +36316,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "9621562991003135575"
+              "version": "0.44.1.10279",
+              "templateHash": "9717412251971567270"
             },
             "name": "Cognitive Services",
             "description": "This module deploys a Cognitive Service."
@@ -37574,8 +37576,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "8864856500234357706"
+                      "version": "0.44.1.10279",
+                      "templateHash": "7181684108515692296"
                     }
                   },
                   "definitions": {
@@ -39307,8 +39309,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.43.8.12551",
-                              "templateHash": "312284397710022090"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4868310155755856428"
                             }
                           },
                           "definitions": {
@@ -39461,8 +39463,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.43.8.12551",
-                              "templateHash": "276675105610077046"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4168378797065634217"
                             }
                           },
                           "definitions": {
@@ -39679,8 +39681,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "8864856500234357706"
+                      "version": "0.44.1.10279",
+                      "templateHash": "7181684108515692296"
                     }
                   },
                   "definitions": {
@@ -41412,8 +41414,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.43.8.12551",
-                              "templateHash": "312284397710022090"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4868310155755856428"
                             }
                           },
                           "definitions": {
@@ -41566,8 +41568,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.43.8.12551",
-                              "templateHash": "276675105610077046"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4168378797065634217"
                             }
                           },
                           "definitions": {
@@ -42487,10 +42489,7 @@
       },
       "dependsOn": [
         "avmAiServices",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "avmPrivateDnsZones",
         "virtualNetwork"
       ]
     },
