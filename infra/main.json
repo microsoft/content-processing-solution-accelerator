@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.41.2.15936",
-      "templateHash": "13688965963984718310"
+      "version": "0.44.1.10279",
+      "templateHash": "3841741921827855283"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -339,8 +339,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "9214155150153257283"
+              "version": "0.44.1.10279",
+              "templateHash": "4148028483891244972"
             }
           },
           "definitions": {
@@ -19308,8 +19308,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "9239705490942549918"
+              "version": "0.44.1.10279",
+              "templateHash": "14763088429533772999"
             }
           },
           "parameters": {
@@ -23334,8 +23334,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "9876669373068522244"
+              "version": "0.44.1.10279",
+              "templateHash": "14944034125601240095"
             }
           },
           "parameters": {
@@ -23938,8 +23938,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "12855415461261727542"
+              "version": "0.44.1.10279",
+              "templateHash": "3008626070117491750"
             },
             "name": "Container Registry Module"
           },
@@ -36185,8 +36185,8 @@
         "avmContainerApp_API",
         "avmContainerApp_Workflow",
         "avmManagedIdentity",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "virtualNetwork"
       ]
     },
@@ -36316,8 +36316,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "7483150072560687929"
+              "version": "0.44.1.10279",
+              "templateHash": "9717412251971567270"
             },
             "name": "Cognitive Services",
             "description": "This module deploys a Cognitive Service."
@@ -37576,8 +37576,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "8679467951413798233"
+                      "version": "0.44.1.10279",
+                      "templateHash": "7181684108515692296"
                     }
                   },
                   "definitions": {
@@ -39309,8 +39309,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "15190023661808709780"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4868310155755856428"
                             }
                           },
                           "definitions": {
@@ -39463,8 +39463,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "10223824188701156939"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4168378797065634217"
                             }
                           },
                           "definitions": {
@@ -39681,8 +39681,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "8679467951413798233"
+                      "version": "0.44.1.10279",
+                      "templateHash": "7181684108515692296"
                     }
                   },
                   "definitions": {
@@ -41414,8 +41414,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "15190023661808709780"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4868310155755856428"
                             }
                           },
                           "definitions": {
@@ -41568,8 +41568,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "10223824188701156939"
+                              "version": "0.44.1.10279",
+                              "templateHash": "4168378797065634217"
                             }
                           },
                           "definitions": {
