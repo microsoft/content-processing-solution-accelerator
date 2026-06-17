@@ -337,7 +337,9 @@ jobs:
         run: |
           chmod +x infra/scripts/checkquota.sh
           if ! infra/scripts/checkquota.sh; then
-            echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            if grep -q "No region with sufficient quota found" infra/scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
             exit 1
           fi
 

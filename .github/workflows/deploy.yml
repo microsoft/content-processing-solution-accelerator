@@ -51,8 +51,11 @@ jobs:
         run: |
           chmod +x infra/scripts/checkquota.sh
           if ! infra/scripts/checkquota.sh; then
-            echo "QUOTA_FAILED=true" >> $GITHUB_ENV
-            exit 1
+            # If quota check fails due to insufficient quota, set the flag
+            if grep -q "No region with sufficient quota found" infra/scripts/checkquota.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
+            exit 1  # Fail the pipeline if any other failure occurs
           fi
 
       - name: Send Notification on Quota Failure
