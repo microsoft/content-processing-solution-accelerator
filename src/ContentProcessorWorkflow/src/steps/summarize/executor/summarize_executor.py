@@ -28,6 +28,9 @@ from services.content_process_service import ContentProcessService
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
 
+from libs.llm_token_telemetry import TokenUsageScope
+from libs.telemetry import token_emitter
+
 
 class SummarizeExecutor(Executor):
     """Workflow executor that runs the summarization step.
@@ -193,6 +196,20 @@ class SummarizeExecutor(Executor):
                 ],
             )
         )
+
+        # Track token usage for summarization
+        model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
+        file_names = ", ".join(f.file_name for f in processed_files) if processed_files else ""
+        file_types = ", ".join(sorted(set(f.mime_type for f in processed_files if f.mime_type))) if processed_files else ""
+        with TokenUsageScope(
+            token_emitter,
+            agent_name="Summarize",
+            model_deployment_name=model_name,
+            process_id=result.claim_process_id,
+            file_name=file_names,
+            file_mime_type=file_types,
+        ) as scope:
+            scope.add(model_response)
 
         summarized_result = {"status": "summarized", "input": model_response.text}
 

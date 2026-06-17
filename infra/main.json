@@ -243,8 +243,6 @@
     "bastionHostName": "[format('bas-{0}', variables('solutionSuffix'))]",
     "jumpboxVmName": "[take(format('vm-{0}', variables('solutionSuffix')), 15)]",
     "dataCollectionRulesResourceName": "[format('dcr-{0}', variables('solutionSuffix'))]",
-    "logAnalyticsWorkspaceResourceName": "[format('log-{0}', variables('solutionSuffix'))]",
-    "dcrLogAnalyticsDestinationName": "[format('la-{0}-destination', variables('logAnalyticsWorkspaceResourceName'))]",
     "privateDnsZones": [
       "privatelink.cognitiveservices.azure.com",
       "privatelink.openai.azure.com",
@@ -14609,10 +14607,19 @@
                   {
                     "name": "SecurityAuditEvents",
                     "streams": [
-                      "Microsoft-Event"
+                      "Microsoft-WindowsEvent"
+                    ],
+                    "eventLogName": "Security",
+                    "eventTypes": [
+                      {
+                        "eventType": "Audit Success"
+                      },
+                      {
+                        "eventType": "Audit Failure"
+                      }
                     ],
                     "xPathQueries": [
-                      "Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]"
+                      "Security!*[System[(EventID=4624 or EventID=4625)]]"
                     ]
                   }
                 ]
@@ -14621,7 +14628,7 @@
                 "logAnalytics": [
                   {
                     "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]",
-                    "name": "[variables('dcrLogAnalyticsDestinationName')]"
+                    "name": "[format('la-{0}', variables('dataCollectionRulesResourceName'))]"
                   }
                 ]
               },
@@ -14631,20 +14638,10 @@
                     "Microsoft-Perf"
                   ],
                   "destinations": [
-                    "[variables('dcrLogAnalyticsDestinationName')]"
+                    "[format('la-{0}', variables('dataCollectionRulesResourceName'))]"
                   ],
                   "transformKql": "source",
                   "outputStream": "Microsoft-Perf"
-                },
-                {
-                  "streams": [
-                    "Microsoft-Event"
-                  ],
-                  "destinations": [
-                    "[variables('dcrLogAnalyticsDestinationName')]"
-                  ],
-                  "transformKql": "source",
-                  "outputStream": "Microsoft-Event"
                 }
               ]
             }
@@ -19275,7 +19272,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[variables('logAnalyticsWorkspaceResourceName')]"
+            "value": "[format('log-{0}', variables('solutionSuffix'))]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -28052,9 +28049,6 @@
               "defaultAction": "[if(parameters('enablePrivateNetworking'), 'Deny', 'Allow')]",
               "ipRules": []
             }
-          },
-          "requireInfrastructureEncryption": {
-            "value": true
           },
           "supportsHttpsTrafficOnly": {
             "value": true
@@ -42491,6 +42485,8 @@
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').contentUnderstanding)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
         "virtualNetwork"
       ]
     },
@@ -44170,7 +44166,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "managedIdentities": {
             "value": {
@@ -45801,7 +45802,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -45915,9 +45921,6 @@
           },
           "ingressTransport": {
             "value": "auto"
-          },
-          "ingressAllowInsecure": {
-            "value": false
           },
           "corsPolicy": {
             "value": {
@@ -47499,7 +47502,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -47523,9 +47531,6 @@
           },
           "ingressTransport": {
             "value": "auto"
-          },
-          "ingressAllowInsecure": {
-            "value": false
           },
           "scaleSettings": {
             "value": {
@@ -49150,7 +49155,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -50798,6 +50808,9 @@
             "value": [
               "EnableMongo"
             ]
+          },
+          "enableAnalyticalStorage": {
+            "value": true
           },
           "defaultConsistencyLevel": {
             "value": "Session"
@@ -61435,7 +61448,12 @@
             "value": "Consumption"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -63069,7 +63087,12 @@
             "value": "Consumption"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -63183,9 +63206,6 @@
           },
           "ingressTransport": {
             "value": "auto"
-          },
-          "ingressAllowInsecure": {
-            "value": false
           },
           "corsPolicy": {
             "value": {
@@ -64769,7 +64789,12 @@
             "value": "Consumption"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[parameters('containerRegistryEndpoint')]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"

@@ -31,6 +31,9 @@ from services.content_process_service import ContentProcessService
 from steps.models.extracted_file import ExtractedFile
 from steps.models.output import Executor_Output, Workflow_Output
 
+from libs.llm_token_telemetry import TokenUsageScope
+from libs.telemetry import token_emitter
+
 
 class GapExecutor(Executor):
     """Workflow executor that runs the GAP-analysis step.
@@ -193,6 +196,20 @@ class GapExecutor(Executor):
                 ],
             )
         )
+
+        # Track token usage for gap analysis
+        model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
+        file_names = ", ".join(f.file_name for f in processed_files) if processed_files else ""
+        file_types = ", ".join(sorted(set(f.mime_type for f in processed_files if f.mime_type))) if processed_files else ""
+        with TokenUsageScope(
+            token_emitter,
+            agent_name="GapAnalysis",
+            model_deployment_name=model_name,
+            process_id=result.claim_process_id,
+            file_name=file_names,
+            file_mime_type=file_types,
+        ) as scope:
+            scope.add(model_response)
 
         claim_process_repository = self.app_context.get_service(Claim_Processes)
         await claim_process_repository.Update_Claim_Process_Gaps(

@@ -23,6 +23,9 @@ omit =
     # Exclude repositories and steps (require agent_framework)
     */repositories/*
     */steps/*
+    # Exclude cross-accelerator telemetry module (tested in ContentProcessor suite)
+    */libs/llm_token_telemetry.py
+    */libs/telemetry.py
     # Exclude test files
     */tests/*
     */test_*.py

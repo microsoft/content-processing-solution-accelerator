@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/python:3.12-bookworm
+FROM python:3.12-slim-bookworm
 
 # Keep Python/uv behavior predictable in containers
 ENV PYTHONUNBUFFERED=1 \

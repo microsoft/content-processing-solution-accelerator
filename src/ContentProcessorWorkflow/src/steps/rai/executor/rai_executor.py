@@ -27,6 +27,9 @@ from steps.models.output import Executor_Output, Workflow_Output
 from services.content_process_service import ContentProcessService
 from steps.rai.model import rai_response
 
+from libs.llm_token_telemetry import TokenUsageScope
+from libs.telemetry import token_emitter
+
 
 class RAIExecutor(Executor):
     """Workflow executor that applies Responsible-AI content analysis.
@@ -185,6 +188,20 @@ class RAIExecutor(Executor):
                 contents=[document_text],
             )
         )
+
+        # Track token usage for RAI check
+        model_name = agent_framework_helper.settings.get_service_config("default").chat_deployment_name
+        file_names = ", ".join(f.file_name for f in processed_files) if processed_files else ""
+        file_types = ", ".join(sorted(set(f.mime_type for f in processed_files if f.mime_type))) if processed_files else ""
+        with TokenUsageScope(
+            token_emitter,
+            agent_name="RAI",
+            model_deployment_name=model_name,
+            process_id=result.claim_process_id,
+            file_name=file_names,
+            file_mime_type=file_types,
+        ) as scope:
+            scope.add(model_response)
 
         response_content = model_response.text
         parsed_response = rai_response.RAIResponse.model_validate_json(response_content)
