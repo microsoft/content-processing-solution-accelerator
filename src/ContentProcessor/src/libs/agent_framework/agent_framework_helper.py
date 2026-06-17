@@ -28,11 +28,9 @@ from .azure_openai_response_retry import (
 )
 
 if TYPE_CHECKING:
-    from agent_framework.azure import (
-        AzureAIAgentClient,
-        AzureOpenAIAssistantsClient,
-        AzureOpenAIChatClient,
-        AzureOpenAIResponsesClient,
+    from agent_framework.openai import (
+        OpenAIChatClient,
+        OpenAIChatCompletionClient,
     )
 
 
@@ -142,7 +140,7 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
-    ) -> "AzureOpenAIChatClient":
+    ) -> "OpenAIChatCompletionClient":
         pass
 
     @overload
@@ -189,7 +187,7 @@ class AgentFrameworkHelper:
         async_client: object | None = None,
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
-    ) -> "AzureOpenAIAssistantsClient":
+    ) -> Any:
         pass
 
     @overload
@@ -211,7 +209,7 @@ class AgentFrameworkHelper:
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
         instruction_role: str | None = None,
-    ) -> "AzureOpenAIResponsesClient":
+    ) -> "OpenAIChatClient":
         pass
 
     @overload
@@ -251,7 +249,7 @@ class AgentFrameworkHelper:
         async_credential: object | None = None,
         env_file_path: str | None = None,
         env_file_encoding: str | None = None,
-    ) -> "AzureAIAgentClient":
+    ) -> Any:
         pass
 
     @staticmethod
@@ -384,18 +382,15 @@ class AgentFrameworkHelper:
                 "OpenAIResponsesClient is not implemented in this context."
             )
         elif client_type == ClientType.AzureOpenAIChatCompletion:
-            from agent_framework.azure import AzureOpenAIChatClient
+            from agent_framework.openai import OpenAIChatCompletionClient
 
-            return AzureOpenAIChatClient(
+            return OpenAIChatCompletionClient(
+                model=deployment_name,
                 api_key=api_key,
-                deployment_name=deployment_name,
-                endpoint=endpoint,
+                azure_endpoint=endpoint,
                 base_url=base_url,
                 api_version=api_version,
-                ad_token=ad_token,
-                ad_token_provider=ad_token_provider,
-                token_endpoint=token_endpoint,
-                credential=credential,
+                credential=credential or ad_token_provider,
                 default_headers=default_headers,
                 async_client=async_client,
                 env_file_path=env_file_path,
@@ -404,15 +399,12 @@ class AgentFrameworkHelper:
             )
         elif client_type == ClientType.AzureOpenAIChatCompletionWithRetry:
             return AzureOpenAIChatClientWithRetry(
+                model=deployment_name,
                 api_key=api_key,
-                deployment_name=deployment_name,
-                endpoint=endpoint,
+                azure_endpoint=endpoint,
                 base_url=base_url,
                 api_version=api_version,
-                ad_token=ad_token,
-                ad_token_provider=ad_token_provider,
-                token_endpoint=token_endpoint,
-                credential=credential,
+                credential=credential or ad_token_provider,
                 default_headers=default_headers,
                 async_client=async_client,
                 env_file_path=env_file_path,
@@ -421,39 +413,20 @@ class AgentFrameworkHelper:
                 retry_config=retry_config,
             )
         elif client_type == ClientType.AzureOpenAIAssistant:
-            from agent_framework.azure import AzureOpenAIAssistantsClient
-
-            return AzureOpenAIAssistantsClient(
-                deployment_name=deployment_name,
-                assistant_id=assistant_id,
-                assistant_name=assistant_name,
-                thread_id=thread_id,
-                api_key=api_key,
-                endpoint=endpoint,
-                base_url=base_url,
-                api_version=api_version,
-                ad_token=ad_token,
-                ad_token_provider=ad_token_provider,
-                token_endpoint=token_endpoint,
-                credential=credential,
-                default_headers=default_headers,
-                async_client=async_client,
-                env_file_path=env_file_path,
-                env_file_encoding=env_file_encoding,
+            raise NotImplementedError(
+                "AzureOpenAIAssistantsClient has been removed in agent-framework 1.1.1. "
+                "Use OpenAIChatClient with built-in tools instead."
             )
         elif client_type == ClientType.AzureOpenAIResponse:
-            from agent_framework.azure import AzureOpenAIResponsesClient
+            from agent_framework.openai import OpenAIChatClient
 
-            return AzureOpenAIResponsesClient(
+            return OpenAIChatClient(
+                model=deployment_name,
                 api_key=api_key,
-                deployment_name=deployment_name,
-                endpoint=endpoint,
+                azure_endpoint=endpoint,
                 base_url=base_url,
                 api_version=api_version,
-                ad_token=ad_token,
-                ad_token_provider=ad_token_provider,
-                token_endpoint=token_endpoint,
-                credential=credential,
+                credential=credential or ad_token_provider,
                 default_headers=default_headers,
                 async_client=async_client,
                 env_file_path=env_file_path,
@@ -462,15 +435,12 @@ class AgentFrameworkHelper:
             )
         elif client_type == ClientType.AzureOpenAIResponseWithRetry:
             return AzureOpenAIResponseClientWithRetry(
+                model=deployment_name,
                 api_key=api_key,
-                deployment_name=deployment_name,
-                endpoint=endpoint,
+                azure_endpoint=endpoint,
                 base_url=base_url,
                 api_version=api_version,
-                ad_token=ad_token,
-                ad_token_provider=ad_token_provider,
-                token_endpoint=token_endpoint,
-                credential=credential,
+                credential=credential or ad_token_provider,
                 default_headers=default_headers,
                 async_client=async_client,
                 env_file_path=env_file_path,
@@ -479,18 +449,9 @@ class AgentFrameworkHelper:
                 retry_config=retry_config,
             )
         elif client_type == ClientType.AzureOpenAIAgent:
-            from agent_framework.azure import AzureAIAgentClient
-
-            return AzureAIAgentClient(
-                project_client=project_client,
-                agent_id=agent_id,
-                agent_name=agent_name,
-                thread_id=thread_id,
-                project_endpoint=project_endpoint,
-                model_deployment_name=model_deployment_name,
-                async_credential=async_credential,
-                env_file_path=env_file_path,
-                env_file_encoding=env_file_encoding,
+            raise NotImplementedError(
+                "AzureAIAgentClient has been removed in agent-framework 1.1.1. "
+                "Use FoundryChatClient from agent_framework.foundry instead."
             )
         else:
             raise ValueError(f"Unsupported agent type: {client_type}")

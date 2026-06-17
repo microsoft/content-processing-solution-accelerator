@@ -11,15 +11,13 @@ client classes.
 
 from __future__ import annotations
 
-import asyncio
-import inspect
 import logging
 import os
 import random
 from dataclasses import dataclass
-from typing import Any, AsyncIterable, MutableSequence
+from typing import Any, MutableSequence
 
-from agent_framework.azure import AzureOpenAIChatClient, AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatCompletionClient, OpenAIChatClient
 from tenacity import (
     AsyncRetrying,
     retry_if_exception,
@@ -462,7 +460,7 @@ async def _retry_call(coro_factory, *, config: RateLimitRetryConfig):
     raise RuntimeError("Retry loop exhausted unexpectedly")
 
 
-class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
+class AzureOpenAIResponseClientWithRetry(OpenAIChatClient):
     """Azure OpenAI Responses client with 429 retry at the request boundary.
 
     Retry is centralized in the client layer (not in orchestrators) by retrying the
@@ -484,16 +482,12 @@ class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
         self,
         *,
         messages: MutableSequence[Any],
-        chat_options: Any | None = None,
+        options: Any | None = None,
         **kwargs: Any,
     ) -> Any:
         parent_inner_get_response = super(
             AzureOpenAIResponseClientWithRetry, self
         )._inner_get_response
-
-        parent_supports_chat_options = (
-            "chat_options" in inspect.signature(parent_inner_get_response).parameters
-        )
 
         effective_messages: MutableSequence[Any] | list[Any] = messages
         if self._context_trim_config.enabled:
@@ -514,16 +508,9 @@ class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
                 )
 
         try:
-            if parent_supports_chat_options:
-                return await _retry_call(
-                    lambda: parent_inner_get_response(
-                        messages=effective_messages, chat_options=chat_options, **kwargs
-                    ),
-                    config=self._retry_config,
-                )
             return await _retry_call(
                 lambda: parent_inner_get_response(
-                    messages=effective_messages, **kwargs
+                    messages=effective_messages, options=options, **kwargs
                 ),
                 config=self._retry_config,
             )
@@ -542,147 +529,18 @@ class AzureOpenAIResponseClientWithRetry(AzureOpenAIResponsesClient):
                 len(trimmed),
             )
             return await _retry_call(
-                (
-                    (
-                        lambda: parent_inner_get_response(
-                            messages=trimmed, chat_options=chat_options, **kwargs
-                        )
-                    )
-                    if parent_supports_chat_options
-                    else (lambda: parent_inner_get_response(messages=trimmed, **kwargs))
+                lambda: parent_inner_get_response(
+                    messages=trimmed, options=options, **kwargs
                 ),
                 config=self._retry_config,
             )
 
-    async def _inner_get_streaming_response(
-        self,
-        *,
-        messages: MutableSequence[Any],
-        chat_options: Any | None = None,
-        **kwargs: Any,
-    ) -> AsyncIterable[Any]:
-        # Conservative retry: only retries failures before the first yielded update.
-        attempts = self._retry_config.max_retries + 1
 
-        parent_inner_stream = super(
-            AzureOpenAIResponseClientWithRetry, self
-        )._inner_get_streaming_response
-        parent_supports_chat_options = (
-            "chat_options" in inspect.signature(parent_inner_stream).parameters
-        )
-
-        effective_messages: MutableSequence[Any] | list[Any] = messages
-        if self._context_trim_config.enabled:
-            approx_chars = sum(len(_estimate_message_text(m)) for m in messages)
-            if (
-                self._context_trim_config.max_total_chars > 0
-                and approx_chars > self._context_trim_config.max_total_chars
-            ):
-                effective_messages = _trim_messages(
-                    messages, cfg=self._context_trim_config
-                )
-                logger.warning(
-                    "[AOAI_CTX_TRIM] pre-trimmed streaming request messages: approx_chars=%s -> %s; count=%s -> %s",
-                    approx_chars,
-                    sum(len(_estimate_message_text(m)) for m in effective_messages),
-                    len(messages),
-                    len(effective_messages),
-                )
-
-        for attempt_index in range(attempts):
-            if parent_supports_chat_options:
-                stream = parent_inner_stream(
-                    messages=effective_messages, chat_options=chat_options, **kwargs
-                )
-            else:
-                stream = parent_inner_stream(messages=effective_messages, **kwargs)
-
-            iterator = stream.__aiter__()
-            try:
-                first = await iterator.__anext__()
-
-                async def _tail():
-                    yield first
-                    async for item in iterator:
-                        yield item
-
-                async for item in _tail():
-                    yield item
-                return
-            except StopAsyncIteration:
-                return
-            except Exception as e:
-                close = getattr(stream, "aclose", None)
-                if callable(close):
-                    try:
-                        await close()
-                    except Exception as close_exc:
-                        # Best-effort stream cleanup: ignore close failures so we preserve
-                        # the original exception/retry path.
-                        logger.debug(
-                            "[AOAI_RETRY_STREAM] ignoring stream close failure during retry handling: %s",
-                            _format_exc_brief(close_exc)
-                            if isinstance(close_exc, BaseException)
-                            else str(close_exc),
-                        )
-
-                # One-shot retry for context-length failures.
-                if (
-                    self._context_trim_config.enabled
-                    and self._context_trim_config.retry_on_context_error
-                    and _looks_like_context_length(e)
-                ):
-                    trimmed = _trim_messages(messages, cfg=self._context_trim_config)
-                    logger.warning(
-                        "[AOAI_CTX_TRIM_STREAM] retrying after context-length error; count=%s -> %s",
-                        len(messages),
-                        len(trimmed),
-                    )
-                    effective_messages = trimmed
-                    if attempt_index >= attempts - 1:
-                        # No more retries available.
-                        raise
-                    continue
-
-                if not _is_transient_error(e) or attempt_index >= attempts - 1:
-                    if _is_transient_error(e):
-                        logger.warning(
-                            "[AOAI_RETRY_STREAM] giving up after %s/%s attempts; error=%s",
-                            attempt_index + 1,
-                            attempts,
-                            _format_exc_brief(e)
-                            if isinstance(e, BaseException)
-                            else str(e),
-                        )
-                    raise
-
-                retry_after = _try_get_retry_after_seconds(e)
-                if retry_after is not None and retry_after >= 0:
-                    delay = retry_after
-                else:
-                    delay = self._retry_config.base_delay_seconds * (2**attempt_index)
-                    delay = min(delay, self._retry_config.max_delay_seconds)
-                    delay = delay + random.uniform(0.0, 0.25 * max(delay, 0.1))
-
-                status = getattr(e, "status_code", None) or getattr(e, "status", None)
-                logger.warning(
-                    "[AOAI_RETRY_STREAM] attempt %s/%s; sleeping=%ss; retry_after=%s; status=%s; error=%s",
-                    attempt_index + 1,
-                    attempts,
-                    round(float(delay), 3),
-                    None if retry_after is None else round(float(retry_after), 3),
-                    status,
-                    _format_exc_brief(e) if isinstance(e, BaseException) else str(e),
-                )
-
-                await asyncio.sleep(delay)
-
-
-class AzureOpenAIChatClientWithRetry(AzureOpenAIChatClient):
+class AzureOpenAIChatClientWithRetry(OpenAIChatCompletionClient):
     """Azure OpenAI Chat client with 429 retry at the request boundary.
 
     This wraps the underlying chat-completions call used by Agent Framework by overriding
-    the internal `_inner_get_response` / `_inner_get_streaming_response` methods.
+    the internal `_inner_get_response` method.
     """
 
     def __init__(
@@ -752,117 +610,3 @@ class AzureOpenAIChatClientWithRetry(AzureOpenAIChatClient):
                 ),
                 config=self._retry_config,
             )
-
-    async def _inner_get_streaming_response(
-        self,
-        *,
-        messages: MutableSequence[Any],
-        options: dict[str, Any],
-        **kwargs: Any,
-    ) -> AsyncIterable[Any]:
-        # Conservative retry: only retries failures before the first yielded update.
-        attempts = self._retry_config.max_retries + 1
-
-        parent_inner_stream = super(
-            AzureOpenAIChatClientWithRetry, self
-        )._inner_get_streaming_response
-
-        effective_messages: MutableSequence[Any] | list[Any] = messages
-        if self._context_trim_config.enabled:
-            approx_chars = sum(len(_estimate_message_text(m)) for m in messages)
-            if (
-                self._context_trim_config.max_total_chars > 0
-                and approx_chars > self._context_trim_config.max_total_chars
-            ):
-                effective_messages = _trim_messages(
-                    messages, cfg=self._context_trim_config
-                )
-                logger.warning(
-                    "[AOAI_CTX_TRIM] pre-trimmed streaming chat request messages: approx_chars=%s -> %s; count=%s -> %s",
-                    approx_chars,
-                    sum(len(_estimate_message_text(m)) for m in effective_messages),
-                    len(messages),
-                    len(effective_messages),
-                )
-
-        for attempt_index in range(attempts):
-            stream = parent_inner_stream(
-                messages=effective_messages, options=options, **kwargs
-            )
-
-            iterator = stream.__aiter__()
-            try:
-                first = await iterator.__anext__()
-
-                async def _tail():
-                    yield first
-                    async for item in iterator:
-                        yield item
-
-                async for item in _tail():
-                    yield item
-                return
-            except StopAsyncIteration:
-                return
-            except Exception as e:
-                close = getattr(stream, "aclose", None)
-                if callable(close):
-                    try:
-                        await close()
-                    except Exception as close_error:
-                        # Intentionally suppress close-time failures so we do not
-                        # mask the original streaming exception that triggered retry handling.
-                        logger.debug(
-                            "[AOAI_RETRY_STREAM] ignoring stream close failure during error handling",
-                            exc_info=close_error,
-                        )
-
-                # One-shot retry for context-length failures.
-                if (
-                    self._context_trim_config.enabled
-                    and self._context_trim_config.retry_on_context_error
-                    and _looks_like_context_length(e)
-                ):
-                    trimmed = _trim_messages(messages, cfg=self._context_trim_config)
-                    logger.warning(
-                        "[AOAI_CTX_TRIM_STREAM] retrying chat stream after context-length error; count=%s -> %s",
-                        len(messages),
-                        len(trimmed),
-                    )
-                    effective_messages = trimmed
-                    if attempt_index >= attempts - 1:
-                        raise
-                    continue
-
-                if not _is_transient_error(e) or attempt_index >= attempts - 1:
-                    if _is_transient_error(e):
-                        logger.warning(
-                            "[AOAI_RETRY_STREAM] giving up after %s/%s attempts; error=%s",
-                            attempt_index + 1,
-                            attempts,
-                            _format_exc_brief(e)
-                            if isinstance(e, BaseException)
-                            else str(e),
-                        )
-                    raise
-
-                retry_after = _try_get_retry_after_seconds(e)
-                if retry_after is not None and retry_after >= 0:
-                    delay = retry_after
-                else:
-                    delay = self._retry_config.base_delay_seconds * (2**attempt_index)
-                    delay = min(delay, self._retry_config.max_delay_seconds)
-                    delay = delay + random.uniform(0.0, 0.25 * max(delay, 0.1))
-
-                status = getattr(e, "status_code", None) or getattr(e, "status", None)
-                logger.warning(
-                    "[AOAI_RETRY_STREAM] chat attempt %s/%s; sleeping=%ss; retry_after=%s; status=%s; error=%s",
-                    attempt_index + 1,
-                    attempts,
-                    round(float(delay), 3),
-                    None if retry_after is None else round(float(retry_after), 3),
-                    status,
-                    _format_exc_brief(e) if isinstance(e, BaseException) else str(e),
-                )
-
-                await asyncio.sleep(delay)

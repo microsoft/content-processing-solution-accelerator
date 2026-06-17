@@ -242,8 +242,12 @@ class DocumentProcessExecutor(Executor):
 
                     status_text = poll_result.get("status", "Failed")
 
-                    schema_score_f = 0.0
-                    entity_score_f = 0.0
+                    # Failed / not-yet-scored documents default to ``0.0``;
+                    # save_handler always emits numeric scores for Completed
+                    # runs (probabilistic if available, otherwise structural
+                    # completeness fallback).
+                    schema_score_f: float = 0.0
+                    entity_score_f: float = 0.0
                     processed_time = ""
                     result_payload = None
 
@@ -253,18 +257,22 @@ class DocumentProcessExecutor(Executor):
                         )
                         if isinstance(final_payload, dict):
                             status_text = final_payload.get("status") or status_text
-                            try:
-                                schema_score_f = float(
-                                    final_payload.get("schema_score") or 0.0
-                                )
-                            except Exception:
-                                schema_score_f = 0.0
-                            try:
-                                entity_score_f = float(
-                                    final_payload.get("entity_score") or 0.0
-                                )
-                            except Exception:
-                                entity_score_f = 0.0
+
+                            def _coerce_score(value: object) -> float:
+                                """Coerce a raw score payload to ``float`` (default ``0.0``)."""
+                                if value is None:
+                                    return 0.0
+                                try:
+                                    return float(value)
+                                except (TypeError, ValueError):
+                                    return 0.0
+
+                            schema_score_f = _coerce_score(
+                                final_payload.get("schema_score")
+                            )
+                            entity_score_f = _coerce_score(
+                                final_payload.get("entity_score")
+                            )
                             try:
                                 processed_time = (
                                     final_payload.get("processed_time") or ""
@@ -339,5 +347,5 @@ class DocumentProcessExecutor(Executor):
             )
         )
 
-        await ctx.set_shared_state("workflow_output", workflow_output)
+        ctx.set_state("workflow_output", workflow_output)
         await ctx.send_message(workflow_output)

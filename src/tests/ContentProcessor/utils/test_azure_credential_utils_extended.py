@@ -42,26 +42,22 @@ class TestAzureCredentialUtilsExtended:
             assert credential == mock_instance
 
     def test_get_azure_credential_cli_failure_fallback(self, monkeypatch):
-        """Test fallback to DefaultAzureCredential when CLI credentials fail"""
+        """Test RuntimeError when all credential options fail"""
         # Clear all Azure environment indicators
         for key in ["WEBSITE_SITE_NAME", "AZURE_CLIENT_ID", "MSI_ENDPOINT",
                     "IDENTITY_ENDPOINT", "KUBERNETES_SERVICE_HOST", "CONTAINER_REGISTRY_LOGIN"]:
             monkeypatch.delenv(key, raising=False)
 
         with patch('libs.utils.azure_credential_utils.AzureCliCredential') as mock_cli_cred, \
-             patch('libs.utils.azure_credential_utils.AzureDeveloperCliCredential') as mock_azd_cred, \
-             patch('libs.utils.azure_credential_utils.DefaultAzureCredential') as mock_default:
+             patch('libs.utils.azure_credential_utils.AzureDeveloperCliCredential') as mock_azd_cred:
 
-            # Make both CLI credentials raise exceptions
             mock_cli_cred.side_effect = Exception("CLI credential failed")
             mock_azd_cred.side_effect = Exception("AZD credential failed")
-            mock_default_instance = Mock()
-            mock_default.return_value = mock_default_instance
 
-            credential = get_azure_credential()
+            with pytest.raises(RuntimeError) as exc:
+                get_azure_credential()
 
-            assert credential == mock_default_instance
-            mock_default.assert_called_once()
+            assert "No Azure authentication available" in str(exc.value)
 
     def test_get_azure_credential_azd_success(self, monkeypatch):
         """Test successful Azure Developer CLI credential"""

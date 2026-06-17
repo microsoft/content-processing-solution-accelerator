@@ -9,7 +9,6 @@ can be rendered with runtime context before constructing a ChatAgent.
 
 from typing import Any, Callable, MutableMapping, Sequence
 
-from agent_framework import ToolProtocol
 from jinja2 import Template
 from openai import BaseModel
 from pydantic import Field
@@ -36,10 +35,10 @@ class AgentInfo(BaseModel):
     agent_instruction: str | None = Field(default=None)
     agent_framework_helper: AgentFrameworkHelper | None = Field(default=None)
     tools: (
-        ToolProtocol
+        Any
         | Callable[..., Any]
         | MutableMapping[str, Any]
-        | Sequence[ToolProtocol | Callable[..., Any] | MutableMapping[str, Any]]
+        | Sequence[Any | Callable[..., Any] | MutableMapping[str, Any]]
         | None
     ) = Field(default=None)
 

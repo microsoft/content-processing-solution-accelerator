@@ -112,20 +112,14 @@ class SaveHandler(HandlerBase):
             )
         )
 
-        total_evaluated_fields_count = evaluated_result.confidence.get(
-            "total_evaluated_fields_count", 0
-        )
-        schema_score = (
-            0
-            if total_evaluated_fields_count == 0
-            else round(
-                (
-                    len(evaluated_result.comparison_result.items)
-                    - evaluated_result.confidence["zero_confidence_fields_count"]
-                )
-                / len(evaluated_result.comparison_result.items),
-                3,
-            )
+        # Compute the aggregate scores. Successful (Completed) processing
+        # always yields numeric scores: when probabilistic confidence is
+        # available (logprobs from non-reasoning models / Content Understanding
+        # signal) we use it; otherwise we fall back to a structural
+        # completeness score (fraction of expected fields actually filled).
+        # Failed runs and genuinely empty extractions remain at ``0.0``.
+        entity_score, schema_score, min_extracted_entity_score = (
+            self._derive_aggregate_scores(evaluated_result)
         )
 
         processed_result = ContentProcess(
@@ -143,11 +137,9 @@ class SaveHandler(HandlerBase):
                 self._current_message_context.data_pipeline.pipeline_status.creation_time,
                 "%Y-%m-%dT%H:%M:%S.%fZ",
             ),
-            entity_score=evaluated_result.confidence["overall_confidence"],
+            entity_score=entity_score,
             schema_score=schema_score,
-            min_extracted_entity_score=evaluated_result.confidence[
-                "min_extracted_field_confidence"
-            ],
+            min_extracted_entity_score=min_extracted_entity_score,
             prompt_tokens=evaluated_result.prompt_tokens,
             completion_tokens=evaluated_result.completion_tokens,
             target_schema=Schema.get_schema(
@@ -241,3 +233,85 @@ class SaveHandler(HandlerBase):
         # Format the total elapsed time as a string
         formatted_elapsed_time = f"{total_hours:02}:{total_minutes:02}:{total_seconds:02}.{total_milliseconds:03}"
         return formatted_elapsed_time
+
+    @staticmethod
+    def _is_filled_value(value: object) -> bool:
+        """Heuristic: does an extracted value count as "actually filled"?
+
+        Treats ``None``, empty strings, whitespace-only strings, and empty
+        containers as *not* filled. Recursively descends into dicts/lists so a
+        nested object that contains only nulls is still counted as empty.
+        """
+        if value is None:
+            return False
+        if isinstance(value, bool):
+            return True
+        if isinstance(value, str):
+            return value.strip() != ""
+        if isinstance(value, dict):
+            return any(SaveHandler._is_filled_value(v) for v in value.values())
+        if isinstance(value, (list, tuple, set)):
+            return any(SaveHandler._is_filled_value(v) for v in value)
+        return True
+
+    @staticmethod
+    def _derive_aggregate_scores(
+        evaluated_result: DataExtractionResult,
+    ) -> tuple[float, float, float]:
+        """Compute ``(entity_score, schema_score, min_extracted_entity_score)``.
+
+        Score selection order:
+
+        1. **Probabilistic confidence** — when the evaluate step produced
+           per-field confidence (``total_evaluated_fields_count > 0``), use the
+           probabilistic ``overall_confidence`` plus the ratio of
+           above-threshold fields. This is the highest-fidelity signal.
+
+        2. **Structural completeness fallback** — when no probabilistic
+           signal was produced (e.g. reasoning models like ``gpt-5``/``o1``/``o3``
+           don't return logprobs, and image-only flow has no Content
+           Understanding signal), but extraction still produced a comparison
+           table, score by *how much of the schema was actually filled*. This
+           replaces the old behaviour of falsely emitting ``0%`` for completed
+           runs that simply lacked logprobs.
+
+        3. **Zero** — only when there is literally no extraction data
+           (failed pipeline / genuinely empty result). Failed processing
+           continues to surface as ``0`` so the UI consistently renders
+           ``0%`` for failures and genuine zeros.
+        """
+        confidence = evaluated_result.confidence or {}
+        total_evaluated_fields_count = confidence.get(
+            "total_evaluated_fields_count", 0
+        )
+        comparison_items = (
+            evaluated_result.comparison_result.items
+            if evaluated_result.comparison_result is not None
+            else []
+        )
+
+        # Path 1: probabilistic confidence
+        if total_evaluated_fields_count > 0 and comparison_items:
+            zero_count = confidence.get("zero_confidence_fields_count", 0)
+            schema_score = round(
+                (len(comparison_items) - zero_count) / len(comparison_items),
+                3,
+            )
+            entity_score = float(confidence.get("overall_confidence") or 0.0)
+            min_extracted_entity_score = float(
+                confidence.get("min_extracted_field_confidence") or 0.0
+            )
+            return (entity_score, schema_score, min_extracted_entity_score)
+
+        # Path 2: structural completeness fallback
+        if comparison_items:
+            filled = sum(
+                1
+                for item in comparison_items
+                if SaveHandler._is_filled_value(item.Extracted)
+            )
+            ratio = round(filled / len(comparison_items), 3)
+            return (ratio, ratio, ratio)
+
+        # Path 3: nothing to score on
+        return (0.0, 0.0, 0.0)
