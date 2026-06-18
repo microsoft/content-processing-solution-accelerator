@@ -22,10 +22,8 @@ param storageAccountResourceId string
 @description('Name of the storage account.')
 param storageAccountName string
 
-@description('Managed identity configuration.')
-param identity object = {
-  systemAssigned: true
-}
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 @description('App settings as name-value pairs.')
 param appSettings array = []

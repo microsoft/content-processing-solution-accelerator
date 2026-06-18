@@ -25,8 +25,8 @@ param retentionInDays int = 365
 @description('SKU name for the workspace.')
 param skuName string = 'PerGB2018'
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 // ============================================================================
 // Resource

@@ -32,8 +32,8 @@ param skuCapacity int = 1
 @description('Enable zone redundancy. Requires Premium SKU (P1v3+).')
 param zoneRedundant bool = false
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 // ============================================================================
 // Resource Deployment

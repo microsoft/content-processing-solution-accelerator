@@ -40,8 +40,8 @@ param autoPauseDelay int = 60
 @description('Minimum capacity (vCores).')
 param minCapacity int = 1
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 // ============================================================================
 // Resource Deployment

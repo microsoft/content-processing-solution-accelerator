@@ -26,8 +26,8 @@ param disableLocalAuth bool = true
 @description('Key-value pairs to store in the configuration.')
 param keyValues array = []
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 // ============================================================================
 // Resource Deployment

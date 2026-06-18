@@ -29,8 +29,8 @@ param sourceId string = 'azure monitor'
 @description('Gallery category for the workbook. E.g., workbook, tsg.')
 param category string = 'workbook'
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 // ============================================================================
 // Resource

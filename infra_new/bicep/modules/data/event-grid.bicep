@@ -25,8 +25,8 @@ param topicType string
 @description('Event subscriptions to create on the system topic.')
 param eventSubscriptions array = []
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 // ============================================================================
 // Resource

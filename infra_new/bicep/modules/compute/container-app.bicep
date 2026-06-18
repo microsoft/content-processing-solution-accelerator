@@ -41,8 +41,8 @@ param registries array?
 @description('Secret definitions.')
 param secrets array?
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 @description('CORS policy configuration.')
 param corsPolicy object = {}

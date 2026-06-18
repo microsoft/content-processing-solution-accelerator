@@ -36,8 +36,8 @@ param osType string = 'Linux'
 @allowed(['Always', 'OnFailure', 'Never'])
 param restartPolicy string = 'Always'
 
-@description('Optional. Managed identities for the resource.')
-param identity object = { systemAssigned: true }
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 @description('Image registry credentials.')
 param imageRegistryCredentials array = []
