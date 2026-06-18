@@ -24,7 +24,7 @@ dependencies = [
     "python-dotenv==1.2.2",
     "tiktoken==0.12.0",
     "protobuf==6.33.6",
-    "pyjwt==2.12.1",
+    "pyjwt==2.13.0",
     "pyasn1==0.6.3",
 ]
 
