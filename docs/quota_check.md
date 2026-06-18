@@ -67,7 +67,7 @@ The final table lists regions with available quota. You can select any of these 
    **To check quota for the deployment**  
 
     ```sh
-    curl -L -o quota_check_params.sh "https://raw.githubusercontent.com/microsoft/content-processing-solution-accelerator/main/infra/scripts/quota_check_params.sh"
+    curl -L -o quota_check_params.sh "https://raw.githubusercontent.com/microsoft/content-processing-solution-accelerator/main/infra/scripts/pre-provision/quota_check_params.sh"
     chmod +x quota_check_params.sh
     ./quota_check_params.sh
     ```

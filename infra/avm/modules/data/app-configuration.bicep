@@ -62,6 +62,8 @@ var dnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
 
 var privateEndpointConfig = enablePrivateNetworking && !empty(privateEndpointSubnetId) ? [
   {
+    name: 'pep-appconfig-${solutionName}'
+    customNetworkInterfaceName: 'nic-appconfig-${solutionName}'
     subnetResourceId: privateEndpointSubnetId
     privateDnsZoneGroup: !empty(privateDnsZoneResourceIds) ? {
       privateDnsZoneGroupConfigs: dnsZoneConfigs

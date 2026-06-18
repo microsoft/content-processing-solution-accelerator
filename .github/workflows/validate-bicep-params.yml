@@ -38,7 +38,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set +e
-          python infra/scripts/validate_bicep_params.py --dir infra --strict --no-color \
+          python infra/scripts/utilities/validate_bicep_params.py --dir infra --strict --no-color \
             --json-output infra_results.json \
             --html-output email_body.html \
             --accelerator-name "${ACCELERATOR_NAME}" \

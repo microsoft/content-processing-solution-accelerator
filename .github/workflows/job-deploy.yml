@@ -335,9 +335,9 @@ jobs:
           GPT_MIN_CAPACITY: ${{ env.GPT_MIN_CAPACITY }}
           AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
-          chmod +x infra/scripts/checkquota.sh
-          if ! infra/scripts/checkquota.sh; then
-            if grep -q "No region with sufficient quota found" infra/scripts/checkquota.sh; then
+          chmod +x infra/scripts/pre-provision/checkquota.sh
+          if ! infra/scripts/pre-provision/checkquota.sh; then
+            if grep -q "No region with sufficient quota found" infra/scripts/pre-provision/checkquota.sh; then
               echo "QUOTA_FAILED=true" >> $GITHUB_ENV
             fi
             exit 1

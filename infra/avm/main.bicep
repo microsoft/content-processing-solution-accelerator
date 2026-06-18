@@ -1,6 +1,6 @@
 // ============================================================================
 // main.bicep — Orchestrator
-// Description: Pure orchestrator for Agentic Applications for UDF
+// Description: Pure orchestrator for Content Processing solution. Calls modules to deploy resources.
 //              All resource names are derived from params — no hardcoded names.
 //              This file only calls modules; no inline resource definitions.
 //              Supports WAF-aligned deployment via feature flags.
@@ -12,26 +12,40 @@ targetScope = 'resourceGroup'
 // ============================================================================
 
 @minLength(3)
-@maxLength(20)
+@maxLength(16)
 @description('Optional. A unique application/solution name used as base for all resource naming.')
-param solutionName string = 'agenticappudf'
+param solutionName string = 'cps'
 
 @maxLength(5)
 @description('Optional. A unique text suffix appended to resource names for uniqueness.')
 param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
-@description('Optional. Primary Azure region for resource deployment.')
-param location string = resourceGroup().location
+@metadata({ azd: { type: 'location' } })
+@description('Required. Azure region for all services. Regions are restricted to guarantee compatibility with paired regions and replica locations for data redundancy and failover scenarios based on articles [Azure regions list](https://learn.microsoft.com/azure/reliability/regions-list) and [Azure Database for MySQL Flexible Server - Azure Regions](https://learn.microsoft.com/azure/mysql/flexible-server/overview#azure-regions).')
+@allowed(['australiaeast', 'centralus', 'eastasia', 'eastus2', 'japaneast', 'northeurope', 'southeastasia', 'swedencentral', 'uksouth'])
+param location string
+
+@allowed(['australiaeast', 'eastus', 'eastus2', 'japaneast', 'southcentralus', 'southeastasia', 'swedencentral', 'uksouth', 'westeurope', 'westus', 'westus3'])
+@metadata({
+  azd:{
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt-5.1,300'
+    ]
+  }
+})
+@description('Required. Location for AI Foundry and model deployments.')
+param azureAiServiceLocation string
+
+// ============================================================================
+// Parameters — WAF Feature Flags
+// ============================================================================
 
 @description('Optional. Tags to apply to all resources.')
 param tags object = {}
 
 @description('Optional. Enable/Disable usage telemetry for AVM modules.')
 param enableTelemetry bool = true
-
-// ============================================================================
-// Parameters — WAF Feature Flags
-// ============================================================================
 
 @description('Optional. Enable monitoring for applicable resources, aligned with the Well Architected Framework recommendations. Defaults to false.')
 param enableMonitoring bool = false
@@ -64,116 +78,29 @@ param vmSize string = 'Standard_D2s_v5'
 // Parameters — AI Configuration
 // ============================================================================
 
-@allowed([
-  'australiaeast'
-  'eastus'
-  'eastus2'
-  'francecentral'
-  'japaneast'
-  'swedencentral'
-  'uksouth'
-  'westus'
-  'westus3'
-])
-@metadata({
-  azd: {
-    type: 'location'
-    usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
-      'OpenAI.GlobalStandard.text-embedding-3-small,80'
-    ]
-  }
-})
-@description('Required. Location for AI Services and model deployments.')
-param azureAiServiceLocation string
-
 @allowed(['Standard', 'GlobalStandard'])
 @description('Optional. GPT model deployment type.')
 param deploymentType string = 'GlobalStandard'
 
 @description('Optional. Name of the GPT model to deploy.')
-param gptModelName string = 'gpt-4.1-mini'
+param gptModelName string = 'gpt-5.1'
 
 @description('Optional. Version of the GPT model to deploy.')
-param gptModelVersion string = '2025-04-14'
+param gptModelVersion string = '2025-11-13'
 
 @minValue(10)
 @description('Optional. Capacity of the GPT deployment (TPM in thousands).')
-param gptDeploymentCapacity int = 150
-
-@description('Optional. Name of the embedding model to deploy.')
-@allowed(['text-embedding-3-small'])
-param embeddingModel string = 'text-embedding-3-small'
-
-@minValue(10)
-@description('Optional. Capacity of the embedding model deployment.')
-param embeddingDeploymentCapacity int = 80
-
-@description('Optional. Azure OpenAI API version.')
-param azureOpenaiAPIVersion string = '2025-01-01-preview'
-
-@description('Optional. Azure AI Agent API version.')
-param azureAiAgentApiVersion string = '2025-05-01'
+param gptDeploymentCapacity int = 300
 
 // ============================================================================
 // Parameters — Compute
 // ============================================================================
 
-@description('Optional. Docker image tag for app deployments.')
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
+param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
+
+@description('Optional. The image tag for the container images.')
 param imageTag string = 'latest_v2'
-
-@description('Optional. Name of the Azure Container Registry.')
-param containerRegistryName string = 'dataagentscontainerreg'
-
-@allowed(['python', 'dotnet'])
-@description('Optional. Backend runtime stack.')
-param backendRuntimeStack string = 'python'
-
-@allowed(['F1', 'D1', 'B1', 'B2', 'B3', 'S1', 'S2', 'S3', 'P1', 'P2', 'P3', 'P1v3', 'P1v4'])
-@description('Optional. App Service Plan SKU.')
-param appServicePlanSku string = 'B2'
-
-// ============================================================================
-// Parameters — Feature Flags
-// ============================================================================
-
-@description('Optional. Deploy application components (API, Frontend, Cosmos DB).')
-param deployApp bool = true
-
-@description('Optional. Enable chat history storage.')
-param useChatHistoryEnabled bool = true
-
-@description('Optional. Enable user access token forwarding.')
-param useUserAccessToken bool = false
-
-// ============================================================================
-// Parameters — Fabric Capacity
-// ============================================================================
-
-@description('Optional. Set to true to auto-create a Fabric workspace during post-provision. When false, capacity creation is skipped.')
-param createFabricWorkspace bool = false
-
-@description('Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created when conditions are met.')
-param azureFabricCapacityName string = ''
-
-@allowed([
-  'F2'
-  'F4'
-  'F8'
-  'F16'
-  'F32'
-  'F64'
-  'F128'
-  'F256'
-  'F512'
-  'F1024'
-  'F2048'
-])
-@description('Optional. SKU tier of the Fabric capacity resource.')
-param fabricCapacitySku string = 'F2'
-
-@description('Optional. Additional user/service principal object IDs to assign as Fabric Capacity admins.')
-param fabricAdminMembers array = []
 
 // ============================================================================
 // Parameters — Existing Resources
@@ -194,16 +121,6 @@ param existingFoundryProjectResourceId string = ''
 param deployingUserPrincipalType string = 'User'
 
 // ============================================================================
-// Parameters — App Configuration
-// ============================================================================
-
-@description('Optional. Primary title in the web app header.')
-param appTitlePrimary string = 'Contoso'
-
-@description('Optional. Secondary title in the web app header.')
-param appTitleSecondary string = '| Unified Data Analysis Agents'
-
-// ============================================================================
 // Variables
 // ============================================================================
 
@@ -211,97 +128,70 @@ var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replac
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
-var shouldDeployApp = deployApp
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
-var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
-var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 
-// Fabric Capacity: create when createFabricWorkspace=true and no existing capacity provided
-var useExistingFabricCapacity = !empty(azureFabricCapacityName)
-var shouldCreateFabricCapacity = createFabricWorkspace && !useExistingFabricCapacity
-var fabricCapacityResourceName = useExistingFabricCapacity ? azureFabricCapacityName : 'fc${solutionSuffix}'
-var fabricCapacityDefaultAdmins = contains(deployerInfo, 'userPrincipalName')
-  ? [deployerInfo.userPrincipalName]
-  : [deployerInfo.objectId]
-var fabricTotalAdminMembers = union(fabricCapacityDefaultAdmins, fabricAdminMembers)
-
-// Tags: merge caller-supplied tags with standard metadata (matching old infra)
+// ========== Tags: merge caller-supplied tags with standard metadata (matching old infra) ========== //
 var existingTags = resourceGroup().tags ?? {}
 var resourceTags = union(existingTags, tags, {
-  TemplateName: 'Unified Data Analysis Agents'
+  TemplateName: 'Content Processing Solution Accelerator'
   CreatedBy: createdBy
   DeploymentName: deployment().name
   Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
 })
 
-// WAF: Region pairs for redundancy (Log Analytics replication)
+// ========== WAF: Region pairs for redundancy (Log Analytics replication) ========== //
 var replicaRegionPairs = {
   australiaeast: 'australiasoutheast'
+  centralus: 'westus'
+  eastasia: 'japaneast'
   eastus: 'centralus'
   eastus2: 'centralus'
-  francecentral: 'westeurope'
   japaneast: 'eastasia'
+  northeurope: 'westeurope'
+  southeastasia: 'eastasia'
   swedencentral: 'northeurope'
   uksouth: 'westeurope'
-  westus: 'centralus'
-  westus3: 'centralus'
+  westeurope: 'northeurope'
 }
 var replicaLocation = replicaRegionPairs[location]
 
-// WAF: Region pairs for Cosmos DB zone-redundant HA
-var cosmosDbHaRegionPairs = {
-  australiaeast: 'uksouth'
-  eastus: 'centralus'
-  eastus2: 'centralus'
-  francecentral: 'westeurope'
-  japaneast: 'australiaeast'
-  swedencentral: 'northeurope'
-  uksouth: 'westeurope'
-  westus: 'centralus'
-  westus3: 'centralus'
-}
-var cosmosDbHaLocation = cosmosDbHaRegionPairs[location]
-
-// WAF: Diagnostic settings helper — reused across modules
+// ========== WAF: Diagnostic settings helper — reused across modules ========== //
 var monitoringDiagnosticSettings = enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : []
 
-// WAF: Private DNS zones for private endpoints
+// ========== WAF: Private DNS zones for private endpoints ========== //
 var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
   'privatelink.openai.azure.com'
   'privatelink.services.ai.azure.com'
-  'privatelink.documents.azure.com'
-  'privatelink.blob.core.windows.net'
-  'privatelink.search.windows.net'
-  'privatelink.database.windows.net'
+  'privatelink.contentunderstanding.ai.azure.com'
+  'privatelink.blob.${environment().suffixes.storage}'
+  'privatelink.queue.${environment().suffixes.storage}'
+  'privatelink.mongo.cosmos.azure.com'
+  'privatelink.azconfig.io'
+  'privatelink.azurecr.io'
 ]
 var dnsZoneIndex = {
   cognitiveServices: 0
   openAI: 1
-  aiFoundry: 2
-  cosmosDb: 3
-  blob: 4
-  search: 5
-  sqlServer: 6
+  aiServices: 2
+  contentUnderstanding: 3
+  storageBlob: 4
+  storageQueue: 5
+  cosmosDB: 6
+  appConfig: 7
+  containerRegistry: 8
 }
 
-// Resource naming (parameterized — no abbreviations.json dependency)
+// ========== Resource naming (parameterized — no abbreviations.json dependency) ========== //
 // Resource names for generic modules are now derived inside each module from solutionName/solutionSuffix.
 
-// Model deployments configuration
+// ========== Model deployments configuration ========== //
 var aiModelDeployments = [
   {
     name: gptModelName
     model: gptModelName
     sku: { name: deploymentType, capacity: gptDeploymentCapacity }
     version: gptModelVersion
-    raiPolicyName: 'Microsoft.Default'
-  }
-  {
-    name: embeddingModel
-    model: embeddingModel
-    sku: { name: 'GlobalStandard', capacity: embeddingDeploymentCapacity }
-    version: '1'
     raiPolicyName: 'Microsoft.Default'
   }
 ]
@@ -318,22 +208,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
 }
 
 // ============================================================================
-// Module: Fabric Capacity
-// ============================================================================
-
-module fabricCapacity './modules/fabric/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
-  name: take('module.fabric-capacity.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: location
-    skuName: fabricCapacitySku
-    adminMembers: fabricTotalAdminMembers
-    tags: resourceTags
-    enableTelemetry: enableTelemetry
-  }
-}
-
-// ============================================================================
 // Module: Monitoring
 // ============================================================================
 
@@ -345,6 +219,7 @@ resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces
   scope: resourceGroup(split(existingLogAnalyticsWorkspaceId, '/')[2], split(existingLogAnalyticsWorkspaceId, '/')[4])
 }
 
+ //  ========== Log Analytics Workspace module ========== //
 module log_analytics './modules/monitoring/log-analytics.bicep' = if (enableMonitoring && !useExistingLogAnalytics) {
   name: take('module.log-analytics.${solutionName}', 64)
   params: {
@@ -374,11 +249,16 @@ module log_analytics './modules/monitoring/log-analytics.bicep' = if (enableMoni
         name: 'windowsPerfCounter1'
         objectName: 'Processor'
       }
+      {
+        kind: 'IISLogs'
+        name: 'sampleIISLog1'
+        state: 'OnPremiseEnabled'
+      }
     ] : []
   }
 }
 
-// Resolve workspace resource ID and name — existing or new
+// ========== Resolve workspace resource ID and name — existing or new ========== //
 var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
   ? existingLogAnalyticsWorkspace.id
   : (enableMonitoring ? log_analytics!.outputs.resourceId : '')
@@ -386,6 +266,7 @@ var logAnalyticsWorkspaceName = useExistingLogAnalytics
   ? split(existingLogAnalyticsWorkspaceId, '/')[8]
   : (enableMonitoring ? log_analytics!.outputs.name : '')
 
+// ========== App Insights module ========== //
 module app_insights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
   name: take('module.app-insights.${solutionName}', 64)
   params: {
@@ -407,7 +288,7 @@ module virtualNetwork './modules/networking/virtual-network.bicep' = if (enableP
   name: take('module.virtual-network.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    location: location
+        location: location
     tags: tags
     enableTelemetry: enableTelemetry
     addressPrefixes: ['10.0.0.0/8']
@@ -416,7 +297,7 @@ module virtualNetwork './modules/networking/virtual-network.bicep' = if (enableP
   }
 }
 
-// Bastion Host — secure access to jumpbox VM
+// ========== Bastion Host — secure access to jumpbox VM ========== //
 module bastionHost './modules/networking/bastion-host.bicep' = if (enablePrivateNetworking) {
   name: take('module.bastion-host.${solutionName}', 64)
   params: {
@@ -426,11 +307,24 @@ module bastionHost './modules/networking/bastion-host.bicep' = if (enablePrivate
     enableTelemetry: enableTelemetry
     virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
     publicIPDiagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            name: 'bastionDiagnostics'
+            workspaceResourceId: logAnalyticsWorkspaceResourceId
+            logCategoriesAndGroups: [
+              {
+                categoryGroup: 'allLogs'
+                enabled: true
+              }
+            ]
+          }
+        ]
+      : null
   }
 }
 
-// WAF: Maintenance Configuration for VM patching
+// ========== WAF: Maintenance Configuration for VM patching ========== //
 module maintenanceConfiguration './modules/compute/maintenance-configuration.bicep' = if (enablePrivateNetworking) {
   name: take('module.maintenance-configuration.${solutionName}', 64)
   params: {
@@ -441,7 +335,7 @@ module maintenanceConfiguration './modules/compute/maintenance-configuration.bic
   }
 }
 
-// WAF: Data Collection Rules for VM monitoring
+// ========== WAF: Data Collection Rules for VM monitoring ========== //
 var dataCollectionRulesLocation = useExistingLogAnalytics
   ? existingLogAnalyticsWorkspace!.location
   : (enableMonitoring ? log_analytics!.outputs.location : location)
@@ -456,7 +350,7 @@ module windowsVmDataCollectionRules './modules/monitoring/data-collection-rule.b
   }
 }
 
-// WAF: Proximity Placement Group for VM
+// ========== WAF: Proximity Placement Group for VM ========== //
 var virtualMachineAvailabilityZone = 1
 module proximityPlacementGroup './modules/compute/proximity-placement-group.bicep' = if (enablePrivateNetworking) {
   name: take('module.proximity-placement-group.${solutionName}', 64)
@@ -470,8 +364,8 @@ module proximityPlacementGroup './modules/compute/proximity-placement-group.bice
   }
 }
 
-// Jumpbox VM — administration access when private networking is enabled
-// Login is via Microsoft Entra ID through Azure Bastion (not local credentials)
+// ========== Jumpbox VM — administration access when private networking is enabled ========== //
+// ========== Login is via Microsoft Entra ID through Azure Bastion (not local credentials) ========== //
 module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePrivateNetworking) {
   name: take('module.virtual-machine.${solutionName}', 64)
   params: {
@@ -509,7 +403,7 @@ module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePriv
   }
 }
 
-// Private DNS Zones — one per service, linked to VNet
+// ========== Private DNS Zones — one per service, linked to VNet ========== //
 @batchSize(5)
 module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
@@ -528,11 +422,74 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
   }
 ]
 
+// // ========== Container Registry ========== //
+// module containerRegistry './modules/compute/container-registry.bicep' = {
+//   name: take('module.container-registry.${solutionSuffix}', 64)
+//   params: {
+//     solutionName: solutionSuffix
+//     name: 'cr${replace(solutionSuffix, '-', '')}'
+//     location: location
+//     sku: enableRedundancy || enablePrivateNetworking ? 'Premium' : 'Standard'
+//     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+//     tags: tags
+//     enableTelemetry: enableTelemetry
+//     enablePrivateNetworking: enablePrivateNetworking
+//     privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+//     privateDnsZoneResourceIds: enablePrivateNetworking
+//       ? [privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId]
+//       : []
+//   }
+// }
+
+// // ========== Storage Account ========== //
+module storage_account './modules/data/storage-account.bicep' = {
+  name: take('module.storage-account.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: tags
+    enableHierarchicalNamespace: true
+    enableTelemetry: enableTelemetry
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    diagnosticSettings: monitoringDiagnosticSettings
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.storageBlob]!.outputs.resourceId
+      privateDnsZoneDeployments[dnsZoneIndex.storageQueue]!.outputs.resourceId
+    ] : []
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
+      virtualNetworkRules: []
+    }
+  }
+}
+
+// ========== Cosmos DB module ========== //
+module cosmosDB './modules/data/cosmos-db-mongo.bicep' = {
+  name: take('module.cosmos-db-mongo.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    zoneRedundant: enableRedundancy
+    enableAutomaticFailover: enableRedundancy
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.cosmosDB]!.outputs.resourceId
+    ] : []
+  }
+}
+
 // ============================================================================
 // Module: AI Services (conditional — skip if using existing project)
 // ============================================================================
 
-// Existing AI Foundry reference (for cross-subscription support when using existing project)
+// ========== Existing AI Foundry reference (for cross-subscription support when using existing project) ========== //
 var aiFoundryResourceGroupName = useExistingAIProject
   ? split(existingFoundryProjectResourceId, '/')[4]
   : resourceGroup().name
@@ -546,7 +503,7 @@ var aiProjectResourceName = useExistingAIProject
   ? (length(split(existingFoundryProjectResourceId, '/')) > 10 ? split(existingFoundryProjectResourceId, '/')[10] : '')
   : ai_foundry_project!.outputs.projectName
 
-// Reference existing AI Foundry project (reads runtime properties: endpoints, identities)
+// ========== Reference existing AI Foundry project (identity only) ========== //
 module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExistingAIProject) {
   name: take('module.existing-project-setup.${solutionName}', 64)
   scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
@@ -556,7 +513,7 @@ module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (
   }
 }
 
-// Deploy new AI Services account + AI Foundry project (no connections, no deployments)
+// ========== Deploy new AI Services account + AI Foundry project (no connections, no deployments) ========== //
 module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIProject) {
   name: take('module.ai-foundry-project.${solutionName}', 64)
   params: {
@@ -564,8 +521,7 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExis
     location: azureAiServiceLocation
     tags: tags
     enableTelemetry: enableTelemetry
-    // Temporarily public — AI Search Knowledge Base needs to call the AI Services model endpoint for answer synthesis.
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enableMonitoring ? 'Disabled' : 'Enabled'
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
     roleAssignments: [
       {
@@ -582,64 +538,7 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExis
   }
 }
 
-// AI Search connection (single call for both existing and new paths)
-module foundry_search_connection './modules/ai/ai-foundry-connection.bicep' = {
-  name: take('module.foundry-search-conn.${solutionName}', 64)
-  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
-  params: {
-    solutionName: solutionSuffix
-    aiServicesAccountName: aiFoundryResourceName
-    projectName: aiProjectResourceName
-    category: 'CognitiveSearch'
-    target: ai_search!.outputs.endpoint
-    authType: 'AAD'
-    metadata: {
-      ApiType: 'Azure'
-      ResourceId: ai_search!.outputs.resourceId
-    }
-  }
-}
-
-// Storage Blob connection (single call for both existing and new paths)
-module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
-  name: take('module.foundry-storage-conn.${solutionName}', 64)
-  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
-  params: {
-    solutionName: solutionSuffix
-    aiServicesAccountName: aiFoundryResourceName
-    projectName: aiProjectResourceName
-    category: 'AzureBlob'
-    target: storage_account!.outputs.blobEndpoint
-    authType: 'AAD'
-    metadata: {
-      ResourceId: storage_account!.outputs.resourceId
-      AccountName: storage_account!.outputs.name
-      ContainerName: 'default'
-    }
-  }
-}
-
-// Application Insights connection (skip if using existing Foundry project which already has one)
-module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (enableMonitoring && !useExistingAIProject) {
-  name: take('module.foundry-appi-conn.${solutionName}', 64)
-  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
-  params: {
-    solutionName: solutionSuffix
-    aiServicesAccountName: aiFoundryResourceName
-    projectName: aiProjectResourceName
-    category: 'AppInsights'
-    target: app_insights!.outputs.resourceId
-    authType: 'ApiKey'
-    isDefault: true
-    credentialsKey: app_insights!.outputs.instrumentationKey
-    metadata: {
-      ApiType: 'Azure'
-      ResourceId: app_insights!.outputs.resourceId
-    }
-  }
-}
-
-// Model deployments (single loop for both existing and new paths)
+// ========== Model deployments (single loop for both existing and new paths) ========== //
 @batchSize(1)
 module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in aiModelDeployments: {
   name: take('module.model-deployment-${i}.${solutionName}', 64)
@@ -655,404 +554,888 @@ module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for
   }
 }]
 
-// Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition
-// module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
-//   name: take('module.pe-ai-foundry.${solutionName}', 64)
-//   dependsOn: [privateDnsZoneDeployments]
+// ========== Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition ========== //
+module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
+  name: take('module.pe-ai-foundry.${solutionName}', 64)
+  dependsOn: [model_deployments,privateDnsZoneDeployments]
+  params: {
+    name: 'pep-aif-${solutionSuffix}'
+    location: location
+    tags: tags
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+    customNetworkInterfaceName: 'nic-aif-${solutionSuffix}'
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aif-${solutionSuffix}-connection'
+        properties: {
+          privateLinkServiceId: ai_foundry_project!.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'ai-services-dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-openai'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-aiservices'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiServices]!.outputs.resourceId
+        }
+        {
+          name: 'ai-services-dns-zone-contentunderstanding'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.contentUnderstanding]!.outputs.resourceId
+        }
+      ]
+    }
+  }
+}
+
+// ========== Container App Environment ========== //
+module containerAppEnv './modules/compute/container-app-environment.bicep' = {
+  name: take('module.container-app-environment.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: {
+      ...resourceGroup().tags
+      ...tags
+    }
+    workloadProfiles: [
+      {
+        name: 'Consumption'
+        workloadProfileType: 'Consumption'
+      }
+    ]
+    enableTelemetry: enableTelemetry
+    enableMonitoring: enableMonitoring
+    // platformReservedCidr: '172.17.17.0/24'
+    // platformReservedDnsIP: '172.17.17.17'
+    zoneRedundant: (enablePrivateNetworking) ? true : false
+    infrastructureSubnetId: (enablePrivateNetworking) ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : null
+  }
+}
+
+// // ========== Container App  ========== //
+// module containerApp './modules/compute/container-app.bicep' = {
+//   name: take('module.container-app.${solutionSuffix}', 64)
 //   params: {
-//     name: 'pep-aif-${solutionSuffix}'
+//     name: 'ca-app-${solutionSuffix}'
 //     location: location
+//     environmentResourceId: containerAppEnv.outputs.resourceId
 //     tags: tags
-//     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-//     privateLinkServiceConnections: [
+//     enableTelemetry: enableTelemetry
+//     workloadProfileName: 'Consumption'
+//     containers: [
 //       {
-//         name: 'pep-aif-${solutionSuffix}'
-//         properties: {
-//           privateLinkServiceId: ai_foundry_project!.outputs.resourceId
-//           groupIds: ['account']
+//         name: 'ca-${solutionSuffix}'
+//         image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
+
+//         resources: {
+//           cpu: 4
+//           memory: '8.0Gi'
 //         }
+//         env: [
+//           {
+//             name: 'APP_CONFIG_ENDPOINT'
+//             value: ''
+//           }
+//           {
+//             name: 'APP_ENV'
+//             value: 'prod'
+//           }
+//           {
+//             name: 'APP_LOGGING_LEVEL'
+//             value: 'INFO'
+//           }
+//           {
+//             name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+//             value: 'WARNING'
+//           }
+//           {
+//             name: 'AZURE_LOGGING_PACKAGES'
+//             value: ''
+//           }
+//           {
+//             name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+//             value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+//           }
+//           {
+//             name: 'OTEL_SERVICE_NAME'
+//             value: 'ContentProcessor'
+//           }
+//         ]
 //       }
 //     ]
-//     privateDnsZoneGroup: {
-//       privateDnsZoneGroupConfigs: [
-//         {
-//           name: 'dns-zone-cognitiveservices'
-//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-//         }
-//         {
-//           name: 'dns-zone-openai'
-//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
-//         }
-//         {
-//           name: 'dns-zone-aifoundry'
-//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
-//         }
-//       ]
+//     scaleSettings: {
+//       maxReplicas: enableScalability ? 3 : 2
+//       minReplicas: enableScalability ? 2 : 1
 //     }
+//     // roleAssignments: [
+//     //   {
+//     //     roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
+//     //     principalId: deployingUserPrincipalId
+//     //     principalType: deployingUserPrincipalType
+//     //   }
+//     // ]
 //   }
 // }
 
-// ========== AI outputs (ternary: existing vs new) ========== //
-var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
-var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
-var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
-var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.projectName : ai_foundry_project!.outputs.projectName
-var aiFoundryResourceId = useExistingAIProject ? existing_project_setup!.outputs.resourceId : ai_foundry_project!.outputs.resourceId
-var aiProjectPrincipalId = useExistingAIProject ? existing_project_setup!.outputs.projectIdentityPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
-var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
-
-module ai_search './modules/ai/ai-search.bicep' = {
-  name: take('module.ai-search.${solutionName}', 64)
+// ========== Container App API ========== //
+module containerApp_API './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-api.${solutionSuffix}', 64)
   params: {
-    solutionName: solutionSuffix
+    name: 'ca-api-${solutionSuffix}'
     location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
     tags: tags
     enableTelemetry: enableTelemetry
-    // Temporarily public — Foundry Agent runtime runs outside the VNET and cannot resolve private DNS for AI Search.
-    publicNetworkAccess: 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
-        principalId: deployingUserPrincipalId
-        principalType: deployingUserPrincipalType
-      }
-      {
-        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor
-        principalId: deployingUserPrincipalId
-        principalType: deployingUserPrincipalType
-      }
-    ]
-    // Temporarily no private endpoint — Foundry Agent cannot resolve private DNS for AI Search.
-    privateEndpoints: []
-  }
-}
-
-// ============================================================================
-// Module: Data 
-// ============================================================================
-
-module storage_account './modules/data/storage-account.bicep' = {
-  name: take('module.storage-account.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: azureAiServiceLocation
-    tags: tags
-    enableTelemetry: enableTelemetry
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
+    workloadProfileName: 'Consumption'
     containers: [
-      { name: 'default', publicAccess: 'None' }
-    ]
-    roleAssignments: [
       {
-        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
-        principalId: deployingUserPrincipalId
-        principalType: deployingUserPrincipalType
+        name: 'ca-${solutionSuffix}-api'
+        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: ''
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
+          {
+            name: 'APP_LOGGING_LEVEL'
+            value: 'INFO'
+          }
+          {
+            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+            value: 'WARNING'
+          }
+          {
+            name: 'AZURE_LOGGING_PACKAGES'
+            value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorAPI'
+          }
+        ]
+        probes: [
+          // Liveness Probe - Checks if the app is still running
+          {
+            type: 'Liveness'
+            httpGet: {
+              path: '/startup' // Your app must expose this endpoint
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+          // Readiness Probe - Checks if the app is ready to receive traffic
+          {
+            type: 'Readiness'
+            httpGet: {
+              path: '/startup'
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+          {
+            type: 'Startup'
+            httpGet: {
+              path: '/startup'
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 20 // Wait 10s before checking
+            periodSeconds: 5 // Check every 15s
+            failureThreshold: 10 // Restart if it fails 5 times
+          }
+        ]
       }
     ]
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
-    ] : []
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+      rules: [
+        {
+          name: 'http-scaler'
+          http: {
+            metadata: {
+              concurrentRequests: '100'
+            }
+          }
+        }
+      ]
+    }
+    corsPolicy: {
+      allowedOrigins: [
+        '*'
+      ]
+      allowedMethods: [
+        'GET'
+        'POST'
+        'PUT'
+        'DELETE'
+        'OPTIONS'
+      ]
+      allowedHeaders: [
+        'Authorization'
+        'Content-Type'
+        '*'
+      ]
+    }
   }
 }
 
-module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployApp) {
-  name: take('module.cosmos-db-nosql.${solutionName}', 64)
+//========== Container App Web ========== //
+module containerApp_Web './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-web.${solutionSuffix}', 64)
   params: {
-    solutionName: solutionSuffix
+    name: 'ca-web-${solutionSuffix}'
     location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
     tags: tags
     enableTelemetry: enableTelemetry
-    databaseName: 'db_conversation_history'
+    workloadProfileName: 'Consumption'
+    ingressTargetPort: 3000
     containers: [
-      { name: 'conversations', partitionKeyPath: '/userId' }
+      {
+        name: 'ca-${solutionSuffix}-web'
+        image: '${containerRegistryEndpoint}/contentprocessorweb:${imageTag}'
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_API_BASE_URL'
+            value: 'https://${containerApp_API.outputs.fqdn}'
+          }
+          {
+            name: 'APP_WEB_CLIENT_ID'
+            value: '<APP_REGISTRATION_CLIENTID>'
+          }
+          {
+            name: 'APP_WEB_AUTHORITY'
+            value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
+          }
+          {
+            name: 'APP_WEB_SCOPE'
+            value: '<FRONTEND_API_SCOPE>'
+          }
+          {
+            name: 'APP_API_SCOPE'
+            value: '<BACKEND_API_SCOPE>'
+          }
+          {
+            name: 'APP_REDIRECT_URL'
+            value: '/'
+          }
+          {
+            name: 'APP_POST_REDIRECT_URL'
+            value: '/'
+          }
+          {
+            name: 'APP_CONSOLE_LOG_ENABLED'
+            value: 'false'
+          }
+        ]
+      }
     ]
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
-    zoneRedundant: enableRedundancy
-    enableAutomaticFailover: enableRedundancy
-    haLocation: cosmosDbHaLocation
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
-    ] : []
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+      rules: [
+        {
+          name: 'http-scaler'
+          http: {
+            metadata: {
+              concurrentRequests: '100'
+            }
+          }
+        }
+      ]
+    }
   }
 }
 
-// ============================================================================
-// Module: Compute
-// ============================================================================
+// ========== Container App Workflow ========== //
+module containerApp_Workflow './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-workflow.${solutionSuffix}', 64)
+  params: {
+    name: 'ca-workflow-${solutionSuffix}'
+    location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
+    tags: tags
+    enableTelemetry: enableTelemetry
+    workloadProfileName: 'Consumption'
+    containers: [
+      {
+        name: 'ca-${solutionSuffix}-wkfl'
+        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: ''
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
+          {
+            name: 'APP_LOGGING_LEVEL'
+            value: 'INFO'
+          }
+          {
+            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+            value: 'WARNING'
+          }
+          {
+            name: 'AZURE_LOGGING_PACKAGES'
+            value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorWorkflow'
+          }
+        ]
+      }
+    ]
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+    }
+  }
+}
 
-module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeployApp) {
-  name: take('module.app-service-plan.${solutionName}', 64)
+
+// ========== App Configuration ========== //
+module appConfig './modules/data/app-configuration.bicep' = {
+  name: take('module.app-configuration.${solutionSuffix}', 64)
   params: {
     solutionName: solutionSuffix
     location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    skuName: (enableScalability || enableRedundancy) ? 'P1v4' : appServicePlanSku
-    skuCapacity: enableScalability ? 3 : 1
-    zoneRedundant: enableRedundancy
-    diagnosticSettings: monitoringDiagnosticSettings
+    keyValues: [
+      {
+        name: 'APP_AZURE_OPENAI_ENDPOINT'
+        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
+      }
+      {
+        name: 'APP_AZURE_OPENAI_MODEL'
+        value: gptModelName
+      }
+      {
+        name: 'APP_CONTENT_UNDERSTANDING_ENDPOINT'
+        value: ai_foundry_project!.outputs.azureOpenAiCuEndpoint
+      }
+      {
+        name: 'APP_COSMOS_CONTAINER_PROCESS'
+        value: 'Processes'
+      }
+      {
+        name: 'APP_COSMOS_CONTAINER_SCHEMA'
+        value: 'Schemas'
+      }
+      {
+        name: 'APP_COSMOS_DATABASE'
+        value: 'ContentProcess'
+      }
+      {
+        name: 'APP_CPS_CONFIGURATION'
+        value: 'cps-configuration'
+      }
+      {
+        name: 'APP_CPS_MAX_FILESIZE_MB'
+        value: '20'
+      }
+      {
+        name: 'APP_CPS_PROCESSES'
+        value: 'cps-processes'
+      }
+      {
+        name: 'APP_MESSAGE_QUEUE_EXTRACT'
+        value: 'content-pipeline-extract-queue'
+      }
+      {
+        name: 'APP_MESSAGE_QUEUE_INTERVAL'
+        value: '5'
+      }
+      {
+        name: 'APP_MESSAGE_QUEUE_PROCESS_TIMEOUT'
+        value: '180'
+      }
+      {
+        name: 'APP_MESSAGE_QUEUE_VISIBILITY_TIMEOUT'
+        value: '10'
+      }
+      {
+        name: 'APP_PROCESS_STEPS'
+        value: 'extract,map,evaluate,save'
+      }
+      {
+        name: 'APP_STORAGE_BLOB_URL'
+        value: storage_account.outputs.serviceEndpoints.blob
+      }
+      {
+        name: 'APP_STORAGE_QUEUE_URL'
+        value: storage_account.outputs.serviceEndpoints.queue
+      }
+      {
+        name: 'APP_AI_PROJECT_ENDPOINT'
+        value: ai_foundry_project!.outputs.projectEndpoint
+      }
+      {
+        name: 'APP_COSMOS_CONNSTR'
+        value: cosmosDB.outputs.connectionString
+      }
+      // ===== v2 Workflow Keys ===== //
+      {
+        name: 'APP_COSMOS_CONTAINER_BATCH_PROCESS'
+        value: 'claimprocesses'
+      }
+      {
+        name: 'APP_COSMOS_CONTAINER_BATCHES'
+        value: 'batches'
+      }
+      {
+        name: 'APP_COSMOS_CONTAINER_SCHEMASET'
+        value: 'Schemasets'
+      }
+      {
+        name: 'APP_CPS_PROCESS_BATCH'
+        value: 'process-batch'
+      }
+      {
+        name: 'APP_CPS_CONTENT_PROCESS_ENDPOINT'
+        value: 'http://${containerApp_API.outputs.name}/'
+      }
+      {
+        name: 'APP_CPS_POLL_INTERVAL_SECONDS'
+        value: '3'
+      }
+      {
+        name: 'APP_STORAGE_ACCOUNT_NAME'
+        value: storage_account.outputs.name
+      }
+      {
+        name: 'CLAIM_PROCESS_QUEUE_NAME'
+        value: 'claim-process-queue'
+      }
+      {
+        name: 'DEAD_LETTER_QUEUE_NAME'
+        value: 'claim-process-dead-letter-queue'
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: ai_foundry_project!.outputs.endpoint
+      }
+      {
+        name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME'
+        value: gptModelName
+      }
+      {
+        name: 'AZURE_OPENAI_API_VERSION'
+        value: '2025-03-01-preview'
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT_BASE'
+        value: ai_foundry_project!.outputs.endpoint
+      }
+      // ===== Agent Framework Keys ===== //
+      {
+        name: 'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME'
+        value: ''
+      }
+      {
+        name: 'AZURE_AI_AGENT_PROJECT_CONNECTION_STRING'
+        value: ''
+      }
+      {
+        name: 'AZURE_TRACING_ENABLED'
+        value: 'True'
+      }
+      {
+        name: 'GLOBAL_LLM_SERVICE'
+        value: 'AzureOpenAI'
+      }
+      // ===== GPT-5 Service Prefix Keys ===== //
+      {
+        name: 'GPT5_API_VERSION'
+        value: '2025-03-01-preview'
+      }
+      {
+        name: 'GPT5_CHAT_DEPLOYMENT_NAME'
+        value: 'gpt-5'
+      }
+      {
+        name: 'GPT5_ENDPOINT'
+        value: ai_foundry_project!.outputs.endpoint
+      }
+      // ===== PHI-4 Service Prefix Keys ===== //
+      {
+        name: 'PHI4_API_VERSION'
+        value: '2024-05-01-preview'
+      }
+      {
+        name: 'PHI4_CHAT_DEPLOYMENT_NAME'
+        value: 'phi-4'
+      }
+      {
+        name: 'PHI4_ENDPOINT'
+        value: ai_foundry_project!.outputs.endpoint
+      }
+    ]
+    // diagnosticSettings: enableMonitoring
+    //   ? [
+    //       {
+    //         workspaceResourceId: enableMonitoring ? logAnalyticsWorkspaceResourceId : ''
+    //         logCategoriesAndGroups: [
+    //           {
+    //             categoryGroup: 'allLogs'
+    //             enabled: true
+    //           }
+    //         ]
+    //       }
+    //     ]
+    //   : null
+    // disableLocalAuth: false
+    // replicaLocations: enableRedundancy? [{ replicaLocation: replicaLocation }] : []
   }
 }
 
-// Backend API (Python)
-module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
-  name: take('module.app-service-pybackend.${solutionName}', 64)
-  params: {
-    solutionName: 'api-${solutionSuffix}'
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
-    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
-    publicNetworkAccess: 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
-    appSettings: {
-      AZURE_ENV_GPT_MODEL_NAME: gptModelName
-      AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: aiFoundryEndpoint
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
-      AZURE_OPENAI_RESOURCE: aiFoundryName
-      AZURE_AI_AGENT_ENDPOINT: projectEndpoint
-      AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
-      AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
-      USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
-      AZURE_COSMOSDB_ACCOUNT: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: 'conversations'
-      AZURE_COSMOSDB_DATABASE: 'db_conversation_history'
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
-      AZURE_SQLDB_USER_MID: ''
-      API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.endpoint
-      AZURE_AI_SEARCH_INDEX: 'knowledge_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: foundry_search_connection.outputs.connectionName
-      USE_AI_PROJECT_CLIENT: 'True'
-      DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? app_insights!.outputs.connectionString : ''
-      SOLUTION_NAME: solutionSuffix
-      USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
-      APP_ENV: 'Prod'
-      AZURE_BASIC_LOGGING_LEVEL: 'INFO'
-      AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
-      AZURE_LOGGING_PACKAGES: ''
-      AGENT_NAME_CHAT: ''
-      AGENT_NAME_TITLE: ''
-      FABRIC_SQL_DATABASE: ''
-      FABRIC_SQL_SERVER: ''
-      FABRIC_SQL_CONNECTION_STRING: ''
-    }
-  }
-}
-
-// Backend API (C#)
-module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
-  name: take('module.app-service-csbackend.${solutionName}', 64)
-  params: {
-    solutionName: 'api-cs-${solutionSuffix}'
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
-    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
-    publicNetworkAccess: 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
-    appSettings: {
-      AZURE_ENV_GPT_MODEL_NAME: gptModelName
-      AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: aiFoundryEndpoint
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
-      AZURE_OPENAI_RESOURCE: aiFoundryName
-      AZURE_AI_AGENT_ENDPOINT: projectEndpoint
-      AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
-      AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
-      USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
-      AZURE_COSMOSDB_ACCOUNT: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: 'conversations'
-      AZURE_COSMOSDB_DATABASE: 'db_conversation_history'
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
-      API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.endpoint
-      AZURE_AI_SEARCH_INDEX: 'knowledge_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: foundry_search_connection.outputs.connectionName
-      USE_AI_PROJECT_CLIENT: 'True'
-      DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? app_insights!.outputs.connectionString : ''
-      SOLUTION_NAME: solutionSuffix
-      APP_ENV: 'Prod'
-      AGENT_NAME_CHAT: ''
-      AGENT_NAME_TITLE: ''
-      FABRIC_SQL_DATABASE: ''
-      FABRIC_SQL_SERVER: ''
-      FABRIC_SQL_CONNECTION_STRING: ''
-    }
-  }
-}
-
-// Frontend
-module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp) {
-  name: take('module.app-service-frontend.${solutionName}', 64)
-  params: {
-    solutionName: 'app-${solutionSuffix}'
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-    serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
-    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
-    publicNetworkAccess: 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
-    appSettings: {
-      APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
-      CHAT_LANDING_TEXT: ''
-      APP_TITLE_PRIMARY: appTitlePrimary
-      APP_TITLE_SECONDARY: appTitleSecondary
-      PROXY_API_REQUESTS: enablePrivateNetworking ? 'true' : 'false'
-    }
-  }
-}
-
-// ============================================================================
-// Module: Role Assignments (centralized)
-// ============================================================================
-
-module role_assignments './modules/identity/role-assignments.bicep' = {
-  name: take('module.role-assignments.${solutionName}', 64)
+module appConfig_update './modules/data/app-configuration.bicep' = if (enablePrivateNetworking) {
+  name: take('module.app-configuration-update.${solutionSuffix}', 64)
   params: {
     solutionName: solutionSuffix
-    aiProjectPrincipalId: aiProjectPrincipalId
-    aiSearchPrincipalId: ai_search.outputs.identityPrincipalId
-    aiSearchResourceId: ai_search.outputs.resourceId
-    storageAccountResourceId: storage_account.outputs.resourceId
-    cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
-    backendAppServicePrincipalId: shouldDeployApp
-      ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
-      : ''
-    aiFoundryResourceId: aiFoundryResourceId
-    useExistingAIProject: useExistingAIProject
-    existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    location: location
+    publicNetworkAccess: 'Disabled'
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [privateDnsZoneDeployments[dnsZoneIndex.appConfig]!.outputs.resourceId] : null
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : null
+  }
+  dependsOn: [
+    appConfig
+  ]
+}
+
+
+// ========== Container App Update Modules ========== //
+module containerApp_update './modules/compute/container-app.bicep' = {
+  name: take('module.container-app.${solutionSuffix}', 64)
+  params: {
+    name: 'ca-app-${solutionSuffix}'
+    location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
+    tags: tags
+    enableTelemetry: enableTelemetry
+    workloadProfileName: 'Consumption'
+    containers: [
+      {
+        name: 'ca-${solutionSuffix}'
+        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
+
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: appConfig.outputs.endpoint
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
+          {
+            name: 'APP_LOGGING_LEVEL'
+            value: 'INFO'
+          }
+          {
+            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+            value: 'WARNING'
+          }
+          {
+            name: 'AZURE_LOGGING_PACKAGES'
+            value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessor'
+          }
+        ]
+      }
+    ]
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+      rules: enableScalability
+        ? [
+            {
+              name: 'http-scaler'
+              http: {
+                metadata: {
+                  concurrentRequests: 100
+                }
+              }
+            }
+          ]
+        : []
+    }
+  }
+  dependsOn: [
+    aifoundry_private_endpoint
+  ]
+}
+
+// ========== Container App API Update Modules ========== //
+module containerApp_API_update './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-api.${solutionSuffix}', 64)
+  params: {
+    name: 'ca-api-${solutionSuffix}'
+    location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
+    tags: tags
+    enableTelemetry: enableTelemetry
+    workloadProfileName: 'Consumption'
+    containers: [
+      {
+        name: 'ca-${solutionSuffix}-api'
+        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: 'appConfig.outputs.endpoint'
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
+          {
+            name: 'APP_LOGGING_LEVEL'
+            value: 'INFO'
+          }
+          {
+            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+            value: 'WARNING'
+          }
+          {
+            name: 'AZURE_LOGGING_PACKAGES'
+            value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorAPI'
+          }
+        ]
+        probes: [
+          // Liveness Probe - Checks if the app is still running
+          {
+            type: 'Liveness'
+            httpGet: {
+              path: '/startup' // Your app must expose this endpoint
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+          // Readiness Probe - Checks if the app is ready to receive traffic
+          {
+            type: 'Readiness'
+            httpGet: {
+              path: '/startup'
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          }
+          {
+            type: 'Startup'
+            httpGet: {
+              path: '/startup'
+              port: 80
+              scheme: 'HTTP'
+            }
+            initialDelaySeconds: 20 // Wait 10s before checking
+            periodSeconds: 5 // Check every 15s
+            failureThreshold: 10 // Restart if it fails 5 times
+          }
+        ]
+      }
+    ]
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+      rules: [
+        {
+          name: 'http-scaler'
+          http: {
+            metadata: {
+              concurrentRequests: '100'
+            }
+          }
+        }
+      ]
+    }
+    corsPolicy: {
+      allowedOrigins: [
+        '*'
+      ]
+      allowedMethods: [
+        'GET'
+        'POST'
+        'PUT'
+        'DELETE'
+        'OPTIONS'
+      ]
+      allowedHeaders: [
+        'Authorization'
+        'Content-Type'
+        '*'
+      ]
+    }
+  }
+  dependsOn: [
+    aifoundry_private_endpoint
+  ]
+}
+
+// ========== Container App Workflow Update ========== //
+module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-workflow.${solutionSuffix}', 64)
+  params: {
+    name: 'ca-workflow-${solutionSuffix}'
+    location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
+    tags: tags
+    enableTelemetry: enableTelemetry
+    workloadProfileName: 'Consumption'
+    containers: [
+      {
+        name: 'ca-${solutionSuffix}-wkfl'
+        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: 'appConfig.outputs.endpoint'
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
+          {
+            name: 'APP_LOGGING_LEVEL'
+            value: 'INFO'
+          }
+          {
+            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+            value: 'WARNING'
+          }
+          {
+            name: 'AZURE_LOGGING_PACKAGES'
+            value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessorWorkflow'
+          }
+        ]
+      }
+    ]
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+    }
   }
 }
 
-// ============================================================================
-// Outputs
-// ============================================================================
+// ============ //
+// Outputs      //
+// ============ //
 
-@description('Solution suffix used for naming resources.')
-output SOLUTION_NAME string = solutionSuffix
+@description('The name of the Container App used for Web App.')
+output CONTAINER_WEB_APP_NAME string = containerApp_Web.outputs.name
 
-@description('Name of the deployed resource group.')
-output RESOURCE_GROUP_NAME string = resourceGroup().name
+@description('The name of the Container App used for API.')
+output CONTAINER_API_APP_NAME string = containerApp_API.outputs.name
 
-@description('WAF deployment type.')
-output DEPLOYMENT_TYPE string = enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+@description('The FQDN of the Container App.')
+output CONTAINER_WEB_APP_FQDN string = containerApp_Web.outputs.fqdn
 
-@description('Cosmos DB account name.')
-output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp ? cosmosDBModule!.outputs.name : ''
+@description('The FQDN of the Container App API.')
+output CONTAINER_API_APP_FQDN string = containerApp_API.outputs.fqdn
 
-@description('Cosmos DB container name.')
-output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
+// @description('The name of the Container App used for APP.')
+// output CONTAINER_APP_NAME string = containerApp.outputs.name
 
-@description('Cosmos DB database name.')
-output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
+@description('The name of the Container App used for Workflow.')
+output CONTAINER_WORKFLOW_APP_NAME string = containerApp_Workflow.outputs.name
 
-@description('GPT model deployment name.')
-output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
+// @description('The user identity resource ID used fot the Container APP.')
+// output CONTAINER_APP_USER_IDENTITY_ID string = containerRegistryReader.outputs.resourceId
 
-@description('Azure OpenAI service endpoint URL.')
-output AZURE_OPENAI_ENDPOINT string = aiFoundryEndpoint
+// @description('The user identity Principal ID used fot the Container APP.')
+// output CONTAINER_APP_USER_PRINCIPAL_ID string = containerRegistryReader.outputs.principalId
 
-@description('Embedding model deployment name.')
-output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
+// @description('The name of the Azure Container Registry.')
+// output CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
-@description('Managed identity client ID for SQL auth.')
-output AZURE_SQLDB_USER_MID string = ''
+// @description('The login server of the Azure Container Registry.')
+// output CONTAINER_REGISTRY_LOGIN_SERVER string = containerRegistry.outputs.loginServer
 
-@description('Backend API managed identity client ID.')
-output API_UID string = ''
+@description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA.')
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = ai_foundry_project!.outputs.name
 
-@description('Azure AI Agent endpoint.')
-output AZURE_AI_AGENT_ENDPOINT string = projectEndpoint
-
-@description('Model deployment name for AI Agent.')
-output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
-
-@description('Backend API App Service name.')
-output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.name : backend_csapi_docker!.outputs.name) : ''
-
-@description('Backend API managed identity principal ID.')
-output API_PID string = shouldDeployApp
-  ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
-  : ''
-
-@description('Backend API managed identity display name.')
-output MID_DISPLAY_NAME string = shouldDeployApp
-  ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.name : backend_csapi_docker!.outputs.name)
-  : ''
-
-@description('Frontend web app resource name.')
-output WEB_APP_NAME string = shouldDeployApp ? frontend_docker!.outputs.name : ''
-
-@description('Frontend web application URL.')
-output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
-
-@description('Azure AI Search endpoint.')
-output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.endpoint
-
-@description('Azure AI Search index name.')
-output AZURE_AI_SEARCH_INDEX string = 'knowledge_index'
-
-@description('Azure AI Search service name.')
-output AZURE_AI_SEARCH_NAME string = ai_search.outputs.name
-
-@description('Search data folder path.')
-output SEARCH_DATA_FOLDER string = 'data/default/documents'
-
-@description('AI Search connection name.')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = foundry_search_connection.outputs.connectionName
-
-@description('AI Search connection ID.')
-output AZURE_AI_SEARCH_CONNECTION_ID string = aiSearchConnectionId
-
-@description('AI Foundry project endpoint.')
-output AZURE_AI_PROJECT_ENDPOINT string = projectEndpoint
-
-@description('AI Foundry resource ID.')
-output AI_FOUNDRY_RESOURCE_ID string = aiFoundryResourceId
-
-@description('AI Foundry project name.')
-output AZURE_AI_PROJECT_NAME string = aiProjectName
-
-@description('AI Services resource name.')
-output AI_SERVICE_NAME string = aiFoundryName
-
-@description('AI Project identity principal ID.')
-output FOUNDRY_PROJECT_PID string = aiProjectPrincipalId
-
-@description('Chat history enabled flag.')
-output USE_CHAT_HISTORY_ENABLED string = useChatHistoryEnabledSetting
-
-@description('Backend runtime stack.')
-output BACKEND_RUNTIME_STACK string = backendRuntimeStack
-
-@description('User access token forwarding flag.')
-output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
-
-@description('The resource ID of the Fabric capacity.')
-output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity.outputs.resourceId : ''
-
-@description('The name of the Fabric capacity resource.')
-output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''
-
-@description('The identities assigned as Fabric Capacity Admin members.')
-output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdminMembers : []
-
-@description('The unique solution suffix of the deployed resources.')
-output SOLUTION_SUFFIX string = solutionSuffix
+@description('The resource group the resources were deployed into.')
+output AZURE_RESOURCE_GROUP string = resourceGroup().name
