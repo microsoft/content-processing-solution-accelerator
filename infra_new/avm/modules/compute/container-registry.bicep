@@ -56,6 +56,9 @@ param networkRuleSetDefaultAction string = 'Allow'
 @description('Enable Azure telemetry collection.')
 param enableTelemetry bool = true
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // Role Assignments
 // ============================================================================
@@ -113,6 +116,7 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' 
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
     privateEndpoints: privateEndpointConfig
     networkRuleSetDefaultAction: networkRuleSetDefaultAction
+    managedIdentities: managedIdentities
   }
 }
 

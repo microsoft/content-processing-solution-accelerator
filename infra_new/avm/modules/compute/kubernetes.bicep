@@ -93,6 +93,9 @@ param roleAssignments array = []
 @description('Enable Azure telemetry collection.')
 param enableTelemetry bool = true
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // Variables
 // ============================================================================
@@ -129,7 +132,7 @@ module aksCluster 'br/public:avm/res/container-service/managed-cluster:0.13.1' =
       upgradeChannel: autoUpgradeChannel
       nodeOSUpgradeChannel: 'Unmanaged'
     }
-    managedIdentities: { systemAssigned: true }
+    managedIdentities: managedIdentities
     omsAgentEnabled: enableMonitoring
     monitoringWorkspaceResourceId: enableMonitoring ? logAnalyticsWorkspaceResourceId : null
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []

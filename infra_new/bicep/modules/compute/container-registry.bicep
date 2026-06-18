@@ -33,6 +33,9 @@ param exportPolicyStatus string = 'enabled'
 @description('Retention policy status.')
 param retentionPolicyStatus string = 'disabled'
 
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -43,6 +46,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' =
   sku: {
     name: sku
   }
+  identity: identity
   properties: {
     adminUserEnabled: adminUserEnabled
     publicNetworkAccess: publicNetworkAccess

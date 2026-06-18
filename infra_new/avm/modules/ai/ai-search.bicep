@@ -49,8 +49,8 @@ param authOptions object = {}
 @description('Optional. Network rule set for the search service (e.g., bypass: AzureServices).')
 param networkRuleSet object = {}
 
-@description('Managed identity type for the search service.')
-param managedIdentityType string = 'SystemAssigned'
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
 
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
@@ -101,9 +101,7 @@ module searchServiceUpdate 'br/public:avm/res/search/search-service:0.12.0' = {
     disableLocalAuth: disableLocalAuth
     networkRuleSet: !empty(networkRuleSet) ? networkRuleSet : null
     publicNetworkAccess: publicNetworkAccess
-    managedIdentities: {
-      systemAssigned: managedIdentityType == 'SystemAssigned'
-    }
+    managedIdentities: managedIdentities
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     privateEndpoints: privateEndpoints
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []

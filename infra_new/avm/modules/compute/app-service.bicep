@@ -82,6 +82,9 @@ import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-co
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointSingleServiceType[]?
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -94,9 +97,7 @@ module appService 'br/public:avm/res/web/site:0.23.1' = {
     kind: kind
     enableTelemetry: enableTelemetry
     serverFarmResourceId: serverFarmResourceId
-    managedIdentities: {
-      systemAssigned: true
-    }
+    managedIdentities: managedIdentities
     siteConfig: {
       alwaysOn: alwaysOn
       ftpsState: 'Disabled'

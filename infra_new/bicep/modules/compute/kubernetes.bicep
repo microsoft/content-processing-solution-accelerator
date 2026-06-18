@@ -67,6 +67,9 @@ param autoUpgradeChannel string = 'stable'
 @description('Log Analytics workspace resource ID for monitoring.')
 param logAnalyticsWorkspaceResourceId string = ''
 
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
+
 // ============================================================================
 // Variables
 // ============================================================================
@@ -79,9 +82,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2025-03-01' = {
   name: name
   location: location
   tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
+  identity: identity
   sku: {
     name: 'Base'
     tier: skuTier

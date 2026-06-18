@@ -49,6 +49,9 @@ param dailyQuotaGb string = ''
 @description('Data sources for VM monitoring (Windows events, perf counters).')
 param dataSources array = []
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -61,6 +64,7 @@ module workspace 'br/public:avm/res/operational-insights/workspace:0.15.0' = {
     dataRetention: retentionInDays
     skuName: skuName
     enableTelemetry: enableTelemetry
+    managedIdentities: managedIdentities
     features: { enableLogAccessUsingOnlyResourcePermissions: true }
     diagnosticSettings: [{ useThisWorkspace: true }]
     publicNetworkAccessForIngestion: publicNetworkAccessForIngestion

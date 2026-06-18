@@ -78,6 +78,9 @@ param roleAssignments array = [
   }
 ]
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -93,7 +96,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
     vmSize: vmSize
     adminUsername: adminUsername
     adminPassword: adminPassword
-    managedIdentities: { systemAssigned: true }
+    managedIdentities: managedIdentities
     patchMode: 'AutomaticByPlatform'
     bypassPlatformSafetyChecksOnUserSchedule: true
     maintenanceConfigurationResourceId: maintenanceConfigurationResourceId

@@ -32,6 +32,9 @@ param skuCapacity int = 1
 @description('Enable zone redundancy. Requires Premium SKU (P1v3+).')
 param zoneRedundant bool = false
 
+@description('Optional. Managed identities for the resource.')
+param identity object = { systemAssigned: true }
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -48,6 +51,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2025-05-01' = {
     reserved: reserved
     zoneRedundant: zoneRedundant
   }
+  identity: identity
 }
 
 // ============================================================================

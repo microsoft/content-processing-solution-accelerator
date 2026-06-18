@@ -43,6 +43,9 @@ param containers array = [
   }
 ]
 
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -54,6 +57,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' = {
   sku: {
     name: skuName
   }
+  identity: identity
   properties: {
     accessTier: accessTier
     allowBlobPublicAccess: allowBlobPublicAccess

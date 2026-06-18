@@ -36,8 +36,8 @@ param osType string = 'Linux'
 @allowed(['Always', 'OnFailure', 'Never'])
 param restartPolicy string = 'Always'
 
-@description('Managed identity configuration.')
-param managedIdentities object = {}
+@description('Optional. Managed identities for the resource.')
+param identity object = { systemAssigned: true }
 
 @description('Image registry credentials.')
 param imageRegistryCredentials array = []
@@ -53,11 +53,6 @@ param availabilityZone int = -1
 // ============================================================================
 var isPrivateNetworking = !empty(subnetResourceId)
 
-var identityConfig = empty(managedIdentities) ? { type: 'None' } : {
-  type: contains(managedIdentities, 'userAssignedResourceIds') ? 'UserAssigned' : 'SystemAssigned'
-  userAssignedIdentities: contains(managedIdentities, 'userAssignedResourceIds') ? reduce(managedIdentities.userAssignedResourceIds, {}, (cur, id) => union(cur, { '${id}': {} })) : null
-}
-
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -65,7 +60,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2025-09-01'
   name: name
   location: location
   tags: tags
-  identity: identityConfig
+  identity: identity
   zones: availabilityZone != -1 ? [string(availabilityZone)] : null
   properties: {
     osType: osType

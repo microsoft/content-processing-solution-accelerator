@@ -57,6 +57,9 @@ param kind string = 'app,linux'
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -65,9 +68,7 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
   location: location
   tags: tags
   kind: kind
-  identity: {
-    type: 'SystemAssigned'
-  }
+  identity: identity
   properties: {
     serverFarmId: serverFarmResourceId
     publicNetworkAccess: publicNetworkAccess

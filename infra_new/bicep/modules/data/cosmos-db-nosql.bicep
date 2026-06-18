@@ -27,6 +27,9 @@ param containers array = [
   }
 ]
 
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -35,6 +38,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' = {
   location: location
   tags: tags
   kind: 'GlobalDocumentDB'
+  identity: identity
   properties: {
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
     locations: [

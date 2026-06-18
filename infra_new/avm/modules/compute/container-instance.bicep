@@ -35,8 +35,8 @@ param osType string = 'Linux'
 @allowed(['Always', 'OnFailure', 'Never'])
 param restartPolicy string = 'Always'
 
-@description('Managed identity configuration.')
-param managedIdentities object = {}
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
 
 @description('Image registry credentials.')
 param imageRegistryCredentials array = []
@@ -90,7 +90,7 @@ module containerGroup 'br/public:avm/res/container-instance/container-group:0.7.
     containers: containers
     osType: osType
     restartPolicy: restartPolicy
-    managedIdentities: !empty(managedIdentities) ? managedIdentities : {}
+    managedIdentities: managedIdentities
     ipAddress: {
       type: isPrivateNetworking ? 'Private' : 'Public'
       ports: [

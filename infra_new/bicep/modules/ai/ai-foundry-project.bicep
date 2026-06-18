@@ -33,9 +33,8 @@ param allowProjectManagement bool = true
 @description('Optional. Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Optional. Managed identity type for the resources.')
-@allowed(['SystemAssigned', 'UserAssigned', 'SystemAssigned, UserAssigned', 'None'])
-param identityType string = 'SystemAssigned'
+@description('Optional. Managed identity configuration for the resources.')
+param identity object = { type: 'SystemAssigned' }
 
 @description('Optional. Network ACLs default action.')
 @allowed(['Allow', 'Deny'])
@@ -52,9 +51,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = {
     name: skuName
   }
   kind: 'AIServices'
-  identity: {
-    type: identityType
-  }
+  identity: identity
   properties: {
     allowProjectManagement: allowProjectManagement
     customSubDomainName: name
@@ -76,9 +73,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = 
   name: projectName
   location: location
   kind: 'AIServices'
-  identity: {
-    type: identityType
-  }
+  identity: identity
   properties: {}
 }
 

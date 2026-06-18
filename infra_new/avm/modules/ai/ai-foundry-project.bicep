@@ -34,8 +34,7 @@ param allowProjectManagement bool = true
 param publicNetworkAccess string = 'Enabled'
 
 @description('Optional. Managed identity type for the resources.')
-@allowed(['SystemAssigned', 'UserAssigned', 'SystemAssigned, UserAssigned', 'None'])
-param identityType string = 'SystemAssigned'
+param identity object = { type: 'SystemAssigned' }
 
 @description('Optional. Network ACLs default action.')
 @allowed(['Allow', 'Deny'])
@@ -52,6 +51,9 @@ param enableTelemetry bool = true
 // --- Role Assignments ---
 @description('Optional. Array of role assignments to create on the AI Services account.')
 param roleAssignments array?
+
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
 
 // ============================================================================
 // AI Services Account (AVM Module)
@@ -74,9 +76,7 @@ module aiServicesAccount 'br/public:avm/res/cognitive-services/account:0.14.2' =
       ipRules: []
     }
     publicNetworkAccess: publicNetworkAccess
-    managedIdentities: {
-      systemAssigned: true
-    }
+    managedIdentities: managedIdentities
     diagnosticSettings: diagnosticSettings
     deployments: []
     roleAssignments: roleAssignments
@@ -99,9 +99,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = 
   location: location
   tags: tags
   kind: 'AIServices'
-  identity: {
-    type: identityType
-  }
+  identity: identity
   properties: {}
   dependsOn: [aiServicesAccount]
 }

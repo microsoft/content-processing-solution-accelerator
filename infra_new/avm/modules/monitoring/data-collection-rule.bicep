@@ -26,6 +26,9 @@ param logAnalyticsWorkspaceName string = ''
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 var dcrLogAnalyticsDestinationName = !empty(logAnalyticsWorkspaceName) ? 'la-${logAnalyticsWorkspaceName}-destination' : 'la-${name}-destination'
 
 // ============================================================================
@@ -38,6 +41,7 @@ module dataCollectionRule 'br/public:avm/res/insights/data-collection-rule:0.11.
     tags: tags
     enableTelemetry: enableTelemetry
     location: location
+    managedIdentities: managedIdentities
     dataCollectionRuleProperties: {
       kind: 'Windows'
       dataSources: {

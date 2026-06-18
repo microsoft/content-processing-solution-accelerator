@@ -49,8 +49,8 @@ param authOptions object = {}
 @description('Optional. Network rule set for the search service.')
 param networkRuleSet object = {}
 
-@description('Managed identity type for the search service.')
-param managedIdentityType string = 'SystemAssigned'
+@description('Optional. Managed identity configuration for the resource.')
+param identity object = { type: 'SystemAssigned' }
 
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
@@ -83,7 +83,7 @@ module searchServiceUpdate 'ai-search-identity.bicep' = {
     disableLocalAuth: disableLocalAuth
     authOptions: authOptions
     networkRuleSet: networkRuleSet
-    managedIdentityType: managedIdentityType
+    identity: identity
     publicNetworkAccess: publicNetworkAccess
   }
 }

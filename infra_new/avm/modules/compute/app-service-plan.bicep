@@ -38,6 +38,9 @@ param diagnosticSettings array = []
 @description('Enable zone redundancy. Requires Premium SKU (P1v3+).')
 param zoneRedundant bool = false
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -54,6 +57,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
     kind: kind
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     zoneRedundant: zoneRedundant
+    managedIdentities: managedIdentities
   }
 }
 

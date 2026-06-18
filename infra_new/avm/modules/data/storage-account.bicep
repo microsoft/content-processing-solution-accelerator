@@ -79,6 +79,9 @@ var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
 @description('Optional. Array of role assignments to create on the Storage Account.')
 param roleAssignments array = []
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -100,6 +103,7 @@ module storage 'br/public:avm/res/storage/storage-account:0.32.0' = {
     requireInfrastructureEncryption: true
     publicNetworkAccess: publicNetworkAccess
     networkAcls: networkAcls
+    managedIdentities: managedIdentities
     blobServices: {
       containers: [for container in containers: {
         name: container.name
