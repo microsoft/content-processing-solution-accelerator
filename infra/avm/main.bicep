@@ -1137,7 +1137,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
     //       }
     //     ]
     //   : null
-    // disableLocalAuth: false
+    disableLocalAuth: false
     // replicaLocations: enableRedundancy? [{ replicaLocation: replicaLocation }] : []
   }
 }

@@ -210,23 +210,17 @@ output CONTAINER_WEB_APP_FQDN string = isAvm ? avmDeployment!.outputs.CONTAINER_
 @description('The FQDN of the Container App API.')
 output CONTAINER_API_APP_FQDN string = isAvm ? avmDeployment!.outputs.CONTAINER_API_APP_FQDN : bicepDeployment!.outputs.CONTAINER_API_APP_FQDN
 
-// @description('The name of the Container App used for APP.')
-// output CONTAINER_APP_NAME string = isAvm ? avmDeployment!.outputs.CONTAINER_APP_NAME : bicepDeployment!.outputs.CONTAINER_APP_NAME
+@description('The name of the Container App used for APP.')
+output CONTAINER_APP_NAME string = isAvm ? avmDeployment!.outputs.CONTAINER_APP_NAME : bicepDeployment!.outputs.CONTAINER_APP_NAME
 
 @description('The name of the Container App used for Workflow.')
 output CONTAINER_WORKFLOW_APP_NAME string = isAvm ? avmDeployment!.outputs.CONTAINER_WORKFLOW_APP_NAME : bicepDeployment!.outputs.CONTAINER_WORKFLOW_APP_NAME
 
-// @description('The user identity resource ID used fot the Container APP.')
-// output CONTAINER_APP_USER_IDENTITY_ID string = isAvm ? avmDeployment!.outputs.CONTAINER_APP_USER_IDENTITY_ID : bicepDeployment!.outputs.CONTAINER_APP_USER_IDENTITY_ID
+@description('The name of the Azure Container Registry.')
+output CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.CONTAINER_REGISTRY_NAME : bicepDeployment!.outputs.CONTAINER_REGISTRY_NAME
 
-// @description('The user identity Principal ID used fot the Container APP.')
-// output CONTAINER_APP_USER_PRINCIPAL_ID string = isAvm ? avmDeployment!.outputs.CONTAINER_APP_USER_PRINCIPAL_ID : bicepDeployment!.outputs.CONTAINER_APP_USER_PRINCIPAL_ID
-
-// @description('The name of the Azure Container Registry.')
-// output CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.CONTAINER_REGISTRY_NAME : bicepDeployment!.outputs.CONTAINER_REGISTRY_NAME
-
-// @description('The login server of the Azure Container Registry.')
-// output CONTAINER_REGISTRY_LOGIN_SERVER string = isAvm ? avmDeployment!.outputs.CONTAINER_REGISTRY_LOGIN_SERVER : bicepDeployment!.outputs.CONTAINER_REGISTRY_LOGIN_SERVER
+@description('The login server of the Azure Container Registry.')
+output CONTAINER_REGISTRY_LOGIN_SERVER string = isAvm ? avmDeployment!.outputs.CONTAINER_REGISTRY_LOGIN_SERVER : bicepDeployment!.outputs.CONTAINER_REGISTRY_LOGIN_SERVER
 
 @description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA.')
 output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = isAvm ? avmDeployment!.outputs.CONTENT_UNDERSTANDING_ACCOUNT_NAME : bicepDeployment!.outputs.CONTENT_UNDERSTANDING_ACCOUNT_NAME

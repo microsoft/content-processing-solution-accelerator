@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "11608753278718485451"
+      "templateHash": "10013011217136398897"
     }
   },
   "parameters": {
@@ -33103,8 +33103,8 @@
       },
       "dependsOn": [
         "log_analytics",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "virtualNetwork"
       ]
     },
@@ -56342,6 +56342,9 @@
                 "value": "[reference('ai_foundry_project').outputs.endpoint.value]"
               }
             ]
+          },
+          "disableLocalAuth": {
+            "value": false
           }
         },
         "template": {

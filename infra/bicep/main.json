@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "16596972373542244312"
+      "templateHash": "7268052071422542466"
     }
   },
   "parameters": {
@@ -3116,6 +3116,9 @@
                 "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]"
               }
             ]
+          },
+          "disableLocalAuth": {
+            "value": false
           }
         },
         "template": {
