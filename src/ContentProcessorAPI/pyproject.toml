@@ -13,7 +13,7 @@ dependencies = [
     "fastapi[standard]==0.135.2",
     "poppler-utils==0.1.0",
     "pydantic==2.13.3",
-    "pydantic-settings==2.13.1",
+    "pydantic-settings==2.14.2",
     "pygments==2.20.0",
     "pymongo==4.16.0",
     "python-dotenv==1.2.2",
