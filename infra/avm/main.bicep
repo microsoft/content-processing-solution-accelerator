@@ -596,6 +596,24 @@ module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' 
   }
 }
 
+// ========== Container Registry ========== //
+module containerRegistry './modules/compute/container-registry.bicep' = {
+  name: take('module.container-registry.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    sku: enableRedundancy || enablePrivateNetworking ? 'Premium' : 'Standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    tags: tags
+    enableTelemetry: enableTelemetry
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking
+      ? [privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId]
+      : []
+  }
+}
+
 // ========== Container App Environment ========== //
 module containerAppEnv './modules/compute/container-app-environment.bicep' = {
   name: take('module.container-app-environment.${solutionSuffix}', 64)
@@ -621,70 +639,63 @@ module containerAppEnv './modules/compute/container-app-environment.bicep' = {
   }
 }
 
-// // ========== Container App  ========== //
-// module containerApp './modules/compute/container-app.bicep' = {
-//   name: take('module.container-app.${solutionSuffix}', 64)
-//   params: {
-//     name: 'ca-app-${solutionSuffix}'
-//     location: location
-//     environmentResourceId: containerAppEnv.outputs.resourceId
-//     tags: tags
-//     enableTelemetry: enableTelemetry
-//     workloadProfileName: 'Consumption'
-//     containers: [
-//       {
-//         name: 'ca-${solutionSuffix}'
-//         image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
+// ========== Container App  ========== //
+module containerApp './modules/compute/container-app.bicep' = {
+  name: take('module.container-app.${solutionSuffix}', 64)
+  params: {
+    name: 'ca-app-${solutionSuffix}'
+    location: location
+    environmentResourceId: containerAppEnv.outputs.resourceId
+    tags: tags
+    enableTelemetry: enableTelemetry
+    workloadProfileName: 'Consumption'
+    containers: [
+      {
+        name: 'ca-${solutionSuffix}'
+        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
 
-//         resources: {
-//           cpu: 4
-//           memory: '8.0Gi'
-//         }
-//         env: [
-//           {
-//             name: 'APP_CONFIG_ENDPOINT'
-//             value: ''
-//           }
-//           {
-//             name: 'APP_ENV'
-//             value: 'prod'
-//           }
-//           {
-//             name: 'APP_LOGGING_LEVEL'
-//             value: 'INFO'
-//           }
-//           {
-//             name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-//             value: 'WARNING'
-//           }
-//           {
-//             name: 'AZURE_LOGGING_PACKAGES'
-//             value: ''
-//           }
-//           {
-//             name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-//             value: enableMonitoring ? app_insights!.outputs.connectionString : ''
-//           }
-//           {
-//             name: 'OTEL_SERVICE_NAME'
-//             value: 'ContentProcessor'
-//           }
-//         ]
-//       }
-//     ]
-//     scaleSettings: {
-//       maxReplicas: enableScalability ? 3 : 2
-//       minReplicas: enableScalability ? 2 : 1
-//     }
-//     // roleAssignments: [
-//     //   {
-//     //     roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
-//     //     principalId: deployingUserPrincipalId
-//     //     principalType: deployingUserPrincipalType
-//     //   }
-//     // ]
-//   }
-// }
+        resources: {
+          cpu: 4
+          memory: '8.0Gi'
+        }
+        env: [
+          {
+            name: 'APP_CONFIG_ENDPOINT'
+            value: ''
+          }
+          {
+            name: 'APP_ENV'
+            value: 'prod'
+          }
+          {
+            name: 'APP_LOGGING_LEVEL'
+            value: 'INFO'
+          }
+          {
+            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
+            value: 'WARNING'
+          }
+          {
+            name: 'AZURE_LOGGING_PACKAGES'
+            value: ''
+          }
+          {
+            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
+          }
+          {
+            name: 'OTEL_SERVICE_NAME'
+            value: 'ContentProcessor'
+          }
+        ]
+      }
+    ]
+    scaleSettings: {
+      maxReplicas: enableScalability ? 3 : 2
+      minReplicas: enableScalability ? 2 : 1
+    }
+  }
+}
 
 // ========== Container App API ========== //
 module containerApp_API './modules/compute/container-app.bicep' = {
@@ -1416,23 +1427,17 @@ output CONTAINER_WEB_APP_FQDN string = containerApp_Web.outputs.fqdn
 @description('The FQDN of the Container App API.')
 output CONTAINER_API_APP_FQDN string = containerApp_API.outputs.fqdn
 
-// @description('The name of the Container App used for APP.')
-// output CONTAINER_APP_NAME string = containerApp.outputs.name
+@description('The name of the Container App used for APP.')
+output CONTAINER_APP_NAME string = containerApp.outputs.name
 
 @description('The name of the Container App used for Workflow.')
 output CONTAINER_WORKFLOW_APP_NAME string = containerApp_Workflow.outputs.name
 
-// @description('The user identity resource ID used fot the Container APP.')
-// output CONTAINER_APP_USER_IDENTITY_ID string = containerRegistryReader.outputs.resourceId
+@description('The name of the Azure Container Registry.')
+output CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
-// @description('The user identity Principal ID used fot the Container APP.')
-// output CONTAINER_APP_USER_PRINCIPAL_ID string = containerRegistryReader.outputs.principalId
-
-// @description('The name of the Azure Container Registry.')
-// output CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
-
-// @description('The login server of the Azure Container Registry.')
-// output CONTAINER_REGISTRY_LOGIN_SERVER string = containerRegistry.outputs.loginServer
+@description('The login server of the Azure Container Registry.')
+output CONTAINER_REGISTRY_LOGIN_SERVER string = containerRegistry.outputs.loginServer
 
 @description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA.')
 output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = ai_foundry_project!.outputs.name
