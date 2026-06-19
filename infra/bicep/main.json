@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "15724919867855514854"
+      "templateHash": "16596972373542244312"
     }
   },
   "parameters": {
@@ -3257,7 +3257,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app.{0}', variables('solutionSuffix')), 64)]",
+      "name": "[take(format('module.container-app-update.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -3537,7 +3537,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)]",
+      "name": "[take(format('module.container-app-api-update.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -3870,7 +3870,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app-workflow.{0}', variables('solutionSuffix')), 64)]",
+      "name": "[take(format('module.container-app-workflow-update.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"

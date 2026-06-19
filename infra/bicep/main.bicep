@@ -717,7 +717,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
 
 // ========== Container App Update Modules ========== //
 module containerApp_update './modules/compute/container-app.bicep' = {
-  name: take('module.container-app.${solutionSuffix}', 64)
+  name: take('module.container-app-update.${solutionSuffix}', 64)
   params: {
     name: 'ca-app-${solutionSuffix}'
     location: location
@@ -770,7 +770,7 @@ module containerApp_update './modules/compute/container-app.bicep' = {
 
 // ========== Container App API Update Modules ========== //
 module containerApp_API_update './modules/compute/container-app.bicep' = {
-  name: take('module.container-app-api.${solutionSuffix}', 64)
+  name: take('module.container-app-api-update.${solutionSuffix}', 64)
   params: {
     name: 'ca-api-${solutionSuffix}'
     location: location
@@ -876,7 +876,7 @@ module containerApp_API_update './modules/compute/container-app.bicep' = {
 
 // ========== Container App Workflow Update ========== //
 module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
-  name: take('module.container-app-workflow.${solutionSuffix}', 64)
+  name: take('module.container-app-workflow-update.${solutionSuffix}', 64)
   params: {
     name: 'ca-workflow-${solutionSuffix}'
     location: location

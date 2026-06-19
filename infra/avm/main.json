@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "8919732477708620938"
+      "templateHash": "11608753278718485451"
     }
   },
   "parameters": {
@@ -61183,7 +61183,7 @@
     "containerApp_update": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app.{0}', variables('solutionSuffix')), 64)]",
+      "name": "[take(format('module.container-app-update.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -63042,7 +63042,7 @@
     "containerApp_API_update": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)]",
+      "name": "[take(format('module.container-app-api-update.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -64963,7 +64963,7 @@
     "containerApp_Workflow_update": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app-workflow.{0}', variables('solutionSuffix')), 64)]",
+      "name": "[take(format('module.container-app-workflow-update.{0}', variables('solutionSuffix')), 64)]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
