@@ -635,7 +635,7 @@ module containerAppEnv './modules/compute/container-app-environment.bicep' = {
     // platformReservedCidr: '172.17.17.0/24'
     // platformReservedDnsIP: '172.17.17.17'
     zoneRedundant: (enablePrivateNetworking) ? true : false
-    infrastructureSubnetId: (enablePrivateNetworking) ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : null
+    infrastructureSubnetId: (enablePrivateNetworking) ? virtualNetwork!.outputs.containerSubnetResourceId : null
   }
 }
 

@@ -25,7 +25,7 @@ $WORKFLOW_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SU
 $ScriptDir = $PSScriptRoot
 
 # Navigate from infra/scripts -> root -> src/api/data/data.sh
-$DataScriptPath = Join-Path $ScriptDir "..\..\src\ContentProcessorAPI\samples\schemas"
+$DataScriptPath = Join-Path $ScriptDir "..\..\..\src\ContentProcessorAPI\samples\schemas"
 
 # Resolve to an absolute path
 $FullPath = Resolve-Path $DataScriptPath
