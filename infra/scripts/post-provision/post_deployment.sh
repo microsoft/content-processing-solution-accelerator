@@ -35,7 +35,7 @@ echo "  🔗 API App Portal URL: $API_APP_PORTAL_URL"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Go from infra/scripts → root → src
-DATA_SCRIPT_PATH="$SCRIPT_DIR/../../src/ContentProcessorAPI/samples/schemas"
+DATA_SCRIPT_PATH="$SCRIPT_DIR/../../../src/ContentProcessorAPI/samples/schemas"
 
 # Normalize the path (optional, in case of ../..)
 DATA_SCRIPT_PATH="$(realpath "$DATA_SCRIPT_PATH")"

@@ -108,8 +108,9 @@ output resourceId string = cosmos.id
 @description('Name of the Cosmos DB account.')
 output name string = cosmos.name
 
+@secure()
 @description('MongoDB connection string (without credentials — use Key Vault for secrets).')
-output connectionString string = 'mongodb+srv://${name}.mongo.cosmos.azure.com:443/?ssl=true&retrywrites=false&maxIdleTimeMS=120000'
+output connectionString string = cosmos.listConnectionStrings().connectionStrings[0].connectionString
 
 @description('Endpoint of the Cosmos DB account.')
 output endpoint string = 'https://${name}.mongo.cosmos.azure.com:443/'

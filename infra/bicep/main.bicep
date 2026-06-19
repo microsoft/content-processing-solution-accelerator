@@ -639,7 +639,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'AZURE_OPENAI_ENDPOINT'
-        value: ai_foundry_project!.outputs.endpoint
+        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
       }
       {
         name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME'
@@ -651,7 +651,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'AZURE_OPENAI_ENDPOINT_BASE'
-        value: ai_foundry_project!.outputs.endpoint
+        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
       }
       // ===== Agent Framework Keys ===== //
       {
@@ -681,7 +681,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'GPT5_ENDPOINT'
-        value: ai_foundry_project!.outputs.endpoint
+        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
       }
       // ===== PHI-4 Service Prefix Keys ===== //
       {
@@ -694,7 +694,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'PHI4_ENDPOINT'
-        value: ai_foundry_project!.outputs.endpoint
+        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
       }
     ]
     // diagnosticSettings: enableMonitoring
@@ -766,6 +766,9 @@ module containerApp_update './modules/compute/container-app.bicep' = {
       }
     ]
   }
+  dependsOn:[
+    containerApp
+  ]
 }
 
 // ========== Container App API Update Modules ========== //
@@ -788,7 +791,7 @@ module containerApp_API_update './modules/compute/container-app.bicep' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: 'appConfig.outputs.endpoint'
+            value: appConfig.outputs.endpoint
           }
           {
             name: 'APP_ENV'
@@ -872,6 +875,9 @@ module containerApp_API_update './modules/compute/container-app.bicep' = {
       ]
     }
   }
+  dependsOn:[
+    containerApp_API
+  ]
 }
 
 // ========== Container App Workflow Update ========== //
@@ -894,7 +900,7 @@ module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: 'appConfig.outputs.endpoint'
+            value: appConfig.outputs.endpoint
           }
           {
             name: 'APP_ENV'
@@ -924,6 +930,9 @@ module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
       }
     ]
   }
+  dependsOn:[
+    containerApp_Workflow
+  ]
 }
 
 // ========== Role Assignments (centralized)  ========== //
@@ -935,18 +944,14 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     appConfigurationResourceId: appConfig.outputs.resourceId
     storageAccountResourceId: storage_account.outputs.resourceId
-    containerAppAPIServicePrincipalId: containerApp_API.outputs.resourceId
-    containerAppWebServicePrincipalId: containerApp_Web.outputs.resourceId
-    containerAppWorkFlowServicePrincipalId: containerApp_Workflow.outputs.resourceId
+    containerAppAPIServicePrincipalId: containerApp_API.outputs.principalId
+    containerAppWebServicePrincipalId: containerApp_Web.outputs.principalId
+    containerAppWorkFlowServicePrincipalId: containerApp_Workflow.outputs.principalId
     deployerPrincipalId: deployingUserPrincipalId
     deployerPrincipalType: deployingUserPrincipalType
   }
   scope: resourceGroup(resourceGroup().name)
 }
-
-// ============================================================================
-// Outputs
-// ============================================================================
 
 // ============ //
 // Outputs      //

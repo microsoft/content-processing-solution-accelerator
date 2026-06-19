@@ -82,7 +82,7 @@ resource aiFoundryAccount 'Microsoft.CognitiveServices/accounts@2025-12-01' exis
   name: last(split(aiFoundryResourceId, '/'))
 }
 
-resource appConfiguration 'Microsoft.Search/searchServices@2025-05-01' existing = if (!empty(appConfigurationResourceId)) {
+resource appConfiguration 'Microsoft.AppConfiguration/configurationStores@2023-03-01' existing = if (!empty(appConfigurationResourceId)) {
   name: last(split(appConfigurationResourceId, '/'))
 }
 
@@ -238,6 +238,17 @@ module containerAppCognitiveServicesUserAssignmentExisting './cross-scope-role-a
 //    Container Apps → App Configuration
 // ============================================================================
 
+// Container App Processor → App Configuration Data Reader on App Configuration
+resource containerAppAppConfigurationDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(appConfigurationResourceId) && !empty(containerAppServicePrincipalId)) {
+  name: guid(solutionName, appConfiguration.id, containerAppServicePrincipalId, roleDefinitions.appConfigurationDataReader)
+  scope: appConfiguration
+  properties: {
+    principalId: containerAppServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.appConfigurationDataReader)
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Container App API → App Configuration Data Reader on App Configuration
 resource containerAppAPIAppConfigurationDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(appConfigurationResourceId) && !empty(containerAppAPIServicePrincipalId)) {
   name: guid(solutionName, appConfiguration.id, containerAppAPIServicePrincipalId, roleDefinitions.appConfigurationDataReader)
@@ -320,6 +331,28 @@ resource containerAppStorageQueueDataContributor 'Microsoft.Authorization/roleAs
   }
 }
 
+// ContainerAppAPI → Storage Blob Data Contributor
+resource containerAppAPIStorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(storageAccountResourceId) && !empty(containerAppAPIServicePrincipalId)) {
+  name: guid(solutionName, storageAccount.id, containerAppAPIServicePrincipalId, roleDefinitions.storageBlobDataContributor)
+  scope: storageAccount
+  properties: {
+    principalId: containerAppAPIServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.storageBlobDataContributor)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ContainerAppAPI → Storage Queue Data Contributor
+resource containerAppAPIStorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(storageAccountResourceId) && !empty(containerAppAPIServicePrincipalId)) {
+  name: guid(solutionName, storageAccount.id, containerAppAPIServicePrincipalId, roleDefinitions.storageQueueDataContributor)
+  scope: storageAccount
+  properties: {
+    principalId: containerAppAPIServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.storageQueueDataContributor)
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ============================================================================
 // 5. DEPLOYER (USER) ROLE ASSIGNMENTS
 //    Deploying user → AI Services, App Configuration, Storage (Bicep-only)
@@ -354,7 +387,7 @@ resource deployerAppConfigurationDataReader 'Microsoft.Authorization/roleAssignm
   properties: {
     principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.appConfigurationDataReader)
-    principalType: 'ServicePrincipal'
+    principalType: deployerPrincipalType
   }
 }
 
@@ -365,7 +398,7 @@ resource assignOpenAIRoleToDeployer 'Microsoft.Authorization/roleAssignments@202
   properties: {
     principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
-    principalType: 'ServicePrincipal'
+    principalType: deployerPrincipalType
   }
 }
 
@@ -378,6 +411,7 @@ module assignOpenAIToDeployerExisting './cross-scope-role-assignment.bicep' = if
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
     roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.cognitiveServicesOpenAIUser)
     aiFoundryName: existingAIFoundryName
+    principalType: deployerPrincipalType
   }
 }
 
@@ -388,7 +422,7 @@ resource DeployerAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-
   properties: {
     principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
-    principalType: 'ServicePrincipal'
+    principalType: deployerPrincipalType
   }
 }
 
@@ -401,6 +435,7 @@ module DeployerAiUserAssignmentExisting './cross-scope-role-assignment.bicep' = 
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
     roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.azureAiUser)
     aiFoundryName: existingAIFoundryName
+    principalType: deployerPrincipalType
   }
 }
 
@@ -411,7 +446,7 @@ resource DeployerCognitiveServicesUserAssignment 'Microsoft.Authorization/roleAs
   properties: {
     principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
-    principalType: 'ServicePrincipal'
+    principalType: deployerPrincipalType
   }
 }
 
@@ -424,5 +459,6 @@ module DeployerCognitiveServicesUserAssignmentExisting './cross-scope-role-assig
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
     roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.cognitiveServicesUser)
     aiFoundryName: existingAIFoundryName
+    principalType: deployerPrincipalType
   }
 }

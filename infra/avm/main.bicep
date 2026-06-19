@@ -1227,6 +1227,7 @@ module containerApp_update './modules/compute/container-app.bicep' = {
   }
   dependsOn: [
     aifoundry_private_endpoint
+    containerApp
   ]
 }
 
@@ -1251,7 +1252,7 @@ module containerApp_API_update './modules/compute/container-app.bicep' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: 'appConfig.outputs.endpoint'
+            value: appConfig.outputs.endpoint
           }
           {
             name: 'APP_ENV'
@@ -1351,6 +1352,7 @@ module containerApp_API_update './modules/compute/container-app.bicep' = {
   }
   dependsOn: [
     aifoundry_private_endpoint
+    containerApp_API
   ]
 }
 
@@ -1375,7 +1377,7 @@ module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: 'appConfig.outputs.endpoint'
+            value: appConfig.outputs.endpoint
           }
           {
             name: 'APP_ENV'
@@ -1409,6 +1411,33 @@ module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
       minReplicas: enableScalability ? 2 : 1
     }
   }
+  dependsOn: [
+    aifoundry_private_endpoint
+    containerApp_Workflow
+  ]
+}
+
+// ========== Role Assignments (centralized)  ========== //
+module role_assignments './modules/identity/role-assignments.bicep' = {
+  name: take('module.role-assignments.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    useExistingAIProject: useExistingAIProject
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    appConfigurationResourceId: appConfig.outputs.resourceId
+    storageAccountResourceId: storage_account.outputs.resourceId
+    containerAppAPIServicePrincipalId: containerApp_API.outputs.principalId
+    containerAppWebServicePrincipalId: containerApp_Web.outputs.principalId
+    containerAppWorkFlowServicePrincipalId: containerApp_Workflow.outputs.principalId
+    deployerPrincipalId: deployingUserPrincipalId
+    deployerPrincipalType: deployingUserPrincipalType
+  }
+  scope: resourceGroup(resourceGroup().name)
+  dependsOn:[
+    containerApp_update
+    containerApp_API_update
+    containerApp_Workflow_update
+  ]
 }
 
 // ============ //
