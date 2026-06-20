@@ -1,11 +1,12 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
   "contentVersion": "1.0.0.0",
   "metadata": {
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "7268052071422542466"
+      "templateHash": "7139771383012688775"
     }
   },
   "parameters": {
@@ -175,8 +176,8 @@
     "aiFoundrySubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
     "aiFoundryResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]"
   },
-  "resources": [
-    {
+  "resources": {
+    "resourceGroupTags": {
       "type": "Microsoft.Resources/tags",
       "apiVersion": "2024-11-01",
       "name": "default",
@@ -184,7 +185,7 @@
         "tags": "[variables('resourceTags')]"
       }
     },
-    {
+    "log_analytics": {
       "condition": "[not(variables('useExistingLogAnalytics'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -313,7 +314,7 @@
         }
       }
     },
-    {
+    "app_insights": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.app-insights.{0}', parameters('solutionName')), 64)]",
@@ -330,7 +331,7 @@
           "location": {
             "value": "[parameters('azureAiServiceLocation')]"
           },
-          "workspaceResourceId": "[if(variables('useExistingLogAnalytics'), createObject('value', parameters('existingLogAnalyticsWorkspaceId')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.log-analytics.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value))]"
+          "workspaceResourceId": "[if(variables('useExistingLogAnalytics'), createObject('value', parameters('existingLogAnalyticsWorkspaceId')), createObject('value', reference('log_analytics').outputs.resourceId.value))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -470,10 +471,10 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.log-analytics.{0}', parameters('solutionName')), 64))]"
+        "log_analytics"
       ]
     },
-    {
+    "storage_account": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.storage-account.{0}', parameters('solutionName')), 64)]",
@@ -692,7 +693,7 @@
         }
       }
     },
-    {
+    "cosmosDBModule": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)]",
@@ -712,12 +713,13 @@
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
           "contentVersion": "1.0.0.0",
           "metadata": {
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "8612637578816028180"
+              "templateHash": "5373161592234115693"
             }
           },
           "parameters": {
@@ -833,8 +835,8 @@
               }
             }
           },
-          "resources": [
-            {
+          "resources": {
+            "cosmos": {
               "type": "Microsoft.DocumentDB/databaseAccounts",
               "apiVersion": "2025-10-15",
               "name": "[parameters('name')]",
@@ -862,7 +864,7 @@
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
               }
             },
-            {
+            "database": {
               "type": "Microsoft.DocumentDB/databaseAccounts/mongodbDatabases",
               "apiVersion": "2025-10-15",
               "name": "[format('{0}/{1}', parameters('name'), parameters('databaseName'))]",
@@ -872,10 +874,10 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('name'))]"
+                "cosmos"
               ]
             },
-            {
+            "mongoCollections": {
               "copy": {
                 "name": "mongoCollections",
                 "count": "[length(parameters('collections'))]"
@@ -891,10 +893,10 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts/mongodbDatabases', parameters('name'), parameters('databaseName'))]"
+                "database"
               ]
             }
-          ],
+          },
           "outputs": {
             "resourceId": {
               "type": "string",
@@ -911,11 +913,11 @@
               "value": "[parameters('name')]"
             },
             "connectionString": {
-              "type": "string",
+              "type": "securestring",
               "metadata": {
                 "description": "MongoDB connection string (without credentials — use Key Vault for secrets)."
               },
-              "value": "[format('mongodb+srv://{0}.mongo.cosmos.azure.com:443/?ssl=true&retrywrites=false&maxIdleTimeMS=120000', parameters('name'))]"
+              "value": "[listConnectionStrings('cosmos', '2025-10-15').connectionStrings[0].connectionString]"
             },
             "endpoint": {
               "type": "string",
@@ -935,7 +937,7 @@
         }
       }
     },
-    {
+    "existing_project_setup": {
       "condition": "[variables('useExistingAIProject')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -948,8 +950,8 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value))]",
-          "projectName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[10]), createObject('value', reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value))]"
+          "name": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference('ai_foundry_project').outputs.name.value))]",
+          "projectName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[10]), createObject('value', reference('ai_foundry_project').outputs.projectName.value))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -1051,10 +1053,10 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]"
+        "ai_foundry_project"
       ]
     },
-    {
+    "ai_foundry_project": {
       "condition": "[not(variables('useExistingAIProject'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -1280,7 +1282,7 @@
         }
       }
     },
-    {
+    "model_deployments": {
       "copy": {
         "name": "model_deployments",
         "count": "[length(variables('aiModelDeployments'))]",
@@ -1298,7 +1300,7 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "aiServicesAccountName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value))]",
+          "aiServicesAccountName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference('ai_foundry_project').outputs.name.value))]",
           "deploymentName": {
             "value": "[variables('aiModelDeployments')[copyIndex()].name]"
           },
@@ -1419,10 +1421,10 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]"
+        "ai_foundry_project"
       ]
     },
-    {
+    "containerRegistry": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-registry.{0}', parameters('solutionName')), 64)]",
@@ -1598,7 +1600,7 @@
         }
       }
     },
-    {
+    "containerAppEnv": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)]",
@@ -1625,7 +1627,7 @@
               }
             ]
           },
-          "logAnalyticsWorkspaceResourceId": "[if(variables('useExistingLogAnalytics'), createObject('value', parameters('existingLogAnalyticsWorkspaceId')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.log-analytics.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value))]"
+          "logAnalyticsWorkspaceResourceId": "[if(variables('useExistingLogAnalytics'), createObject('value', parameters('existingLogAnalyticsWorkspaceId')), createObject('value', reference('log_analytics').outputs.resourceId.value))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -1753,10 +1755,10 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.log-analytics.{0}', parameters('solutionName')), 64))]"
+        "log_analytics"
       ]
     },
-    {
+    "containerApp": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app.{0}', variables('solutionSuffix')), 64)]",
@@ -1773,7 +1775,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -1813,7 +1815,7 @@
                   },
                   {
                     "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   {
                     "name": "OTEL_SERVICE_NAME",
@@ -2031,11 +2033,11 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "app_insights",
+        "containerAppEnv"
       ]
     },
-    {
+    "containerApp_API": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)]",
@@ -2052,7 +2054,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -2092,7 +2094,7 @@
                   },
                   {
                     "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   {
                     "name": "OTEL_SERVICE_NAME",
@@ -2364,11 +2366,11 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "app_insights",
+        "containerAppEnv"
       ]
     },
-    {
+    "containerApp_Web": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-web.{0}', variables('solutionSuffix')), 64)]",
@@ -2385,7 +2387,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -2408,7 +2410,7 @@
                 "env": [
                   {
                     "name": "APP_API_BASE_URL",
-                    "value": "[format('https://{0}', reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.fqdn.value)]"
+                    "value": "[format('https://{0}', reference('containerApp_API').outputs.fqdn.value)]"
                   },
                   {
                     "name": "APP_WEB_CLIENT_ID",
@@ -2650,11 +2652,11 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "containerApp_API",
+        "containerAppEnv"
       ]
     },
-    {
+    "containerApp_Workflow": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-workflow.{0}', variables('solutionSuffix')), 64)]",
@@ -2671,7 +2673,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -2711,7 +2713,7 @@
                   },
                   {
                     "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   {
                     "name": "OTEL_SERVICE_NAME",
@@ -2929,11 +2931,11 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "app_insights",
+        "containerAppEnv"
       ]
     },
-    {
+    "appConfig": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.app-configuration.{0}', variables('solutionSuffix')), 64)]",
@@ -2953,7 +2955,7 @@
             "value": [
               {
                 "name": "APP_AZURE_OPENAI_ENDPOINT",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.cognitiveServicesEndpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
               },
               {
                 "name": "APP_AZURE_OPENAI_MODEL",
@@ -2961,7 +2963,7 @@
               },
               {
                 "name": "APP_CONTENT_UNDERSTANDING_ENDPOINT",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.azureOpenAiCuEndpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.azureOpenAiCuEndpoint.value]"
               },
               {
                 "name": "APP_COSMOS_CONTAINER_PROCESS",
@@ -3009,19 +3011,19 @@
               },
               {
                 "name": "APP_STORAGE_BLOB_URL",
-                "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.serviceEndpoints.value.blob]"
+                "value": "[reference('storage_account').outputs.serviceEndpoints.value.blob]"
               },
               {
                 "name": "APP_STORAGE_QUEUE_URL",
-                "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.serviceEndpoints.value.queue]"
+                "value": "[reference('storage_account').outputs.serviceEndpoints.value.queue]"
               },
               {
                 "name": "APP_AI_PROJECT_ENDPOINT",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.projectEndpoint.value]"
               },
               {
                 "name": "APP_COSMOS_CONNSTR",
-                "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                "value": "[listOutputsWithSecureValues('cosmosDBModule', '2025-04-01').connectionString]"
               },
               {
                 "name": "APP_COSMOS_CONTAINER_BATCH_PROCESS",
@@ -3041,7 +3043,7 @@
               },
               {
                 "name": "APP_CPS_CONTENT_PROCESS_ENDPOINT",
-                "value": "[format('http://{0}/', reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.name.value)]"
+                "value": "[format('http://{0}/', reference('containerApp_API').outputs.name.value)]"
               },
               {
                 "name": "APP_CPS_POLL_INTERVAL_SECONDS",
@@ -3049,7 +3051,7 @@
               },
               {
                 "name": "APP_STORAGE_ACCOUNT_NAME",
-                "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
+                "value": "[reference('storage_account').outputs.name.value]"
               },
               {
                 "name": "CLAIM_PROCESS_QUEUE_NAME",
@@ -3061,7 +3063,7 @@
               },
               {
                 "name": "AZURE_OPENAI_ENDPOINT",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
               },
               {
                 "name": "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME",
@@ -3073,7 +3075,7 @@
               },
               {
                 "name": "AZURE_OPENAI_ENDPOINT_BASE",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
               },
               {
                 "name": "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME",
@@ -3101,7 +3103,7 @@
               },
               {
                 "name": "GPT5_ENDPOINT",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
               },
               {
                 "name": "PHI4_API_VERSION",
@@ -3113,7 +3115,7 @@
               },
               {
                 "name": "PHI4_ENDPOINT",
-                "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]"
+                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
               }
             ]
           },
@@ -3251,13 +3253,13 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64))]"
+        "ai_foundry_project",
+        "containerApp_API",
+        "cosmosDBModule",
+        "storage_account"
       ]
     },
-    {
+    "containerApp_update": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-update.{0}', variables('solutionSuffix')), 64)]",
@@ -3274,7 +3276,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -3294,7 +3296,7 @@
                 "env": [
                   {
                     "name": "APP_CONFIG_ENDPOINT",
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.app-configuration.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.endpoint.value]"
+                    "value": "[reference('appConfig').outputs.endpoint.value]"
                   },
                   {
                     "name": "APP_ENV",
@@ -3314,7 +3316,7 @@
                   },
                   {
                     "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   {
                     "name": "OTEL_SERVICE_NAME",
@@ -3532,12 +3534,13 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-configuration.{0}', variables('solutionSuffix')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "app_insights",
+        "appConfig",
+        "containerApp",
+        "containerAppEnv"
       ]
     },
-    {
+    "containerApp_API_update": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-api-update.{0}', variables('solutionSuffix')), 64)]",
@@ -3554,7 +3557,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -3574,7 +3577,7 @@
                 "env": [
                   {
                     "name": "APP_CONFIG_ENDPOINT",
-                    "value": "appConfig.outputs.endpoint"
+                    "value": "[reference('appConfig').outputs.endpoint.value]"
                   },
                   {
                     "name": "APP_ENV",
@@ -3594,7 +3597,7 @@
                   },
                   {
                     "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   {
                     "name": "OTEL_SERVICE_NAME",
@@ -3866,11 +3869,13 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "app_insights",
+        "appConfig",
+        "containerApp_API",
+        "containerAppEnv"
       ]
     },
-    {
+    "containerApp_Workflow_update": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.container-app-workflow-update.{0}', variables('solutionSuffix')), 64)]",
@@ -3887,7 +3892,7 @@
             "value": "[parameters('location')]"
           },
           "environmentResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -3907,7 +3912,7 @@
                 "env": [
                   {
                     "name": "APP_CONFIG_ENDPOINT",
-                    "value": "appConfig.outputs.endpoint"
+                    "value": "[reference('appConfig').outputs.endpoint.value]"
                   },
                   {
                     "name": "APP_ENV",
@@ -3927,7 +3932,7 @@
                   },
                   {
                     "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   {
                     "name": "OTEL_SERVICE_NAME",
@@ -4145,11 +4150,13 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-environment.{0}', variables('solutionSuffix')), 64))]"
+        "app_insights",
+        "appConfig",
+        "containerApp_Workflow",
+        "containerAppEnv"
       ]
     },
-    {
+    "role_assignments": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.role-assignments.{0}', parameters('solutionName')), 64)]",
@@ -4170,19 +4177,19 @@
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
           "appConfigurationResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.app-configuration.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('appConfig').outputs.resourceId.value]"
           },
           "storageAccountResourceId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('storage_account').outputs.resourceId.value]"
           },
           "containerAppAPIServicePrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerApp_API').outputs.principalId.value]"
           },
           "containerAppWebServicePrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-web.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerApp_Web').outputs.principalId.value]"
           },
           "containerAppWorkFlowServicePrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-workflow.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.resourceId.value]"
+            "value": "[reference('containerApp_Workflow').outputs.principalId.value]"
           },
           "deployerPrincipalId": {
             "value": "[variables('deployingUserPrincipalId')]"
@@ -4198,7 +4205,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "13523109124871016203"
+              "templateHash": "10416266098339441912"
             }
           },
           "parameters": {
@@ -4386,11 +4393,23 @@
               }
             },
             {
+              "condition": "[and(not(empty(parameters('appConfigurationResourceId'))), not(empty(parameters('containerAppServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
+              "properties": {
+                "principalId": "[parameters('containerAppServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').appConfigurationDataReader)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
               "condition": "[and(not(empty(parameters('appConfigurationResourceId'))), not(empty(parameters('containerAppAPIServicePrincipalId'))))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/')))]",
-              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppAPIServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
+              "scope": "[resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppAPIServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
               "properties": {
                 "principalId": "[parameters('containerAppAPIServicePrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').appConfigurationDataReader)]",
@@ -4401,8 +4420,8 @@
               "condition": "[and(not(empty(parameters('appConfigurationResourceId'))), not(empty(parameters('containerAppWebServicePrincipalId'))))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/')))]",
-              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppWebServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
+              "scope": "[resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppWebServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
               "properties": {
                 "principalId": "[parameters('containerAppWebServicePrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').appConfigurationDataReader)]",
@@ -4413,8 +4432,8 @@
               "condition": "[and(not(empty(parameters('appConfigurationResourceId'))), not(empty(parameters('containerAppWorkFlowServicePrincipalId'))))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/')))]",
-              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppWorkFlowServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
+              "scope": "[resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('containerAppWorkFlowServicePrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
               "properties": {
                 "principalId": "[parameters('containerAppWorkFlowServicePrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').appConfigurationDataReader)]",
@@ -4470,6 +4489,30 @@
               }
             },
             {
+              "condition": "[and(not(empty(parameters('storageAccountResourceId'))), not(empty(parameters('containerAppAPIServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), parameters('containerAppAPIServicePrincipalId'), variables('roleDefinitions').storageBlobDataContributor)]",
+              "properties": {
+                "principalId": "[parameters('containerAppAPIServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataContributor)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('storageAccountResourceId'))), not(empty(parameters('containerAppAPIServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), parameters('containerAppAPIServicePrincipalId'), variables('roleDefinitions').storageQueueDataContributor)]",
+              "properties": {
+                "principalId": "[parameters('containerAppAPIServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageQueueDataContributor)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
               "condition": "[and(not(empty(parameters('deployerPrincipalId'))), not(empty(parameters('storageAccountResourceId'))))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
@@ -4497,12 +4540,12 @@
               "condition": "[and(not(empty(parameters('appConfigurationResourceId'))), not(empty(parameters('deployerPrincipalId'))))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/')))]",
-              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.Search/searchServices', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('deployerPrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
+              "scope": "[resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.AppConfiguration/configurationStores', last(split(parameters('appConfigurationResourceId'), '/'))), parameters('deployerPrincipalId'), variables('roleDefinitions').appConfigurationDataReader)]",
               "properties": {
                 "principalId": "[parameters('deployerPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').appConfigurationDataReader)]",
-                "principalType": "ServicePrincipal"
+                "principalType": "[parameters('deployerPrincipalType')]"
               }
             },
             {
@@ -4514,7 +4557,7 @@
               "properties": {
                 "principalId": "[parameters('deployerPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesOpenAIUser)]",
-                "principalType": "ServicePrincipal"
+                "principalType": "[parameters('deployerPrincipalType')]"
               }
             },
             {
@@ -4526,7 +4569,7 @@
               "properties": {
                 "principalId": "[parameters('deployerPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').azureAiUser)]",
-                "principalType": "ServicePrincipal"
+                "principalType": "[parameters('deployerPrincipalType')]"
               }
             },
             {
@@ -4538,7 +4581,7 @@
               "properties": {
                 "principalId": "[parameters('deployerPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesUser)]",
-                "principalType": "ServicePrincipal"
+                "principalType": "[parameters('deployerPrincipalType')]"
               }
             },
             {
@@ -5099,6 +5142,9 @@
                   },
                   "aiFoundryName": {
                     "value": "[variables('existingAIFoundryName')]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('deployerPrincipalType')]"
                   }
                 },
                 "template": {
@@ -5188,6 +5234,9 @@
                   },
                   "aiFoundryName": {
                     "value": "[variables('existingAIFoundryName')]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('deployerPrincipalType')]"
                   }
                 },
                 "template": {
@@ -5277,6 +5326,9 @@
                   },
                   "aiFoundryName": {
                     "value": "[variables('existingAIFoundryName')]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('deployerPrincipalType')]"
                   }
                 },
                 "template": {
@@ -5346,77 +5398,77 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-configuration.{0}', variables('solutionSuffix')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-web.{0}', variables('solutionSuffix')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.container-app-workflow.{0}', variables('solutionSuffix')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64))]"
+        "appConfig",
+        "containerApp_API",
+        "containerApp_Web",
+        "containerApp_Workflow",
+        "storage_account"
       ]
     }
-  ],
+  },
   "outputs": {
     "CONTAINER_WEB_APP_NAME": {
       "type": "string",
       "metadata": {
         "description": "The name of the Container App used for Web App."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-web.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.name.value]"
+      "value": "[reference('containerApp_Web').outputs.name.value]"
     },
     "CONTAINER_API_APP_NAME": {
       "type": "string",
       "metadata": {
         "description": "The name of the Container App used for API."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.name.value]"
+      "value": "[reference('containerApp_API').outputs.name.value]"
     },
     "CONTAINER_WEB_APP_FQDN": {
       "type": "string",
       "metadata": {
         "description": "The FQDN of the Container App."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-web.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.fqdn.value]"
+      "value": "[reference('containerApp_Web').outputs.fqdn.value]"
     },
     "CONTAINER_API_APP_FQDN": {
       "type": "string",
       "metadata": {
         "description": "The FQDN of the Container App API."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-api.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.fqdn.value]"
+      "value": "[reference('containerApp_API').outputs.fqdn.value]"
     },
     "CONTAINER_APP_NAME": {
       "type": "string",
       "metadata": {
         "description": "The name of the Container App used for APP."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.name.value]"
+      "value": "[reference('containerApp').outputs.name.value]"
     },
     "CONTAINER_WORKFLOW_APP_NAME": {
       "type": "string",
       "metadata": {
         "description": "The name of the Container App used for Workflow."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-app-workflow.{0}', variables('solutionSuffix')), 64)), '2025-04-01').outputs.name.value]"
+      "value": "[reference('containerApp_Workflow').outputs.name.value]"
     },
     "CONTAINER_REGISTRY_NAME": {
       "type": "string",
       "metadata": {
         "description": "The name of the Azure Container Registry."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
+      "value": "[reference('containerRegistry').outputs.name.value]"
     },
     "CONTAINER_REGISTRY_LOGIN_SERVER": {
       "type": "string",
       "metadata": {
         "description": "The login server of the Azure Container Registry."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.loginServer.value]"
+      "value": "[reference('containerRegistry').outputs.loginServer.value]"
     },
     "CONTENT_UNDERSTANDING_ACCOUNT_NAME": {
       "type": "string",
       "metadata": {
         "description": "The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
+      "value": "[reference('ai_foundry_project').outputs.name.value]"
     },
     "AZURE_RESOURCE_GROUP": {
       "type": "string",
