@@ -452,12 +452,38 @@ module storage_account './modules/data/storage-account.bicep' = {
     enableTelemetry: enableTelemetry
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.storageBlob]!.outputs.resourceId
-      privateDnsZoneDeployments[dnsZoneIndex.storageQueue]!.outputs.resourceId
-    ] : []
+    privateEndpoints: (enablePrivateNetworking)
+      ? [
+          {
+            name: 'pep-blob-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-blob-${solutionSuffix}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-blob'
+                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.storageBlob]!.outputs.resourceId
+                }
+              ]
+            }
+            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+            service: 'blob'
+          }
+          {
+            name: 'pep-queue-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-queue-${solutionSuffix}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'storage-dns-zone-group-queue'
+                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.storageQueue]!.outputs.resourceId
+                }
+              ]
+            }
+            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+            service: 'queue'
+          }
+        ]
+      : []
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
@@ -477,11 +503,25 @@ module cosmosDB './modules/data/cosmos-db-mongo.bicep' = {
     zoneRedundant: enableRedundancy
     enableAutomaticFailover: enableRedundancy
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.cosmosDB]!.outputs.resourceId
-    ] : []
+    privateEndpoints: (enablePrivateNetworking)
+      ? [
+          {
+            name: 'pep-cosmosdb-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-cosmosdb-${solutionSuffix}'
+            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'cosmosdb-dns-zone-group'
+                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cosmosDB]!.outputs.resourceId
+                }
+              ]
+            }
+            service: 'MongoDB'
+            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+          }
+        ]
+      : []
   }
 }
 
