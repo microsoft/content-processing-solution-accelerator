@@ -947,6 +947,7 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     containerAppAPIServicePrincipalId: containerApp_API.outputs.principalId
     containerAppWebServicePrincipalId: containerApp_Web.outputs.principalId
     containerAppWorkFlowServicePrincipalId: containerApp_Workflow.outputs.principalId
+    containerRegistryResourceId: containerRegistry.outputs.resourceId
     deployerPrincipalId: deployingUserPrincipalId
     deployerPrincipalType: deployingUserPrincipalType
   }

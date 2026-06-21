@@ -34,6 +34,9 @@ param containerAppWebServicePrincipalId string = ''
 @description('Principal ID of the Container App Workflow Service system-assigned identity (empty if not deployed).')
 param containerAppWorkFlowServicePrincipalId string = ''
 
+@description('Resource ID of the Container Registry')
+param containerRegistryResourceId string = ''
+
 @description('Principal ID of the deploying user (for user access roles).')
 param deployerPrincipalId string = ''
 
@@ -72,6 +75,7 @@ var roleDefinitions = {
   storageBlobDataReader: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
   storageQueueDataContributor: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
   appConfigurationDataReader: '516239f1-63e1-4d78-a4de-a74fb236a071'
+  acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 }
 
 // ============================================================================
@@ -88,6 +92,10 @@ resource appConfiguration 'Microsoft.AppConfiguration/configurationStores@2023-0
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' existing = if (!empty(storageAccountResourceId)) {
   name: last(split(storageAccountResourceId, '/'))
+}
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!empty(containerRegistryResourceId)) {
+  name: last(split(containerRegistryResourceId, '/'))
 }
 
 // ============================================================================
@@ -230,6 +238,55 @@ module containerAppCognitiveServicesUserAssignmentExisting './cross-scope-role-a
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
     roleAssignmentName: guid(solutionName, existingAIFoundryName, containerAppServicePrincipalId, roleDefinitions.cognitiveServicesUser)
     aiFoundryName: existingAIFoundryName
+  }
+}
+
+// ============================================================================
+// 2. App Configuration ROLE ASSIGNMENTS
+//    Container Apps → Container registry
+// ============================================================================
+
+// Container App Processor → Acr Pull on Container registry
+resource containerAppContainerRegistryAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(containerAppServicePrincipalId)) {
+  name: guid(solutionName, containerRegistry.id, containerAppServicePrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: containerAppServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Container App API → Acr Pull on Container registry
+resource containerAppAPIContainerRegistryAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(containerAppAPIServicePrincipalId)) {
+  name: guid(solutionName, containerRegistry.id, containerAppAPIServicePrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: containerAppAPIServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Container App Web → Acr Pull on Container registry
+resource containerAppWebContainerRegistryAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(containerAppWebServicePrincipalId)) {
+  name: guid(solutionName, containerRegistry.id, containerAppWebServicePrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: containerAppWebServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Container App Workflow → Acr Pull on Container registry
+resource containerAppWorkflowContainerRegistryAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(containerAppWorkFlowServicePrincipalId)) {
+  name: guid(solutionName, containerRegistry.id, containerAppWorkFlowServicePrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: containerAppWorkFlowServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: 'ServicePrincipal'
   }
 }
 
