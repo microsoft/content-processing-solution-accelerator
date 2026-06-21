@@ -40,7 +40,7 @@ param roleAssignments array = []
 param keyValues array = []
 
 @description('Optional. Public network access override. Set to Enabled to allow ARM keyValues writes during deploy.')
-param publicNetworkAccess string = ''
+param publicNetworkAccess string = 'Enabled'
 
 @description('Enable private networking.')
 param enablePrivateNetworking bool = false

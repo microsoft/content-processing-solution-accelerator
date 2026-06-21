@@ -1150,6 +1150,8 @@ module appConfig_update './modules/data/app-configuration.bicep' = if (enablePri
     solutionName: solutionSuffix
     location: location
     publicNetworkAccess: 'Disabled'
+    enablePrivateNetworking: enablePrivateNetworking
+    enableTelemetry: enableTelemetry
     privateDnsZoneResourceIds: enablePrivateNetworking ? [privateDnsZoneDeployments[dnsZoneIndex.appConfig]!.outputs.resourceId] : null
     privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : null
   }
