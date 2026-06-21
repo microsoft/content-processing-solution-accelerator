@@ -33,6 +33,9 @@ param enablePrivateNetworking bool = false
 @description('Enable monitoring (Log Analytics + App Insights).')
 param enableMonitoring bool = true
 
+@description('Public network access setting.')
+param publicNetworkAccess string = 'Enabled'
+
 @description('Application Insights connection string (optional, for App Insights integration).')
 param appInsightsConnectionString string = ''
 
@@ -64,7 +67,7 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.13.3' = {
     tags: tags
     enableTelemetry: enableTelemetry
     // WAF: Private networking
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     internal: enablePrivateNetworking
     infrastructureSubnetResourceId: !empty(infrastructureSubnetId) ? infrastructureSubnetId : null
     // WAF: Monitoring

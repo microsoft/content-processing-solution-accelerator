@@ -634,6 +634,7 @@ module containerAppEnv './modules/compute/container-app-environment.bicep' = {
     enableMonitoring: enableMonitoring
     // platformReservedCidr: '172.17.17.0/24'
     // platformReservedDnsIP: '172.17.17.17'
+    publicNetworkAccess: 'Enabled'
     zoneRedundant: (enablePrivateNetworking) ? true : false
     infrastructureSubnetId: (enablePrivateNetworking) ? virtualNetwork!.outputs.containerSubnetResourceId : null
   }
@@ -1139,6 +1140,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
     //   : null
     disableLocalAuth: false
     // replicaLocations: enableRedundancy? [{ replicaLocation: replicaLocation }] : []
+    publicNetworkAccess: 'Enabled'
   }
 }
 
