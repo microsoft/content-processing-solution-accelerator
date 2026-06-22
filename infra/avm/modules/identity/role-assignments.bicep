@@ -128,7 +128,7 @@ resource containerAppWorkflowAiUserAssignment 'Microsoft.Authorization/roleAssig
 
 // ContainerAppWorkflow → Foundry User on existing AI Foundry (cross-scope)
 module containerAppWorkflowAiUserAssignmentExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(containerAppWorkFlowServicePrincipalId)) {
-  name: 'assignAiUserRoleToBackendExisting'
+  name: 'assignAiUserRoleToContainerAppWorkflowExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: containerAppWorkFlowServicePrincipalId
@@ -151,7 +151,7 @@ resource containerAppWorkflowCognitiveServicesUserAssignment 'Microsoft.Authoriz
 
 // ContainerAppWorkflow → Cognitive Services User on existing AI Foundry (cross-scope)
 module containerAppWorkflowCognitiveServicesUserAssignmentExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(containerAppWorkFlowServicePrincipalId)) {
-  name: 'assignAiUserRoleToBackendExisting'
+  name: 'assignCognitiveServicesUserRoleToContainerAppWorkflowExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: containerAppWorkFlowServicePrincipalId
@@ -197,7 +197,7 @@ resource containerAppAiUserAssignment 'Microsoft.Authorization/roleAssignments@2
 
 // ContainerAppProcessor → Foundry User on existing AI Foundry (cross-scope)
 module containerAppAiUserAssignmentExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(containerAppServicePrincipalId)) {
-  name: 'assignAiUserRoleToBackendExisting'
+  name: 'assignAiUserRoleToContainerAppExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: containerAppServicePrincipalId
@@ -220,7 +220,7 @@ resource containerAppCognitiveServicesUserAssignment 'Microsoft.Authorization/ro
 
 // ContainerAppProcessor → Cognitive Services User on existing AI Foundry (cross-scope)
 module containerAppCognitiveServicesUserAssignmentExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(containerAppServicePrincipalId)) {
-  name: 'assignAiUserRoleToBackendExisting'
+  name: 'assignCognitiveServicesRoleToContainerAppExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: containerAppServicePrincipalId
