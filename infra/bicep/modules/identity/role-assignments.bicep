@@ -19,9 +19,6 @@ param existingFoundryProjectResourceId string = ''
 
 // --- Identity Principal IDs ---
 
-@description('Principal ID of the AI Search identity.')
-param aiSearchPrincipalId string = ''
-
 @description('Principal ID of the Container App Processor Service system-assigned identity (empty if not deployed).')
 param containerAppServicePrincipalId string = ''
 
@@ -464,7 +461,7 @@ module assignOpenAIToDeployerExisting './cross-scope-role-assignment.bicep' = if
   name: 'assignOpenAIRoleToAISearchExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
-    principalId: aiSearchPrincipalId
+    principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
     roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.cognitiveServicesOpenAIUser)
     aiFoundryName: existingAIFoundryName

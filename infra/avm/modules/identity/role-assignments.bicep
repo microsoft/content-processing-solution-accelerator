@@ -19,9 +19,6 @@ param existingFoundryProjectResourceId string = ''
 
 // --- Identity Principal IDs ---
 
-@description('Principal ID of the AI Search identity.')
-param aiSearchPrincipalId string = ''
-
 @description('Principal ID of the Container App Processor Service system-assigned identity (empty if not deployed).')
 param containerAppServicePrincipalId string = ''
 
@@ -108,7 +105,7 @@ resource assignOpenAIRoleToContainerAppWorkflow 'Microsoft.Authorization/roleAss
 
 // ContainerAppWorkflow → Cognitive Services OpenAI User on existing AI Foundry (cross-scope)
 module assignOpenAIToContainerAppWorkflowExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(containerAppWorkFlowServicePrincipalId)) {
-  name: 'assignOpenAIRoleToAISearchExisting'
+  name: 'assignOpenAIToContainerAppWorkflowExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: containerAppWorkFlowServicePrincipalId
@@ -177,7 +174,7 @@ resource assignOpenAIRoleToContainerApp 'Microsoft.Authorization/roleAssignments
 
 // ContainerAppProcessor → Cognitive Services OpenAI User on existing AI Foundry (cross-scope)
 module assignOpenAIToContainerAppExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(containerAppServicePrincipalId)) {
-  name: 'assignOpenAIRoleToAISearchExisting'
+  name: 'assignOpenAIToContainerAppExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: containerAppServicePrincipalId
@@ -404,10 +401,10 @@ resource assignOpenAIRoleToDeployer 'Microsoft.Authorization/roleAssignments@202
 
 // Deploying User → Cognitive Services OpenAI User on existing AI Foundry (cross-scope)
 module assignOpenAIToDeployerExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(deployerPrincipalId)) {
-  name: 'assignOpenAIRoleToAISearchExisting'
+  name: 'assignOpenAIToDeployerExisting'
   scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
-    principalId: aiSearchPrincipalId
+    principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
     roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.cognitiveServicesOpenAIUser)
     aiFoundryName: existingAIFoundryName

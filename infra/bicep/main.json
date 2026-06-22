@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "11336733783506365903"
+      "templateHash": "9900163119343284907"
     }
   },
   "parameters": {
@@ -1795,7 +1795,7 @@
                 "env": [
                   {
                     "name": "APP_CONFIG_ENDPOINT",
-                    "value": ""
+                    "value": "[reference('appConfig').outputs.endpoint.value]"
                   },
                   {
                     "name": "APP_ENV",
@@ -1824,6 +1824,18 @@
                 ]
               }
             ]
+          },
+          "ingressExternal": {
+            "value": false
+          },
+          "disableIngress": {
+            "value": true
+          },
+          "scaleSettings": {
+            "value": {
+              "maxReplicas": 2,
+              "minReplicas": 1
+            }
           }
         },
         "template": {
@@ -2034,6 +2046,7 @@
       },
       "dependsOn": [
         "app_insights",
+        "appConfig",
         "containerAppEnv"
       ]
     },
@@ -2156,6 +2169,12 @@
                 "Content-Type",
                 "*"
               ]
+            }
+          },
+          "scaleSettings": {
+            "value": {
+              "maxReplicas": 2,
+              "minReplicas": 1
             }
           }
         },
@@ -2443,6 +2462,12 @@
                 ]
               }
             ]
+          },
+          "scaleSettings": {
+            "value": {
+              "maxReplicas": 2,
+              "minReplicas": 1
+            }
           }
         },
         "template": {
@@ -2693,7 +2718,7 @@
                 "env": [
                   {
                     "name": "APP_CONFIG_ENDPOINT",
-                    "value": ""
+                    "value": "[reference('appConfig').outputs.endpoint.value]"
                   },
                   {
                     "name": "APP_ENV",
@@ -2722,6 +2747,18 @@
                 ]
               }
             ]
+          },
+          "ingressExternal": {
+            "value": false
+          },
+          "disableIngress": {
+            "value": true
+          },
+          "scaleSettings": {
+            "value": {
+              "maxReplicas": 2,
+              "minReplicas": 1
+            }
           }
         },
         "template": {
@@ -2932,6 +2969,7 @@
       },
       "dependsOn": [
         "app_insights",
+        "appConfig",
         "containerAppEnv"
       ]
     },
@@ -3257,287 +3295,6 @@
         "containerApp_API",
         "cosmosDBModule",
         "storage_account"
-      ]
-    },
-    "containerApp_update": {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app-update.{0}', variables('solutionSuffix')), 64)]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "name": {
-            "value": "[format('ca-app-{0}', variables('solutionSuffix'))]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "environmentResourceId": {
-            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
-          },
-          "tags": {
-            "value": "[parameters('tags')]"
-          },
-          "workloadProfileName": {
-            "value": "Consumption"
-          },
-          "containers": {
-            "value": [
-              {
-                "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessor:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
-                "resources": {
-                  "cpu": 4,
-                  "memory": "8.0Gi"
-                },
-                "env": [
-                  {
-                    "name": "APP_CONFIG_ENDPOINT",
-                    "value": "[reference('appConfig').outputs.endpoint.value]"
-                  },
-                  {
-                    "name": "APP_ENV",
-                    "value": "prod"
-                  },
-                  {
-                    "name": "APP_LOGGING_LEVEL",
-                    "value": "INFO"
-                  },
-                  {
-                    "name": "AZURE_PACKAGE_LOGGING_LEVEL",
-                    "value": "WARNING"
-                  },
-                  {
-                    "name": "AZURE_LOGGING_PACKAGES",
-                    "value": ""
-                  },
-                  {
-                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference('app_insights').outputs.connectionString.value]"
-                  },
-                  {
-                    "name": "OTEL_SERVICE_NAME",
-                    "value": "ContentProcessor"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "17370346544281807053"
-            }
-          },
-          "parameters": {
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the container app."
-              }
-            },
-            "location": {
-              "type": "string",
-              "metadata": {
-                "description": "Azure region for deployment."
-              }
-            },
-            "tags": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Resource tags."
-              }
-            },
-            "environmentResourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Resource ID of the Container Apps Environment."
-              }
-            },
-            "containers": {
-              "type": "array",
-              "metadata": {
-                "description": "Container definitions."
-              }
-            },
-            "ingressExternal": {
-              "type": "bool",
-              "defaultValue": true,
-              "metadata": {
-                "description": "Enable external ingress."
-              }
-            },
-            "ingressTargetPort": {
-              "type": "int",
-              "defaultValue": 80,
-              "metadata": {
-                "description": "Target port for ingress."
-              }
-            },
-            "ingressTransport": {
-              "type": "string",
-              "defaultValue": "auto",
-              "allowedValues": [
-                "auto",
-                "http",
-                "http2",
-                "tcp"
-              ],
-              "metadata": {
-                "description": "Ingress transport protocol."
-              }
-            },
-            "ingressAllowInsecure": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to allow insecure ingress connections."
-              }
-            },
-            "disableIngress": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Disable ingress entirely (for background workers)."
-              }
-            },
-            "registries": {
-              "type": "array",
-              "nullable": true,
-              "metadata": {
-                "description": "Container registry configurations."
-              }
-            },
-            "secrets": {
-              "type": "array",
-              "nullable": true,
-              "metadata": {
-                "description": "Secret definitions."
-              }
-            },
-            "identity": {
-              "type": "object",
-              "defaultValue": {
-                "type": "SystemAssigned"
-              },
-              "metadata": {
-                "description": "Optional. Managed identity configuration for the resource."
-              }
-            },
-            "corsPolicy": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "CORS policy configuration."
-              }
-            },
-            "activeRevisionsMode": {
-              "type": "string",
-              "defaultValue": "Single",
-              "allowedValues": [
-                "Single",
-                "Multiple"
-              ],
-              "metadata": {
-                "description": "Active revision mode."
-              }
-            },
-            "scaleSettings": {
-              "type": "object",
-              "defaultValue": {
-                "maxReplicas": 10,
-                "minReplicas": 0
-              },
-              "metadata": {
-                "description": "Scale settings (maxReplicas, minReplicas, rules)."
-              }
-            },
-            "workloadProfileName": {
-              "type": "string",
-              "nullable": true,
-              "metadata": {
-                "description": "Workload profile name."
-              }
-            }
-          },
-          "variables": {
-            "ingressConfig": "[if(parameters('disableIngress'), null(), createObject('external', parameters('ingressExternal'), 'targetPort', parameters('ingressTargetPort'), 'transport', parameters('ingressTransport'), 'allowInsecure', parameters('ingressAllowInsecure'), 'corsPolicy', if(not(empty(parameters('corsPolicy'))), parameters('corsPolicy'), null())))]"
-          },
-          "resources": {
-            "containerApp": {
-              "type": "Microsoft.App/containerApps",
-              "apiVersion": "2024-10-02-preview",
-              "name": "[parameters('name')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "identity": "[parameters('identity')]",
-              "properties": {
-                "managedEnvironmentId": "[parameters('environmentResourceId')]",
-                "workloadProfileName": "[parameters('workloadProfileName')]",
-                "configuration": {
-                  "activeRevisionsMode": "[parameters('activeRevisionsMode')]",
-                  "ingress": "[variables('ingressConfig')]",
-                  "registries": "[parameters('registries')]",
-                  "secrets": "[parameters('secrets')]"
-                },
-                "template": {
-                  "containers": "[parameters('containers')]",
-                  "scale": {
-                    "minReplicas": "[parameters('scaleSettings').minReplicas]",
-                    "maxReplicas": "[parameters('scaleSettings').maxReplicas]",
-                    "rules": "[if(contains(parameters('scaleSettings'), 'rules'), parameters('scaleSettings').rules, null())]"
-                  }
-                }
-              }
-            }
-          },
-          "outputs": {
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the container app."
-              },
-              "value": "[parameters('name')]"
-            },
-            "resourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "The resource ID of the container app."
-              },
-              "value": "[resourceId('Microsoft.App/containerApps', parameters('name'))]"
-            },
-            "fqdn": {
-              "type": "string",
-              "metadata": {
-                "description": "The FQDN of the container app."
-              },
-              "value": "[if(not(parameters('disableIngress')), reference('containerApp').configuration.ingress.fqdn, '')]"
-            },
-            "principalId": {
-              "type": "string",
-              "metadata": {
-                "description": "System-assigned identity principal ID."
-              },
-              "value": "[if(contains(reference('containerApp', '2024-10-02-preview', 'full').identity.type, 'SystemAssigned'), reference('containerApp', '2024-10-02-preview', 'full').identity.principalId, '')]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "app_insights",
-        "appConfig",
-        "containerApp",
-        "containerAppEnv"
       ]
     },
     "containerApp_API_update": {
@@ -3875,287 +3632,6 @@
         "containerAppEnv"
       ]
     },
-    "containerApp_Workflow_update": {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "[take(format('module.container-app-workflow-update.{0}', variables('solutionSuffix')), 64)]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "name": {
-            "value": "[format('ca-workflow-{0}', variables('solutionSuffix'))]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "environmentResourceId": {
-            "value": "[reference('containerAppEnv').outputs.resourceId.value]"
-          },
-          "tags": {
-            "value": "[parameters('tags')]"
-          },
-          "workloadProfileName": {
-            "value": "Consumption"
-          },
-          "containers": {
-            "value": [
-              {
-                "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
-                "resources": {
-                  "cpu": 4,
-                  "memory": "8.0Gi"
-                },
-                "env": [
-                  {
-                    "name": "APP_CONFIG_ENDPOINT",
-                    "value": "[reference('appConfig').outputs.endpoint.value]"
-                  },
-                  {
-                    "name": "APP_ENV",
-                    "value": "prod"
-                  },
-                  {
-                    "name": "APP_LOGGING_LEVEL",
-                    "value": "INFO"
-                  },
-                  {
-                    "name": "AZURE_PACKAGE_LOGGING_LEVEL",
-                    "value": "WARNING"
-                  },
-                  {
-                    "name": "AZURE_LOGGING_PACKAGES",
-                    "value": ""
-                  },
-                  {
-                    "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                    "value": "[reference('app_insights').outputs.connectionString.value]"
-                  },
-                  {
-                    "name": "OTEL_SERVICE_NAME",
-                    "value": "ContentProcessorWorkflow"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "17370346544281807053"
-            }
-          },
-          "parameters": {
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the container app."
-              }
-            },
-            "location": {
-              "type": "string",
-              "metadata": {
-                "description": "Azure region for deployment."
-              }
-            },
-            "tags": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Resource tags."
-              }
-            },
-            "environmentResourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Resource ID of the Container Apps Environment."
-              }
-            },
-            "containers": {
-              "type": "array",
-              "metadata": {
-                "description": "Container definitions."
-              }
-            },
-            "ingressExternal": {
-              "type": "bool",
-              "defaultValue": true,
-              "metadata": {
-                "description": "Enable external ingress."
-              }
-            },
-            "ingressTargetPort": {
-              "type": "int",
-              "defaultValue": 80,
-              "metadata": {
-                "description": "Target port for ingress."
-              }
-            },
-            "ingressTransport": {
-              "type": "string",
-              "defaultValue": "auto",
-              "allowedValues": [
-                "auto",
-                "http",
-                "http2",
-                "tcp"
-              ],
-              "metadata": {
-                "description": "Ingress transport protocol."
-              }
-            },
-            "ingressAllowInsecure": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to allow insecure ingress connections."
-              }
-            },
-            "disableIngress": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Disable ingress entirely (for background workers)."
-              }
-            },
-            "registries": {
-              "type": "array",
-              "nullable": true,
-              "metadata": {
-                "description": "Container registry configurations."
-              }
-            },
-            "secrets": {
-              "type": "array",
-              "nullable": true,
-              "metadata": {
-                "description": "Secret definitions."
-              }
-            },
-            "identity": {
-              "type": "object",
-              "defaultValue": {
-                "type": "SystemAssigned"
-              },
-              "metadata": {
-                "description": "Optional. Managed identity configuration for the resource."
-              }
-            },
-            "corsPolicy": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "CORS policy configuration."
-              }
-            },
-            "activeRevisionsMode": {
-              "type": "string",
-              "defaultValue": "Single",
-              "allowedValues": [
-                "Single",
-                "Multiple"
-              ],
-              "metadata": {
-                "description": "Active revision mode."
-              }
-            },
-            "scaleSettings": {
-              "type": "object",
-              "defaultValue": {
-                "maxReplicas": 10,
-                "minReplicas": 0
-              },
-              "metadata": {
-                "description": "Scale settings (maxReplicas, minReplicas, rules)."
-              }
-            },
-            "workloadProfileName": {
-              "type": "string",
-              "nullable": true,
-              "metadata": {
-                "description": "Workload profile name."
-              }
-            }
-          },
-          "variables": {
-            "ingressConfig": "[if(parameters('disableIngress'), null(), createObject('external', parameters('ingressExternal'), 'targetPort', parameters('ingressTargetPort'), 'transport', parameters('ingressTransport'), 'allowInsecure', parameters('ingressAllowInsecure'), 'corsPolicy', if(not(empty(parameters('corsPolicy'))), parameters('corsPolicy'), null())))]"
-          },
-          "resources": {
-            "containerApp": {
-              "type": "Microsoft.App/containerApps",
-              "apiVersion": "2024-10-02-preview",
-              "name": "[parameters('name')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "identity": "[parameters('identity')]",
-              "properties": {
-                "managedEnvironmentId": "[parameters('environmentResourceId')]",
-                "workloadProfileName": "[parameters('workloadProfileName')]",
-                "configuration": {
-                  "activeRevisionsMode": "[parameters('activeRevisionsMode')]",
-                  "ingress": "[variables('ingressConfig')]",
-                  "registries": "[parameters('registries')]",
-                  "secrets": "[parameters('secrets')]"
-                },
-                "template": {
-                  "containers": "[parameters('containers')]",
-                  "scale": {
-                    "minReplicas": "[parameters('scaleSettings').minReplicas]",
-                    "maxReplicas": "[parameters('scaleSettings').maxReplicas]",
-                    "rules": "[if(contains(parameters('scaleSettings'), 'rules'), parameters('scaleSettings').rules, null())]"
-                  }
-                }
-              }
-            }
-          },
-          "outputs": {
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the container app."
-              },
-              "value": "[parameters('name')]"
-            },
-            "resourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "The resource ID of the container app."
-              },
-              "value": "[resourceId('Microsoft.App/containerApps', parameters('name'))]"
-            },
-            "fqdn": {
-              "type": "string",
-              "metadata": {
-                "description": "The FQDN of the container app."
-              },
-              "value": "[if(not(parameters('disableIngress')), reference('containerApp').configuration.ingress.fqdn, '')]"
-            },
-            "principalId": {
-              "type": "string",
-              "metadata": {
-                "description": "System-assigned identity principal ID."
-              },
-              "value": "[if(contains(reference('containerApp', '2024-10-02-preview', 'full').identity.type, 'SystemAssigned'), reference('containerApp', '2024-10-02-preview', 'full').identity.principalId, '')]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "app_insights",
-        "appConfig",
-        "containerApp_Workflow",
-        "containerAppEnv"
-      ]
-    },
     "role_assignments": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -4176,11 +3652,17 @@
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
+          "aiFoundryResourceId": {
+            "value": "[reference('ai_foundry_project').outputs.resourceId.value]"
+          },
           "appConfigurationResourceId": {
             "value": "[reference('appConfig').outputs.resourceId.value]"
           },
           "storageAccountResourceId": {
             "value": "[reference('storage_account').outputs.resourceId.value]"
+          },
+          "containerAppServicePrincipalId": {
+            "value": "[reference('containerApp').outputs.principalId.value]"
           },
           "containerAppAPIServicePrincipalId": {
             "value": "[reference('containerApp_API').outputs.principalId.value]"
@@ -4208,7 +3690,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "12127531762744004912"
+              "templateHash": "5214100690208835268"
             }
           },
           "parameters": {
@@ -4231,13 +3713,6 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Resource ID of the existing AI project (for deriving AI Services name/sub/RG)."
-              }
-            },
-            "aiSearchPrincipalId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Principal ID of the AI Search identity."
               }
             },
             "containerAppServicePrincipalId": {
@@ -5191,7 +4666,7 @@
                 "mode": "Incremental",
                 "parameters": {
                   "principalId": {
-                    "value": "[parameters('aiSearchPrincipalId')]"
+                    "value": "[parameters('deployerPrincipalId')]"
                   },
                   "roleDefinitionId": {
                     "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesOpenAIUser)]"
@@ -5457,7 +4932,9 @@
         }
       },
       "dependsOn": [
+        "ai_foundry_project",
         "appConfig",
+        "containerApp",
         "containerApp_API",
         "containerApp_Web",
         "containerApp_Workflow",

@@ -641,7 +641,7 @@ module containerRegistry './modules/compute/container-registry.bicep' = {
                 }
               ]
             }
-            service: 'MongoDB'
+            service: 'registry'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
           }
         ]
@@ -697,7 +697,7 @@ module containerApp './modules/compute/container-app.bicep' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: ''
+            value: appConfig.outputs.endpoint
           }
           {
             name: 'APP_ENV'
@@ -726,6 +726,8 @@ module containerApp './modules/compute/container-app.bicep' = {
         ]
       }
     ]
+    ingressExternal: false
+    disableIngress: true
     scaleSettings: {
       maxReplicas: enableScalability ? 3 : 2
       minReplicas: enableScalability ? 2 : 1
@@ -947,7 +949,7 @@ module containerApp_Workflow './modules/compute/container-app.bicep' = {
         env: [
           {
             name: 'APP_CONFIG_ENDPOINT'
-            value: ''
+            value: appConfig.outputs.endpoint
           }
           {
             name: 'APP_ENV'
@@ -976,6 +978,8 @@ module containerApp_Workflow './modules/compute/container-app.bicep' = {
         ]
       }
     ]
+    ingressExternal: false
+    disableIngress: true
     scaleSettings: {
       maxReplicas: enableScalability ? 3 : 2
       minReplicas: enableScalability ? 2 : 1
@@ -1208,80 +1212,6 @@ module appConfig_update './modules/data/app-configuration.bicep' = if (enablePri
 }
 
 
-// ========== Container App Update Modules ========== //
-module containerApp_update './modules/compute/container-app.bicep' = {
-  name: take('module.container-app-update.${solutionSuffix}', 64)
-  params: {
-    name: 'ca-app-${solutionSuffix}'
-    location: location
-    environmentResourceId: containerAppEnv.outputs.resourceId
-    tags: tags
-    enableTelemetry: enableTelemetry
-    workloadProfileName: 'Consumption'
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
-
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: appConfig.outputs.endpoint
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessor'
-          }
-        ]
-      }
-    ]
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-      rules: enableScalability
-        ? [
-            {
-              name: 'http-scaler'
-              http: {
-                metadata: {
-                  concurrentRequests: 100
-                }
-              }
-            }
-          ]
-        : []
-    }
-  }
-  dependsOn: [
-    aifoundry_private_endpoint
-    containerApp
-  ]
-}
-
 // ========== Container App API Update Modules ========== //
 module containerApp_API_update './modules/compute/container-app.bicep' = {
   name: take('module.container-app-api-update.${solutionSuffix}', 64)
@@ -1407,66 +1337,6 @@ module containerApp_API_update './modules/compute/container-app.bicep' = {
   ]
 }
 
-// ========== Container App Workflow Update ========== //
-module containerApp_Workflow_update './modules/compute/container-app.bicep' = {
-  name: take('module.container-app-workflow-update.${solutionSuffix}', 64)
-  params: {
-    name: 'ca-workflow-${solutionSuffix}'
-    location: location
-    environmentResourceId: containerAppEnv.outputs.resourceId
-    tags: tags
-    enableTelemetry: enableTelemetry
-    workloadProfileName: 'Consumption'
-    containers: [
-      {
-        name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
-        resources: {
-          cpu: 4
-          memory: '8.0Gi'
-        }
-        env: [
-          {
-            name: 'APP_CONFIG_ENDPOINT'
-            value: appConfig.outputs.endpoint
-          }
-          {
-            name: 'APP_ENV'
-            value: 'prod'
-          }
-          {
-            name: 'APP_LOGGING_LEVEL'
-            value: 'INFO'
-          }
-          {
-            name: 'AZURE_PACKAGE_LOGGING_LEVEL'
-            value: 'WARNING'
-          }
-          {
-            name: 'AZURE_LOGGING_PACKAGES'
-            value: ''
-          }
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? app_insights!.outputs.connectionString : ''
-          }
-          {
-            name: 'OTEL_SERVICE_NAME'
-            value: 'ContentProcessorWorkflow'
-          }
-        ]
-      }
-    ]
-    scaleSettings: {
-      maxReplicas: enableScalability ? 3 : 2
-      minReplicas: enableScalability ? 2 : 1
-    }
-  }
-  dependsOn: [
-    aifoundry_private_endpoint
-    containerApp_Workflow
-  ]
-}
 
 // ========== Role Assignments (centralized)  ========== //
 module role_assignments './modules/identity/role-assignments.bicep' = {
@@ -1475,8 +1345,10 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     solutionName: solutionSuffix
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    aiFoundryResourceId: ai_foundry_project!.outputs.resourceId
     appConfigurationResourceId: appConfig.outputs.resourceId
     storageAccountResourceId: storage_account.outputs.resourceId
+    containerAppServicePrincipalId: containerApp.outputs.principalId
     containerAppAPIServicePrincipalId: containerApp_API.outputs.principalId
     containerAppWebServicePrincipalId: containerApp_Web.outputs.principalId
     containerAppWorkFlowServicePrincipalId: containerApp_Workflow.outputs.principalId
@@ -1484,11 +1356,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     deployerPrincipalType: deployingUserPrincipalType
   }
   scope: resourceGroup(resourceGroup().name)
-  dependsOn:[
-    containerApp_update
-    containerApp_API_update
-    containerApp_Workflow_update
-  ]
 }
 
 // ============ //
