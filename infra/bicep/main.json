@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "7139771383012688775"
+      "templateHash": "11336733783506365903"
     }
   },
   "parameters": {
@@ -4191,6 +4191,9 @@
           "containerAppWorkFlowServicePrincipalId": {
             "value": "[reference('containerApp_Workflow').outputs.principalId.value]"
           },
+          "containerRegistryResourceId": {
+            "value": "[reference('containerRegistry').outputs.resourceId.value]"
+          },
           "deployerPrincipalId": {
             "value": "[variables('deployingUserPrincipalId')]"
           },
@@ -4205,7 +4208,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "10416266098339441912"
+              "templateHash": "12127531762744004912"
             }
           },
           "parameters": {
@@ -4265,6 +4268,13 @@
                 "description": "Principal ID of the Container App Workflow Service system-assigned identity (empty if not deployed)."
               }
             },
+            "containerRegistryResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Resource ID of the Container Registry"
+              }
+            },
             "deployerPrincipalId": {
               "type": "string",
               "defaultValue": "",
@@ -4316,7 +4326,8 @@
               "storageBlobDataContributor": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
               "storageBlobDataReader": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
               "storageQueueDataContributor": "974c5e8b-45b9-4653-ba55-5f855dd0fb88",
-              "appConfigurationDataReader": "516239f1-63e1-4d78-a4de-a74fb236a071"
+              "appConfigurationDataReader": "516239f1-63e1-4d78-a4de-a74fb236a071",
+              "acrPull": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
             }
           },
           "resources": [
@@ -4389,6 +4400,54 @@
               "properties": {
                 "principalId": "[parameters('containerAppServicePrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesUser)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('containerAppServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('containerAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('containerAppServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('containerAppAPIServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('containerAppAPIServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('containerAppAPIServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('containerAppWebServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('containerAppWebServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('containerAppWebServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('containerAppWorkFlowServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('containerAppWorkFlowServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('containerAppWorkFlowServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
                 "principalType": "ServicePrincipal"
               }
             },
@@ -5402,6 +5461,7 @@
         "containerApp_API",
         "containerApp_Web",
         "containerApp_Workflow",
+        "containerRegistry",
         "storage_account"
       ]
     }

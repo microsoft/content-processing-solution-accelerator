@@ -42,34 +42,19 @@ param keyValues array = []
 @description('Optional. Public network access override. Set to Enabled to allow ARM keyValues writes during deploy.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Enable private networking.')
-param enablePrivateNetworking bool = false
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
-@description('Subnet resource ID for private endpoint.')
-param privateEndpointSubnetId string = ''
+@description('Optional. Diagnostic settings for the resource.')
+param diagnosticSettings array?
 
-@description('Private DNS zone resource IDs.')
-param privateDnsZoneResourceIds array = []
+@description('Optional. The replica location for Log Analytics Workspace, if redundancy is enabled.')
+param replicaLocations array = []
 
 // ============================================================================
 // App Configuration (AVM)
 // ============================================================================
-
-var dnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'config${i}'
-  privateDnsZoneResourceId: zoneId
-}]
-
-var privateEndpointConfig = enablePrivateNetworking && !empty(privateEndpointSubnetId) ? [
-  {
-    name: 'pep-appconfig-${solutionName}'
-    customNetworkInterfaceName: 'nic-appconfig-${solutionName}'
-    subnetResourceId: privateEndpointSubnetId
-    privateDnsZoneGroup: !empty(privateDnsZoneResourceIds) ? {
-      privateDnsZoneGroupConfigs: dnsZoneConfigs
-    } : null
-  }
-] : []
 
 module configStore 'br/public:avm/res/app-configuration/configuration-store:0.9.2' = {
   name: take('avm.res.appconfiguration.${name}', 64)
@@ -86,7 +71,9 @@ module configStore 'br/public:avm/res/app-configuration/configuration-store:0.9.
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
     keyValues: !empty(keyValues) ? keyValues : []
     publicNetworkAccess: !empty(publicNetworkAccess) ? publicNetworkAccess : null
-    privateEndpoints: privateEndpointConfig
+    privateEndpoints: privateEndpoints
+    diagnosticSettings: diagnosticSettings
+    replicaLocations: replicaLocations
   }
 }
 

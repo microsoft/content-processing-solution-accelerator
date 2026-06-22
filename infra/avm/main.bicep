@@ -1165,21 +1165,21 @@ module appConfig './modules/data/app-configuration.bicep' = {
         value: ai_foundry_project!.outputs.endpoint
       }
     ]
-    // diagnosticSettings: enableMonitoring
-    //   ? [
-    //       {
-    //         workspaceResourceId: enableMonitoring ? logAnalyticsWorkspaceResourceId : ''
-    //         logCategoriesAndGroups: [
-    //           {
-    //             categoryGroup: 'allLogs'
-    //             enabled: true
-    //           }
-    //         ]
-    //       }
-    //     ]
-    //   : null
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            workspaceResourceId: enableMonitoring ? logAnalyticsWorkspaceResourceId : ''
+            logCategoriesAndGroups: [
+              {
+                categoryGroup: 'allLogs'
+                enabled: true
+              }
+            ]
+          }
+        ]
+      : null
     disableLocalAuth: false
-    // replicaLocations: enableRedundancy? [{ replicaLocation: replicaLocation }] : []
+    replicaLocations: enableRedundancy? [{ replicaLocation: replicaLocation }] : []
     publicNetworkAccess: 'Enabled'
   }
 }
@@ -1190,10 +1190,22 @@ module appConfig_update './modules/data/app-configuration.bicep' = if (enablePri
     solutionName: solutionSuffix
     location: location
     publicNetworkAccess: 'Disabled'
-    enablePrivateNetworking: enablePrivateNetworking
     enableTelemetry: enableTelemetry
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [privateDnsZoneDeployments[dnsZoneIndex.appConfig]!.outputs.resourceId] : null
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : null
+    privateEndpoints: [
+      {
+        name: 'pep-appconfig-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-appconfig-${solutionSuffix}'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'appconfig-dns-zone-group'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.appConfig]!.outputs.resourceId
+            }
+          ]
+        }
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+      }
+    ]
   }
   dependsOn: [
     appConfig
