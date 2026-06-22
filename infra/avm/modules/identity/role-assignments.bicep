@@ -387,36 +387,3 @@ resource deployerAppConfigurationDataReader 'Microsoft.Authorization/roleAssignm
     principalType: deployerPrincipalType
   }
 }
-
-// Deploying User → Cognitive Services OpenAI User on AI Foundry (new project, same RG)
-resource assignOpenAIRoleToDeployer 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(deployerPrincipalId) && !empty(aiFoundryResourceId)) {
-  name: guid(solutionName, aiFoundryAccount.id, deployerPrincipalId, roleDefinitions.cognitiveServicesOpenAIUser)
-  scope: aiFoundryAccount
-  properties: {
-    principalId: deployerPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
-    principalType: deployerPrincipalType
-  }
-}
-
-// Deploying User → Foundry User on AI Foundry (new project, same RG)
-resource DeployerAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(aiFoundryResourceId) && !empty(deployerPrincipalId)) {
-  name: guid(solutionName, aiFoundryAccount.id, deployerPrincipalId, roleDefinitions.azureAiUser)
-  scope: aiFoundryAccount
-  properties: {
-    principalId: deployerPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
-    principalType: deployerPrincipalType
-  }
-}
-
-// Deploying User → Cognitive Services User (new project, same RG)
-resource DeployerCognitiveServicesUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(aiFoundryResourceId) && !empty(deployerPrincipalId)) {
-  name: guid(solutionName, aiFoundryAccount.id, deployerPrincipalId, roleDefinitions.cognitiveServicesUser)
-  scope: aiFoundryAccount
-  properties: {
-    principalId: deployerPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
-    principalType: deployerPrincipalType
-  }
-}

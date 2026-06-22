@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "6446135111774226093"
+      "templateHash": "16001184355742378271"
     }
   },
   "parameters": {
@@ -3690,7 +3690,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "11501687099984564301"
+              "templateHash": "16787926009011573215"
             }
           },
           "parameters": {
@@ -4211,7 +4211,7 @@
               "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('containerAppWorkFlowServicePrincipalId'))))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
-              "name": "assignAiUserRoleToBackendExisting",
+              "name": "assignAiUserRoleToContainerAppWorkflowExisting",
               "subscriptionId": "[variables('existingAIFoundrySubscription')]",
               "resourceGroup": "[variables('existingAIFoundryResourceGroup')]",
               "properties": {
@@ -4300,7 +4300,7 @@
               "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('containerAppWorkFlowServicePrincipalId'))))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
-              "name": "assignAiUserRoleToBackendExisting",
+              "name": "assignCognitiveServicesUserRoleToContainerAppWorkflowExisting",
               "subscriptionId": "[variables('existingAIFoundrySubscription')]",
               "resourceGroup": "[variables('existingAIFoundryResourceGroup')]",
               "properties": {
@@ -4478,7 +4478,7 @@
               "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('containerAppServicePrincipalId'))))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
-              "name": "assignAiUserRoleToBackendExisting",
+              "name": "assignAiUserRoleToContainerAppExisting",
               "subscriptionId": "[variables('existingAIFoundrySubscription')]",
               "resourceGroup": "[variables('existingAIFoundryResourceGroup')]",
               "properties": {
@@ -4567,7 +4567,7 @@
               "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('containerAppServicePrincipalId'))))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
-              "name": "assignAiUserRoleToBackendExisting",
+              "name": "assignCognitiveServicesRoleToContainerAppExisting",
               "subscriptionId": "[variables('existingAIFoundrySubscription')]",
               "resourceGroup": "[variables('existingAIFoundryResourceGroup')]",
               "properties": {

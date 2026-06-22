@@ -555,6 +555,11 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExis
         principalId: deployingUserPrincipalId
         principalType: deployingUserPrincipalType
       }
+      {
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User
+        principalId: deployingUserPrincipalId
+        principalType: deployingUserPrincipalType
+      }
     ]
   }
 }
