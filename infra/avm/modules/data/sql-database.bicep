@@ -48,22 +48,12 @@ param minCapacity int = 1
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Whether to enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for the private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs for SQL Server.')
-param privateDnsZoneResourceIds array = []
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 @description('Optional. Managed identities for the resource.')
 param managedIdentities object = { systemAssigned: true }
-
-var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'dns-zone-${i}'
-  privateDnsZoneResourceId: zoneId
-}]
 
 // ============================================================================
 // AVM Module Deployment
@@ -114,17 +104,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.21.1' = {
         endIpAddress: '0.0.0.0'
       }
     ] : []
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${name}'
-        customNetworkInterfaceName: 'nic-${name}'
-        subnetResourceId: privateEndpointSubnetId
-        service: 'sqlServer'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
+    privateEndpoints: privateEndpoints
   }
 }
 

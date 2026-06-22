@@ -44,14 +44,9 @@ param enableTelemetry bool = true
 @description('Role assignments.')
 param roleAssignments array = []
 
-@description('Enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs.')
-param privateDnsZoneResourceIds array = []
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 // ============================================================================
 // Key Vault (AVM)
@@ -61,20 +56,6 @@ var secretItems = [for secret in secrets: {
   name: secret.name
   value: secret.value
 }]
-
-var dnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'config${i}'
-  privateDnsZoneResourceId: zoneId
-}]
-
-var privateEndpointConfig = enablePrivateNetworking && !empty(privateEndpointSubnetId) ? [
-  {
-    subnetResourceId: privateEndpointSubnetId
-    privateDnsZoneGroup: !empty(privateDnsZoneResourceIds) ? {
-      privateDnsZoneGroupConfigs: dnsZoneConfigs
-    } : null
-  }
-] : []
 
 module keyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
   name: take('avm.res.keyvault.vault.${name}', 64)
@@ -91,7 +72,7 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
     publicNetworkAccess: publicNetworkAccess
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
     secrets: !empty(secrets) ? secretItems : []
-    privateEndpoints: privateEndpointConfig
+    privateEndpoints: privateEndpoints
   }
 }
 

@@ -15,9 +15,6 @@ param tags object = {}
 @description('Resource ID of the App Service Plan.')
 param serverFarmResourceId string
 
-@description('Resource ID of the storage account for function app.')
-param storageAccountResourceId string
-
 @description('Name of the storage account.')
 param storageAccountName string
 

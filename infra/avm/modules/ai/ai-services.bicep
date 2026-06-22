@@ -51,11 +51,9 @@ param disableLocalAuth bool = true
 @allowed(['Enabled', 'Disabled'])
 param publicNetworkAccess string = 'Enabled'
 
-@description('Whether to enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for the private endpoint.')
-param privateEndpointSubnetId string = ''
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 @description('Private DNS zone resource IDs.')
 param privateDnsZoneResourceIds array = []
@@ -70,11 +68,6 @@ param roleAssignments array = []
 param managedIdentities object = { systemAssigned: true }
 
 var effectiveSubDomain = !empty(customSubDomainName) ? customSubDomainName : name
-
-var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'dns-zone-${i}'
-  privateDnsZoneResourceId: zoneId
-}]
 
 // ============================================================================
 // AVM Module Deployment
@@ -94,17 +87,7 @@ module aiService 'br/public:avm/res/cognitive-services/account:0.14.2' = {
     publicNetworkAccess: publicNetworkAccess
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${name}'
-        customNetworkInterfaceName: 'nic-${name}'
-        subnetResourceId: privateEndpointSubnetId
-        service: 'account'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
+    privateEndpoints: privateEndpoints
   }
 }
 

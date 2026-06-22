@@ -53,19 +53,9 @@ param diagnosticSettings array = []
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Whether to enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for the private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs for PostgreSQL.')
-param privateDnsZoneResourceIds array = []
-
-var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'dns-zone-${i}'
-  privateDnsZoneResourceId: zoneId
-}]
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 // --- WAF: Redundancy ---
 @description('High availability mode.')
@@ -115,17 +105,7 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
         endIpAddress: '255.255.255.255'
       }
     ] : []
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${name}'
-        customNetworkInterfaceName: 'nic-${name}'
-        subnetResourceId: privateEndpointSubnetId
-        service: 'postgresqlServer'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
+    privateEndpoints: privateEndpoints
     databases: [for db in databases: {
       name: db.name
       charset: db.?charset ?? 'UTF8'

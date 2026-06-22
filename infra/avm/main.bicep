@@ -422,25 +422,6 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
   }
 ]
 
-// // ========== Container Registry ========== //
-// module containerRegistry './modules/compute/container-registry.bicep' = {
-//   name: take('module.container-registry.${solutionSuffix}', 64)
-//   params: {
-//     solutionName: solutionSuffix
-//     name: 'cr${replace(solutionSuffix, '-', '')}'
-//     location: location
-//     sku: enableRedundancy || enablePrivateNetworking ? 'Premium' : 'Standard'
-//     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-//     tags: tags
-//     enableTelemetry: enableTelemetry
-//     enablePrivateNetworking: enablePrivateNetworking
-//     privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-//     privateDnsZoneResourceIds: enablePrivateNetworking
-//       ? [privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId]
-//       : []
-//   }
-// }
-
 // // ========== Storage Account ========== //
 module storage_account './modules/data/storage-account.bicep' = {
   name: take('module.storage-account.${solutionName}', 64)
@@ -646,10 +627,24 @@ module containerRegistry './modules/compute/container-registry.bicep' = {
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     tags: tags
     enableTelemetry: enableTelemetry
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking
-      ? [privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId]
+    privateEndpoints: (enablePrivateNetworking)
+      ? [
+          {
+            name: 'pep-containerreg-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-containerreg-${solutionSuffix}'
+            privateEndpointResourceId: virtualNetwork!.outputs.resourceId
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'containerreg-dns-zone-group'
+                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId
+                }
+              ]
+            }
+            service: 'MongoDB'
+            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId // Use the backend subnet
+          }
+        ]
       : []
   }
 }

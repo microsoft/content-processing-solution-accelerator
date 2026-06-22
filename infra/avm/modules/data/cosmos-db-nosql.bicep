@@ -39,19 +39,9 @@ param diagnosticSettings array = []
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Whether to enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for the private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs for Cosmos DB.')
-param privateDnsZoneResourceIds array = []
-
-var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'dns-zone-${i}'
-  privateDnsZoneResourceId: zoneId
-}]
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 // --- WAF: Redundancy ---
 @description('Enable zone redundancy.')
@@ -94,17 +84,7 @@ module cosmosAccount 'br/public:avm/res/document-db/database-account:0.19.0' = {
       networkAclBypass: 'None'
       publicNetworkAccess: publicNetworkAccess
     }
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${name}'
-        customNetworkInterfaceName: 'nic-${name}'
-        subnetResourceId: privateEndpointSubnetId
-        service: 'Sql'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
+    privateEndpoints: privateEndpoints
     zoneRedundant: zoneRedundant
     enableAutomaticFailover: enableAutomaticFailover
     managedIdentities: managedIdentities

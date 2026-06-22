@@ -32,14 +32,9 @@ param managedIdentities object = { systemAssigned: true }
 @description('Role assignments.')
 param roleAssignments array = []
 
-@description('Enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs.')
-param privateDnsZoneResourceIds array = []
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 // ============================================================================
 // Event Hub Namespace (AVM)
@@ -50,20 +45,6 @@ var eventHubItems = [for eh in eventhubs: {
   messageRetentionInDays: contains(eh, 'messageRetentionInDays') ? eh.messageRetentionInDays : 1
   partitionCount: contains(eh, 'partitionCount') ? eh.partitionCount : 2
 }]
-
-var dnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'config${i}'
-  privateDnsZoneResourceId: zoneId
-}]
-
-var privateEndpointConfig = enablePrivateNetworking && !empty(privateEndpointSubnetId) ? [
-  {
-    subnetResourceId: privateEndpointSubnetId
-    privateDnsZoneGroup: !empty(privateDnsZoneResourceIds) ? {
-      privateDnsZoneGroupConfigs: dnsZoneConfigs
-    } : null
-  }
-] : []
 
 module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.14.1' = {
   name: take('avm.res.eventhub.namespace.${name}', 64)
@@ -77,7 +58,7 @@ module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.14.1' = {
     eventhubs: eventHubItems
     managedIdentities: managedIdentities
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
-    privateEndpoints: privateEndpointConfig
+    privateEndpoints: privateEndpoints
   }
 }
 
