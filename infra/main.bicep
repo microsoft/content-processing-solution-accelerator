@@ -122,14 +122,6 @@ param existingLogAnalyticsWorkspaceId string = ''
 param existingFoundryProjectResourceId string = ''
 
 // ============================================================================
-// Parameters — Identity
-// ============================================================================
-
-@allowed(['User', 'ServicePrincipal'])
-@description('Optional. Principal type of the deploying user.')
-param deployingUserPrincipalType string = 'User'
-
-// ============================================================================
 // Derived Variables
 // ============================================================================
 

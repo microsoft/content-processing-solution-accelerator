@@ -399,19 +399,6 @@ resource assignOpenAIRoleToDeployer 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-// Deploying User → Cognitive Services OpenAI User on existing AI Foundry (cross-scope)
-module assignOpenAIToDeployerExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(deployerPrincipalId)) {
-  name: 'assignOpenAIToDeployerExisting'
-  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
-  params: {
-    principalId: deployerPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
-    roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.cognitiveServicesOpenAIUser)
-    aiFoundryName: existingAIFoundryName
-    principalType: deployerPrincipalType
-  }
-}
-
 // Deploying User → Foundry User on AI Foundry (new project, same RG)
 resource DeployerAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(aiFoundryResourceId) && !empty(deployerPrincipalId)) {
   name: guid(solutionName, aiFoundryAccount.id, deployerPrincipalId, roleDefinitions.azureAiUser)
@@ -423,19 +410,6 @@ resource DeployerAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-// Deploying User → Foundry User on existing AI Foundry (cross-scope)
-module DeployerAiUserAssignmentExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(deployerPrincipalId)) {
-  name: 'assignAiUserRoleToBackendExisting'
-  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
-  params: {
-    principalId: deployerPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
-    roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.azureAiUser)
-    aiFoundryName: existingAIFoundryName
-    principalType: deployerPrincipalType
-  }
-}
-
 // Deploying User → Cognitive Services User (new project, same RG)
 resource DeployerCognitiveServicesUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(aiFoundryResourceId) && !empty(deployerPrincipalId)) {
   name: guid(solutionName, aiFoundryAccount.id, deployerPrincipalId, roleDefinitions.cognitiveServicesUser)
@@ -443,19 +417,6 @@ resource DeployerCognitiveServicesUserAssignment 'Microsoft.Authorization/roleAs
   properties: {
     principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
-    principalType: deployerPrincipalType
-  }
-}
-
-// Deploying User → Cognitive Services User on existing AI Foundry (cross-scope)
-module DeployerCognitiveServicesUserAssignmentExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(deployerPrincipalId)) {
-  name: 'assignAiUserRoleToBackendExisting'
-  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
-  params: {
-    principalId: deployerPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
-    roleAssignmentName: guid(solutionName, existingAIFoundryName, deployerPrincipalId, roleDefinitions.cognitiveServicesUser)
-    aiFoundryName: existingAIFoundryName
     principalType: deployerPrincipalType
   }
 }
