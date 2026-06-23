@@ -58,16 +58,6 @@ param gptModelVersion string = '2025-11-13'
 param gptDeploymentCapacity int = 300
 
 // ============================================================================
-// Parameters — Compute
-// ============================================================================
-
-@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
-param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
-
-@description('Optional. The image tag for the container images.')
-param imageTag string = 'latest_v2'
-
-// ============================================================================
 // Parameters — Existing Resources
 // ============================================================================
 
