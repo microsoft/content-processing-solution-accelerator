@@ -293,7 +293,7 @@ Follow the quick deploy steps on the deployment guide to deploy this solution to
 
 To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create **resource groups, resources, app registrations, and assign roles at the resource group level**. This should include Contributor role at the subscription level and Role Based Access Control role on the subscription and/or resource group level. Follow the steps in [Azure Account Set Up](./docs/AzureAccountSetup.md).
 
-Here are the supported regions for deployment: Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, UK South.
+Here are the supported regions for deployment: Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, Sweden Central, UK South.
 
 Check the [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/?products=all&regions=all) page and select a **region** where the following services are available.
 
