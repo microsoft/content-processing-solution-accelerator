@@ -19,9 +19,11 @@ metadata:
   template: content-processing@1.0
   name: content-processing@1.0
 
-# infra:
-#   path: infra
-#   module: main_custom
+infra:
+  provider: bicep
+  path: infra
+  module: main
+  parameters: infra/main.parameters.json
 
 services:
   contentprocessor:
