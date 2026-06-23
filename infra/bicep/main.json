@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "3753430589404358384"
+      "templateHash": "11073715319889107112"
     }
   },
   "parameters": {
@@ -3653,9 +3653,7 @@
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
-          "aiFoundryResourceId": {
-            "value": "[reference('ai_foundry_project').outputs.resourceId.value]"
-          },
+          "aiFoundryResourceId": "[if(not(variables('useExistingAIProject')), createObject('value', reference('ai_foundry_project').outputs.resourceId.value), createObject('value', ''))]",
           "appConfigurationResourceId": {
             "value": "[reference('appConfig').outputs.resourceId.value]"
           },

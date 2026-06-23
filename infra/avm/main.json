@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "9595830860923622464"
+      "templateHash": "1828358093452508400"
     }
   },
   "parameters": {
@@ -33436,8 +33436,8 @@
       },
       "dependsOn": [
         "log_analytics",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').storageQueue)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "virtualNetwork"
       ]
     },
@@ -64915,9 +64915,7 @@
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
-          "aiFoundryResourceId": {
-            "value": "[reference('ai_foundry_project').outputs.resourceId.value]"
-          },
+          "aiFoundryResourceId": "[if(not(variables('useExistingAIProject')), createObject('value', reference('ai_foundry_project').outputs.resourceId.value), createObject('value', ''))]",
           "appConfigurationResourceId": {
             "value": "[reference('appConfig').outputs.resourceId.value]"
           },

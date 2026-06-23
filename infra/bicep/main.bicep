@@ -845,7 +845,7 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     solutionName: solutionSuffix
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-    aiFoundryResourceId: ai_foundry_project!.outputs.resourceId
+    aiFoundryResourceId: !useExistingAIProject ? ai_foundry_project!.outputs.resourceId : ''
     appConfigurationResourceId: appConfig.outputs.resourceId
     storageAccountResourceId: storage_account.outputs.resourceId
     containerAppServicePrincipalId: containerApp.outputs.principalId
