@@ -204,6 +204,13 @@ module ai_foundry_project './bicep/modules/ai/ai-foundry-project.bicep' = if (!u
   }
 }
 
+// ========== AI outputs (ternary: existing vs new) ========== //
+var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
+var azureOpenAiCuEndpoint = useExistingAIProject ? existing_project_setup!.outputs.azureOpenAiCuEndpoint : ai_foundry_project!.outputs.azureOpenAiCuEndpoint
+var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
+var cognitiveServicesEndpoint = useExistingAIProject ? existing_project_setup!.outputs.cognitiveServicesEndpoint : ai_foundry_project!.outputs.cognitiveServicesEndpoint
+
 // ========== Model deployments (single loop for both existing and new paths) ========== //
 @batchSize(1)
 module model_deployments './bicep/modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in aiModelDeployments: {
@@ -425,6 +432,10 @@ module containerApp_API './bicep/modules/compute/container-app.bicep' = {
         '*'
       ]
     }
+    scaleSettings: {
+      maxReplicas: 2
+      minReplicas: 1
+    }
   }
 }
 
@@ -488,6 +499,10 @@ module containerApp_Web './bicep/modules/compute/container-app.bicep' = {
         ]
       }
     ]
+    scaleSettings: {
+      maxReplicas: 2
+      minReplicas: 1
+    }
   }
 }
 
@@ -857,7 +872,7 @@ module role_assignments './bicep/modules/identity/role-assignments.bicep' = {
     solutionName: solutionSuffix
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-    aiFoundryResourceId: ai_foundry_project!.outputs.resourceId
+    aiFoundryResourceId: !useExistingAIProject ? ai_foundry_project!.outputs.resourceId : ''
     appConfigurationResourceId: appConfig.outputs.resourceId
     storageAccountResourceId: storage_account.outputs.resourceId
     containerAppServicePrincipalId: containerApp.outputs.principalId
@@ -900,7 +915,7 @@ output CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 output CONTAINER_REGISTRY_LOGIN_SERVER string = containerRegistry.outputs.loginServer
 
 @description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA.')
-output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = ai_foundry_project!.outputs.name
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = aiFoundryName
 
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
