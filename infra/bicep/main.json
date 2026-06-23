@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "16001184355742378271"
+      "templateHash": "3753430589404358384"
     }
   },
   "parameters": {
@@ -2993,7 +2993,7 @@
             "value": [
               {
                 "name": "APP_AZURE_OPENAI_ENDPOINT",
-                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.cognitiveServicesEndpoint.value, reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value)]"
               },
               {
                 "name": "APP_AZURE_OPENAI_MODEL",
@@ -3001,7 +3001,7 @@
               },
               {
                 "name": "APP_CONTENT_UNDERSTANDING_ENDPOINT",
-                "value": "[reference('ai_foundry_project').outputs.azureOpenAiCuEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.azureOpenAiCuEndpoint.value, reference('ai_foundry_project').outputs.azureOpenAiCuEndpoint.value)]"
               },
               {
                 "name": "APP_COSMOS_CONTAINER_PROCESS",
@@ -3057,7 +3057,7 @@
               },
               {
                 "name": "APP_AI_PROJECT_ENDPOINT",
-                "value": "[reference('ai_foundry_project').outputs.projectEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.projectEndpoint.value, reference('ai_foundry_project').outputs.projectEndpoint.value)]"
               },
               {
                 "name": "APP_COSMOS_CONNSTR",
@@ -3101,7 +3101,7 @@
               },
               {
                 "name": "AZURE_OPENAI_ENDPOINT",
-                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.endpoint.value, reference('ai_foundry_project').outputs.endpoint.value)]"
               },
               {
                 "name": "AZURE_OPENAI_CHAT_DEPLOYMENT_NAME",
@@ -3113,7 +3113,7 @@
               },
               {
                 "name": "AZURE_OPENAI_ENDPOINT_BASE",
-                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.endpoint.value, reference('ai_foundry_project').outputs.endpoint.value)]"
               },
               {
                 "name": "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME",
@@ -3141,7 +3141,7 @@
               },
               {
                 "name": "GPT5_ENDPOINT",
-                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.endpoint.value, reference('ai_foundry_project').outputs.endpoint.value)]"
               },
               {
                 "name": "PHI4_API_VERSION",
@@ -3153,7 +3153,7 @@
               },
               {
                 "name": "PHI4_ENDPOINT",
-                "value": "[reference('ai_foundry_project').outputs.cognitiveServicesEndpoint.value]"
+                "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.endpoint.value, reference('ai_foundry_project').outputs.endpoint.value)]"
               }
             ]
           },
@@ -3294,6 +3294,7 @@
         "ai_foundry_project",
         "containerApp_API",
         "cosmosDBModule",
+        "existing_project_setup",
         "storage_account"
       ]
     },
@@ -4729,7 +4730,7 @@
       "metadata": {
         "description": "The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA."
       },
-      "value": "[reference('ai_foundry_project').outputs.name.value]"
+      "value": "[if(variables('useExistingAIProject'), reference('existing_project_setup').outputs.name.value, reference('ai_foundry_project').outputs.name.value)]"
     },
     "AZURE_RESOURCE_GROUP": {
       "type": "string",

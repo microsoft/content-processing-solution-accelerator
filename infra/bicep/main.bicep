@@ -204,6 +204,13 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExis
   }
 }
 
+// ========== AI outputs (ternary: existing vs new) ========== //
+var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
+var azureOpenAiCuEndpoint = useExistingAIProject ? existing_project_setup!.outputs.azureOpenAiCuEndpoint : ai_foundry_project!.outputs.azureOpenAiCuEndpoint
+var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
+var cognitiveServicesEndpoint = useExistingAIProject ? existing_project_setup!.outputs.cognitiveServicesEndpoint : ai_foundry_project!.outputs.cognitiveServicesEndpoint
+
 // ========== Model deployments (single loop for both existing and new paths) ========== //
 @batchSize(1)
 module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in aiModelDeployments: {
@@ -550,7 +557,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
     keyValues: [
       {
         name: 'APP_AZURE_OPENAI_ENDPOINT'
-        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
+        value: cognitiveServicesEndpoint
       }
       {
         name: 'APP_AZURE_OPENAI_MODEL'
@@ -558,7 +565,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'APP_CONTENT_UNDERSTANDING_ENDPOINT'
-        value: ai_foundry_project!.outputs.azureOpenAiCuEndpoint
+        value: azureOpenAiCuEndpoint
       }
       {
         name: 'APP_COSMOS_CONTAINER_PROCESS'
@@ -614,7 +621,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'APP_AI_PROJECT_ENDPOINT'
-        value: ai_foundry_project!.outputs.projectEndpoint
+        value: projectEndpoint
       }
       {
         name: 'APP_COSMOS_CONNSTR'
@@ -659,7 +666,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'AZURE_OPENAI_ENDPOINT'
-        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
+        value: aiFoundryEndpoint
       }
       {
         name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME'
@@ -671,7 +678,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'AZURE_OPENAI_ENDPOINT_BASE'
-        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
+        value: aiFoundryEndpoint
       }
       // ===== Agent Framework Keys ===== //
       {
@@ -701,7 +708,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'GPT5_ENDPOINT'
-        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
+        value: aiFoundryEndpoint
       }
       // ===== PHI-4 Service Prefix Keys ===== //
       {
@@ -714,7 +721,7 @@ module appConfig './modules/data/app-configuration.bicep' = {
       }
       {
         name: 'PHI4_ENDPOINT'
-        value: ai_foundry_project!.outputs.cognitiveServicesEndpoint
+        value: aiFoundryEndpoint
       }
     ]
     disableLocalAuth: false
@@ -881,7 +888,7 @@ output CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 output CONTAINER_REGISTRY_LOGIN_SERVER string = containerRegistry.outputs.loginServer
 
 @description('The name of the AI Services account that hosts both Azure OpenAI and Content Understanding GA.')
-output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = ai_foundry_project!.outputs.name
+output CONTENT_UNDERSTANDING_ACCOUNT_NAME string = aiFoundryName
 
 @description('The resource group the resources were deployed into.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
