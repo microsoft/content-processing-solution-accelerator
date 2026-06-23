@@ -1,6 +1,8 @@
 ## [Optional]: Customizing resource names 
 
-By default this template will use the environment name as the prefix to prevent naming collisions within Azure. The parameters below show the default values. You only need to run the statements below if you need to change the values. 
+By default this template will use the environment name as the prefix to prevent naming collisions within Azure. The parameters below show the default values. You only need to run the statements below if you need to change the values.
+
+This solution supports multiple infrastructure deployment flavors (`bicep`, `avm`, `avm-waf`) through `DEPLOYMENT_FLAVOR`.
 
 
 > To override any of the parameters, run `azd env set <PARAMETER_NAME> <VALUE>` before running `azd up`. On the first azd command, it will prompt you for the environment name. Be sure to choose 3-20 characters alphanumeric unique name. 
@@ -9,8 +11,9 @@ By default this template will use the environment name as the prefix to prevent 
 
 | Name                                   | Type    | Example Value               | Purpose                                                                               |
 | -------------------------------------- | ------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| `DEPLOYMENT_FLAVOR`                    | string  | `bicep`                     | Selects infrastructure flavor. Allowed: `bicep` (default), `avm` (AVM non-WAF), `avm-waf` (AVM WAF-aligned). |
 | `AZURE_ENV_NAME`                       | string  | `cps`                     | Sets the environment name prefix for all Azure resources (3-20 characters).            |
-| `AZURE_LOCATION`                       | string  | `eastus2`                  | Sets the primary Azure region for resource deployment. Allowed: `australiaeast`, `centralus`, `eastasia`, `eastus2`, `japaneast`, `northeurope`, `southeastasia`, `uksouth`. |
+| `AZURE_LOCATION`                       | string  | `eastus2`                  | Sets the primary Azure region for resource deployment. Allowed: `australiaeast`, `centralus`, `eastasia`, `eastus2`, `japaneast`, `northeurope`, `southeastasia`, `swedencentral`, `uksouth`. |
 | `AZURE_ENV_AI_SERVICE_LOCATION`    | string  | `eastus2`                  | Sets the location for Azure AI Services. This single account hosts both Azure OpenAI and Content Understanding. Allowed: `australiaeast`, `eastus`, `eastus2`, `japaneast`, `southcentralus`, `southeastasia`, `swedencentral`, `uksouth`, `westeurope`, `westus`, `westus3`. |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`          | Defines the model deployment type. Allowed: `Standard`, `GlobalStandard`.<br>**Note:** the `azd` location-picker filters regions using the `usageName` metadata on `azureAiServiceLocation` in `infra/main.bicep` (currently `OpenAI.GlobalStandard.gpt-5.1,300`). If you set this parameter to `Standard`, also edit that metadata to `OpenAI.Standard.gpt-5.1,300` so the picker shows the correct subset of regions. |
 | `AZURE_ENV_GPT_MODEL_NAME`                 | string  | `gpt-5.1`                 | Specifies the GPT model name. Default: `gpt-5.1`.                                     |
@@ -29,6 +32,8 @@ To customize any of the above values, run the following command **before** `azd 
 ```bash
 azd env set <PARAMETER_NAME> <VALUE>
 ```
+
+> **Production note:** For full WAF production defaults (monitoring, private networking, and scalability enabled), use `infra/main.waf.parameters.json` as described in the [Deployment Guide](./DeploymentGuide.md#31-choose-deployment-type-optional).
 
 **Example:**
 

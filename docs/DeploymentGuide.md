@@ -4,6 +4,11 @@
 
 This guide walks you through deploying the Content Processing Solution Accelerator to Azure. The deployment process takes approximately 15-20 minutes for the default Development/Testing configuration and includes both infrastructure provisioning and application setup.
 
+The infrastructure now supports multiple deployment flavors through a routing model in `infra/main.bicep`:
+- `bicep` (default) for rapid development/testing
+- `avm` for Azure Verified Modules (non-WAF)
+- `avm-waf` for production-ready Well-Architected features
+
 🆘 **Need Help?** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for solutions to common problems.
 
 > **Note**: Some tenants may have additional security restrictions that run periodically and could impact the application (e.g., blocking public network access). If you experience issues or the application stops working, check if these restrictions are the cause. In such cases, consider deploying the WAF-supported version to ensure compliance. To configure, [Click here](#31-choose-deployment-type-optional).
@@ -56,7 +61,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 - [Azure App Configuration](https://learn.microsoft.com/en-us/azure/azure-app-configuration/)
 - [GPT Model Capacity](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models)
 
-**Recommended Regions:** Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, UK South.
+**Recommended Regions:** Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, Sweden Central, UK South.
 
 🔍 **Check Availability:** Use [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/) to verify service availability.
 
@@ -188,7 +193,8 @@ Review the configuration options below. You can customize any settings that meet
 
 | **Aspect**             | **Development/Testing (Default)** | **Production**                                                                          |
 | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------- |
-| **Configuration File** | `main.parameters.json` (sandbox)  | Copy `main.waf.parameters.json` to `main.parameters.json`                               |
+| **Deployment Flavor**  | `bicep`                           | `avm-waf`                                                                               |
+| **Configuration File** | `main.parameters.json`            | Copy `main.waf.parameters.json` to `main.parameters.json`                              |
 | **Security Controls**  | Minimal (for rapid iteration)     | Enhanced (production best practices)                                                    |
 | **Cost**               | Lower costs                       | Cost optimized                                                                          |
 | **Use Case**           | POCs, development, testing        | Production workloads                                                                    |
@@ -205,6 +211,14 @@ Copy the contents from the production configuration file to your main parameters
 4. Open `main.parameters.json` in the same text editor
 5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
 6. Save the file (Ctrl+S)
+
+**Optional AVM (non-WAF) deployment:**
+
+If you want AVM modules without WAF-enabled controls, keep `main.parameters.json` and set:
+
+```shell
+azd env set DEPLOYMENT_FLAVOR avm
+```
 
 ### 3.2 Set VM Credentials (Optional - Production Deployment Only)
 
@@ -290,7 +304,7 @@ azd up
 1. **Environment name** - Must be 3-20 characters, lowercase alphanumeric only (e.g., `cpsapp01`).
 2. **Azure subscription** selection.
 3. **Azure AI Foundry deployment region** - Select a region with available GPT-5.1 model quota for AI operations.
-4. **Primary location** - Select the region where your infrastructure resources will be deployed (Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, UK South).
+4. **Primary location** - Select the region where your infrastructure resources will be deployed (Australia East, Central US, East Asia, East US 2, Japan East, North Europe, Southeast Asia, Sweden Central, UK South).
 5. **Resource group** selection (create new or use existing).
 
 **Expected Duration:** 4-6 minutes for default configuration.

@@ -19,9 +19,11 @@ metadata:
   template: content-processing@1.0
   name: content-processing@1.0
 
-# infra:
-#   path: infra
-#   module: main_custom
+infra:
+  provider: bicep
+  path: infra
+  module: main
+  parameters: infra/main.parameters.json
 
 services:
   contentprocessor:
@@ -68,9 +70,9 @@ hooks:
   postprovision:
     posix:
       shell: sh
-      run: sed -i 's/\r$//' ./infra/scripts/post_deployment.sh; bash ./infra/scripts/post_deployment.sh
+      run: sed -i 's/\r$//' ./infra/scripts/post-provision/post_deployment.sh; bash ./infra/scripts/post-provision/post_deployment.sh
       interactive: true
     windows:
       shell: pwsh
-      run: ./infra/scripts/post_deployment.ps1
+      run: ./infra/scripts/post-provision/post_deployment.ps1
       interactive: true

@@ -24,9 +24,9 @@ pnpm install --store-dir "$HOME/.local/share/pnpm/store"
 cd ../../
 
 echo "Setting up executable permission for shell scripts"
-sed -i 's/\r$//' infra/scripts/post_deployment.sh
-sudo chmod +x infra/scripts/docker-build.sh
-sudo chmod +x infra/scripts/post_deployment.sh
+sed -i 's/\r$//' infra/scripts/post-provision/post_deployment.sh
+sudo chmod +x infra/scripts/build/docker-build.sh
+sudo chmod +x infra/scripts/post-provision/post_deployment.sh
 sudo chmod +x src/ContentProcessorAPI/samples/upload_files.sh
 # register_schema.py is cross-platform and does not need chmod
 
