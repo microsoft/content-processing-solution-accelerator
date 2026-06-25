@@ -537,7 +537,6 @@ name = "contentprocessorapi"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "aiohttp" },
     { name = "azure-appconfiguration" },
     { name = "azure-identity" },
     { name = "azure-monitor-events-extension" },
@@ -578,7 +577,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = "==3.14.1" },
     { name = "azure-appconfiguration", specifier = "==1.8.0" },
     { name = "azure-identity", specifier = "==1.26.0b1" },
     { name = "azure-monitor-events-extension", specifier = ">=0.1.0" },
