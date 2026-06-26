@@ -177,6 +177,8 @@ The API also provides schema management, schema set (collection) management, and
 ### Claim Process Monitor Web
 Using Azure Container App, this app acts as the UI for the process monitoring queue. The app is built with React and TypeScript. It acts as an API client to create an experience for uploading new documents, creating and managing claim batches, monitoring current and historical processes, and reviewing output results including summarization and gap analysis.
 
+In WAF/private networking deployments (`enablePrivateNetworking=true`), the frontend remains public while backend APIs are internal-only. The web container proxies `/api/*` traffic to the private API Container App over VNet so backend endpoints are not directly exposed to the public internet.
+
 ### App Configuration
 Using Azure App Configuration, app settings and configurations are centralized and used with the Content Processor, Content Process API, Content Process Workflow, and Claim Process Monitor Web.
 
