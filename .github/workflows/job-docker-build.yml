@@ -1,28 +1,22 @@
-name: Docker Build Job
+name: Build & Push Test Images (Feature Branch)
 
 on:
   workflow_call:
-    inputs:
-      trigger_type:
-        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
-        required: true
-        type: string
-      build_docker_image:
-        description: 'Build And Push Docker Image (Optional)'
-        required: false
-        default: false
-        type: boolean
     outputs:
       IMAGE_TAG:
         description: "Generated Docker Image Tag"
         value: ${{ jobs.docker-build.outputs.IMAGE_TAG }}
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
 
 env:
   BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
 
 jobs:
   docker-build:
-    if: inputs.trigger_type == 'workflow_dispatch' && inputs.build_docker_image == true
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -56,7 +50,11 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Log in to Azure Container Registry
-        run: az acr login --name ${{ secrets.ACR_TEST_LOGIN_SERVER }}
+        shell: bash
+        run: |
+          # Extract registry name from login server (e.g., myacr.azurecr.io -> myacr)
+          ACR_NAME=$(echo "${{ vars.ACR_TEST_LOGIN_SERVER }}" | cut -d'.' -f1)
+          az acr login --name "$ACR_NAME"
 
       - name: Build and Push ContentProcessor Docker image
         uses: docker/build-push-action@v7
@@ -67,8 +65,8 @@ jobs:
           file: ./src/ContentProcessor/Dockerfile
           push: true
           tags: |
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessor:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
 
       - name: Build and Push ContentProcessorAPI Docker image
         uses: docker/build-push-action@v7
@@ -79,8 +77,8 @@ jobs:
           file: ./src/ContentProcessorAPI/Dockerfile
           push: true
           tags: |
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessorapi:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
 
       - name: Build and Push ContentProcessorWeb Docker image
         uses: docker/build-push-action@v7
@@ -91,8 +89,8 @@ jobs:
           file: ./src/ContentProcessorWeb/Dockerfile
           push: true
           tags: |
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessorweb:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
 
       - name: Build and Push ContentProcessorWorkflow Docker image
         uses: docker/build-push-action@v6
@@ -103,8 +101,8 @@ jobs:
           file: ./src/ContentProcessorWorkflow/Dockerfile
           push: true
           tags: |
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorworkflow:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
-            ${{ secrets.ACR_TEST_LOGIN_SERVER }}/contentprocessorworkflow:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessorworkflow:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
+            ${{ vars.ACR_TEST_LOGIN_SERVER }}/contentprocessorworkflow:${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}_${{ github.run_number }}
 
       - name: Verify Docker Image Build
         shell: bash
@@ -116,7 +114,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}")
+          ACR_NAME=$(echo "${{ vars.ACR_TEST_LOGIN_SERVER }}")
           echo "## 🐳 Docker Build Job Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
