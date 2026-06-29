@@ -647,7 +647,7 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' //'Storage Blob Data Contributor'
         principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
