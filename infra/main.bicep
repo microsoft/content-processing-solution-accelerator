@@ -592,7 +592,7 @@ module avmContainerRegistry 'modules/container-registry.bicep' = {
     roleAssignments: [
       {
         principalId: avmContainerRegistryReader.outputs.principalId
-        roleDefinitionIdOrName: 'AcrPull'
+        roleDefinitionIdOrName: '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull
         principalType: 'ServicePrincipal'
       }
     ]
@@ -620,36 +620,36 @@ module avmStorageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
     roleAssignments: [
       {
         principalId: avmManagedIdentity.outputs.principalId
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
         principalId: avmContainerApp_API.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Queue Data Contributor'
+        roleDefinitionIdOrName: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Queue Data Contributor'
+        roleDefinitionIdOrName: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
         principalId: avmContainerApp_API.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
         principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
       {
-        roleDefinitionIdOrName: 'Storage Queue Data Contributor'
+        roleDefinitionIdOrName: '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
         principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
         principalType: 'ServicePrincipal'
       }
@@ -729,32 +729,32 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
       }
       {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'Azure AI Developer'
+        roleDefinitionIdOrName: '64702f94-c441-49e6-a78b-ef80e0188fee' // Azure AI Developer
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'Azure AI Developer'
+        roleDefinitionIdOrName: '64702f94-c441-49e6-a78b-ef80e0188fee' // Azure AI Developer
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'Cognitive Services User'
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Workflow.outputs.systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'Cognitive Services User'
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
         principalType: 'ServicePrincipal'
       }
     ]
@@ -1316,22 +1316,22 @@ module avmAppConfig 'br/public:avm/res/app-configuration/configuration-store:0.9
     roleAssignments: [
       {
         principalId: avmContainerApp.outputs.?systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'App Configuration Data Reader'
+        roleDefinitionIdOrName: '516239f1-63e1-4d78-a4de-a74fb236a071' // App Configuration Data Reader
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_API.outputs.?systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'App Configuration Data Reader'
+        roleDefinitionIdOrName: '516239f1-63e1-4d78-a4de-a74fb236a071' // App Configuration Data Reader
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Web.outputs.?systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'App Configuration Data Reader'
+        roleDefinitionIdOrName: '516239f1-63e1-4d78-a4de-a74fb236a071' // App Configuration Data Reader
         principalType: 'ServicePrincipal'
       }
       {
         principalId: avmContainerApp_Workflow.outputs.?systemAssignedMIPrincipalId!
-        roleDefinitionIdOrName: 'App Configuration Data Reader'
+        roleDefinitionIdOrName: '516239f1-63e1-4d78-a4de-a74fb236a071' // App Configuration Data Reader
         principalType: 'ServicePrincipal'
       }
     ]
