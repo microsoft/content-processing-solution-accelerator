@@ -1,0 +1,139 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/**
+ * Accordion-based view of the processing steps for a selected document.
+ * Each step is expandable and renders its raw JSON payload in a read-only
+ * json-edit-react editor.
+ */
+
+import React, { useEffect, useState, useRef } from "react";
+import { Accordion, AccordionItem, AccordionHeader, AccordionPanel } from "@fluentui/react-components";
+import { CheckmarkCircleFilled } from "@fluentui/react-icons";
+import { Spinner } from "@fluentui/react-components";
+import { JsonEditor } from "json-edit-react";
+
+import { useSelector, shallowEqual } from 'react-redux';
+import { RootState } from '../../../../store';
+
+type LoadingStates = {
+  [key: string]: boolean;
+};
+
+/**
+ * Renders an accordion of processing steps, each showing its JSON details
+ * and elapsed processing time.
+ */
+const ProcessSteps: React.FC = () => {
+  const status = ['extract', 'processing', 'map', 'evaluate'];
+  const [loadingStates, setLoadingStates] = useState<LoadingStates>({});
+  const childRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+
+  const store = useSelector((state: RootState) => ({
+    processStepsData: state.centerPanel.processStepsData,
+    selectedItem: state.leftPanel.selectedItem,
+  }), shallowEqual
+  );
+
+  const hasValidSelection = !!store.selectedItem && !!store.selectedItem.process_id;
+  const hasProcessStepsData = Array.isArray(store.processStepsData) && store.processStepsData.length > 0;
+
+  const renderProcessTimeInSeconds = (timeString: string) => {
+    if (!timeString) {
+      return timeString;
+    }
+    const parts = timeString.split(":");
+    if (parts.length !== 3) {
+      return timeString;
+    }
+    const [hours, minutes, seconds] = parts.map(Number);
+    const totalSeconds = (hours * 3600 + minutes * 60 + seconds).toFixed(2);
+    return `${totalSeconds}s`;
+  };
+
+  const handleExpand = (itemId: number) => {
+    setLoadingStates((prevState) => ({ ...prevState, [itemId]: true }));
+    setTimeout(() => {
+      const childDiv = childRefs.current[itemId];
+      if (childDiv) {
+        childDiv.classList.add('loaded');
+      }
+    }, 500);
+
+  };
+
+  useEffect(() => {
+    const observers: MutationObserver[] = [];
+    Object.keys(childRefs.current).forEach((itemId) => {
+      const childDiv = childRefs.current[itemId];
+      if (childDiv) {
+        const observer = new MutationObserver(() => {
+          if (childDiv.classList.contains('loaded')) {
+            setLoadingStates((prevState) => ({ ...prevState, [itemId]: false }));
+          }
+        });
+        observer.observe(childDiv, { attributes: true, attributeFilter: ['class'] });
+        observers.push(observer);
+      }
+    });
+    return () => {
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, []);
+
+  if (!hasValidSelection || !hasProcessStepsData) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+        No data available.
+      </div>
+    );
+  }
+
+  return (
+    <Accordion collapsible>
+      {!status.includes(store.selectedItem.status as string) && store.processStepsData?.map((step, index) => {
+        const stepName = step.step_name as string;
+        const processedTime = step.processed_time as string;
+        return (
+        <AccordionItem key={index} value={stepName}>
+          <AccordionHeader onClick={() => handleExpand(index)}> {loadingStates[index] && <Spinner size="tiny" style={{ position: 'absolute', left: '10px' }} label="" />}
+            <span style={{ fontWeight: 'bold', textTransform: 'capitalize'}}>{stepName}</span>
+            <span style={{ color: 'green', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+              {renderProcessTimeInSeconds(processedTime)} <CheckmarkCircleFilled style={{ marginLeft: '4px' }} />
+            </span>
+          </AccordionHeader>
+          <div ref={(el) => { childRefs.current[index] = el; }}>
+            <AccordionPanel >
+              <JsonEditor
+                key={`json-editor-${index}`}
+                data={step}
+                collapse={5}
+                restrictEdit={true}
+                restrictDelete={true}
+                restrictAdd={true}
+                rootName={stepName.toLowerCase()}
+                collapseAnimationTime={300}
+                theme={[{
+                  styles: {
+                    container: {
+                      width: '89%',
+                      minWidth: '100%',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif',
+                      fontSize: '14px',
+                      paddingTop: '0px'
+                    },
+                  }
+                }]}
+              />
+            </AccordionPanel>
+          </div>
+        </AccordionItem>
+        );
+      })}
+    </Accordion>
+
+  );
+};
+
+export default ProcessSteps;

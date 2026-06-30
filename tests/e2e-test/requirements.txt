@@ -1,0 +1,7 @@
+pytest-playwright==0.*
+pytest-reporter-html1==0.*
+python-dotenv==1.*
+pytest-check==2.*
+pytest-html==4.*
+py==1.*
+beautifulsoup4==4.*

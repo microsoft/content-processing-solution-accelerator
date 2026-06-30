@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # GitHub Actions dependencies (grouped)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "build"
+    target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      all-actions:
+        patterns:
+          - "*"
+  # uv dependencies (grouped)
+  - package-ecosystem: "uv"
+    directory: "/src/ContentProcessor"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "build"
+    target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      all-uv-deps:
+        patterns:
+          - "*"
+
+  # uv dependencies (grouped)
+  - package-ecosystem: "uv"
+    directory: "/src/ContentProcessorAPI"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "build"
+    target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      all-uv-deps:
+        patterns:
+          - "*"
+
+  # npm dependencies (grouped)
+  - package-ecosystem: "npm"
+    directory: "/src/ContentProcessorWeb"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "build"
+    target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      all-npm-deps:
+        patterns:
+          - "*"

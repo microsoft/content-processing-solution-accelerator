@@ -1,0 +1,81 @@
+:root {
+  --app-background-color: var(--colorNeutralBackground1);
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background-color: var(--app-background-color);
+  transition: background-color 0.3s ease;
+}
+
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  overflow: auto;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.7);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 100, 100, 1);
+}
+
+* {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.7) transparent;
+}
+
+p,
+ol,
+ul,
+li {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+}
+
+code {
+  font-size: 0.9rem;
+}
+
+a {
+  color: inherit;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+ol,
+ul {
+  padding-left: 20px;
+}
+
+li {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}

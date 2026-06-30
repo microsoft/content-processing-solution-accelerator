@@ -1,0 +1,33 @@
+.JSONEditorClass {
+    max-width: 100% !important;
+    max-height: none !important;
+}
+
+textarea {
+    max-width: 100% !important;
+    max-height: none !important;
+
+}
+
+.JSONEditorLoader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.JSONEditor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    .JSONEditor-searchDiv {
+        flex: 0 0 auto;
+        padding: 5px 10px;
+    }
+
+    .JSONEditor-contentDiv {
+        flex: 1 1 auto;
+        overflow-y: auto;
+    }
+}

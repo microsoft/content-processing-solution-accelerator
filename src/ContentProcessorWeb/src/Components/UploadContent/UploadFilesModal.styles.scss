@@ -1,0 +1,63 @@
+.dialogBody {
+    margin: 16px 0px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+
+    .inputDiv {
+        margin: 16px 0px;
+    }
+}
+
+.drop-area {
+    border: 2px dashed #ccc;
+    padding: 25px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 150px;
+    transition: border-color 0.3s;
+    flex-direction: column;
+}
+
+.drop-area.dragging {
+    border-color: #0078D4;
+    background-color: rgba(0, 120, 212, 0.1);
+}
+
+.drop-message {
+    text-align: center;
+}
+
+.drop-message p {
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #666;
+}
+
+
+.filesList {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+
+    .fiiles {
+        overflow: visible;
+    }
+
+    .error {
+        color: red;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .file-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+}

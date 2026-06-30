@@ -1,0 +1,58 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+build/
+dist/
+wheels/
+*.egg
+.eggs/
+develop-eggs/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info
+.installed.cfg
+.env.dev
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# Type checker / linter / formatter caches
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+src/.env
+
+.vscode/
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/

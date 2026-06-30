@@ -1,0 +1,22 @@
+# # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# metadata:
+#     template: azd-init@1.11.1
+name: content-processing
+
+requiredVersions:
+  azd: '>= 1.18.0 != 1.23.9'
+
+metadata:
+  template: content-processing@1.0
+  name: content-processinge@1.0
+
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: sed -i 's/\r$//' ./infra/scripts/post_deployment.sh; bash ./infra/scripts/post_deployment.sh
+      interactive: true
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/post_deployment.ps1
+      interactive: true

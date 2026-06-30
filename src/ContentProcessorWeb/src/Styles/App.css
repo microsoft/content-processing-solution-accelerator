@@ -1,0 +1,17 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--colorNeutralBackground3);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.layout,
+main {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}

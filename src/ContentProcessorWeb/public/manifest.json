@@ -1,0 +1,15 @@
+{
+  "short_name": "CTO Eden",
+  "name": "Create React App Sample",
+  "icons": [
+    {
+      "src": "Microsoft_logo.ico",
+      "type": "image/png",
+      "sizes": "128X128"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

@@ -1,0 +1,617 @@
+{
+  "$defs": {
+    "CameraViewpoint": {
+      "description": "Camera perspective relative to the vehicle.\n\nAttributes:\n    spatial_reasoning: Chain-of-thought scratchpad for determining view angle.\n    view_angle: Computed camera angle label.\n    description: Free-text summary of the camera position.",
+      "properties": {
+        "spatial_reasoning": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "MANDATORY chain-of-thought reasoning about camera position. Must answer IN ORDER: (1) Can I see the FRONT (grille/headlights) or REAR (tail lights/trunk) of the vehicle? (2) Which side of the IMAGE does the body flank extend toward? (3) Apply the mirror rule: viewing the FRONT \u2014 image-right = vehicle LEFT, image-left = vehicle RIGHT. Viewing the REAR \u2014 image-right = vehicle RIGHT, image-left = vehicle LEFT. (4) Therefore view_angle = ? (5) FALLBACK only if neither front nor rear is visible (pure side view): use steering wheel position to determine driver side (LHD: left, RHD: right).",
+          "title": "Spatial Reasoning"
+        },
+        "view_angle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Primary camera viewing angle relative to the vehicle. Must be one of: front, front-left, front-right, left-side, right-side, rear-left, rear-right, rear, top, underneath, interior, unknown. Left/right = VEHICLE's own left/right (driver-perspective facing forward).",
+          "title": "View Angle"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Free-text description of the camera position and angle relative to the vehicle, e.g. 'Slightly elevated front-left view showing hood, front bumper, and left fender.'",
+          "title": "Description"
+        }
+      },
+      "required": [
+        "spatial_reasoning",
+        "view_angle",
+        "description"
+      ],
+      "title": "CameraViewpoint",
+      "type": "object"
+    },
+    "DamageBoundingBox": {
+      "description": "Bounding box in normalized image coordinates [0..1].",
+      "properties": {
+        "x_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Left edge in [0..1]",
+          "title": "X Min"
+        },
+        "y_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Top edge in [0..1]",
+          "title": "Y Min"
+        },
+        "x_max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Right edge in [0..1]",
+          "title": "X Max"
+        },
+        "y_max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bottom edge in [0..1]",
+          "title": "Y Max"
+        }
+      },
+      "required": [
+        "x_min",
+        "y_min",
+        "x_max",
+        "y_max"
+      ],
+      "title": "DamageBoundingBox",
+      "type": "object"
+    },
+    "DamageRegion": {
+      "description": "A detected region of damage on the vehicle.",
+      "properties": {
+        "location_on_vehicle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Location on the vehicle using the VEHICLE's own left/right (driver-perspective facing forward). The side MUST match camera_viewpoint.view_angle. Examples: 'front-left fender', 'rear-right quarter panel'.",
+          "title": "Location On Vehicle"
+        },
+        "damage_types": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Damage types, e.g. ['scratch','dent','crack','paint-transfer']",
+          "title": "Damage Types"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Severity label, e.g. minor, moderate, severe",
+          "title": "Severity"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Free-text description of the damage",
+          "title": "Description"
+        },
+        "bounding_box": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DamageBoundingBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Approx bounding box of the damage area (normalized coordinates)"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Confidence score in [0..1] for this damage region",
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "location_on_vehicle",
+        "damage_types",
+        "severity",
+        "description",
+        "bounding_box",
+        "confidence"
+      ],
+      "title": "DamageRegion",
+      "type": "object"
+    },
+    "ImageInfo": {
+      "description": "Metadata about an input image.\n\nNote: Most fields may be unknown unless provided by the caller or extracted from EXIF.",
+      "properties": {
+        "filename": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Analyzed filename of the image",
+          "title": "Filename"
+        },
+        "content_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "MIME type, e.g. image/jpeg",
+          "title": "Content Type"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Analyzed image width in pixels",
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Analyzed image height in pixels",
+          "title": "Height"
+        },
+        "capture_datetime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Capture datetime if available, e.g. 2025-11-28T14:15:00 original EXIF string if unprocessed",
+          "title": "Capture Datetime"
+        }
+      },
+      "required": [
+        "filename",
+        "content_type",
+        "width",
+        "height",
+        "capture_datetime"
+      ],
+      "title": "ImageInfo",
+      "type": "object"
+    },
+    "OverallDamageAssessment": {
+      "description": "Overall assessment across the full image.",
+      "properties": {
+        "has_visible_damage": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether any damage is visible",
+          "title": "Has Visible Damage"
+        },
+        "overall_severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Overall severity label, e.g. minor, moderate, severe",
+          "title": "Overall Severity"
+        },
+        "affected_parts": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Affected parts/panels using the VEHICLE's own left/right. Side labels MUST match camera_viewpoint.view_angle.",
+          "title": "Affected Parts"
+        },
+        "estimated_repair_complexity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rough complexity, e.g. cosmetic_only, panel_repair, replacement_likely",
+          "title": "Estimated Repair Complexity"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Notes or caveats, e.g. lighting/angle limitations",
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "has_visible_damage",
+        "overall_severity",
+        "affected_parts",
+        "estimated_repair_complexity",
+        "notes"
+      ],
+      "title": "OverallDamageAssessment",
+      "type": "object"
+    },
+    "VehicleAppearance": {
+      "description": "Visible vehicle identification extracted from the image.\n\nGuidance:\n- Prefer fields that can be seen. If uncertain, leave null.\n- Do not guess VIN from images.",
+      "properties": {
+        "vehicle_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle type, e.g. sedan, SUV",
+          "title": "Vehicle Type"
+        },
+        "make": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle make, e.g. Toyota",
+          "title": "Make"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle model, e.g. Camry",
+          "title": "Model"
+        },
+        "trim": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle trim, e.g. SE",
+          "title": "Trim"
+        },
+        "model_year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle model year, e.g. 2022",
+          "title": "Model Year"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vehicle color, e.g. silver",
+          "title": "Color"
+        },
+        "license_plate_visible": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Whether the license plate is visible in the image",
+          "title": "License Plate Visible"
+        },
+        "license_plate_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "License plate text if clearly readable; otherwise null",
+          "title": "License Plate Text"
+        },
+        "visible_vehicle_parts": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "List of vehicle parts/panels actually visible in this image given the camera angle, e.g. ['hood', 'front bumper', 'front-left fender', 'front-left headlight']. Only parts that can be seen should be listed. Left/right MUST use the VEHICLE's own frame of reference and MUST match the side in camera_viewpoint.view_angle.",
+          "title": "Visible Vehicle Parts"
+        }
+      },
+      "required": [
+        "vehicle_type",
+        "make",
+        "model",
+        "trim",
+        "model_year",
+        "color",
+        "license_plate_visible",
+        "license_plate_text",
+        "visible_vehicle_parts"
+      ],
+      "title": "VehicleAppearance",
+      "type": "object"
+    },
+    "VehicleAssessment": {
+      "description": "Per-vehicle damage assessment extracted from an image.\n\nGroups appearance, damage regions, and overall assessment for a single\nvehicle detected in the photograph.\n\nAttributes:\n    vehicle_id: Human-readable identifier distinguishing this vehicle.\n    vehicle_appearance: Visible vehicle identification.\n    damage_regions: Detected damage regions for this vehicle.\n    overall_assessment: Overall damage assessment for this vehicle.",
+      "properties": {
+        "vehicle_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A short human-readable identifier for this vehicle, e.g. 'Vehicle 1 - silver sedan (front-left)'. Use color, type, and position to distinguish vehicles.",
+          "title": "Vehicle Id"
+        },
+        "vehicle_appearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VehicleAppearance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Visible vehicle identification for this vehicle"
+        },
+        "damage_regions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DamageRegion"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "List of detected damage regions for this vehicle",
+          "title": "Damage Regions"
+        },
+        "overall_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OverallDamageAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Overall damage assessment for this vehicle"
+        }
+      },
+      "required": [
+        "vehicle_id",
+        "vehicle_appearance",
+        "damage_regions",
+        "overall_assessment"
+      ],
+      "title": "VehicleAssessment",
+      "type": "object"
+    }
+  },
+  "description": "Schema for extracting damaged vehicle information from an image.\n\nSupports single- and multi-vehicle images. Each vehicle detected in the\nphotograph gets its own entry in the ``vehicles`` list.\n\nAttributes:\n    image_info: Image metadata (shared across all vehicles).\n    camera_viewpoint: Camera perspective relative to the scene.\n    vehicle_count: Number of distinct vehicles detected in the image.\n    vehicles: Per-vehicle assessment list.",
+  "properties": {
+    "image_info": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Image metadata"
+    },
+    "camera_viewpoint": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraViewpoint"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Camera perspective relative to the scene. MUST be determined BEFORE labelling any damage locations so that left/right orientation is anchored to each vehicle's own frame of reference."
+    },
+    "vehicle_count": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Number of distinct vehicles detected in the image. Must equal the length of the vehicles list.",
+      "title": "Vehicle Count"
+    },
+    "vehicles": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/VehicleAssessment"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Per-vehicle damage assessments. One entry per vehicle detected in the image. For single-vehicle images this list contains exactly one item.",
+      "title": "Vehicles"
+    },
+    "consistency_check": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "MANDATORY self-verification. State the side from view_angle, then list every left/right label used in visible_vehicle_parts, damage_regions, and affected_parts. Confirm they ALL match the side in view_angle. If any mismatch was found and corrected, describe what was fixed.",
+      "title": "Consistency Check"
+    }
+  },
+  "required": [
+    "image_info",
+    "camera_viewpoint",
+    "vehicle_count",
+    "vehicles",
+    "consistency_check"
+  ],
+  "title": "DamagedVehicleImageAssessment",
+  "type": "object"
+}

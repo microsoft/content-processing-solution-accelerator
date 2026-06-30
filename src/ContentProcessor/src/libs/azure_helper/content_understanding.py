@@ -1,0 +1,397 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""Azure Content Understanding REST client.
+
+Manages analyzer lifecycle (create / list / delete) and document analysis
+operations against the Azure Content Understanding GA API
+(api-version=2025-11-01), used by the extract pipeline step.
+"""
+
+import json
+import logging
+import time
+from pathlib import Path
+from typing import Optional
+
+import requests
+from requests.models import Response
+
+from libs.utils.azure_credential_utils import get_azure_credential
+
+COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
+
+
+class AzureContentUnderstandingHelper:
+    """REST client for the Azure Content Understanding GA API.
+
+    Responsibilities:
+        1. Manage analyzer lifecycle (create, list, get, delete).
+        2. Submit documents for analysis (file path, URL, or byte stream).
+        3. Poll long-running analysis operations until completion.
+
+    Attributes:
+        credential: Azure credential used for bearer-token auth.
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        api_version: str = "2025-11-01",
+        x_ms_useragent: str = "cps-contentunderstanding/client",
+    ):
+        self.credential = get_azure_credential()
+
+        if not api_version:
+            raise ValueError("API version must be provided.")
+        if not endpoint:
+            raise ValueError("Endpoint must be provided.")
+
+        self._endpoint = endpoint.rstrip("/")
+        self._api_version = api_version
+        self._logger = logging.getLogger(__name__)
+        self._headers = self._get_headers(
+            self.credential.get_token(COGNITIVE_SERVICES_SCOPE).token,
+            x_ms_useragent,
+        )
+
+    def _get_analyzer_url(self, endpoint, api_version, analyzer_id):
+        return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}?api-version={api_version}"  # noqa
+
+    def _get_analyzer_list_url(self, endpoint, api_version):
+        return f"{endpoint}/contentunderstanding/analyzers?api-version={api_version}"
+
+    def _get_analyze_url(self, endpoint, api_version, analyzer_id):
+        return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyze?api-version={api_version}"  # noqa
+
+    def _get_analyze_binary_url(self, endpoint, api_version, analyzer_id):
+        return f"{endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyzeBinary?api-version={api_version}"  # noqa
+
+    def _get_knowledge_source_config(
+        self, storage_container_sas_url, storage_container_path_prefix
+    ):
+        # GA renamed the analyzer-template field `trainingData` (object) to
+        # `knowledgeSources` (array of source objects).
+        return [
+            {
+                "kind": "blob",
+                "containerUrl": storage_container_sas_url,
+                "prefix": storage_container_path_prefix,
+            }
+        ]
+
+    def _get_headers(self, api_token, x_ms_useragent):
+        """Build default HTTP headers for Content Understanding requests.
+
+        Args:
+            api_token: Bearer token for the Cognitive Services scope.
+            x_ms_useragent: User-agent string for telemetry.
+
+        Returns:
+            Header dictionary.
+        """
+        headers = {"Authorization": f"Bearer {api_token}"}
+        headers["x-ms-useragent"] = x_ms_useragent
+        return headers
+
+    def get_all_analyzers(self):
+        """
+        Retrieves a list of all available analyzers from the content understanding service.
+
+        This method sends a GET request to the service endpoint to fetch the list of analyzers.
+        It raises an HTTPError if the request fails.
+
+        Returns:
+            dict: A dictionary containing the JSON response from the service, which includes
+                  the list of available analyzers.
+
+        Raises:
+            requests.exceptions.HTTPError: If the HTTP request returned an unsuccessful status code.
+        """
+        response = requests.get(
+            url=self._get_analyzer_list_url(self._endpoint, self._api_version),
+            headers=self._headers,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def get_analyzer_detail_by_id(self, analyzer_id):
+        """
+        Retrieves a specific analyzer detail through analyzerid from the content understanding service.
+        This method sends a GET request to the service endpoint to get the analyzer detail.
+
+        Args:
+            analyzer_id (str): The unique identifier for the analyzer.
+
+        Returns:
+            dict: A dictionary containing the JSON response from the service, which includes the target analyzer detail.
+
+        Raises:
+            HTTPError: If the request fails.
+        """
+        response = requests.get(
+            url=self._get_analyzer_url(self._endpoint, self._api_version, analyzer_id),
+            headers=self._headers,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def begin_create_analyzer(
+        self,
+        analyzer_id: str,
+        analyzer_template: dict = None,
+        analyzer_template_path: str = "",
+        training_storage_container_sas_url: str = "",
+        training_storage_container_path_prefix: str = "",
+    ):
+        """
+        Initiates the creation of an analyzer with the given ID and schema.
+
+        Args:
+            analyzer_id (str): The unique identifier for the analyzer.
+            analyzer_template (dict, optional): The schema definition for the analyzer. Defaults to None.
+            analyzer_template_path (str, optional): The file path to the analyzer schema JSON file. Defaults to "".
+            training_storage_container_sas_url (str, optional): The SAS URL for the training storage container. Defaults to "".
+            training_storage_container_path_prefix (str, optional): The path prefix within the training storage container. Defaults to "".
+
+        Raises:
+            ValueError: If neither `analyzer_template` nor `analyzer_template_path` is provided.
+            requests.exceptions.HTTPError: If the HTTP request to create the analyzer fails.
+
+        Returns:
+            requests.Response: The response object from the HTTP request.
+        """
+        if analyzer_template_path and Path(analyzer_template_path).exists():
+            with open(analyzer_template_path, "r") as file:
+                analyzer_template = json.load(file)
+
+        if not analyzer_template:
+            raise ValueError("Analyzer schema must be provided.")
+
+        if (
+            training_storage_container_sas_url
+            and training_storage_container_path_prefix
+        ):  # noqa
+            analyzer_template["knowledgeSources"] = self._get_knowledge_source_config(
+                training_storage_container_sas_url,
+                training_storage_container_path_prefix,
+            )
+
+        headers = {"Content-Type": "application/json"}
+        headers.update(self._headers)
+
+        response = requests.put(
+            url=self._get_analyzer_url(self._endpoint, self._api_version, analyzer_id),
+            headers=headers,
+            json=analyzer_template,
+        )
+        response.raise_for_status()
+        self._logger.info(f"Analyzer {analyzer_id} create request accepted.")
+        return response
+
+    def delete_analyzer(self, analyzer_id: str):
+        """
+        Deletes an analyzer with the specified analyzer ID.
+
+        Args:
+            analyzer_id (str): The ID of the analyzer to be deleted.
+
+        Returns:
+            response: The response object from the delete request.
+
+        Raises:
+            HTTPError: If the delete request fails.
+        """
+        response = requests.delete(
+            url=self._get_analyzer_url(self._endpoint, self._api_version, analyzer_id),
+            headers=self._headers,
+        )
+        response.raise_for_status()
+        self._logger.info(f"Analyzer {analyzer_id} deleted.")
+        return response
+
+    def begin_analyze_stream(self, analyzer_id: str, file_stream: bytes):
+        """
+        Begins the analysis of a binary file stream using the specified analyzer.
+
+        In Content Understanding GA, raw byte uploads must target the
+        ``:analyzeBinary`` action (the ``:analyze`` action is JSON-only and
+        accepts a ``url`` in the request body).
+
+        Args:
+            analyzer_id (str): The ID of the analyzer to use.
+            file_stream (bytes): The byte stream of the file to analyze.
+
+        Returns:
+            Response: The response from the analysis request.
+
+        Raises:
+            HTTPError: If the HTTP request returned an unsuccessful status code.
+        """
+        headers = {"Content-Type": "application/octet-stream"}
+        headers.update(self._headers)
+        response = requests.post(
+            url=self._get_analyze_binary_url(
+                self._endpoint, self._api_version, analyzer_id
+            ),
+            headers=headers,
+            data=file_stream,
+        )
+
+        response.raise_for_status()
+        self._logger.info(f"Analyzing file with analyzer: {analyzer_id}")
+        return response
+
+    def begin_analyze(self, analyzer_id: str, file_location: str):
+        """
+        Begins the analysis of a file or URL using the specified analyzer.
+
+        For local files, byte content is uploaded via the GA ``:analyzeBinary``
+        action; for HTTP/HTTPS URLs, the URL is sent as JSON to the ``:analyze``
+        action.
+
+        Args:
+            analyzer_id (str): The ID of the analyzer to use.
+            file_location (str): The path to the file or the URL to analyze.
+
+        Returns:
+            Response: The response from the analysis request.
+
+        Raises:
+            ValueError: If the file location is not a valid path or URL.
+            HTTPError: If the HTTP request returned an unsuccessful status code.
+        """
+        if Path(file_location).exists():
+            with open(file_location, "rb") as file:
+                data = file.read()
+            headers = {"Content-Type": "application/octet-stream"}
+            headers.update(self._headers)
+            response = requests.post(
+                url=self._get_analyze_binary_url(
+                    self._endpoint, self._api_version, analyzer_id
+                ),
+                headers=headers,
+                data=data,
+            )
+        elif "https://" in file_location or "http://" in file_location:
+            data = {"url": file_location}
+            headers = {"Content-Type": "application/json"}
+            headers.update(self._headers)
+            response = requests.post(
+                url=self._get_analyze_url(
+                    self._endpoint, self._api_version, analyzer_id
+                ),
+                headers=headers,
+                json=data,
+            )
+        else:
+            raise ValueError("File location must be a valid path or URL.")
+
+        response.raise_for_status()
+        self._logger.info(
+            f"Analyzing file {file_location} with analyzer: {analyzer_id}"
+        )
+        return response
+
+    def get_image_from_analyze_operation(
+        self, analyze_response: Response, image_id: str
+    ) -> Optional[bytes]:
+        """Retrieve a rendered page image (JPEG) generated by a completed
+        analyze operation, by its file id / path.
+
+        Although the GA file-retrieval endpoint is generic
+        (``{operationLocation}/files/{fileId}``, replacing the legacy
+        ``{operationLocation}/images/{imageId}``), this helper is intentionally
+        image-specific: it asserts that the returned ``Content-Type`` is
+        ``image/jpeg`` and is only intended for use with JPEG page images
+        produced by the analyzer. Use a different helper if you need to fetch
+        non-image generated files.
+
+        Args:
+            analyze_response (Response): The response object from the analyze
+                operation (used only to read its ``operation-location`` header).
+            image_id (str): The id (or path) of the image file to retrieve.
+
+        Returns:
+            Optional[bytes]: The JPEG image bytes on success, or ``None`` if
+            the HTTP request fails (the underlying :class:`RequestException`
+            is logged but not re-raised).
+
+        Raises:
+            ValueError: If the analyze response does not contain an
+                ``operation-location`` header.
+            AssertionError: If the retrieved file is not ``image/jpeg``.
+        """
+        operation_location = analyze_response.headers.get("operation-location", "")
+        if not operation_location:
+            raise ValueError(
+                "Operation location not found in the analyzer response header."
+            )
+        operation_location = operation_location.split("?api-version")[0]
+        image_retrieval_url = (
+            f"{operation_location}/files/{image_id}?api-version={self._api_version}"
+        )
+        try:
+            response = requests.get(url=image_retrieval_url, headers=self._headers)
+            response.raise_for_status()
+
+            assert response.headers.get("Content-Type") == "image/jpeg"
+
+            return response.content
+        except requests.exceptions.RequestException as e:
+            self._logger.error("HTTP request failed while retrieving image: %s", e)
+            return None
+
+    def poll_result(
+        self,
+        response: Response,
+        timeout_seconds: int = 120,
+        polling_interval_seconds: int = 2,
+    ):
+        """
+        Polls the result of an asynchronous operation until it completes or times out.
+
+        Args:
+            response (Response): The initial response object containing the operation location.
+            timeout_seconds (int, optional): The maximum number of seconds to wait for the operation to complete. Defaults to 120.
+            polling_interval_seconds (int, optional): The number of seconds to wait between polling attempts. Defaults to 2.
+
+        Raises:
+            ValueError: If the operation location is not found in the response headers.
+            TimeoutError: If the operation does not complete within the specified timeout.
+            RuntimeError: If the operation fails.
+
+        Returns:
+            dict: The JSON response of the completed operation if it succeeds.
+        """
+        operation_location = response.headers.get("operation-location", "")
+        if not operation_location:
+            raise ValueError("Operation location not found in response headers.")
+
+        headers = {"Content-Type": "application/json"}
+        headers.update(self._headers)
+
+        start_time = time.time()
+        while True:
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout_seconds:
+                raise TimeoutError(
+                    f"Operation timed out after {timeout_seconds:.2f} seconds."
+                )
+
+            response = requests.get(operation_location, headers=self._headers)
+            response.raise_for_status()
+            status = response.json().get("status").lower()
+            if status == "succeeded":
+                self._logger.info(
+                    f"Request result is ready after {elapsed_time:.2f} seconds."
+                )
+                return response.json()
+            elif status == "failed":
+                self._logger.error(f"Request failed. Reason: {response.json()}")
+                raise RuntimeError("Request failed.")
+            else:
+                self._logger.info(
+                    f"Request {operation_location.split('/')[-1].split('?')[0]} in progress ..."
+                )
+            time.sleep(polling_interval_seconds)
