@@ -5,28 +5,28 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "azure-appconfiguration==1.8.1",
+    "azure-appconfiguration==1.9.0",
     "azure-identity==1.26.0b2",
-    "azure-storage-blob==12.30.0b1",
-    "azure-storage-queue==12.17.0b1",
-    "certifi==2026.5.20",
-    "fastapi[standard]==0.136.3",
+    "azure-storage-blob==12.30.0",
+    "azure-storage-queue==12.17.0",
+    "certifi==2026.6.17",
+    "fastapi[standard]==0.138.2",
     "poppler-utils==0.1.0",
     "pydantic==2.13.4",
-    "pydantic-settings==2.14.1",
+    "pydantic-settings==2.14.2",
     "pygments==2.20.0",
     "pymongo==4.17.0",
     "python-dotenv==1.2.2",
-    "python-multipart==0.0.30",
-    "starlette==1.2.1",
-    "uvicorn[standard]==0.48.0",
+    "python-multipart==0.0.32",
+    "starlette==1.3.1",
+    "uvicorn[standard]==0.49.0",
     "h11==0.16.0",
     "urllib3~=2.7.0",
     "opentelemetry-api==1.40.0",
     "sas-cosmosdb==0.1.5",
     "azure-monitor-events-extension>=0.1.0",
     "azure-monitor-opentelemetry==1.8.8",
-    "cryptography==48.0.0",
+    "cryptography==49.0.0",
     "pyjwt==2.13.0",
     "jsonschema==4.26.0",
 ]
@@ -34,13 +34,13 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black==26.5.1",
-    "pytest==9.0.3",
+    "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "pytest-mock==3.15.1",
-    "coverage==7.14.1",
+    "coverage==7.14.3",
     "pre-commit==4.6.0",
-    "ruff==0.15.15",
+    "ruff==0.15.20",
 ]
 
 [tool.ruff.format]
