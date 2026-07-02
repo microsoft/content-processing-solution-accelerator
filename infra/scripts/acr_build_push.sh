@@ -7,23 +7,111 @@
 # =============================================================================
  
 set -e
+
+RESOURCE_GROUP_NAME="$1"
  
 echo "============================================================"
 echo "ACR Build and Push - Starting..."
 echo "============================================================"
  
-# Load values from azd env
-ACR_NAME=$(azd env get-value CONTAINER_REGISTRY_NAME)
-ACR_LOGIN_SERVER=$(azd env get-value CONTAINER_REGISTRY_LOGIN_SERVER)
-RESOURCE_GROUP=$(azd env get-value AZURE_RESOURCE_GROUP)
-CONTAINER_APP_NAME=$(azd env get-value CONTAINER_APP_NAME)
-CONTAINER_API_APP_NAME=$(azd env get-value CONTAINER_API_APP_NAME)
-CONTAINER_WEB_APP_NAME=$(azd env get-value CONTAINER_WEB_APP_NAME)
-CONTAINER_WORKFLOW_APP_NAME=$(azd env get-value CONTAINER_WORKFLOW_APP_NAME)
-USER_IDENTITY_ID=$(azd env get-value CONTAINER_APP_USER_IDENTITY_ID)
+if [ -z "$RESOURCE_GROUP_NAME" ]; then
+
+    echo "Using azd environment values..."
+
+    ACR_NAME=$(azd env get-value CONTAINER_REGISTRY_NAME)
+    ACR_LOGIN_SERVER=$(azd env get-value CONTAINER_REGISTRY_LOGIN_SERVER)
+    RESOURCE_GROUP=$(azd env get-value AZURE_RESOURCE_GROUP)
+
+    CONTAINER_APP_NAME=$(azd env get-value CONTAINER_APP_NAME)
+    CONTAINER_API_APP_NAME=$(azd env get-value CONTAINER_API_APP_NAME)
+    CONTAINER_WEB_APP_NAME=$(azd env get-value CONTAINER_WEB_APP_NAME)
+    CONTAINER_WORKFLOW_APP_NAME=$(azd env get-value CONTAINER_WORKFLOW_APP_NAME)
+
+else
+
+    echo "Using existing deployment from Resource Group: $RESOURCE_GROUP_NAME"
+
+    RESOURCE_GROUP="$RESOURCE_GROUP_NAME"
+
+    ACR_NAME=$(az acr list \
+        --resource-group "$RESOURCE_GROUP" \
+        --query "[0].name" \
+        -o tsv)
+
+    ACR_LOGIN_SERVER=$(az acr show \
+        --name "$ACR_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query loginServer \
+        -o tsv)
+
+    while read APP; do
+
+            case "$APP" in
+
+        *-app)
+            CONTAINER_APP_NAME="$APP"
+            ;;
+
+        *-api)
+            CONTAINER_API_APP_NAME="$APP"
+            ;;
+
+        *-web)
+            CONTAINER_WEB_APP_NAME="$APP"
+            ;;
+
+        *-wkfl)
+            CONTAINER_WORKFLOW_APP_NAME="$APP"
+            ;;
+
+    esac
+
+    done < <(
+        az containerapp list \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "[].name" \
+            -o tsv
+    )
+
+fi
  
 IMAGE_TAG="latest"
- 
+
+DEPLOYMENT_TYPE=$(az group show \
+    --name "$RESOURCE_GROUP" \
+    --query "tags.Type" \
+    -o tsv)
+
+IS_WAF=false
+
+if [ "$DEPLOYMENT_TYPE" = "WAF" ]; then
+    IS_WAF=true
+fi
+
+ORIGINAL_PUBLIC_ACCESS=""
+
+if [ "$IS_WAF" = true ]; then
+
+    ORIGINAL_PUBLIC_ACCESS=$(az acr show \
+        --name "$ACR_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query publicNetworkAccess \
+        -o tsv)
+
+    if [ "$ORIGINAL_PUBLIC_ACCESS" = "Disabled" ]; then
+
+        echo ""
+        echo "Temporarily enabling ACR Public Network Access..."
+
+        az acr update \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --public-network-enabled true
+
+        sleep 20
+    fi
+fi
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Navigate to repo root (infra/scripts -> root)
@@ -36,6 +124,24 @@ echo "  Resource Group: $RESOURCE_GROUP"
 echo "  Image Tag: $IMAGE_TAG"
 echo ""
  
+cleanup() {
+
+    if [ "$IS_WAF" = true ] && [ "$ORIGINAL_PUBLIC_ACCESS" = "Disabled" ]; then
+
+        echo ""
+        echo "Restoring ACR Public Network Access..."
+
+        az acr update \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --public-network-enabled false
+
+        echo "ACR Public Network Access restored."
+
+    fi
+}
+
+trap cleanup EXIT
 # =============================================================================
 # Step 1: Build and push images to ACR using az acr build
 # =============================================================================
