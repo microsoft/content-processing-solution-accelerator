@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "3841741921827855283"
+      "templateHash": "3161132852184921073"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -36242,11 +36242,6 @@
           "roleAssignments": {
             "value": [
               {
-                "principalId": "[reference('avmManagedIdentity').outputs.principalId.value]",
-                "roleDefinitionIdOrName": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
-                "principalType": "ServicePrincipal"
-              },
-              {
                 "principalId": "[reference('avmContainerApp').outputs.systemAssignedMIPrincipalId.value]",
                 "roleDefinitionIdOrName": "Cognitive Services OpenAI User",
                 "principalType": "ServicePrincipal"
@@ -41809,7 +41804,6 @@
       "dependsOn": [
         "avmContainerApp",
         "avmContainerApp_Workflow",
-        "avmManagedIdentity",
         "logAnalyticsWorkspace"
       ]
     },
