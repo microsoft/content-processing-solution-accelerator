@@ -70,7 +70,7 @@ param gptModelVersion string = '2025-11-13'
 
 @minValue(1)
 @description('Optional. Capacity of the GPT deployment: (minimum 10).')
-param gptDeploymentCapacity int = 200
+param gptDeploymentCapacity int = 300
 
 @description('Optional. Enable WAF for the deployment.')
 param enablePrivateNetworking bool = false
