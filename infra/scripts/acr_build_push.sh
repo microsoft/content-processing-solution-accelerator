@@ -77,12 +77,6 @@ fi
  
 IMAGE_TAG="latest"
 
-DEPLOYMENT_TYPE=$(az group show \
-    --name "$RESOURCE_GROUP" \
-    --query "tags.Type" \
-    -o tsv)
-
-
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Navigate to repo root (infra/scripts -> root)
