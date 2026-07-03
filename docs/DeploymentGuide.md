@@ -301,7 +301,23 @@ azd up
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Schema Registration (Automatic)
+### 5.1 Run Post Deployment Script
+
+1. You can run the ACR build and push script from the project root. Use the appropriate command for your shell:
+
+   - For Bash (Linux/macOS/WSL):
+
+     ```bash
+     bash infra/scripts/acr_build_push.sh
+     ```
+
+   - For PowerShell (Windows):
+
+     ```powershell
+     infra\scripts\acr_build_push.ps1
+     ```
+
+### 5.2 Schema Registration (Automatic)
 
  > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
 
