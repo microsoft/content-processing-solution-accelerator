@@ -83,45 +83,6 @@ else {
 }
  
 $IMAGE_TAG = "latest"
-
-# Detect whether this is a WAF deployment
-$DeploymentType = az group show `
-    --name $RESOURCE_GROUP `
-    --query "tags.Type" `
-    -o tsv
-
-$IsWAF = $DeploymentType -eq "WAF"
-
-$OriginalPublicNetworkAccess = $null
-
-if ($IsWAF) {
-
-    Write-Host ""
-    Write-Host "WAF deployment detected."
-
-    # Save current setting
-    $OriginalPublicNetworkAccess = az acr show `
-        --name $ACR_NAME `
-        --resource-group $RESOURCE_GROUP `
-        --query "publicNetworkAccess" `
-        -o tsv
-
-    if ($OriginalPublicNetworkAccess -eq "Disabled") {
-
-        Write-Host "Temporarily enabling ACR Public Network Access..."
-
-        az acr update `
-            --name $ACR_NAME `
-            --resource-group $RESOURCE_GROUP `
-            --public-network-enabled true
-
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to enable ACR Public Network Access."
-        }
-
-        Start-Sleep -Seconds 20
-    }
-}
  
 # Get the script directory and navigate to repo root
 $ScriptDir = $PSScriptRoot
@@ -134,7 +95,6 @@ Write-Host "  Resource Group: $RESOURCE_GROUP"
 Write-Host "  Image Tag: $IMAGE_TAG"
 Write-Host ""
 
-try {
     # =============================================================================
     # Step 1: Build and push images to ACR using az acr build
     # =============================================================================
@@ -254,25 +214,3 @@ try {
     Write-Host "============================================================"
     Write-Host "ACR Build and Push - Completed Successfully!"
     Write-Host "============================================================"
-
-}
-finally {
-
-    if ($IsWAF -and $OriginalPublicNetworkAccess -eq "Disabled") {
-
-        Write-Host ""
-        Write-Host "Restoring ACR Public Network Access..."
-
-        az acr update `
-            --name $ACR_NAME `
-            --resource-group $RESOURCE_GROUP `
-            --public-network-enabled false
-
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "ACR Public Network Access restored."
-        }
-        else {
-            Write-Warning "Failed to restore ACR Public Network Access."
-        }
-    }
-}

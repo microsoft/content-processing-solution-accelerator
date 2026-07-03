@@ -82,35 +82,6 @@ DEPLOYMENT_TYPE=$(az group show \
     --query "tags.Type" \
     -o tsv)
 
-IS_WAF=false
-
-if [ "$DEPLOYMENT_TYPE" = "WAF" ]; then
-    IS_WAF=true
-fi
-
-ORIGINAL_PUBLIC_ACCESS=""
-
-if [ "$IS_WAF" = true ]; then
-
-    ORIGINAL_PUBLIC_ACCESS=$(az acr show \
-        --name "$ACR_NAME" \
-        --resource-group "$RESOURCE_GROUP" \
-        --query publicNetworkAccess \
-        -o tsv)
-
-    if [ "$ORIGINAL_PUBLIC_ACCESS" = "Disabled" ]; then
-
-        echo ""
-        echo "Temporarily enabling ACR Public Network Access..."
-
-        az acr update \
-            --name "$ACR_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --public-network-enabled true
-
-        sleep 20
-    fi
-fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -124,24 +95,6 @@ echo "  Resource Group: $RESOURCE_GROUP"
 echo "  Image Tag: $IMAGE_TAG"
 echo ""
  
-cleanup() {
-
-    if [ "$IS_WAF" = true ] && [ "$ORIGINAL_PUBLIC_ACCESS" = "Disabled" ]; then
-
-        echo ""
-        echo "Restoring ACR Public Network Access..."
-
-        az acr update \
-            --name "$ACR_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --public-network-enabled false
-
-        echo "ACR Public Network Access restored."
-
-    fi
-}
-
-trap cleanup EXIT
 # =============================================================================
 # Step 1: Build and push images to ACR using az acr build
 # =============================================================================
