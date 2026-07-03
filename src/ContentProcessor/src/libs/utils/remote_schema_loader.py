@@ -103,7 +103,13 @@ def _download_blob_content(
     blob_client = blob_service_client.get_blob_client(
         container=container_name, blob=blob_name
     )
-    return blob_client.download_blob().readall().decode("utf-8")
+    raw_bytes = blob_client.download_blob().readall()
+    try:
+        return raw_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise JsonSchemaLoadError(
+            f"Schema blob '{blob_name}' is not valid UTF-8."
+        ) from exc
 
 
 class _ModelBuilder:
@@ -293,7 +299,7 @@ class _ModelBuilder:
             name = ref[len(prefix_definitions):]
         else:
             raise JsonSchemaLoadError(
-                f"Only local '#/$defs/...' refs are supported (got '{ref}')."
+                f"Only local '#/$defs/...' and '#/definitions/...' refs are supported (got '{ref}')."
             )
 
         if name in self._models:
