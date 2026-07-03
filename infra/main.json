@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "9984485182269407267"
+      "templateHash": "16102152304744929113"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -44168,7 +44168,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -45808,7 +45808,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -47543,7 +47543,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-web', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -49169,7 +49169,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -61460,7 +61460,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -63100,7 +63100,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -64806,7 +64806,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "mcr.microsoft.com/k8se/quickstart:latest",
+                "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"

@@ -716,11 +716,6 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
     customSubDomainName: 'aif-${solutionSuffix}'
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }] : null
     roleAssignments: [
-      // {
-      //   principalId: avmManagedIdentity.outputs.principalId
-      //   roleDefinitionIdOrName: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' // Owner role
-      //   principalType: 'ServicePrincipal'
-      // }
       {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
@@ -898,7 +893,7 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
  
         resources: {
           cpu: 4
@@ -972,7 +967,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1128,7 +1123,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1197,7 +1192,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1580,7 +1575,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
  
         resources: {
           cpu: 4
@@ -1668,7 +1663,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1808,7 +1803,7 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
