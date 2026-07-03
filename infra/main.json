@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.44.1.10279",
-      "templateHash": "3841741921827855283"
+      "version": "0.43.8.12551",
+      "templateHash": "9984485182269407267"
     },
     "name": "Content Processing Solution Accelerator",
     "description": "Bicep template to deploy the Content Processing Solution Accelerator with AVM compliance."
@@ -103,20 +103,6 @@
       "minValue": 1,
       "metadata": {
         "description": "Optional. Capacity of the GPT deployment: (minimum 10)."
-      }
-    },
-    "containerRegistryEndpoint": {
-      "type": "string",
-      "defaultValue": "cpscontainerreg.azurecr.io",
-      "metadata": {
-        "description": "Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint)."
-      }
-    },
-    "imageTag": {
-      "type": "string",
-      "defaultValue": "latest_v2",
-      "metadata": {
-        "description": "Optional. The image tag for the container images."
       }
     },
     "enablePrivateNetworking": {
@@ -339,8 +325,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "4148028483891244972"
+              "version": "0.43.8.12551",
+              "templateHash": "13206959925771644022"
             }
           },
           "definitions": {
@@ -19308,8 +19294,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14763088429533772999"
+              "version": "0.43.8.12551",
+              "templateHash": "13200482898648544945"
             }
           },
           "parameters": {
@@ -23334,8 +23320,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14944034125601240095"
+              "version": "0.43.8.12551",
+              "templateHash": "15729887991536611208"
             }
           },
           "parameters": {
@@ -23938,8 +23924,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "3008626070117491750"
+              "version": "0.43.8.12551",
+              "templateHash": "8672669912945312056"
             },
             "name": "Container Registry Module"
           },
@@ -36242,11 +36228,6 @@
           "roleAssignments": {
             "value": [
               {
-                "principalId": "[reference('avmManagedIdentity').outputs.principalId.value]",
-                "roleDefinitionIdOrName": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
-                "principalType": "ServicePrincipal"
-              },
-              {
                 "principalId": "[reference('avmContainerApp').outputs.systemAssignedMIPrincipalId.value]",
                 "roleDefinitionIdOrName": "Cognitive Services OpenAI User",
                 "principalType": "ServicePrincipal"
@@ -36316,8 +36297,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "9717412251971567270"
+              "version": "0.43.8.12551",
+              "templateHash": "9621562991003135575"
             },
             "name": "Cognitive Services",
             "description": "This module deploys a Cognitive Service."
@@ -37576,8 +37557,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "7181684108515692296"
+                      "version": "0.43.8.12551",
+                      "templateHash": "8864856500234357706"
                     }
                   },
                   "definitions": {
@@ -39309,8 +39290,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "4868310155755856428"
+                              "version": "0.43.8.12551",
+                              "templateHash": "312284397710022090"
                             }
                           },
                           "definitions": {
@@ -39463,8 +39444,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "4168378797065634217"
+                              "version": "0.43.8.12551",
+                              "templateHash": "276675105610077046"
                             }
                           },
                           "definitions": {
@@ -39681,8 +39662,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "7181684108515692296"
+                      "version": "0.43.8.12551",
+                      "templateHash": "8864856500234357706"
                     }
                   },
                   "definitions": {
@@ -41414,8 +41395,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "4868310155755856428"
+                              "version": "0.43.8.12551",
+                              "templateHash": "312284397710022090"
                             }
                           },
                           "definitions": {
@@ -41568,8 +41549,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "4168378797065634217"
+                              "version": "0.43.8.12551",
+                              "templateHash": "276675105610077046"
                             }
                           },
                           "definitions": {
@@ -41809,7 +41790,6 @@
       "dependsOn": [
         "avmContainerApp",
         "avmContainerApp_Workflow",
-        "avmManagedIdentity",
         "logAnalyticsWorkspace"
       ]
     },
@@ -44169,7 +44149,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "managedIdentities": {
             "value": {
@@ -44183,7 +44168,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessor:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -45771,6 +45756,7 @@
       "dependsOn": [
         "applicationInsights",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader"
       ]
     },
@@ -45800,7 +45786,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -45817,7 +45808,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorapi:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -47469,6 +47460,7 @@
       "dependsOn": [
         "applicationInsights",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader"
       ]
     },
@@ -47498,7 +47490,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -47546,7 +47543,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-web', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorweb:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -49120,6 +49117,7 @@
       "dependsOn": [
         "avmContainerApp_API",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader"
       ]
     },
@@ -49149,7 +49147,12 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -49166,7 +49169,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -50751,6 +50754,7 @@
       "dependsOn": [
         "applicationInsights",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader"
       ]
     },
@@ -61434,7 +61438,12 @@
             "value": "Consumption"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -61451,7 +61460,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessor:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -63038,6 +63047,7 @@
         "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader",
         "cognitiveServicePrivateEndpoint"
       ]
@@ -63068,7 +63078,12 @@
             "value": "Consumption"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -63085,7 +63100,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-api', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorapi:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -64738,6 +64753,7 @@
         "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader",
         "cognitiveServicePrivateEndpoint"
       ]
@@ -64768,7 +64784,12 @@
             "value": "Consumption"
           },
           "registries": {
-            "value": null
+            "value": [
+              {
+                "server": "[reference('avmContainerRegistry').outputs.loginServer.value]",
+                "identity": "[reference('avmContainerRegistryReader').outputs.resourceId.value]"
+              }
+            ]
           },
           "tags": {
             "value": "[parameters('tags')]"
@@ -64785,7 +64806,7 @@
             "value": [
               {
                 "name": "[format('ca-{0}-wkfl', variables('solutionSuffix'))]",
-                "image": "[format('{0}/contentprocessorworkflow:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))]",
+                "image": "mcr.microsoft.com/k8se/quickstart:latest",
                 "resources": {
                   "cpu": 4,
                   "memory": "8.0Gi"
@@ -66371,6 +66392,7 @@
         "applicationInsights",
         "avmAppConfig",
         "avmContainerAppEnv",
+        "avmContainerRegistry",
         "avmContainerRegistryReader"
       ]
     }
