@@ -262,7 +262,7 @@ finally {
         Write-Host ""
         Write-Host "Restoring WAF ACR configuration..."
 
-        $acrDefailtAction = az acr update `
+        $acrDefaultAction = az acr update `
             --name $ACR_NAME `
             --resource-group $RESOURCE_GROUP `
             --default-action Deny
