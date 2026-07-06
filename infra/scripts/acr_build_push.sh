@@ -76,6 +76,34 @@ else
 fi
  
 IMAGE_TAG="latest"
+DEPLOYMENT_TYPE=$(az group show \
+    --name "$RESOURCE_GROUP" \
+    --query "tags.Type" \
+    -o tsv)
+
+if [ "$DEPLOYMENT_TYPE" = "WAF" ]; then
+
+    echo ""
+    echo "WAF deployment detected. Temporarily relaxing ACR restrictions..."
+
+    az acr update \
+        --name "$ACR_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --allow-exports true
+
+    az acr update \
+        --name "$ACR_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --public-network-enabled true
+
+    az acr update \
+        --name "$ACR_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --default-action Allow
+
+    echo "ACR restrictions temporarily relaxed."
+
+fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -89,6 +117,35 @@ echo "  Resource Group: $RESOURCE_GROUP"
 echo "  Image Tag: $IMAGE_TAG"
 echo ""
  
+cleanup() {
+
+    if [ "$DEPLOYMENT_TYPE" = "WAF" ]; then
+
+        echo ""
+        echo "Restoring WAF ACR configuration..."
+
+        az acr update \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --default-action Deny
+
+        az acr update \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --public-network-enabled false
+
+        az acr update \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --allow-exports false
+
+        echo "ACR configuration restored."
+
+    fi
+}
+
+trap cleanup EXIT
+
 # =============================================================================
 # Step 1: Build and push images to ACR using az acr build
 # =============================================================================

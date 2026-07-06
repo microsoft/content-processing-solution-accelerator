@@ -83,6 +83,45 @@ else {
 }
  
 $IMAGE_TAG = "latest"
+$DeploymentType = az group show `
+    --name $RESOURCE_GROUP `
+    --query "tags.Type" `
+    -o tsv
+  if ($DeploymentType -eq "WAF") {
+
+    Write-Host ""
+    Write-Host "WAF deployment detected. Temporarily relaxing ACR restrictions..."
+
+    $acrAllowExport = az acr update `
+        --name $ACR_NAME `
+        --resource-group $RESOURCE_GROUP `
+        --allow-exports true
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to enable ACR exports."
+    }
+
+    $acrPublicNetwork = az acr update `
+        --name $ACR_NAME `
+        --resource-group $RESOURCE_GROUP `
+        --public-network-enabled true
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to enable ACR public network access."
+    }
+
+    $acrDefaultAction = az acr update `
+        --name $ACR_NAME `
+        --resource-group $RESOURCE_GROUP `
+        --default-action Allow
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to set ACR default action to Allow."
+    }
+
+    Write-Host "ACR restrictions temporarily relaxed."
+}
+
  
 # Get the script directory and navigate to repo root
 $ScriptDir = $PSScriptRoot
@@ -95,6 +134,7 @@ Write-Host "  Resource Group: $RESOURCE_GROUP"
 Write-Host "  Image Tag: $IMAGE_TAG"
 Write-Host ""
 
+try {
     # =============================================================================
     # Step 1: Build and push images to ACR using az acr build
     # =============================================================================
@@ -214,3 +254,29 @@ Write-Host ""
     Write-Host "============================================================"
     Write-Host "ACR Build and Push - Completed Successfully!"
     Write-Host "============================================================"
+}
+finally {
+
+    if ($DeploymentType -eq "WAF") {
+
+        Write-Host ""
+        Write-Host "Restoring WAF ACR configuration..."
+
+        $acrDefailtAction = az acr update `
+            --name $ACR_NAME `
+            --resource-group $RESOURCE_GROUP `
+            --default-action Deny
+
+         $acrPublicNetwork = az acr update `
+            --name $ACR_NAME `
+            --resource-group $RESOURCE_GROUP `
+            --public-network-enabled false
+
+        $acrAllowExport = az acr update `
+            --name $ACR_NAME `
+            --resource-group $RESOURCE_GROUP `
+            --allow-exports false
+
+        Write-Host "ACR configuration restored."
+    }
+}
