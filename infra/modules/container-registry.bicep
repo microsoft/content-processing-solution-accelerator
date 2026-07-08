@@ -39,7 +39,7 @@ param backendSubnetResourceId string = ''
 param privateDnsZoneResourceId string = ''
 
 @description('Optional. Public network access setting for the Azure Container Registry.')
-param publicNetworkAccess string = enablePrivateNetworking? 'Disabled' : 'Enabled'
+param publicNetworkAccess string = enablePrivateNetworking ? 'Disabled' : 'Enabled'
 
 module avmContainerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' = {
   name: acrName
