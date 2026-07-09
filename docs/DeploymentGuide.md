@@ -301,9 +301,9 @@ azd up
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Run Post Deployment Script
+### 5.1 Run Post Deployment Scripts
 
-1. You can run the ACR build and push script from the project root. Use the appropriate command for your shell:
+1. Run the ACR build and push script from the project root. Use the appropriate command for your shell:
 
    - For Bash (Linux/macOS/WSL):
 
@@ -315,6 +315,20 @@ azd up
 
      ```powershell
      infra\scripts\acr_build_push.ps1
+     ```
+
+2. After the ACR build and push completes, run the post-deployment script:
+
+   - For Bash (Linux/macOS/WSL):
+
+     ```bash
+     bash infra/scripts/post_deployment.sh
+     ```
+
+   - For PowerShell (Windows):
+
+     ```powershell
+     .\infra\scripts\post_deployment.ps1
      ```
 
 ### 5.2 Schema Registration (Automatic)
