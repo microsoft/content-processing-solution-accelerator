@@ -22,7 +22,7 @@ hooks:
         Write-Host ""
       shell: pwsh
       interactive: true
-  posix:
+    posix:
       run: |
          echo ""
          echo "  ---------------------------------------------------------------------------------------------------"
