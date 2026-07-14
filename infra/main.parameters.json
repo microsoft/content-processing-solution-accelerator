@@ -29,6 +29,24 @@
     "existingFoundryProjectResourceId": {
       "value": "${AZURE_EXISTING_AIPROJECT_RESOURCE_ID}"
     },
+    "enableMonitoring": {
+      "value": true
+    },
+    "enablePrivateNetworking": {
+      "value": true
+    },
+    "enableScalability": {
+      "value": true
+    },
+    "vmAdminUsername": {
+      "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
+    },
+    "vmAdminPassword": {
+      "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
+    },
+    "vmSize": {
+      "value": "${AZURE_ENV_VM_SIZE}"
+    },
     "containerRegistryEndpoint": {
       "value": "${AZURE_ENV_CONTAINER_REGISTRY_ENDPOINT}"
     },
