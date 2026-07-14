@@ -22,22 +22,3 @@ hooks:
         Write-Host ""
       shell: pwsh
       interactive: true
-    posix:
-      run: |
-        echo ""
-        echo "  ---------------------------------------------------------------------------------------------------"
-        echo "  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs."
-        echo "  https://github.com/microsoft/content-processing-solution-accelerator/issues"
-        echo "  ---------------------------------------------------------------------------------------------------"
-        echo ""
-      shell: sh
-      interactive: true
-  postprovision:
-    posix:
-      shell: sh
-      run: sed -i 's/\r$//' ./infra/scripts/post_deployment.sh; bash ./infra/scripts/post_deployment.sh
-      interactive: true
-    windows:
-      shell: pwsh
-      run: ./infra/scripts/post_deployment.ps1
-      interactive: true
