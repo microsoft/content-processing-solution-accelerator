@@ -34,7 +34,7 @@ dependencies = [
     "protobuf==6.33.6",
     "cryptography==48.0.1",
     "pyjwt==2.13.0",
-    "pyasn1==0.6.3",
+    "pyasn1==0.6.4",
     "pydantic-settings==2.14.2",
 ]
 
