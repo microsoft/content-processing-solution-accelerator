@@ -17,6 +17,15 @@
 .PARAMETER ContentUnderstandingAccountName
     Name of the Content Understanding (AI Services) account to refresh (optional - will be auto-discovered if not provided).
 
+.PARAMETER MaxApiRetries
+    Number of attempts to poll the API readiness endpoint before giving up (default: 20).
+
+.PARAMETER ApiRetryIntervalSeconds
+    Seconds to wait between API readiness polling attempts (default: 15). Combined with
+    MaxApiRetries this gives a default total wait budget of 5 minutes, which allows for the
+    container app to pull a freshly-built image (e.g. right after acr_build_push.ps1) and pass
+    its startup probe before schema registration is attempted.
+
 .EXAMPLE
     # AVM deployment with parameters
     .\post_deployment.ps1 -ResourceGroupName "my-rg" -ApiBaseUrl "https://my-api.azurecontainerapps.io"
@@ -45,7 +54,13 @@ param(
     [string]$SubscriptionId,
 
     [Parameter(Mandatory=$false)]
-    [string]$ContentUnderstandingAccountName
+    [string]$ContentUnderstandingAccountName,
+
+    [Parameter(Mandatory=$false)]
+    [int]$MaxApiRetries = 20,
+
+    [Parameter(Mandatory=$false)]
+    [int]$ApiRetryIntervalSeconds = 15
 )
 
 # Stop script on any error
@@ -217,9 +232,10 @@ Write-Host ""
 Write-Host "[Package] Registering schemas and creating schema set..."
 Write-Host "  [Wait] Waiting for API to be ready at: $ApiBaseUrl"
 
-$MaxRetries = 10
-$RetryInterval = 15
+$MaxRetries = $MaxApiRetries
+$RetryInterval = $ApiRetryIntervalSeconds
 $ApiReady = $false
+$LastError = $null
 
 for ($i = 1; $i -le $MaxRetries; $i++) {
     try {
@@ -228,17 +244,47 @@ for ($i = 1; $i -le $MaxRetries; $i++) {
             Write-Host "  [OK] API is ready."
             $ApiReady = $true
             break
+        } else {
+            $LastError = "HTTP status $($response.StatusCode)"
         }
     } catch {
-        # Ignore - API not ready yet
+        # Capture the error so we can surface it if the API never becomes ready.
+        # This turns "silently skip" into an actionable diagnostic (e.g. 502/503
+        # from ingress while the new revision is still starting, DNS failures,
+        # or TLS/cert errors) instead of leaving the user to guess.
+        $LastError = $_.Exception.Message
     }
-    Write-Host "  Attempt $i/$MaxRetries - API not ready, retrying in ${RetryInterval}s..."
+    Write-Host "  Attempt $i/$MaxRetries - API not ready ($LastError), retrying in ${RetryInterval}s..."
     Start-Sleep -Seconds $RetryInterval
 }
 
 if (-not $ApiReady) {
-    Write-Host "  API did not become ready after $MaxRetries attempts. Skipping schema registration."
-    Write-Host "  Run manually after the API is ready."
+    Write-Host "  [Error] API did not become ready after $MaxRetries attempts (interval: ${RetryInterval}s, total wait: $($MaxRetries * $RetryInterval)s)."
+    Write-Host "          Last error: $LastError"
+    Write-Host "  Skipping schema registration. Run manually after the API is ready."
+
+    # Best-effort diagnostics to help root-cause why the container app never
+    # became reachable (e.g. still pulling the freshly built image, crash-looping
+    # because required config/RBAC hasn't propagated yet, or provisioning failed).
+    if ($CONTAINER_API_APP_NAME -and $RESOURCE_GROUP) {
+        Write-Host ""
+        Write-Host "  [Diag] Container app '$CONTAINER_API_APP_NAME' status in resource group '$RESOURCE_GROUP':"
+        try {
+            $RevisionInfo = az containerapp revision list -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME `
+                --query "[?properties.active].{name:name, provisioningState:properties.provisioningState, runningState:properties.runningState, replicas:properties.replicas, createdTime:properties.createdTime}" `
+                -o table 2>&1
+            Write-Host ($RevisionInfo | Out-String)
+        } catch {
+            Write-Host "  [Warn] Could not retrieve revision status: $_"
+        }
+        try {
+            Write-Host "  [Diag] Recent console logs (last 50 lines):"
+            $Logs = az containerapp logs show -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --type console --tail 50 2>&1
+            Write-Host ($Logs | Out-String)
+        } catch {
+            Write-Host "  [Warn] Could not retrieve container logs: $_"
+        }
+    }
 } else {
     # ---------- Schema registration (no Python dependency) ----------
     $SchemaInfoFile = Join-Path $FullPath "schema_info.json"
@@ -304,21 +350,40 @@ if (-not $ApiReady) {
 
         $boundary = [System.Guid]::NewGuid().ToString()
         $LF = "`r`n"
-        $bodyLines = (
-            "--$boundary",
-            "Content-Disposition: form-data; name=`"data`"$LF",
-            $dataPayload,
-            "--$boundary",
-            "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-            "Content-Type: $contentType$LF",
-            [System.Text.Encoding]::UTF8.GetString($fileBytes),
-            "--$boundary--$LF"
-        ) -join $LF
+
+        # Build the multipart body as raw bytes rather than round-tripping the file
+        # content through a string. Converting file bytes to a string and back can
+        # corrupt content that isn't plain ASCII (e.g. UTF-8 BOMs or non-ASCII
+        # characters in schema descriptions), because Invoke-RestMethod may not
+        # re-encode a string body as UTF-8. Writing bytes directly avoids this.
+        $MemoryStream = New-Object System.IO.MemoryStream
+        try {
+            $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            $WriteText = {
+                param($Text)
+                $bytes = $Utf8NoBom.GetBytes($Text)
+                $MemoryStream.Write($bytes, 0, $bytes.Length)
+            }
+
+            & $WriteText "--$boundary$LF"
+            & $WriteText "Content-Disposition: form-data; name=`"data`"$LF$LF"
+            & $WriteText "$dataPayload$LF"
+
+            & $WriteText "--$boundary$LF"
+            & $WriteText "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"$LF"
+            & $WriteText "Content-Type: $contentType$LF$LF"
+            $MemoryStream.Write($fileBytes, 0, $fileBytes.Length)
+            & $WriteText "$LF--$boundary--$LF"
+
+            $bodyBytes = $MemoryStream.ToArray()
+        } finally {
+            $MemoryStream.Dispose()
+        }
 
         try {
             $resp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
                 -ContentType "multipart/form-data; boundary=$boundary" `
-                -Body $bodyLines -TimeoutSec 60 -ErrorAction Stop
+                -Body $bodyBytes -TimeoutSec 60 -ErrorAction Stop
             $schemaId = $resp.Id
             Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
             $Registered[$ClassName] = $schemaId
