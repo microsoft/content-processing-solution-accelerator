@@ -228,6 +228,118 @@ if ($CONTAINER_WORKFLOW_APP_NAME) {
     Write-Host "  [Info] Workflow app not found or not deployed."
 }
 
+# ---------- Pre-flight: storage account public network access (AVM mode) ----------
+if ($IsAvmDeployment) {
+    Write-Host ""
+    Write-Host "[Check] Verifying storage account network access..."
+    try {
+        $RgType = az group show -n $RESOURCE_GROUP --query "tags.Type" -o tsv 2>$null
+        $StorageAccounts = @(az storage account list -g $RESOURCE_GROUP --query "[].name" -o tsv 2>$null)
+        $StorageAccounts = @($StorageAccounts | Where-Object { $_ -and $_.Trim() -ne "" })
+
+        foreach ($SaName in $StorageAccounts) {
+            $SaInfoJson = az storage account show -g $RESOURCE_GROUP -n $SaName --query "{publicNetworkAccess:publicNetworkAccess, peCount:length(privateEndpointConnections)}" -o json 2>$null
+            if ([string]::IsNullOrEmpty($SaInfoJson)) { continue }
+            $SaInfo = $SaInfoJson | ConvertFrom-Json
+            if ($SaInfo.publicNetworkAccess -eq 'Disabled' -and $SaInfo.peCount -eq 0) {
+                if ($RgType -eq 'Non-WAF') {
+                    Write-Host "  [Warn] Storage account '$SaName' has publicNetworkAccess=Disabled with no private endpoints, but this is a Non-WAF (no private networking) deployment."
+                    Write-Host "         This would cause storage-dependent API calls to fail with AuthorizationFailure. Auto-correcting: enabling public network access..."
+                    az storage account update -g $RESOURCE_GROUP -n $SaName --public-network-access Enabled -o none 2>$null
+                    Write-Host "  [OK] Public network access enabled on '$SaName'."
+                } else {
+                    Write-Host "  [Warn] Storage account '$SaName' has publicNetworkAccess=Disabled with no private endpoints."
+                    Write-Host "         If this resource group was not deployed with private networking/VNet integration, storage-dependent API calls will fail. Verify manually."
+                }
+            }
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify storage account network configuration: $($_.Exception.Message)"
+    }
+}
+
+# ---------- Pre-flight: Cosmos DB public network access (AVM mode) ----------
+if ($IsAvmDeployment) {
+    Write-Host ""
+    Write-Host "[Check] Verifying Cosmos DB network access..."
+    try {
+        $RgType = az group show -n $RESOURCE_GROUP --query "tags.Type" -o tsv 2>$null
+        $CosmosAccounts = @(az cosmosdb list -g $RESOURCE_GROUP --query "[].name" -o tsv 2>$null)
+        $CosmosAccounts = @($CosmosAccounts | Where-Object { $_ -and $_.Trim() -ne "" })
+
+        foreach ($CosmosName in $CosmosAccounts) {
+            $CosmosInfoJson = az cosmosdb show -g $RESOURCE_GROUP -n $CosmosName --query "{publicNetworkAccess:publicNetworkAccess, peCount:length(privateEndpointConnections)}" -o json 2>$null
+            if ([string]::IsNullOrEmpty($CosmosInfoJson)) { continue }
+            $CosmosInfo = $CosmosInfoJson | ConvertFrom-Json
+            if ($CosmosInfo.publicNetworkAccess -eq 'Disabled' -and $CosmosInfo.peCount -eq 0) {
+                if ($RgType -eq 'Non-WAF') {
+                    Write-Host "  [Warn] Cosmos DB account '$CosmosName' has publicNetworkAccess=Disabled with no private endpoints, but this is a Non-WAF (no private networking) deployment."
+                    Write-Host "         This blocks the API's MongoDB connection with 'Request blocked by network firewall'. Auto-correcting: enabling public network access..."
+                    az cosmosdb update -g $RESOURCE_GROUP -n $CosmosName --public-network-access Enabled -o none 2>$null
+                    Write-Host "  [OK] Public network access enabled on '$CosmosName'. Note: Cosmos DB changes can take several minutes to propagate."
+                } else {
+                    Write-Host "  [Warn] Cosmos DB account '$CosmosName' has publicNetworkAccess=Disabled with no private endpoints."
+                    Write-Host "         If this resource group was not deployed with private networking/VNet integration, the API's MongoDB connection will fail. Verify manually."
+                }
+            }
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify Cosmos DB network configuration: $($_.Exception.Message)"
+    }
+}
+
+# ---------- Pre-flight: web container app ingress target port check ----------
+$ExpectedWebTargetPort = 3000
+if ($IsAvmDeployment -and $CONTAINER_WEB_APP_NAME) {
+    Write-Host ""
+    Write-Host "[Check] Verifying web container app ingress target port..."
+    try {
+        $CurrentWebTargetPort = az containerapp show -g $RESOURCE_GROUP -n $CONTAINER_WEB_APP_NAME --query "properties.configuration.ingress.targetPort" -o tsv 2>$null
+        if ($CurrentWebTargetPort -and $CurrentWebTargetPort -ne "$ExpectedWebTargetPort") {
+            Write-Host "  [Warn] Web app '$CONTAINER_WEB_APP_NAME' ingress target port is $CurrentWebTargetPort, but the web image serves on $ExpectedWebTargetPort."
+            Write-Host "         This causes the revision to get stuck in ActivationFailed once the real web image is deployed. Auto-correcting..."
+            az containerapp ingress update -g $RESOURCE_GROUP -n $CONTAINER_WEB_APP_NAME --target-port $ExpectedWebTargetPort -o none 2>$null
+            Write-Host "  [OK] Web app ingress target port set to $ExpectedWebTargetPort."
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify/correct web app ingress target port: $($_.Exception.Message)"
+    }
+}
+
+# ---------- Pre-flight: API container app authentication check ----------
+$ApiAuthOriginalAction = $null
+if ($CONTAINER_API_APP_NAME -and $RESOURCE_GROUP) {
+    Write-Host ""
+    Write-Host "[Check] Verifying API container app authentication settings..."
+    try {
+        $AuthAction = az containerapp auth show -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --query "globalValidation.unauthenticatedClientAction" -o tsv 2>$null
+        if ($AuthAction -and $AuthAction -ne 'AllowAnonymous') {
+            Write-Host "  [Warn] API container app has authentication enabled (unauthenticatedClientAction=$AuthAction)."
+            Write-Host "         Temporarily allowing anonymous access for schema registration; original setting will be restored afterwards..."
+            az containerapp auth update -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --unauthenticated-client-action AllowAnonymous -o none 2>$null
+            $ApiAuthOriginalAction = $AuthAction
+            # Allow the change to propagate to the running revision before polling (observed ~30-60s).
+            Start-Sleep -Seconds 30
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify/adjust API authentication settings: $($_.Exception.Message)"
+    }
+}
+
+function Restore-ApiAuthSetting {
+    if ($ApiAuthOriginalAction -and $CONTAINER_API_APP_NAME -and $RESOURCE_GROUP) {
+        Write-Host ""
+        Write-Host "[Cleanup] Restoring API container app authentication setting to '$ApiAuthOriginalAction'..."
+        try {
+            az containerapp auth update -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --unauthenticated-client-action $ApiAuthOriginalAction -o none 2>$null
+            Write-Host "  [OK] Authentication setting restored."
+        } catch {
+            Write-Host "  [Warn] Could not restore authentication setting automatically: $($_.Exception.Message)"
+            Write-Host "         Please verify/restore manually: az containerapp auth update -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --unauthenticated-client-action $ApiAuthOriginalAction"
+        }
+    }
+}
+
 Write-Host ""
 Write-Host "[Package] Registering schemas and creating schema set..."
 Write-Host "  [Wait] Waiting for API to be ready at: $ApiBaseUrl"
@@ -285,6 +397,8 @@ if (-not $ApiReady) {
             Write-Host "  [Warn] Could not retrieve container logs: $_"
         }
     }
+
+    Restore-ApiAuthSetting
 } else {
     # ---------- Schema registration (no Python dependency) ----------
     $SchemaInfoFile = Join-Path $FullPath "schema_info.json"
@@ -467,6 +581,8 @@ if (-not $ApiReady) {
     Write-Host "Schema registration process completed."
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
+
+    Restore-ApiAuthSetting
 }
 
 # --- Refresh Content Understanding Cognitive Services account ---
@@ -531,8 +647,16 @@ if (-not $CU_ACCOUNT_NAME) {
         }
     } elseif ($CuAccounts.Count -gt 1) {
         Write-Host "  [Warn] Multiple AIServices accounts found in resource group '$RESOURCE_GROUP': $($CuAccounts -join ', ')"
-        if ($IsAvmDeployment) {
-            Write-Host "         Please specify the correct account name manually. Skipping refresh."
+        # Auto-select if exactly one account matches the 'aicu-' naming convention.
+        $AicuMatches = @($CuAccounts | Where-Object { $_ -like 'aicu-*' })
+        if ($AicuMatches.Count -eq 1) {
+            $CU_ACCOUNT_NAME = $AicuMatches[0]
+            Write-Host "         Auto-selected Content Understanding account by naming convention: $CU_ACCOUNT_NAME"
+            if (-not $IsAvmDeployment) {
+                try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+            }
+        } elseif ($IsAvmDeployment) {
+            Write-Host "         Please specify the correct account name manually via -ContentUnderstandingAccountName. Skipping refresh."
         } else {
             Write-Host "         Please set CONTENT_UNDERSTANDING_ACCOUNT_NAME in azd env to the correct account name. Skipping refresh."
         }
