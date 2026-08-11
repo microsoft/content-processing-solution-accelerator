@@ -9,7 +9,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-// Polyfill TextEncoder/TextDecoder for jsdom (required by react-router v7)
+// Polyfill TextEncoder/TextDecoder for jsdom (required by React Router).
 const { TextEncoder, TextDecoder } = require('util');
 
 if (typeof globalThis.TextEncoder === 'undefined') {

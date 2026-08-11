@@ -20,6 +20,7 @@ param solutionName string = 'cps'
   'japaneast'
   'northeurope'
   'southeastasia'
+  'swedencentral'
   'uksouth'
 ])
 param location string
@@ -70,12 +71,6 @@ param gptModelVersion string = '2025-11-13'
 @minValue(1)
 @description('Optional. Capacity of the GPT deployment: (minimum 10).')
 param gptDeploymentCapacity int = 300
-
-@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
-param containerRegistryEndpoint string = 'cpscontainerreg.azurecr.io'
-
-@description('Optional. The image tag for the container images.')
-param imageTag string = 'latest_v2'
 
 @description('Optional. Enable WAF for the deployment.')
 param enablePrivateNetworking bool = false
@@ -170,6 +165,7 @@ var replicaRegionPairs = {
   japaneast: 'eastasia'
   northeurope: 'westeurope'
   southeastasia: 'eastasia'
+  swedencentral: 'northeurope'
   uksouth: 'westeurope'
   westeurope: 'northeurope'
 }
@@ -721,11 +717,6 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId }] : null
     roleAssignments: [
       {
-        principalId: avmManagedIdentity.outputs.principalId
-        roleDefinitionIdOrName: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' // Owner role
-        principalType: 'ServicePrincipal'
-      }
-      {
         principalId: avmContainerApp.outputs.systemAssignedMIPrincipalId!
         roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
         principalType: 'ServicePrincipal'
@@ -786,6 +777,11 @@ module avmAiServices 'modules/account/aifoundry.bicep' = {
 
 module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = if (enablePrivateNetworking && empty(existingProjectResourceId)) {
   name: take('avm.res.network.private-endpoint.${solutionSuffix}', 64)
+  dependsOn: [
+    avmAiServices
+    virtualNetwork
+    avmPrivateDnsZones
+  ]
   params: {
     name: 'pep-aiservices-${solutionSuffix}'
     location: location
@@ -881,19 +877,24 @@ module avmContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     managedIdentities: {
       systemAssigned: true
       userAssignedResourceIds: [
         avmContainerRegistryReader.outputs.resourceId
       ]
     }
-
+ 
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
-
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+ 
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -950,7 +951,12 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -961,7 +967,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1072,7 +1078,7 @@ module avmContainerApp_API 'br/public:avm/res/app/container-app:0.22.1' = {
     }
   }
 }
-
+ 
 //========== Container App Web ========== //
 module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-web.${solutionSuffix}', 64)
@@ -1082,7 +1088,12 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1112,7 +1123,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-web'
-        image: '${containerRegistryEndpoint}/contentprocessorweb:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1155,7 +1166,7 @@ module avmContainerApp_Web 'br/public:avm/res/app/container-app:0.22.1' = {
     ]
   }
 }
-
+ 
 // ========== Container App Workflow ========== //
 module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-wkfl.${solutionSuffix}', 64)
@@ -1165,7 +1176,12 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
     enableTelemetry: enableTelemetry
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1176,7 +1192,7 @@ module avmContainerApp_Workflow 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1543,7 +1559,12 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1554,8 +1575,8 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'ca-${solutionSuffix}'
-        image: '${containerRegistryEndpoint}/contentprocessor:${imageTag}'
-
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+ 
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1616,7 +1637,7 @@ module avmContainerApp_update 'br/public:avm/res/app/container-app:0.22.1' = {
     cognitiveServicePrivateEndpoint
   ]
 }
-
+ 
 module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-api.update.${solutionSuffix}', 64)
   params: {
@@ -1625,7 +1646,12 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1633,11 +1659,11 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
         avmContainerRegistryReader.outputs.resourceId
       ]
     }
-
+ 
     containers: [
       {
         name: 'ca-${solutionSuffix}-api'
-        image: '${containerRegistryEndpoint}/contentprocessorapi:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'
@@ -1751,7 +1777,7 @@ module avmContainerApp_API_update 'br/public:avm/res/app/container-app:0.22.1' =
     cognitiveServicePrivateEndpoint
   ]
 }
-
+ 
 // ========== Container App Workflow Update ========== //
 module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app-wkfl.update.${solutionSuffix}', 64)
@@ -1761,7 +1787,12 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22
     enableTelemetry: enableTelemetry
     environmentResourceId: avmContainerAppEnv.outputs.resourceId
     workloadProfileName: 'Consumption'
-    registries: null
+    registries: [
+      {
+        server: avmContainerRegistry.outputs.loginServer
+        identity: avmContainerRegistryReader.outputs.resourceId
+      }
+    ]
     tags: tags
     managedIdentities: {
       systemAssigned: true
@@ -1772,7 +1803,7 @@ module avmContainerApp_Workflow_update 'br/public:avm/res/app/container-app:0.22
     containers: [
       {
         name: 'ca-${solutionSuffix}-wkfl'
-        image: '${containerRegistryEndpoint}/contentprocessorworkflow:${imageTag}'
+        image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         resources: {
           cpu: 4
           memory: '8.0Gi'

@@ -8,7 +8,7 @@
  */
 import React, { useEffect } from "react";
 
-import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router";
 import { ToastContainer } from "react-toastify";
 import { useSelector, shallowEqual } from "react-redux";
 

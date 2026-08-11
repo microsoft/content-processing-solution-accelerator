@@ -12,7 +12,7 @@ import React, { type PropsWithChildren, type ReactElement } from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
 import { configureStore, type EnhancedStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 
 import rootReducer from './store/rootReducer';

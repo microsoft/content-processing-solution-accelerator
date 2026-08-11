@@ -13,7 +13,7 @@ charset-normalizer==3.4.9
 click==8.4.2
 colorama==0.4.6
 coverage==7.15.2
-cryptography==49.0.0
+cryptography==50.0.0
 dnspython==2.8.0
 idna==3.18
 iniconfig==2.3.0
@@ -30,7 +30,7 @@ pluggy==1.6.0
 poppler-utils==0.1.0
 pycparser==3.0
 pydantic==2.13.4
-pydantic-core==2.47.0
+pydantic-core==2.46.4
 pydantic-settings==2.14.2
 pygments==2.20.0
 pyjwt==2.13.0

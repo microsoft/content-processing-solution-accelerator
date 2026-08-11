@@ -13,7 +13,7 @@ import {
   Subtitle2,
   Tag,
 } from "@fluentui/react-components";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 interface HeaderHooksProps {
   /** Callback to toggle between light and dark themes. */
