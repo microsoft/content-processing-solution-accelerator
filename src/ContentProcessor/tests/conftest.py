@@ -26,7 +26,7 @@ def mock_azure_credentials_for_helpers(request):
             "libs.utils.azure_credential_utils.get_azure_credential"
         ) as mock_get_cred,
         patch(
-            "libs.utils.azure_credential_utils.get_async_azure_credential"
+            "libs.utils.azure_credential_utils.get_azure_credential_async"
         ) as mock_get_cred_async,
     ):
         mock_credential = MagicMock()
