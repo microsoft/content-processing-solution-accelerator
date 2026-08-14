@@ -1,25 +1,173 @@
+<#
+.SYNOPSIS
+    Post-deployment script for Content Processing Solution Accelerator.
+
+.DESCRIPTION
+    Supports both AVM deployment (with parameters) and azd deployment (with env file).
+
+.PARAMETER ResourceGroupName
+    Azure resource group name containing the deployed resources (required for AVM deployment).
+
+.PARAMETER ApiBaseUrl
+    Base URL of the API container app (optional - will be auto-discovered if not provided).
+
+.PARAMETER SubscriptionId
+    Azure subscription ID (optional - will use current az context if not provided).
+
+.PARAMETER ContentUnderstandingAccountName
+    Name of the Content Understanding (AI Services) account to refresh (optional - will be auto-discovered if not provided).
+
+.PARAMETER MaxApiRetries
+    Number of attempts to poll the API readiness endpoint before giving up (default: 20).
+
+.PARAMETER ApiRetryIntervalSeconds
+    Seconds to wait between API readiness polling attempts (default: 15). Combined with
+    MaxApiRetries this gives a default total wait budget of 5 minutes, which allows for the
+    container app to pull a freshly-built image (e.g. right after acr_build_push.ps1) and pass
+    its startup probe before schema registration is attempted.
+
+.EXAMPLE
+    # AVM deployment with parameters
+    .\post_deployment.ps1 -ResourceGroupName "my-rg" -ApiBaseUrl "https://my-api.azurecontainerapps.io"
+
+.EXAMPLE
+    # AVM deployment with auto-discovery
+    .\post_deployment.ps1 -ResourceGroupName "my-rg"
+
+.EXAMPLE
+    # AVM deployment with specific AI Services account
+    .\post_deployment.ps1 -ResourceGroupName "my-rg" -ContentUnderstandingAccountName "aicu-myaccount"
+
+.EXAMPLE
+    # Traditional azd deployment (uses azd env)
+    .\post_deployment.ps1
+#>
+
+param(
+    [Parameter(Mandatory=$false)]
+    [string]$ResourceGroupName,
+
+    [Parameter(Mandatory=$false)]
+    [string]$ApiBaseUrl,
+
+    [Parameter(Mandatory=$false)]
+    [string]$SubscriptionId,
+
+    [Parameter(Mandatory=$false)]
+    [string]$ContentUnderstandingAccountName,
+
+    [Parameter(Mandatory=$false)]
+    [int]$MaxApiRetries = 20,
+
+    [Parameter(Mandatory=$false)]
+    [int]$ApiRetryIntervalSeconds = 15
+)
+
 # Stop script on any error
 $ErrorActionPreference = "Stop"
 
-Write-Host "[Search] Fetching container app info from azd environment..."
+# Determine deployment mode: AVM (with parameters) or AZD (with env file)
+$IsAvmDeployment = -not [string]::IsNullOrEmpty($ResourceGroupName)
 
-# Load values from azd env
-$CONTAINER_WEB_APP_NAME = azd env get-value CONTAINER_WEB_APP_NAME
-$CONTAINER_WEB_APP_FQDN = azd env get-value CONTAINER_WEB_APP_FQDN
+if ($IsAvmDeployment) {
+    Write-Host "[Info] Running in AVM deployment mode with resource group: $ResourceGroupName"
 
-$CONTAINER_API_APP_NAME = azd env get-value CONTAINER_API_APP_NAME
-$CONTAINER_API_APP_FQDN = azd env get-value CONTAINER_API_APP_FQDN
+    # Get subscription ID from parameter or current context
+    if ([string]::IsNullOrEmpty($SubscriptionId)) {
+        $SUBSCRIPTION_ID = (az account show --query id -o tsv 2>$null)
+        if ([string]::IsNullOrEmpty($SUBSCRIPTION_ID)) {
+            Write-Host "[Error] Could not determine subscription ID. Please provide -SubscriptionId parameter or ensure you are logged in with 'az login'."
+            exit 1
+        }
+        Write-Host "[Info] Using subscription ID from current context: $SUBSCRIPTION_ID"
+    } else {
+        $SUBSCRIPTION_ID = $SubscriptionId
+    }
 
-$CONTAINER_WORKFLOW_APP_NAME = azd env get-value CONTAINER_WORKFLOW_APP_NAME
+    $RESOURCE_GROUP = $ResourceGroupName
 
-# Get subscription and resource group (assuming same for both)
-$SUBSCRIPTION_ID = azd env get-value AZURE_SUBSCRIPTION_ID
-$RESOURCE_GROUP = azd env get-value AZURE_RESOURCE_GROUP
+    # Discover container apps in the resource group
+    Write-Host "[Info] Discovering container apps in resource group..."
+    $ContainerApps = @(az containerapp list -g $RESOURCE_GROUP --query "[].{name:name, fqdn:properties.configuration.ingress.fqdn}" -o json 2>$null | ConvertFrom-Json)
 
-# Construct Azure Portal URLs
-$WEB_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
-$API_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
-$WORKFLOW_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WORKFLOW_APP_NAME"
+    if ($ContainerApps.Count -eq 0) {
+        Write-Host "[Error] No container apps found in resource group '$RESOURCE_GROUP'."
+        exit 1
+    }
+
+    # Identify apps by name patterns (matching AVM naming convention)
+    $CONTAINER_API_APP = $ContainerApps | Where-Object { $_.name -like "*-api" } | Select-Object -First 1
+    $CONTAINER_WEB_APP = $ContainerApps | Where-Object { $_.name -like "*-web" } | Select-Object -First 1
+    # Try multiple patterns for workflow app (AVM uses -wkfl)
+    $CONTAINER_WORKFLOW_APP = $ContainerApps | Where-Object { $_.name -like "*-wkfl" -or $_.name -like "*-workflow" -or $_.name -like "*-processor" -or $_.name -like "*-worker" } | Select-Object -First 1
+    # Try to find the base ContentProcessor app
+    $CONTAINER_APP = $ContainerApps | Where-Object { $_.name -like "*-app" } | Select-Object -First 1
+
+    # Safely extract properties with null checks
+    $CONTAINER_APP_NAME = if ($CONTAINER_APP) { $CONTAINER_APP.name } else { $null }
+    $CONTAINER_APP_FQDN = if ($CONTAINER_APP) { $CONTAINER_APP.fqdn } else { $null }
+    $CONTAINER_API_APP_NAME = if ($CONTAINER_API_APP) { $CONTAINER_API_APP.name } else { $null }
+    $CONTAINER_API_APP_FQDN = if ($CONTAINER_API_APP) { $CONTAINER_API_APP.fqdn } else { $null }
+    $CONTAINER_WEB_APP_NAME = if ($CONTAINER_WEB_APP) { $CONTAINER_WEB_APP.name } else { $null }
+    $CONTAINER_WEB_APP_FQDN = if ($CONTAINER_WEB_APP) { $CONTAINER_WEB_APP.fqdn } else { $null }
+    $CONTAINER_WORKFLOW_APP_NAME = if ($CONTAINER_WORKFLOW_APP) { $CONTAINER_WORKFLOW_APP.name } else { $null }
+
+    # Use provided API base URL or construct from discovered FQDN
+    if (-not [string]::IsNullOrEmpty($ApiBaseUrl)) {
+        # Remove trailing slash if present
+        $ApiBaseUrl = $ApiBaseUrl.TrimEnd('/')
+        Write-Host "[Info] Using provided API base URL: $ApiBaseUrl"
+    } elseif (-not [string]::IsNullOrEmpty($CONTAINER_API_APP_FQDN)) {
+        $ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
+        Write-Host "[Info] Constructed API base URL from discovered FQDN: $ApiBaseUrl"
+    } else {
+        Write-Host "[Error] Could not determine API base URL. Please provide -ApiBaseUrl parameter or ensure API container app exists."
+        exit 1
+    }
+
+} else {
+    Write-Host "[Info] Running in AZD deployment mode (using azd env)..."
+
+    # Load values from azd env
+    $CONTAINER_WEB_APP_NAME = azd env get-value CONTAINER_WEB_APP_NAME
+    $CONTAINER_WEB_APP_FQDN = azd env get-value CONTAINER_WEB_APP_FQDN
+
+    $CONTAINER_API_APP_NAME = azd env get-value CONTAINER_API_APP_NAME
+    $CONTAINER_API_APP_FQDN = azd env get-value CONTAINER_API_APP_FQDN
+
+    $CONTAINER_WORKFLOW_APP_NAME = azd env get-value CONTAINER_WORKFLOW_APP_NAME
+
+    # Get subscription and resource group (assuming same for both)
+    $SUBSCRIPTION_ID = azd env get-value AZURE_SUBSCRIPTION_ID
+    $RESOURCE_GROUP = azd env get-value AZURE_RESOURCE_GROUP
+
+    $ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
+}
+
+# Construct Azure Portal URLs (only for apps that exist)
+if ($CONTAINER_APP_NAME) {
+    $APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_APP_NAME"
+} else {
+    $APP_PORTAL_URL = $null
+}
+
+if ($CONTAINER_WEB_APP_NAME) {
+    $WEB_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WEB_APP_NAME"
+} else {
+    $WEB_APP_PORTAL_URL = $null
+}
+
+if ($CONTAINER_API_APP_NAME) {
+    $API_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_API_APP_NAME"
+} else {
+    $API_APP_PORTAL_URL = $null
+}
+
+if ($CONTAINER_WORKFLOW_APP_NAME) {
+    $WORKFLOW_APP_PORTAL_URL = "https://portal.azure.com/#resource/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$CONTAINER_WORKFLOW_APP_NAME"
+} else {
+    $WORKFLOW_APP_PORTAL_URL = $null
+}
 
 # Get the current script's directory
 $ScriptDir = $PSScriptRoot
@@ -30,32 +178,176 @@ $DataScriptPath = Join-Path $ScriptDir "..\..\src\ContentProcessorAPI\samples\sc
 # Resolve to an absolute path
 $FullPath = Resolve-Path $DataScriptPath
 
-# Output
+# Output deployment information
+Write-Host ""
+Write-Host "[Info] Content Processor App Details:"
+if ($CONTAINER_APP_NAME) {
+    Write-Host "  [OK] Name: $CONTAINER_APP_NAME"
+    if ($CONTAINER_APP_FQDN) {
+        Write-Host "  [URL] Endpoint: $CONTAINER_APP_FQDN"
+    }
+    if ($APP_PORTAL_URL) {
+        Write-Host "  [Link] Portal URL: $APP_PORTAL_URL"
+    }
+} else {
+    Write-Host "  [Info] Content Processor app not found or not deployed."
+}
+
 Write-Host ""
 Write-Host "[Info] Web App Details:"
-Write-Host "  [OK] Name: $CONTAINER_WEB_APP_NAME"
-Write-Host "  [URL] Endpoint: $CONTAINER_WEB_APP_FQDN"
-Write-Host "  [Link] Portal URL: $WEB_APP_PORTAL_URL"
+if ($CONTAINER_WEB_APP_NAME) {
+    Write-Host "  [OK] Name: $CONTAINER_WEB_APP_NAME"
+    Write-Host "  [URL] Endpoint: $CONTAINER_WEB_APP_FQDN"
+    if ($WEB_APP_PORTAL_URL) {
+        Write-Host "  [Link] Portal URL: $WEB_APP_PORTAL_URL"
+    }
+} else {
+    Write-Host "  [Info] Web app not found or not deployed."
+}
 
 Write-Host ""
 Write-Host "[Info] API App Details:"
-Write-Host "  [OK] Name: $CONTAINER_API_APP_NAME"
-Write-Host "  [URL] Endpoint: $CONTAINER_API_APP_FQDN"
-Write-Host "  [Link] Portal URL: $API_APP_PORTAL_URL"
+if ($CONTAINER_API_APP_NAME) {
+    Write-Host "  [OK] Name: $CONTAINER_API_APP_NAME"
+    Write-Host "  [URL] Endpoint: $CONTAINER_API_APP_FQDN"
+    if ($API_APP_PORTAL_URL) {
+        Write-Host "  [Link] Portal URL: $API_APP_PORTAL_URL"
+    }
+} else {
+    Write-Host "  [Info] API app not found or not deployed."
+}
 
 Write-Host ""
 Write-Host "[Info] Workflow App Details:"
-Write-Host "  [OK] Name: $CONTAINER_WORKFLOW_APP_NAME"
-Write-Host "  [Link] Portal URL: $WORKFLOW_APP_PORTAL_URL"
+if ($CONTAINER_WORKFLOW_APP_NAME) {
+    Write-Host "  [OK] Name: $CONTAINER_WORKFLOW_APP_NAME"
+    if ($WORKFLOW_APP_PORTAL_URL) {
+        Write-Host "  [Link] Portal URL: $WORKFLOW_APP_PORTAL_URL"
+    }
+} else {
+    Write-Host "  [Info] Workflow app not found or not deployed."
+}
+
+# ---------- Pre-flight: storage account public network access (AVM mode) ----------
+if ($IsAvmDeployment) {
+    Write-Host ""
+    Write-Host "[Check] Verifying storage account network access..."
+    try {
+        $RgType = az group show -n $RESOURCE_GROUP --query "tags.Type" -o tsv 2>$null
+        $StorageAccounts = @(az storage account list -g $RESOURCE_GROUP --query "[].name" -o tsv 2>$null)
+        $StorageAccounts = @($StorageAccounts | Where-Object { $_ -and $_.Trim() -ne "" })
+
+        foreach ($SaName in $StorageAccounts) {
+            $SaInfoJson = az storage account show -g $RESOURCE_GROUP -n $SaName --query "{publicNetworkAccess:publicNetworkAccess, peCount:length(privateEndpointConnections)}" -o json 2>$null
+            if ([string]::IsNullOrEmpty($SaInfoJson)) { continue }
+            $SaInfo = $SaInfoJson | ConvertFrom-Json
+            if ($SaInfo.publicNetworkAccess -eq 'Disabled' -and $SaInfo.peCount -eq 0) {
+                if ($RgType -eq 'Non-WAF') {
+                    Write-Host "  [Warn] Storage account '$SaName' has publicNetworkAccess=Disabled with no private endpoints, but this is a Non-WAF (no private networking) deployment."
+                    Write-Host "         This would cause storage-dependent API calls to fail with AuthorizationFailure. Auto-correcting: enabling public network access..."
+                    az storage account update -g $RESOURCE_GROUP -n $SaName --public-network-access Enabled -o none 2>$null
+                    Write-Host "  [OK] Public network access enabled on '$SaName'."
+                } else {
+                    Write-Host "  [Warn] Storage account '$SaName' has publicNetworkAccess=Disabled with no private endpoints."
+                    Write-Host "         If this resource group was not deployed with private networking/VNet integration, storage-dependent API calls will fail. Verify manually."
+                }
+            }
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify storage account network configuration: $($_.Exception.Message)"
+    }
+}
+
+# ---------- Pre-flight: Cosmos DB public network access (AVM mode) ----------
+if ($IsAvmDeployment) {
+    Write-Host ""
+    Write-Host "[Check] Verifying Cosmos DB network access..."
+    try {
+        $RgType = az group show -n $RESOURCE_GROUP --query "tags.Type" -o tsv 2>$null
+        $CosmosAccounts = @(az cosmosdb list -g $RESOURCE_GROUP --query "[].name" -o tsv 2>$null)
+        $CosmosAccounts = @($CosmosAccounts | Where-Object { $_ -and $_.Trim() -ne "" })
+
+        foreach ($CosmosName in $CosmosAccounts) {
+            $CosmosInfoJson = az cosmosdb show -g $RESOURCE_GROUP -n $CosmosName --query "{publicNetworkAccess:publicNetworkAccess, peCount:length(privateEndpointConnections)}" -o json 2>$null
+            if ([string]::IsNullOrEmpty($CosmosInfoJson)) { continue }
+            $CosmosInfo = $CosmosInfoJson | ConvertFrom-Json
+            if ($CosmosInfo.publicNetworkAccess -eq 'Disabled' -and $CosmosInfo.peCount -eq 0) {
+                if ($RgType -eq 'Non-WAF') {
+                    Write-Host "  [Warn] Cosmos DB account '$CosmosName' has publicNetworkAccess=Disabled with no private endpoints, but this is a Non-WAF (no private networking) deployment."
+                    Write-Host "         This blocks the API's MongoDB connection with 'Request blocked by network firewall'. Auto-correcting: enabling public network access..."
+                    az cosmosdb update -g $RESOURCE_GROUP -n $CosmosName --public-network-access Enabled -o none 2>$null
+                    Write-Host "  [OK] Public network access enabled on '$CosmosName'. Note: Cosmos DB changes can take several minutes to propagate."
+                } else {
+                    Write-Host "  [Warn] Cosmos DB account '$CosmosName' has publicNetworkAccess=Disabled with no private endpoints."
+                    Write-Host "         If this resource group was not deployed with private networking/VNet integration, the API's MongoDB connection will fail. Verify manually."
+                }
+            }
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify Cosmos DB network configuration: $($_.Exception.Message)"
+    }
+}
+
+# ---------- Pre-flight: web container app ingress target port check ----------
+$ExpectedWebTargetPort = 3000
+if ($IsAvmDeployment -and $CONTAINER_WEB_APP_NAME) {
+    Write-Host ""
+    Write-Host "[Check] Verifying web container app ingress target port..."
+    try {
+        $CurrentWebTargetPort = az containerapp show -g $RESOURCE_GROUP -n $CONTAINER_WEB_APP_NAME --query "properties.configuration.ingress.targetPort" -o tsv 2>$null
+        if ($CurrentWebTargetPort -and $CurrentWebTargetPort -ne "$ExpectedWebTargetPort") {
+            Write-Host "  [Warn] Web app '$CONTAINER_WEB_APP_NAME' ingress target port is $CurrentWebTargetPort, but the web image serves on $ExpectedWebTargetPort."
+            Write-Host "         This causes the revision to get stuck in ActivationFailed once the real web image is deployed. Auto-correcting..."
+            az containerapp ingress update -g $RESOURCE_GROUP -n $CONTAINER_WEB_APP_NAME --target-port $ExpectedWebTargetPort -o none 2>$null
+            Write-Host "  [OK] Web app ingress target port set to $ExpectedWebTargetPort."
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify/correct web app ingress target port: $($_.Exception.Message)"
+    }
+}
+
+# ---------- Pre-flight: API container app authentication check ----------
+$ApiAuthOriginalAction = $null
+if ($CONTAINER_API_APP_NAME -and $RESOURCE_GROUP) {
+    Write-Host ""
+    Write-Host "[Check] Verifying API container app authentication settings..."
+    try {
+        $AuthAction = az containerapp auth show -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --query "globalValidation.unauthenticatedClientAction" -o tsv 2>$null
+        if ($AuthAction -and $AuthAction -ne 'AllowAnonymous') {
+            Write-Host "  [Warn] API container app has authentication enabled (unauthenticatedClientAction=$AuthAction)."
+            Write-Host "         Temporarily allowing anonymous access for schema registration; original setting will be restored afterwards..."
+            az containerapp auth update -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --unauthenticated-client-action AllowAnonymous -o none 2>$null
+            $ApiAuthOriginalAction = $AuthAction
+            # Allow the change to propagate to the running revision before polling (observed ~30-60s).
+            Start-Sleep -Seconds 30
+        }
+    } catch {
+        Write-Host "  [Warn] Could not verify/adjust API authentication settings: $($_.Exception.Message)"
+    }
+}
+
+function Restore-ApiAuthSetting {
+    if ($ApiAuthOriginalAction -and $CONTAINER_API_APP_NAME -and $RESOURCE_GROUP) {
+        Write-Host ""
+        Write-Host "[Cleanup] Restoring API container app authentication setting to '$ApiAuthOriginalAction'..."
+        try {
+            az containerapp auth update -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --unauthenticated-client-action $ApiAuthOriginalAction -o none 2>$null
+            Write-Host "  [OK] Authentication setting restored."
+        } catch {
+            Write-Host "  [Warn] Could not restore authentication setting automatically: $($_.Exception.Message)"
+            Write-Host "         Please verify/restore manually: az containerapp auth update -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --unauthenticated-client-action $ApiAuthOriginalAction"
+        }
+    }
+}
 
 Write-Host ""
 Write-Host "[Package] Registering schemas and creating schema set..."
-Write-Host "  [Wait] Waiting for API to be ready..."
+Write-Host "  [Wait] Waiting for API to be ready at: $ApiBaseUrl"
 
-$MaxRetries = 10
-$RetryInterval = 15
-$ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
+$MaxRetries = $MaxApiRetries
+$RetryInterval = $ApiRetryIntervalSeconds
 $ApiReady = $false
+$LastError = $null
 
 for ($i = 1; $i -le $MaxRetries; $i++) {
     try {
@@ -64,17 +356,49 @@ for ($i = 1; $i -le $MaxRetries; $i++) {
             Write-Host "  [OK] API is ready."
             $ApiReady = $true
             break
+        } else {
+            $LastError = "HTTP status $($response.StatusCode)"
         }
     } catch {
-        # Ignore - API not ready yet
+        # Capture the error so we can surface it if the API never becomes ready.
+        # This turns "silently skip" into an actionable diagnostic (e.g. 502/503
+        # from ingress while the new revision is still starting, DNS failures,
+        # or TLS/cert errors) instead of leaving the user to guess.
+        $LastError = $_.Exception.Message
     }
-    Write-Host "  Attempt $i/$MaxRetries - API not ready, retrying in ${RetryInterval}s..."
+    Write-Host "  Attempt $i/$MaxRetries - API not ready ($LastError), retrying in ${RetryInterval}s..."
     Start-Sleep -Seconds $RetryInterval
 }
 
 if (-not $ApiReady) {
-    Write-Host "  API did not become ready after $MaxRetries attempts. Skipping schema registration."
-    Write-Host "  Run manually after the API is ready."
+    Write-Host "  [Error] API did not become ready after $MaxRetries attempts (interval: ${RetryInterval}s, total wait: $($MaxRetries * $RetryInterval)s)."
+    Write-Host "          Last error: $LastError"
+    Write-Host "  Skipping schema registration. Run manually after the API is ready."
+
+    # Best-effort diagnostics to help root-cause why the container app never
+    # became reachable (e.g. still pulling the freshly built image, crash-looping
+    # because required config/RBAC hasn't propagated yet, or provisioning failed).
+    if ($CONTAINER_API_APP_NAME -and $RESOURCE_GROUP) {
+        Write-Host ""
+        Write-Host "  [Diag] Container app '$CONTAINER_API_APP_NAME' status in resource group '$RESOURCE_GROUP':"
+        try {
+            $RevisionInfo = az containerapp revision list -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME `
+                --query "[?properties.active].{name:name, provisioningState:properties.provisioningState, runningState:properties.runningState, replicas:properties.replicas, createdTime:properties.createdTime}" `
+                -o table 2>&1
+            Write-Host ($RevisionInfo | Out-String)
+        } catch {
+            Write-Host "  [Warn] Could not retrieve revision status: $_"
+        }
+        try {
+            Write-Host "  [Diag] Recent console logs (last 50 lines):"
+            $Logs = az containerapp logs show -g $RESOURCE_GROUP -n $CONTAINER_API_APP_NAME --type console --tail 50 2>&1
+            Write-Host ($Logs | Out-String)
+        } catch {
+            Write-Host "  [Warn] Could not retrieve container logs: $_"
+        }
+    }
+
+    Restore-ApiAuthSetting
 } else {
     # ---------- Schema registration (no Python dependency) ----------
     $SchemaInfoFile = Join-Path $FullPath "schema_info.json"
@@ -140,21 +464,40 @@ if (-not $ApiReady) {
 
         $boundary = [System.Guid]::NewGuid().ToString()
         $LF = "`r`n"
-        $bodyLines = (
-            "--$boundary",
-            "Content-Disposition: form-data; name=`"data`"$LF",
-            $dataPayload,
-            "--$boundary",
-            "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
-            "Content-Type: $contentType$LF",
-            [System.Text.Encoding]::UTF8.GetString($fileBytes),
-            "--$boundary--$LF"
-        ) -join $LF
+
+        # Build the multipart body as raw bytes rather than round-tripping the file
+        # content through a string. Converting file bytes to a string and back can
+        # corrupt content that isn't plain ASCII (e.g. UTF-8 BOMs or non-ASCII
+        # characters in schema descriptions), because Invoke-RestMethod may not
+        # re-encode a string body as UTF-8. Writing bytes directly avoids this.
+        $MemoryStream = New-Object System.IO.MemoryStream
+        try {
+            $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            $WriteText = {
+                param($Text)
+                $bytes = $Utf8NoBom.GetBytes($Text)
+                $MemoryStream.Write($bytes, 0, $bytes.Length)
+            }
+
+            & $WriteText "--$boundary$LF"
+            & $WriteText "Content-Disposition: form-data; name=`"data`"$LF$LF"
+            & $WriteText "$dataPayload$LF"
+
+            & $WriteText "--$boundary$LF"
+            & $WriteText "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"$LF"
+            & $WriteText "Content-Type: $contentType$LF$LF"
+            $MemoryStream.Write($fileBytes, 0, $fileBytes.Length)
+            & $WriteText "$LF--$boundary--$LF"
+
+            $bodyBytes = $MemoryStream.ToArray()
+        } finally {
+            $MemoryStream.Dispose()
+        }
 
         try {
             $resp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
                 -ContentType "multipart/form-data; boundary=$boundary" `
-                -Body $bodyLines -TimeoutSec 60 -ErrorAction Stop
+                -Body $bodyBytes -TimeoutSec 60 -ErrorAction Stop
             $schemaId = $resp.Id
             Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
             $Registered[$ClassName] = $schemaId
@@ -238,6 +581,8 @@ if (-not $ApiReady) {
     Write-Host "Schema registration process completed."
     Write-Host "  Schemas registered: $($Registered.Count)"
     Write-Host ("=" * 60)
+
+    Restore-ApiAuthSetting
 }
 
 # --- Refresh Content Understanding Cognitive Services account ---
@@ -247,11 +592,20 @@ Write-Host "Refreshing Content Understanding Cognitive Services account..."
 Write-Host ("=" * 60)
 
 $CU_ACCOUNT_NAME = ""
-try {
-    $CU_ACCOUNT_NAME = (azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>$null)
-    if (-not $CU_ACCOUNT_NAME) { $CU_ACCOUNT_NAME = "" }
-} catch {
-    $CU_ACCOUNT_NAME = ""
+if ($IsAvmDeployment) {
+    # In AVM mode, use parameter if provided
+    if (-not [string]::IsNullOrEmpty($ContentUnderstandingAccountName)) {
+        $CU_ACCOUNT_NAME = $ContentUnderstandingAccountName
+        Write-Host "  Using specified Content Understanding account: $CU_ACCOUNT_NAME"
+    }
+} else {
+    # In AZD mode, try to get from azd env
+    try {
+        $CU_ACCOUNT_NAME = (azd env get-value CONTENT_UNDERSTANDING_ACCOUNT_NAME 2>$null)
+        if (-not $CU_ACCOUNT_NAME) { $CU_ACCOUNT_NAME = "" }
+    } catch {
+        $CU_ACCOUNT_NAME = ""
+    }
 }
 
 # Verify the account from the env value still exists; if not, fall back to discovering
@@ -287,11 +641,25 @@ if (-not $CU_ACCOUNT_NAME) {
     if ($CuAccounts.Count -eq 1) {
         $CU_ACCOUNT_NAME = $CuAccounts[0]
         Write-Host "  Discovered AIServices account in resource group: $CU_ACCOUNT_NAME"
-        # Refresh the azd env so subsequent runs use the correct value.
-        try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+        # Refresh the azd env so subsequent runs use the correct value (only in AZD mode)
+        if (-not $IsAvmDeployment) {
+            try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+        }
     } elseif ($CuAccounts.Count -gt 1) {
         Write-Host "  [Warn] Multiple AIServices accounts found in resource group '$RESOURCE_GROUP': $($CuAccounts -join ', ')"
-        Write-Host "         Please set CONTENT_UNDERSTANDING_ACCOUNT_NAME in azd env to the correct account name. Skipping refresh."
+        # Auto-select if exactly one account matches the 'aicu-' naming convention.
+        $AicuMatches = @($CuAccounts | Where-Object { $_ -like 'aicu-*' })
+        if ($AicuMatches.Count -eq 1) {
+            $CU_ACCOUNT_NAME = $AicuMatches[0]
+            Write-Host "         Auto-selected Content Understanding account by naming convention: $CU_ACCOUNT_NAME"
+            if (-not $IsAvmDeployment) {
+                try { azd env set CONTENT_UNDERSTANDING_ACCOUNT_NAME $CU_ACCOUNT_NAME 2>$null | Out-Null } catch { }
+            }
+        } elseif ($IsAvmDeployment) {
+            Write-Host "         Please specify the correct account name manually via -ContentUnderstandingAccountName. Skipping refresh."
+        } else {
+            Write-Host "         Please set CONTENT_UNDERSTANDING_ACCOUNT_NAME in azd env to the correct account name. Skipping refresh."
+        }
     } else {
         Write-Host "  [Warn] No Content Understanding (AIServices) account found in resource group '$RESOURCE_GROUP'. Skipping refresh."
     }
@@ -310,3 +678,4 @@ if ($CU_ACCOUNT_NAME) {
         Write-Host "         az error: $UpdateOutputStr"
     }
 }
+ 
