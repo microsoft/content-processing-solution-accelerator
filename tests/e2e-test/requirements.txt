@@ -1,3 +1,5 @@
+--index-url https://packagefeedproxy.microsoft.io/pypi/simple/
+
 pytest-playwright==0.*
 pytest-reporter-html1==0.*
 python-dotenv==1.*

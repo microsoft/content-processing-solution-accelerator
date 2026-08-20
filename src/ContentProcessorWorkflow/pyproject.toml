@@ -48,6 +48,11 @@ dev = [
     "pytest-mock==3.15.1",
 ]
 
+[[tool.uv.index]]
+name = "microsoft-package-feed-proxy"
+url = "https://packagefeedproxy.microsoft.io/pypi/simple/"
+default = true
+
 [tool.ruff]
 line-length = 88
 indent-width = 4

@@ -1,3 +1,5 @@
+--index-url https://packagefeedproxy.microsoft.io/pypi/simple/
+
 annotated-types==0.8.0
 azure-ai-inference==1.0.0b9
 azure-appconfiguration==1.9.0

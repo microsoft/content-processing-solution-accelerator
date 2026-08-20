@@ -43,5 +43,10 @@ dev = [
     "ruff==0.16.0",
 ]
 
+[[tool.uv.index]]
+name = "microsoft-package-feed-proxy"
+url = "https://packagefeedproxy.microsoft.io/pypi/simple/"
+default = true
+
 [tool.ruff.format]
 line-ending = "auto"

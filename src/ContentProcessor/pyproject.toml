@@ -41,6 +41,11 @@ dev = [
     "ruff==0.16.0",
 ]
 
+[[tool.uv.index]]
+name = "microsoft-package-feed-proxy"
+url = "https://packagefeedproxy.microsoft.io/pypi/simple/"
+default = true
+
 [tool.pytest.ini_options]
 minversion = "8.3.4"
 addopts = "-v --strict-markers --maxfail=5"
