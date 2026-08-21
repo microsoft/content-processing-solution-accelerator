@@ -23,8 +23,8 @@ RUN apt-get update \
 # Copy UV binaries
 COPY --from=uv --chown=vscode: /uv /uvx /bin/
 
-# Install global NPM packages
-RUN npm install -g tslint-to-eslint-config typescript react-app-rewired pnpm@10.28.2
+# Install global NPM packages (from the Microsoft Package Feed Proxy)
+RUN npm install -g --registry=https://packagefeedproxy.microsoft.io/npm/ tslint-to-eslint-config typescript react-app-rewired pnpm@10.28.2
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]

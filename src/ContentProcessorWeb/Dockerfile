@@ -4,11 +4,11 @@ FROM node:22.22.0-bookworm AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and pnpm lockfile
-COPY package.json pnpm-lock.yaml ./
+# Copy package.json, pnpm lockfile, and .npmrc (Microsoft Package Feed Proxy registry) first
+COPY package.json pnpm-lock.yaml .npmrc ./
 
-# Ensure pnpm is available
-RUN npm install -g pnpm@10.28.2
+# Ensure pnpm is available (installed from the Microsoft Package Feed Proxy)
+RUN npm install -g --registry=https://packagefeedproxy.microsoft.io/npm/ pnpm@10.28.2
 
 # Install project dependencies
 RUN pnpm install --frozen-lockfile

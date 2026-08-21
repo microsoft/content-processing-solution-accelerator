@@ -24,6 +24,7 @@ env:
     url: ${{ inputs.CP_WEB_URL }}
     accelerator_name: "Content Processing"
     test_suite: ${{ inputs.TEST_SUITE }}
+    PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
 
 jobs:
   test:
