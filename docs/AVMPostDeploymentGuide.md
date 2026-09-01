@@ -11,9 +11,10 @@ This document provides guidance on post-deployment steps after deploying the Con
 After successfully deploying the Content Processing Solution Accelerator using the AVM template, you need to:
 
 1. **Register schemas** — upload schema files, create a schema set, and link them together
-2. **Configure authentication** — set up app registration for secure access
+2. **Process sample files** — upload and process sample claim bundles for verification
+3. **Configure authentication** — set up app registration for secure access
 
-> **Note:** When deploying via `azd up`, schema registration happens automatically through a post-provisioning hook. AVM deployments require the manual steps below.
+> **Note:** When deploying via `azd up`, schema registration and sample processing happen automatically through a post-provisioning hook. AVM deployments require the manual steps below.
 
 ## Prerequisites
 
@@ -73,14 +74,27 @@ The script is idempotent — it skips schemas and schema sets that already exist
 
 > **Want custom schemas?** See [Customize Schema Data](./CustomizeSchemaData.md) to create your own document schemas.
 
-### Step 4: Configure Authentication (Required)
+### Step 4: Process Sample File Bundles (Optional)
+
+After schema registration, you can upload and process the included sample claim bundles to verify the deployment is working end to end. Each sample folder (`claim_date_of_loss/`, `claim_hail/`) contains a `bundle_info.json` manifest that maps files to their schema classes.
+
+The workflow for each bundle:
+1. **Create a claim batch** with the schema set ID via `PUT /claimprocessor/claims`
+2. **Upload each file** with its mapped schema ID via `POST /claimprocessor/claims/{claim_id}/files`
+3. **Submit the batch** for processing via `POST /claimprocessor/claims`
+
+You can perform these steps via the web UI or the API directly. See the [API documentation](./API.md) and [Golden Path Workflows](./GoldenPathWorkflows.md) for details.
+
+> **Note:** When deploying via `azd up`, sample file processing happens automatically as Step 4 of the post-provisioning hook.
+
+### Step 5: Configure Authentication (Required)
 
 **This step is mandatory for application access:**
 
 1. Follow [App Authentication Configuration](./ConfigureAppAuthentication.md).
 2. Wait up to 10 minutes for authentication changes to take effect.
 
-### Step 5: Verify Deployment
+### Step 6: Verify Deployment
 
 1. Access your application using the Web App URL from your deployment output.
 2. Confirm the application loads successfully.
