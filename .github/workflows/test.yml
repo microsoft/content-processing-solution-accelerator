@@ -82,7 +82,7 @@ jobs:
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.fork == false &&
           env.skip_backend_tests == 'false'
-        uses: MishaKav/pytest-coverage-comment@ce64cfb4332195faa36733a0364dda8849109f70  # v1.11.2
+        uses: MishaKav/pytest-coverage-comment@432ac90e8d345c93e1d90ee0838b35913abc9c9b  # v1.12.2
         with:
           pytest-xml-coverage-path: src/tests/ContentProcessor/coverage.xml
           junitxml-path: src/tests/ContentProcessor/pytest.xml
