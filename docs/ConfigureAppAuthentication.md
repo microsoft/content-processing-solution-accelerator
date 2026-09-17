@@ -1,5 +1,16 @@
 # Set up Authentication in Azure Container App
 
+> ### ✅ Automatic configuration is now the default
+>
+> As of the latest release, `azd up` **automatically** performs all of the steps below via the `infra/scripts/configure_auth.{sh,ps1}` post-provisioning hook. You should not need to follow this document in most cases.
+>
+> See [DeploymentGuide.md § 5.2](./DeploymentGuide.md#52-configure-authentication-automatic) for details, including how to opt out with `azd env set AZURE_SKIP_AUTH_SETUP true`.
+>
+> Follow the manual steps below **only** if:
+> - You set `AZURE_SKIP_AUTH_SETUP=true` before running `azd up`
+> - The automatic script reported an error (most commonly: your identity lacks permission to grant admin consent — a tenant admin still has to consent, but the rest of the configuration is already complete)
+> - Your tenant policy prohibits programmatic app registration or secret creation
+
 This document provides step-by-step instructions to configure Azure App Registrations for the front-end and back-end applications.
 
 > **Note:** The solution deploys four container apps. Only the **Web** and **API** container apps require Entra ID authentication provider configuration. The **Content Processor** (app) and **Content Process Workflow** (wkfl) containers are internal services that communicate via Storage Queues using managed identity — they do not expose public endpoints.
