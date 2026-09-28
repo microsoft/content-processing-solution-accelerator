@@ -151,8 +151,35 @@ else
   echo "  Reusing Web app registration: $WEB_CLIENT_ID"
 fi
 
+# Register the SPA redirect URI via a Microsoft Graph PATCH; `az ad app update
+# --set spa=...` is unreliable and fails with "Property spa in payload does not
+# match schema". The JSON body is written to a temp file (--body @file) to avoid
+# shell-quoting issues.
 echo "  Setting SPA redirect URI: $WEB_URI"
-az ad app update --id "$WEB_CLIENT_ID" --set "spa={\"redirectUris\":[\"$WEB_URI\"]}"
+WEB_OBJECT_ID=$(az ad app show --id "$WEB_CLIENT_ID" --query id --output tsv)
+SPA_BODY_FILE=$(mktemp)
+printf '{"spa":{"redirectUris":["%s"]}}' "$WEB_URI" > "$SPA_BODY_FILE"
+az rest \
+  --method PATCH \
+  --uri "https://graph.microsoft.com/v1.0/applications/$WEB_OBJECT_ID" \
+  --headers "Content-Type=application/json" \
+  --body "@$SPA_BODY_FILE"
+rm -f "$SPA_BODY_FILE"
+
+# Enable ID token issuance for the implicit grant. Container Apps Easy Auth
+# requests an id_token during the login redirect; without this Entra returns
+# AADSTS700054 "response_type 'id_token' is not enabled for the application".
+# The Easy Auth callback (/.auth/login/aad/callback) must also be registered as
+# a Web-platform redirect URI, otherwise login fails with AADSTS50011.
+echo "  Enabling ID token issuance and Web redirect URI on the Web app..."
+IMPLICIT_BODY_FILE=$(mktemp)
+printf '{"web":{"redirectUris":["%s/.auth/login/aad/callback"],"implicitGrantSettings":{"enableIdTokenIssuance":true}}}' "$WEB_URI" > "$IMPLICIT_BODY_FILE"
+az rest \
+  --method PATCH \
+  --uri "https://graph.microsoft.com/v1.0/applications/$WEB_OBJECT_ID" \
+  --headers "Content-Type=application/json" \
+  --body "@$IMPLICIT_BODY_FILE"
+rm -f "$IMPLICIT_BODY_FILE"
 
 SCOPE_GUID=$(az ad app show --id "$API_CLIENT_ID" --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" --output tsv)
 echo "  Adding API permission to the Web app..."
