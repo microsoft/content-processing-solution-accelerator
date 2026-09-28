@@ -242,15 +242,23 @@ az containerapp auth update \
 # ---------------------------------------------------------------------------
 step "Step 4: Allowing the Web client on the API"
 
+# The --allowed-client-applications flag is not available in older containerapp
+# CLI extensions. The authConfigs resource does not support PATCH, so GET the
+# current config, merge in the allowed application with jq, and PUT it back.
 echo "  Adding Web client id to the API allowed client applications..."
-az containerapp auth microsoft update \
-  --name "$API_APP_NAME" \
-  --resource-group "$RESOURCE_GROUP" \
-  --client-id "$API_CLIENT_ID" \
-  --issuer "$ISSUER" \
-  --allowed-audiences "$API_IDENTIFIER_URI" \
-  --allowed-client-applications "$WEB_CLIENT_ID" \
-  --yes
+AUTH_CONFIG_URI="https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$API_APP_NAME/authConfigs/current?api-version=2024-03-01"
+CURRENT_AUTH_FILE=$(mktemp)
+ALLOWED_APPS_FILE=$(mktemp)
+az rest --method GET --uri "$AUTH_CONFIG_URI" > "$CURRENT_AUTH_FILE"
+jq --arg app "$WEB_CLIENT_ID" \
+  '{properties: (.properties | .identityProviders.azureActiveDirectory.validation.defaultAuthorizationPolicy.allowedApplications = [$app])}' \
+  "$CURRENT_AUTH_FILE" > "$ALLOWED_APPS_FILE"
+az rest \
+  --method PUT \
+  --uri "$AUTH_CONFIG_URI" \
+  --headers "Content-Type=application/json" \
+  --body "@$ALLOWED_APPS_FILE"
+rm -f "$CURRENT_AUTH_FILE" "$ALLOWED_APPS_FILE"
 
 # ---------------------------------------------------------------------------
 # Step 5: Update Web container environment variables

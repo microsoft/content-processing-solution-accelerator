@@ -307,15 +307,32 @@ az containerapp auth update `
 # ---------------------------------------------------------------------------
 Write-Step "Step 4: Allowing the Web client on the API"
 
+# The `--allowed-client-applications` flag is not available in older containerapp
+# CLI extensions. The authConfigs resource does not support PATCH, so GET the
+# current config, merge in the allowed application, and PUT it back.
 Write-Host "  Adding Web client id to the API allowed client applications..."
-az containerapp auth microsoft update `
-    --name $ApiAppName `
-    --resource-group $ResourceGroup `
-    --client-id $ApiClientId `
-    --issuer $Issuer `
-    --allowed-audiences $ApiIdentifierUri `
-    --allowed-client-applications $WebClientId `
-    --yes | Out-Null
+$authConfigUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.App/containerApps/$ApiAppName/authConfigs/current?api-version=2024-03-01"
+$authConfig = az rest --method GET --uri $authConfigUri | ConvertFrom-Json
+$aad = $authConfig.properties.identityProviders.azureActiveDirectory
+if (-not $aad.validation) {
+    $aad | Add-Member -NotePropertyName validation -NotePropertyValue ([pscustomobject]@{}) -Force
+}
+if (-not $aad.validation.defaultAuthorizationPolicy) {
+    $aad.validation | Add-Member -NotePropertyName defaultAuthorizationPolicy -NotePropertyValue ([pscustomobject]@{}) -Force
+}
+$aad.validation.defaultAuthorizationPolicy | Add-Member -NotePropertyName allowedApplications -NotePropertyValue @($WebClientId) -Force
+$allowedAppsBody = @{ properties = $authConfig.properties } | ConvertTo-Json -Compress -Depth 20
+$allowedAppsFile = New-TemporaryFile
+Set-Content -Path $allowedAppsFile -Value $allowedAppsBody -Encoding utf8 -NoNewline
+try {
+    az rest `
+        --method PUT `
+        --uri $authConfigUri `
+        --headers "Content-Type=application/json" `
+        --body "@$allowedAppsFile" | Out-Null
+} finally {
+    Remove-Item -Path $allowedAppsFile -ErrorAction SilentlyContinue
+}
 
 # ---------------------------------------------------------------------------
 # Step 5: Update Web container environment variables
