@@ -202,8 +202,44 @@ if (-not $WebClientId) {
 }
 
 # Register the SPA redirect URI so MSAL can complete the login flow.
+# Use a Microsoft Graph PATCH via `az rest`; `az ad app update --set spa=...`
+# is unreliable and fails with "Property spa in payload does not match schema".
+# The JSON body is written to a temp file (--body @file) because passing inline
+# JSON to az on Windows gets mangled by shell quoting.
 Write-Host "  Setting SPA redirect URI: $WebUri"
-az ad app update --id $WebClientId --set "spa={`"redirectUris`":[`"$WebUri`"]}" | Out-Null
+$webObjectId = az ad app show --id $WebClientId --query id --output tsv
+$spaBody = @{ spa = @{ redirectUris = @($WebUri) } } | ConvertTo-Json -Compress -Depth 5
+$spaBodyFile = New-TemporaryFile
+Set-Content -Path $spaBodyFile -Value $spaBody -Encoding utf8 -NoNewline
+try {
+    az rest `
+        --method PATCH `
+        --uri "https://graph.microsoft.com/v1.0/applications/$webObjectId" `
+        --headers "Content-Type=application/json" `
+        --body "@$spaBodyFile" | Out-Null
+} finally {
+    Remove-Item -Path $spaBodyFile -ErrorAction SilentlyContinue
+}
+
+# Enable ID token issuance for the implicit grant. Container Apps Easy Auth
+# requests an id_token during the login redirect; without this Entra returns
+# AADSTS700054 "response_type 'id_token' is not enabled for the application".
+# The Easy Auth callback (/.auth/login/aad/callback) must also be registered as
+# a Web-platform redirect URI, otherwise login fails with AADSTS50011.
+Write-Host "  Enabling ID token issuance and Web redirect URI on the Web app..."
+$easyAuthRedirect = "$WebUri/.auth/login/aad/callback"
+$implicitBody = @{ web = @{ redirectUris = @($easyAuthRedirect); implicitGrantSettings = @{ enableIdTokenIssuance = $true } } } | ConvertTo-Json -Compress -Depth 5
+$implicitBodyFile = New-TemporaryFile
+Set-Content -Path $implicitBodyFile -Value $implicitBody -Encoding utf8 -NoNewline
+try {
+    az rest `
+        --method PATCH `
+        --uri "https://graph.microsoft.com/v1.0/applications/$webObjectId" `
+        --headers "Content-Type=application/json" `
+        --body "@$implicitBodyFile" | Out-Null
+} finally {
+    Remove-Item -Path $implicitBodyFile -ErrorAction SilentlyContinue
+}
 
 # Grant the Web app permission to call the API's user_impersonation scope.
 $scopeGuid = az ad app show --id $ApiClientId --query "api.oauth2PermissionScopes[?value=='user_impersonation'].id | [0]" --output tsv
@@ -271,15 +307,32 @@ az containerapp auth update `
 # ---------------------------------------------------------------------------
 Write-Step "Step 4: Allowing the Web client on the API"
 
+# The `--allowed-client-applications` flag is not available in older containerapp
+# CLI extensions. The authConfigs resource does not support PATCH, so GET the
+# current config, merge in the allowed application, and PUT it back.
 Write-Host "  Adding Web client id to the API allowed client applications..."
-az containerapp auth microsoft update `
-    --name $ApiAppName `
-    --resource-group $ResourceGroup `
-    --client-id $ApiClientId `
-    --issuer $Issuer `
-    --allowed-audiences $ApiIdentifierUri `
-    --allowed-client-applications $WebClientId `
-    --yes | Out-Null
+$authConfigUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.App/containerApps/$ApiAppName/authConfigs/current?api-version=2024-03-01"
+$authConfig = az rest --method GET --uri $authConfigUri | ConvertFrom-Json
+$aad = $authConfig.properties.identityProviders.azureActiveDirectory
+if (-not $aad.validation) {
+    $aad | Add-Member -NotePropertyName validation -NotePropertyValue ([pscustomobject]@{}) -Force
+}
+if (-not $aad.validation.defaultAuthorizationPolicy) {
+    $aad.validation | Add-Member -NotePropertyName defaultAuthorizationPolicy -NotePropertyValue ([pscustomobject]@{}) -Force
+}
+$aad.validation.defaultAuthorizationPolicy | Add-Member -NotePropertyName allowedApplications -NotePropertyValue @($WebClientId) -Force
+$allowedAppsBody = @{ properties = $authConfig.properties } | ConvertTo-Json -Compress -Depth 20
+$allowedAppsFile = New-TemporaryFile
+Set-Content -Path $allowedAppsFile -Value $allowedAppsBody -Encoding utf8 -NoNewline
+try {
+    az rest `
+        --method PUT `
+        --uri $authConfigUri `
+        --headers "Content-Type=application/json" `
+        --body "@$allowedAppsFile" | Out-Null
+} finally {
+    Remove-Item -Path $allowedAppsFile -ErrorAction SilentlyContinue
+}
 
 # ---------------------------------------------------------------------------
 # Step 5: Update Web container environment variables
