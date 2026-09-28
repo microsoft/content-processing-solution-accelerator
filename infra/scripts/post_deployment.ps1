@@ -57,9 +57,30 @@ $RetryInterval = 15
 $ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
 $ApiReady = $false
 
+# Acquire a bearer token for the API when authentication has been configured.
+# API_CLIENT_ID is written to the azd environment by configure_app_authentication.
+# On the first deployment (before auth is configured) it is absent, so this
+# script proceeds unauthenticated against the still-open API. After auth is
+# configured, subsequent runs authenticate with the deploying user's token.
+$AuthHeaders = @{}
+$ApiClientId = azd env get-value API_CLIENT_ID 2>$null
+if ($LASTEXITCODE -eq 0 -and $ApiClientId -and $ApiClientId -notmatch "not found") {
+    $ApiClientId = $ApiClientId.Trim()
+    Write-Host "  [Auth] Acquiring access token for API (api://$ApiClientId)..."
+    $AccessToken = az account get-access-token --resource "api://$ApiClientId" --query accessToken --output tsv 2>$null
+    if ($LASTEXITCODE -eq 0 -and $AccessToken) {
+        $AuthHeaders = @{ Authorization = "Bearer $($AccessToken.Trim())" }
+        Write-Host "  [Auth] Access token acquired."
+    } else {
+        Write-Host "  [Auth] Warning: could not acquire an access token. Proceeding without authentication."
+    }
+}
+
 for ($i = 1; $i -le $MaxRetries; $i++) {
     try {
-        $response = Invoke-WebRequest -Uri "$ApiBaseUrl/schemavault/" -Method GET -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+        # Probe the anonymous startup endpoint so readiness works regardless of
+        # whether authentication has been configured on the API.
+        $response = Invoke-WebRequest -Uri "$ApiBaseUrl/startup" -Method GET -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             Write-Host "  [OK] API is ready."
             $ApiReady = $true
@@ -92,7 +113,7 @@ if (-not $ApiReady) {
     # Fetch existing schemas
     $ExistingSchemas = @()
     try {
-        $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+        $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -Headers $AuthHeaders -TimeoutSec 30 -ErrorAction Stop
         Write-Host "Fetched $($ExistingSchemas.Count) existing schema(s)."
     } catch {
         Write-Host "Warning: Could not fetch existing schemas. Proceeding..."
@@ -154,6 +175,7 @@ if (-not $ApiReady) {
         try {
             $resp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
                 -ContentType "multipart/form-data; boundary=$boundary" `
+                -Headers $AuthHeaders `
                 -Body $bodyLines -TimeoutSec 60 -ErrorAction Stop
             $schemaId = $resp.Id
             Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
@@ -174,7 +196,7 @@ if (-not $ApiReady) {
 
     $ExistingSets = @()
     try {
-        $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+        $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -Headers $AuthHeaders -TimeoutSec 30 -ErrorAction Stop
         Write-Host "Fetched $($ExistingSets.Count) existing schema set(s)."
     } catch {
         Write-Host "Warning: Could not fetch existing schema sets. Proceeding..."
@@ -190,6 +212,7 @@ if (-not $ApiReady) {
         try {
             $setResp = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method POST `
                 -ContentType "application/json" `
+                -Headers $AuthHeaders `
                 -Body (@{ Name = $SetName; Description = $SetDesc } | ConvertTo-Json) `
                 -TimeoutSec 30 -ErrorAction Stop
             $SchemaSetId = $setResp.Id
@@ -210,7 +233,7 @@ if (-not $ApiReady) {
 
         $AlreadyInSet = @()
         try {
-            $AlreadyInSet = Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method GET -TimeoutSec 30 -ErrorAction Stop
+            $AlreadyInSet = Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method GET -Headers $AuthHeaders -TimeoutSec 30 -ErrorAction Stop
         } catch { }
         $AlreadyInSetIds = $AlreadyInSet | ForEach-Object { $_.Id }
 
@@ -224,6 +247,7 @@ if (-not $ApiReady) {
             try {
                 Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method POST `
                     -ContentType "application/json" `
+                    -Headers $AuthHeaders `
                     -Body (@{ SchemaId = $schemaId } | ConvertTo-Json) `
                     -TimeoutSec 30 -ErrorAction Stop | Out-Null
                 Write-Host "  Added '$className' ($schemaId) to schema set"

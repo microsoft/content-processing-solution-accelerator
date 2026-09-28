@@ -15,6 +15,55 @@ This document provides step-by-step instructions to configure Azure App Registra
 
 - Access to **Microsoft Entra ID**
 - Necessary permissions to create and manage **App Registrations**
+- Azure CLI (`az`) signed in to the deployment subscription (for the automated script)
+
+## Automated configuration (recommended)
+
+Authentication is configured by a standalone script,
+[`infra/scripts/configure_app_authentication`](../infra/scripts/configure_app_authentication.ps1),
+which you run as a **manual post-deployment step** (it is intentionally not run
+during `azd up` provisioning, to avoid deployment failures). Run it immediately
+after the post-deployment schema-registration step. The script performs every
+step in this document without the manual portal clicks: it creates (or reuses)
+the API and Web app registrations, exposes the `user_impersonation` scope,
+enables Container Apps authentication (the **API is set to return HTTP 401** for
+unauthenticated callers — fail closed), allows the Web client on the API, and
+updates the Web container environment variables.
+
+Run it from the project root:
+
+```powershell
+# PowerShell (Windows)
+.\infra\scripts\configure_app_authentication.ps1
+```
+
+```bash
+# Bash (Linux/macOS/WSL)
+bash infra/scripts/configure_app_authentication.sh
+```
+
+To reuse existing app registrations instead of creating new ones, pass their
+client ids:
+
+```powershell
+.\infra\scripts\configure_app_authentication.ps1 -ApiClientId <guid> -WebClientId <guid>
+```
+
+> **Permissions:** Creating app registrations and granting admin consent
+> requires the **Application Administrator** role (or equivalent). If the script
+> cannot grant admin consent automatically it prints a warning; a tenant
+> administrator must then consent to the API permission for the Web app. See the
+> admin-consent note in [Step 2](#step-2-configure-application-registration---web-application).
+
+> **Web interactive login:** The script configures the Web app's identity
+> provider. If your tenant requires a client secret for the browser sign-in
+> (authorization-code) flow, add one with
+> `az containerapp auth microsoft update --name <web-app> --resource-group <rg> --client-secret <value>`,
+> or complete Step 1 for the Web app through the portal. The **API** protection
+> (HTTP 401 for unauthenticated callers) does not require a secret.
+
+The remaining sections describe the equivalent **manual portal steps**, kept as
+a fallback for environments where the script cannot be run.
 
 ## Step 1: Add Authentication Provider
 

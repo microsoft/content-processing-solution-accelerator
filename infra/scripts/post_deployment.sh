@@ -66,8 +66,28 @@ MAX_RETRIES=10
 RETRY_INTERVAL=15
 API_BASE_URL="https://$CONTAINER_API_APP_FQDN"
 
+# Acquire a bearer token for the API when authentication has been configured.
+# API_CLIENT_ID is written to the azd environment by configure_app_authentication.
+# On the first deployment (before auth is configured) it is absent, so this
+# script proceeds unauthenticated against the still-open API. After auth is
+# configured, subsequent runs authenticate with the deploying user's token.
+AUTH_ARGS=()
+API_CLIENT_ID=$(azd env get-value API_CLIENT_ID 2>/dev/null || echo "")
+if [ -n "$API_CLIENT_ID" ] && [[ "$API_CLIENT_ID" != *"not found"* ]]; then
+  echo "  [Auth] Acquiring access token for API (api://$API_CLIENT_ID)..."
+  ACCESS_TOKEN=$(az account get-access-token --resource "api://$API_CLIENT_ID" --query accessToken --output tsv 2>/dev/null || echo "")
+  if [ -n "$ACCESS_TOKEN" ]; then
+    AUTH_ARGS=(-H "Authorization: Bearer $ACCESS_TOKEN")
+    echo "  [Auth] Access token acquired."
+  else
+    echo "  [Auth] Warning: could not acquire an access token. Proceeding without authentication."
+  fi
+fi
+
 for i in $(seq 1 $MAX_RETRIES); do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/schemavault/" 2>/dev/null || echo "000")
+  # Probe the anonymous startup endpoint so readiness works regardless of
+  # whether authentication has been configured on the API.
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/startup" 2>/dev/null || echo "000")
   if [ "$STATUS" = "200" ]; then
     echo "  ✅ API is ready."
     break
@@ -92,7 +112,7 @@ else
   echo "============================================================"
 
   # Fetch existing schemas
-  EXISTING_SCHEMAS=$(curl -s "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
+  EXISTING_SCHEMAS=$(curl -s "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
   EXISTING_COUNT=$(echo "$EXISTING_SCHEMAS" | grep -o '"Id"' | wc -l)
   echo "Fetched $EXISTING_COUNT existing schema(s)."
 
@@ -146,6 +166,7 @@ else
     CONTENT_TYPE="application/json"
 
     RESPONSE=$(curl -s -w "\n%{http_code}" \
+      "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
       -X POST "$SCHEMAVAULT_URL" \
       -F "data=$DATA_PAYLOAD" \
       -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
@@ -176,7 +197,7 @@ else
   SET_DESC=$(cat "$SCHEMA_INFO_FILE" | grep -A3 '"schemaset"' | grep '"Description"' | sed 's/.*"Description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 
   # Fetch existing schema sets
-  EXISTING_SETS=$(curl -s "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
+  EXISTING_SETS=$(curl -s "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
 
   SCHEMASET_ID=""
   if echo "$EXISTING_SETS" | grep -q "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\""; then
@@ -185,6 +206,7 @@ else
   else
     echo "  Creating schema set '$SET_NAME'..."
     RESPONSE=$(curl -s -w "\n%{http_code}" \
+      "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
       -X POST "$SCHEMASETVAULT_URL" \
       -H "Content-Type: application/json" \
       -d "{\"Name\": \"$SET_NAME\", \"Description\": \"$SET_DESC\"}" \
@@ -211,7 +233,7 @@ else
     echo "Step 3: Add schemas to schema set"
     echo "============================================================"
 
-    ALREADY_IN_SET=$(curl -s "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
+    ALREADY_IN_SET=$(curl -s "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
 
     # Iterate over registered schemas
     for i in "${!REGISTERED_IDS[@]}"; do
@@ -224,6 +246,7 @@ else
       fi
 
       RESPONSE=$(curl -s -w "\n%{http_code}" \
+        "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
         -X POST "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" \
         -H "Content-Type: application/json" \
         -d "{\"SchemaId\": \"$SCHEMA_ID\"}" \
