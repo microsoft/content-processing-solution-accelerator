@@ -68,26 +68,33 @@ API_BASE_URL="https://$CONTAINER_API_APP_FQDN"
 
 # Acquire a bearer token for the API when authentication has been configured.
 # API_CLIENT_ID is written to the azd environment by configure_app_authentication.
-# On the first deployment (before auth is configured) it is absent, so this
-# script proceeds unauthenticated against the still-open API. After auth is
-# configured, subsequent runs authenticate with the deploying user's token.
+# - First deployment (before auth is configured): API_CLIENT_ID is absent, so
+#   this script proceeds unauthenticated against the still-open API.
+# - After auth is configured: API_CLIENT_ID is present and the API returns 401 to
+#   unauthenticated callers. A token is then REQUIRED; if it cannot be acquired we
+#   fail fast rather than silently 401 through every schema operation.
 AUTH_ARGS=()
+AUTH_REQUIRED=false
 API_CLIENT_ID=$(azd env get-value API_CLIENT_ID 2>/dev/null || echo "")
 if [ -n "$API_CLIENT_ID" ] && [[ "$API_CLIENT_ID" != *"not found"* ]]; then
+  AUTH_REQUIRED=true
   echo "  [Auth] Acquiring access token for API (api://$API_CLIENT_ID)..."
   ACCESS_TOKEN=$(az account get-access-token --resource "api://$API_CLIENT_ID" --query accessToken --output tsv 2>/dev/null || echo "")
   if [ -n "$ACCESS_TOKEN" ]; then
     AUTH_ARGS=(-H "Authorization: Bearer $ACCESS_TOKEN")
     echo "  [Auth] Access token acquired."
   else
-    echo "  [Auth] Warning: could not acquire an access token. Proceeding without authentication."
+    echo "  [Auth] ERROR: authentication is configured (API_CLIENT_ID='$API_CLIENT_ID') but an access token for 'api://$API_CLIENT_ID' could not be acquired." >&2
+    echo "         Sign in with 'az login' as a principal permitted to call the API and re-run. Refusing to continue unauthenticated because every schema operation would fail with HTTP 401." >&2
+    exit 1
   fi
 fi
 
 for i in $(seq 1 $MAX_RETRIES); do
-  # Probe the anonymous startup endpoint so readiness works regardless of
-  # whether authentication has been configured on the API.
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/startup" 2>/dev/null || echo "000")
+  # Probe the startup endpoint to confirm readiness. When authentication is
+  # enabled the API returns 401 to anonymous callers (Return401 does not exclude
+  # /startup), so send the acquired auth headers on the probe.
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "$API_BASE_URL/startup" 2>/dev/null || echo "000")
   if [ "$STATUS" = "200" ]; then
     echo "  ✅ API is ready."
     break
@@ -97,6 +104,10 @@ for i in $(seq 1 $MAX_RETRIES); do
 done
 
 if [ "$STATUS" != "200" ]; then
+  if [ "$AUTH_REQUIRED" = true ]; then
+    echo "  ERROR: API did not become ready after $MAX_RETRIES authenticated attempts. Aborting schema registration (the API is authentication-protected; verify the deploying principal is permitted to call it)." >&2
+    exit 1
+  fi
   echo "  API did not become ready after $MAX_RETRIES attempts. Skipping schema registration."
   echo "  Run manually after the API is ready."
 else

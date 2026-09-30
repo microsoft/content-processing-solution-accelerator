@@ -397,7 +397,7 @@ Schema registration process completed.
   ✅ Schema registration complete.
 ```
 
-### 5.2 Configure Authentication (Required Manual Step)
+### 5.3 Configure Authentication (Required Manual Step)
 
 **This step is mandatory.** Until it is completed the API has external ingress
 and is reachable without authentication, so run it immediately after the
@@ -430,13 +430,13 @@ admin-consent requirement, and the manual portal fallback, see
 > automatically, a tenant administrator must consent to the API permission for
 > the Web app.
 
-### 5.3 Verify Deployment
+### 5.4 Verify Deployment
 
 1. Access your application using the **Web App Endpoint** from the deployment output.
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
 
-### 5.4 Test the Application
+### 5.5 Test the Application
 
 **Quick Test Steps:**
 1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.

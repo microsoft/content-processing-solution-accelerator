@@ -104,25 +104,30 @@ EXISTING_SCOPES=$(az ad app show --id "$API_CLIENT_ID" --query "api.oauth2Permis
 if ! echo "$EXISTING_SCOPES" | grep -q "user_impersonation"; then
   echo "  Exposing 'user_impersonation' scope on the API app..."
   SCOPE_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python -c "import uuid;print(uuid.uuid4())")
-  TMP_API=$(mktemp)
-  cat > "$TMP_API" <<EOF
-{
-  "oauth2PermissionScopes": [
-    {
-      "id": "$SCOPE_ID",
-      "adminConsentDescription": "Allow the application to access the Content Processing API on behalf of the signed-in user.",
-      "adminConsentDisplayName": "Access Content Processing API",
-      "userConsentDescription": "Allow the application to access the Content Processing API on your behalf.",
-      "userConsentDisplayName": "Access Content Processing API",
-      "value": "user_impersonation",
-      "type": "User",
-      "isEnabled": true
-    }
-  ]
-}
-EOF
-  az ad app update --id "$API_CLIENT_ID" --set "api=@$TMP_API"
-  rm -f "$TMP_API"
+  # Merge the new scope into the existing api object so that reusing an existing
+  # registration preserves any other scopes and api settings already configured.
+  API_OBJECT_ID=$(az ad app show --id "$API_CLIENT_ID" --query id --output tsv)
+  CURRENT_API_FILE=$(mktemp)
+  MERGED_API_FILE=$(mktemp)
+  az ad app show --id "$API_CLIENT_ID" --query api --output json > "$CURRENT_API_FILE"
+  jq --arg id "$SCOPE_ID" \
+    '{api: (. + {oauth2PermissionScopes: ((.oauth2PermissionScopes // []) + [{
+      id: $id,
+      adminConsentDescription: "Allow the application to access the Content Processing API on behalf of the signed-in user.",
+      adminConsentDisplayName: "Access Content Processing API",
+      userConsentDescription: "Allow the application to access the Content Processing API on your behalf.",
+      userConsentDisplayName: "Access Content Processing API",
+      value: "user_impersonation",
+      type: "User",
+      isEnabled: true
+    }])})}' \
+    "$CURRENT_API_FILE" > "$MERGED_API_FILE"
+  az rest \
+    --method PATCH \
+    --uri "https://graph.microsoft.com/v1.0/applications/$API_OBJECT_ID" \
+    --headers "Content-Type=application/json" \
+    --body "@$MERGED_API_FILE"
+  rm -f "$CURRENT_API_FILE" "$MERGED_API_FILE"
 else
   echo "  'user_impersonation' scope already exposed."
 fi
@@ -158,7 +163,10 @@ fi
 echo "  Setting SPA redirect URI: $WEB_URI"
 WEB_OBJECT_ID=$(az ad app show --id "$WEB_CLIENT_ID" --query id --output tsv)
 SPA_BODY_FILE=$(mktemp)
-printf '{"spa":{"redirectUris":["%s"]}}' "$WEB_URI" > "$SPA_BODY_FILE"
+# Merge with existing SPA redirect URIs (deduped) so reusing a registration does
+# not remove previously configured URIs.
+az ad app show --id "$WEB_CLIENT_ID" --query "spa.redirectUris" --output json \
+  | jq --arg u "$WEB_URI" '{spa: {redirectUris: ((. // []) + [$u] | unique)}}' > "$SPA_BODY_FILE"
 az rest \
   --method PATCH \
   --uri "https://graph.microsoft.com/v1.0/applications/$WEB_OBJECT_ID" \
@@ -173,7 +181,11 @@ rm -f "$SPA_BODY_FILE"
 # a Web-platform redirect URI, otherwise login fails with AADSTS50011.
 echo "  Enabling ID token issuance and Web redirect URI on the Web app..."
 IMPLICIT_BODY_FILE=$(mktemp)
-printf '{"web":{"redirectUris":["%s/.auth/login/aad/callback"],"implicitGrantSettings":{"enableIdTokenIssuance":true}}}' "$WEB_URI" > "$IMPLICIT_BODY_FILE"
+# Merge with existing Web redirect URIs (deduped) so reusing a registration does
+# not remove previously configured URIs.
+az ad app show --id "$WEB_CLIENT_ID" --query "web.redirectUris" --output json \
+  | jq --arg u "$WEB_URI/.auth/login/aad/callback" \
+      '{web: {redirectUris: ((. // []) + [$u] | unique), implicitGrantSettings: {enableIdTokenIssuance: true}}}' > "$IMPLICIT_BODY_FILE"
 az rest \
   --method PATCH \
   --uri "https://graph.microsoft.com/v1.0/applications/$WEB_OBJECT_ID" \

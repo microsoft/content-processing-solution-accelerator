@@ -146,29 +146,39 @@ $ApiIdentifierUri = "api://$ApiClientId"
 az ad app update --id $ApiClientId --identifier-uris $ApiIdentifierUri | Out-Null
 
 # Expose a user_impersonation scope (idempotent: skip if already present).
-$existingScopes = az ad app show --id $ApiClientId --query "api.oauth2PermissionScopes[].value" --output tsv
-if ($existingScopes -notcontains "user_impersonation") {
+# Merge the new scope into the existing api object so that reusing an existing
+# registration preserves any other scopes and api settings already configured.
+$apiObjectId = az ad app show --id $ApiClientId --query id --output tsv
+$apiObj = az ad app show --id $ApiClientId --query api --output json | ConvertFrom-Json
+if (-not $apiObj) { $apiObj = [pscustomobject]@{ oauth2PermissionScopes = @() } }
+$existingScopeList = @()
+if ($apiObj.oauth2PermissionScopes) { $existingScopeList = @($apiObj.oauth2PermissionScopes) }
+$existingScopeValues = @($existingScopeList | ForEach-Object { $_.value })
+if ($existingScopeValues -notcontains "user_impersonation") {
     Write-Host "  Exposing 'user_impersonation' scope on the API app..."
-    $scopeId = [guid]::NewGuid().ToString()
-    $apiScopes = @{
-        oauth2PermissionScopes = @(
-            @{
-                id                      = $scopeId
-                adminConsentDescription = "Allow the application to access the Content Processing API on behalf of the signed-in user."
-                adminConsentDisplayName = "Access Content Processing API"
-                userConsentDescription  = "Allow the application to access the Content Processing API on your behalf."
-                userConsentDisplayName  = "Access Content Processing API"
-                value                   = "user_impersonation"
-                type                    = "User"
-                isEnabled               = $true
-            }
-        )
+    $newScope = [pscustomobject]@{
+        id                      = [guid]::NewGuid().ToString()
+        adminConsentDescription = "Allow the application to access the Content Processing API on behalf of the signed-in user."
+        adminConsentDisplayName = "Access Content Processing API"
+        userConsentDescription  = "Allow the application to access the Content Processing API on your behalf."
+        userConsentDisplayName  = "Access Content Processing API"
+        value                   = "user_impersonation"
+        type                    = "User"
+        isEnabled               = $true
     }
-    $apiScopesJson = ($apiScopes | ConvertTo-Json -Depth 10 -Compress)
-    $tmp = New-TemporaryFile
-    Set-Content -Path $tmp -Value $apiScopesJson -Encoding utf8
-    az ad app update --id $ApiClientId --set "api=@$tmp" | Out-Null
-    Remove-Item $tmp -Force
+    $apiObj | Add-Member -NotePropertyName oauth2PermissionScopes -NotePropertyValue (@($existingScopeList) + $newScope) -Force
+    $apiPatchBody = @{ api = $apiObj } | ConvertTo-Json -Depth 20 -Compress
+    $apiPatchFile = New-TemporaryFile
+    Set-Content -Path $apiPatchFile -Value $apiPatchBody -Encoding utf8 -NoNewline
+    try {
+        az rest `
+            --method PATCH `
+            --uri "https://graph.microsoft.com/v1.0/applications/$apiObjectId" `
+            --headers "Content-Type=application/json" `
+            --body "@$apiPatchFile" | Out-Null
+    } finally {
+        Remove-Item -Path $apiPatchFile -ErrorAction SilentlyContinue
+    }
 } else {
     Write-Host "  'user_impersonation' scope already exposed."
 }
@@ -208,7 +218,11 @@ if (-not $WebClientId) {
 # JSON to az on Windows gets mangled by shell quoting.
 Write-Host "  Setting SPA redirect URI: $WebUri"
 $webObjectId = az ad app show --id $WebClientId --query id --output tsv
-$spaBody = @{ spa = @{ redirectUris = @($WebUri) } } | ConvertTo-Json -Compress -Depth 5
+$existingSpaUris = az ad app show --id $WebClientId --query "spa.redirectUris" --output json | ConvertFrom-Json
+$spaUris = @()
+if ($existingSpaUris) { $spaUris = @($existingSpaUris) }
+if ($spaUris -notcontains $WebUri) { $spaUris += $WebUri }
+$spaBody = @{ spa = @{ redirectUris = $spaUris } } | ConvertTo-Json -Compress -Depth 5
 $spaBodyFile = New-TemporaryFile
 Set-Content -Path $spaBodyFile -Value $spaBody -Encoding utf8 -NoNewline
 try {
@@ -228,7 +242,11 @@ try {
 # a Web-platform redirect URI, otherwise login fails with AADSTS50011.
 Write-Host "  Enabling ID token issuance and Web redirect URI on the Web app..."
 $easyAuthRedirect = "$WebUri/.auth/login/aad/callback"
-$implicitBody = @{ web = @{ redirectUris = @($easyAuthRedirect); implicitGrantSettings = @{ enableIdTokenIssuance = $true } } } | ConvertTo-Json -Compress -Depth 5
+$existingWebUris = az ad app show --id $WebClientId --query "web.redirectUris" --output json | ConvertFrom-Json
+$webUris = @()
+if ($existingWebUris) { $webUris = @($existingWebUris) }
+if ($webUris -notcontains $easyAuthRedirect) { $webUris += $easyAuthRedirect }
+$implicitBody = @{ web = @{ redirectUris = $webUris; implicitGrantSettings = @{ enableIdTokenIssuance = $true } } } | ConvertTo-Json -Compress -Depth 5
 $implicitBodyFile = New-TemporaryFile
 Set-Content -Path $implicitBodyFile -Value $implicitBody -Encoding utf8 -NoNewline
 try {
@@ -255,10 +273,10 @@ if (-not $webSp) {
 }
 
 Write-Host "  Attempting admin consent (best effort)..."
-try {
-    az ad app permission admin-consent --id $WebClientId | Out-Null
+az ad app permission admin-consent --id $WebClientId 2>$null | Out-Null
+if ($LASTEXITCODE -eq 0) {
     Write-Host "  Admin consent granted."
-} catch {
+} else {
     Write-Warning "  Could not grant admin consent automatically. A tenant administrator must consent to the API permission for '$WebAppName'. See docs/ConfigureAppAuthentication.md."
 }
 
