@@ -6,7 +6,12 @@ param (
     [string]$FolderPath,
 
     [Parameter(Mandatory = $true)]
-    [string]$SchemaId
+    [string]$SchemaId,
+
+    # Optional bearer token used when the API has authentication enabled.
+    # Acquire with: az account get-access-token --resource api://<API_CLIENT_ID> --query accessToken -o tsv
+    [Parameter(Mandatory = $false)]
+    [string]$AccessToken
 )
 
 # Validate if the folder exists
@@ -20,6 +25,13 @@ Add-Type -AssemblyName System.Net.Http
 
 # Create an HttpClient instance
 $httpClient = New-Object System.Net.Http.HttpClient
+
+# Attach the bearer token when provided so uploads succeed against an
+# authentication-protected API.
+if ($AccessToken) {
+    $httpClient.DefaultRequestHeaders.Authorization = `
+        New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $AccessToken)
+}
 
 # Function to determine the MIME type based on file extension
 function Get-MimeType {

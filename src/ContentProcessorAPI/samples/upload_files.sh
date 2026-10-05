@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check if the correct number of arguments is provided
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <API_ENDPOINT_URL> <FOLDER_PATH> <SCHEMA_ID>"
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    echo "Usage: $0 <API_ENDPOINT_URL> <FOLDER_PATH> <SCHEMA_ID> [ACCESS_TOKEN]"
     exit 1
 fi
 
@@ -10,6 +10,15 @@ fi
 API_ENDPOINT_URL=$1
 FOLDER_PATH=$2
 SCHEMA_ID=$3
+# Optional bearer token, from the 4th positional arg or the ACCESS_TOKEN env var,
+# used when the API has authentication enabled. Acquire with:
+#   az account get-access-token --resource api://<API_CLIENT_ID> --query accessToken -o tsv
+ACCESS_TOKEN="${4:-${ACCESS_TOKEN:-}}"
+
+AUTH_ARGS=()
+if [ -n "$ACCESS_TOKEN" ]; then
+    AUTH_ARGS=(-H "Authorization: Bearer $ACCESS_TOKEN")
+fi
 
 # Validate if the folder exists
 if [ ! -d "$FOLDER_PATH" ]; then
@@ -34,6 +43,7 @@ for FILE in "$FOLDER_PATH"/*; do
 
     # Invoke the API with multipart/form-data
     RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$API_ENDPOINT_URL" \
+        "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
         -H "Content-Type: multipart/form-data" \
         -F "file=@$FILE;filename=$FILENAME" \
         -F "data=$DATA_JSON")

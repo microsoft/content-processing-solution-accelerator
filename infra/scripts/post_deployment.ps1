@@ -57,9 +57,35 @@ $RetryInterval = 15
 $ApiBaseUrl = "https://$CONTAINER_API_APP_FQDN"
 $ApiReady = $false
 
+# Acquire a bearer token for the API when authentication has been configured.
+# API_CLIENT_ID is written to the azd environment by configure_app_authentication.
+# - First deployment (before auth is configured): API_CLIENT_ID is absent, so
+#   this script proceeds unauthenticated against the still-open API.
+# - After auth is configured: API_CLIENT_ID is present and the API returns 401 to
+#   unauthenticated callers. A token is then REQUIRED; if it cannot be acquired we
+#   fail fast rather than silently 401 through every schema operation.
+$AuthHeaders = @{}
+$AuthRequired = $false
+$ApiClientId = azd env get-value API_CLIENT_ID 2>$null
+if ($LASTEXITCODE -eq 0 -and $ApiClientId -and $ApiClientId -notmatch "not found") {
+    $AuthRequired = $true
+    $ApiClientId = $ApiClientId.Trim()
+    Write-Host "  [Auth] Acquiring access token for API (api://$ApiClientId)..."
+    $AccessToken = az account get-access-token --resource "api://$ApiClientId" --query accessToken --output tsv 2>$null
+    if ($LASTEXITCODE -eq 0 -and $AccessToken) {
+        $AuthHeaders = @{ Authorization = "Bearer $($AccessToken.Trim())" }
+        Write-Host "  [Auth] Access token acquired."
+    } else {
+        throw "Authentication is configured (API_CLIENT_ID='$ApiClientId') but an access token for 'api://$ApiClientId' could not be acquired. Sign in with 'az login' as a principal permitted to call the API and re-run. Refusing to continue unauthenticated because every schema operation would fail with HTTP 401."
+    }
+}
+
 for ($i = 1; $i -le $MaxRetries; $i++) {
     try {
-        $response = Invoke-WebRequest -Uri "$ApiBaseUrl/schemavault/" -Method GET -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+        # Probe the startup endpoint to confirm readiness. When authentication is
+        # enabled the API returns 401 to anonymous callers (Return401 does not
+        # exclude /startup), so send the acquired auth headers on the probe.
+        $response = Invoke-WebRequest -Uri "$ApiBaseUrl/startup" -Method GET -Headers $AuthHeaders -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             Write-Host "  [OK] API is ready."
             $ApiReady = $true
@@ -73,6 +99,9 @@ for ($i = 1; $i -le $MaxRetries; $i++) {
 }
 
 if (-not $ApiReady) {
+    if ($AuthRequired) {
+        throw "API did not become ready after $MaxRetries authenticated attempts. Aborting schema registration (the API is authentication-protected; verify the deploying principal is permitted to call it)."
+    }
     Write-Host "  API did not become ready after $MaxRetries attempts. Skipping schema registration."
     Write-Host "  Run manually after the API is ready."
 } else {
@@ -92,7 +121,7 @@ if (-not $ApiReady) {
     # Fetch existing schemas
     $ExistingSchemas = @()
     try {
-        $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+        $ExistingSchemas = Invoke-RestMethod -Uri $SchemaVaultUrl -Method GET -Headers $AuthHeaders -TimeoutSec 30 -ErrorAction Stop
         Write-Host "Fetched $($ExistingSchemas.Count) existing schema(s)."
     } catch {
         Write-Host "Warning: Could not fetch existing schemas. Proceeding..."
@@ -154,6 +183,7 @@ if (-not $ApiReady) {
         try {
             $resp = Invoke-RestMethod -Uri $SchemaVaultUrl -Method POST `
                 -ContentType "multipart/form-data; boundary=$boundary" `
+                -Headers $AuthHeaders `
                 -Body $bodyLines -TimeoutSec 60 -ErrorAction Stop
             $schemaId = $resp.Id
             Write-Host "  Successfully registered: $Description's Schema Id - $schemaId"
@@ -174,7 +204,7 @@ if (-not $ApiReady) {
 
     $ExistingSets = @()
     try {
-        $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -TimeoutSec 30 -ErrorAction Stop
+        $ExistingSets = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method GET -Headers $AuthHeaders -TimeoutSec 30 -ErrorAction Stop
         Write-Host "Fetched $($ExistingSets.Count) existing schema set(s)."
     } catch {
         Write-Host "Warning: Could not fetch existing schema sets. Proceeding..."
@@ -190,6 +220,7 @@ if (-not $ApiReady) {
         try {
             $setResp = Invoke-RestMethod -Uri $SchemaSetVaultUrl -Method POST `
                 -ContentType "application/json" `
+                -Headers $AuthHeaders `
                 -Body (@{ Name = $SetName; Description = $SetDesc } | ConvertTo-Json) `
                 -TimeoutSec 30 -ErrorAction Stop
             $SchemaSetId = $setResp.Id
@@ -210,7 +241,7 @@ if (-not $ApiReady) {
 
         $AlreadyInSet = @()
         try {
-            $AlreadyInSet = Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method GET -TimeoutSec 30 -ErrorAction Stop
+            $AlreadyInSet = Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method GET -Headers $AuthHeaders -TimeoutSec 30 -ErrorAction Stop
         } catch { }
         $AlreadyInSetIds = $AlreadyInSet | ForEach-Object { $_.Id }
 
@@ -224,6 +255,7 @@ if (-not $ApiReady) {
             try {
                 Invoke-RestMethod -Uri "$SchemaSetVaultUrl$SchemaSetId/schemas" -Method POST `
                     -ContentType "application/json" `
+                    -Headers $AuthHeaders `
                     -Body (@{ SchemaId = $schemaId } | ConvertTo-Json) `
                     -TimeoutSec 30 -ErrorAction Stop | Out-Null
                 Write-Host "  Added '$className' ($schemaId) to schema set"

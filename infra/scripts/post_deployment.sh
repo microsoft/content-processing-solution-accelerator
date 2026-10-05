@@ -66,8 +66,35 @@ MAX_RETRIES=10
 RETRY_INTERVAL=15
 API_BASE_URL="https://$CONTAINER_API_APP_FQDN"
 
+# Acquire a bearer token for the API when authentication has been configured.
+# API_CLIENT_ID is written to the azd environment by configure_app_authentication.
+# - First deployment (before auth is configured): API_CLIENT_ID is absent, so
+#   this script proceeds unauthenticated against the still-open API.
+# - After auth is configured: API_CLIENT_ID is present and the API returns 401 to
+#   unauthenticated callers. A token is then REQUIRED; if it cannot be acquired we
+#   fail fast rather than silently 401 through every schema operation.
+AUTH_ARGS=()
+AUTH_REQUIRED=false
+API_CLIENT_ID=$(azd env get-value API_CLIENT_ID 2>/dev/null || echo "")
+if [ -n "$API_CLIENT_ID" ] && [[ "$API_CLIENT_ID" != *"not found"* ]]; then
+  AUTH_REQUIRED=true
+  echo "  [Auth] Acquiring access token for API (api://$API_CLIENT_ID)..."
+  ACCESS_TOKEN=$(az account get-access-token --resource "api://$API_CLIENT_ID" --query accessToken --output tsv 2>/dev/null || echo "")
+  if [ -n "$ACCESS_TOKEN" ]; then
+    AUTH_ARGS=(-H "Authorization: Bearer $ACCESS_TOKEN")
+    echo "  [Auth] Access token acquired."
+  else
+    echo "  [Auth] ERROR: authentication is configured (API_CLIENT_ID='$API_CLIENT_ID') but an access token for 'api://$API_CLIENT_ID' could not be acquired." >&2
+    echo "         Sign in with 'az login' as a principal permitted to call the API and re-run. Refusing to continue unauthenticated because every schema operation would fail with HTTP 401." >&2
+    exit 1
+  fi
+fi
+
 for i in $(seq 1 $MAX_RETRIES); do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE_URL/schemavault/" 2>/dev/null || echo "000")
+  # Probe the startup endpoint to confirm readiness. When authentication is
+  # enabled the API returns 401 to anonymous callers (Return401 does not exclude
+  # /startup), so send the acquired auth headers on the probe.
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "$API_BASE_URL/startup" 2>/dev/null || echo "000")
   if [ "$STATUS" = "200" ]; then
     echo "  ✅ API is ready."
     break
@@ -77,6 +104,10 @@ for i in $(seq 1 $MAX_RETRIES); do
 done
 
 if [ "$STATUS" != "200" ]; then
+  if [ "$AUTH_REQUIRED" = true ]; then
+    echo "  ERROR: API did not become ready after $MAX_RETRIES authenticated attempts. Aborting schema registration (the API is authentication-protected; verify the deploying principal is permitted to call it)." >&2
+    exit 1
+  fi
   echo "  API did not become ready after $MAX_RETRIES attempts. Skipping schema registration."
   echo "  Run manually after the API is ready."
 else
@@ -92,7 +123,7 @@ else
   echo "============================================================"
 
   # Fetch existing schemas
-  EXISTING_SCHEMAS=$(curl -s "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
+  EXISTING_SCHEMAS=$(curl -s "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "$SCHEMAVAULT_URL" 2>/dev/null || echo "[]")
   EXISTING_COUNT=$(echo "$EXISTING_SCHEMAS" | grep -o '"Id"' | wc -l)
   echo "Fetched $EXISTING_COUNT existing schema(s)."
 
@@ -146,6 +177,7 @@ else
     CONTENT_TYPE="application/json"
 
     RESPONSE=$(curl -s -w "\n%{http_code}" \
+      "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
       -X POST "$SCHEMAVAULT_URL" \
       -F "data=$DATA_PAYLOAD" \
       -F "file=@$SCHEMA_FILE;type=$CONTENT_TYPE" \
@@ -176,7 +208,7 @@ else
   SET_DESC=$(cat "$SCHEMA_INFO_FILE" | grep -A3 '"schemaset"' | grep '"Description"' | sed 's/.*"Description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 
   # Fetch existing schema sets
-  EXISTING_SETS=$(curl -s "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
+  EXISTING_SETS=$(curl -s "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "$SCHEMASETVAULT_URL" 2>/dev/null || echo "[]")
 
   SCHEMASET_ID=""
   if echo "$EXISTING_SETS" | grep -q "\"Name\"[[:space:]]*:[[:space:]]*\"$SET_NAME\""; then
@@ -185,6 +217,7 @@ else
   else
     echo "  Creating schema set '$SET_NAME'..."
     RESPONSE=$(curl -s -w "\n%{http_code}" \
+      "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
       -X POST "$SCHEMASETVAULT_URL" \
       -H "Content-Type: application/json" \
       -d "{\"Name\": \"$SET_NAME\", \"Description\": \"$SET_DESC\"}" \
@@ -211,7 +244,7 @@ else
     echo "Step 3: Add schemas to schema set"
     echo "============================================================"
 
-    ALREADY_IN_SET=$(curl -s "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
+    ALREADY_IN_SET=$(curl -s "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" 2>/dev/null || echo "[]")
 
     # Iterate over registered schemas
     for i in "${!REGISTERED_IDS[@]}"; do
@@ -224,6 +257,7 @@ else
       fi
 
       RESPONSE=$(curl -s -w "\n%{http_code}" \
+        "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
         -X POST "${SCHEMASETVAULT_URL}${SCHEMASET_ID}/schemas" \
         -H "Content-Type: application/json" \
         -d "{\"SchemaId\": \"$SCHEMA_ID\"}" \

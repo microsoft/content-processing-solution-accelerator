@@ -331,6 +331,12 @@ azd up
      .\infra\scripts\post_deployment.ps1
      ```
 
+   > **Note:** Run this schema-registration step **before** configuring
+   > authentication (next step). At this point the API is still open, so no token
+   > is required. If you re-run it **after** enabling authentication, the script
+   > authenticates automatically using the deploying user's token — just ensure
+   > you are signed in with `az login`.
+
 ### 5.2 Schema Registration (Automatic)
 
  > Want to customize the schemas for your own documents? [Learn more about adding your own schemas here.](./CustomizeSchemaData.md)
@@ -391,20 +397,46 @@ Schema registration process completed.
   ✅ Schema registration complete.
 ```
 
-### 5.2 Configure Authentication (Required)
+### 5.3 Configure Authentication (Required Manual Step)
 
-**This step is mandatory for application access:**
+**This step is mandatory.** Until it is completed the API has external ingress
+and is reachable without authentication, so run it immediately after the
+post-deployment script. Authentication is configured by a standalone script.
 
-1. Follow [App Authentication Configuration](./ConfigureAppAuthentication.md).
-2. Wait up to 10 minutes for authentication changes to take effect.
+Run the configuration script from the project root:
 
-### 5.3 Verify Deployment
+- For Bash (Linux/macOS/WSL):
+
+  ```bash
+  bash infra/scripts/configure_app_authentication.sh
+  ```
+
+- For PowerShell (Windows):
+
+  ```powershell
+  .\infra\scripts\configure_app_authentication.ps1
+  ```
+
+This enables Microsoft Entra ID (Easy Auth) on the API and Web container apps and
+sets the **API to return HTTP 401** for unauthenticated callers (fail closed).
+To reuse existing app registrations, pass their client ids
+(`-ApiClientId` / `-WebClientId` in PowerShell). For details, options, the
+admin-consent requirement, and the manual portal fallback, see
+[App Authentication Configuration](./ConfigureAppAuthentication.md).
+
+> **Note:** Allow up to 10 minutes for authentication changes to take effect.
+> Creating app registrations and granting admin consent requires the
+> **Application Administrator** role; if admin consent cannot be granted
+> automatically, a tenant administrator must consent to the API permission for
+> the Web app.
+
+### 5.4 Verify Deployment
 
 1. Access your application using the **Web App Endpoint** from the deployment output.
 2. Confirm the application loads successfully.
 3. Verify you can sign in with your authenticated account.
 
-### 5.4 Test the Application
+### 5.5 Test the Application
 
 **Quick Test Steps:**
 1. **Download Samples**: Get sample files from the [samples directory](../src/ContentProcessorAPI/samples) — use the `claim_date_of_loss/` or `claim_hail/` folders for auto claim documents.
