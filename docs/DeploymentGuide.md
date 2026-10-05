@@ -430,6 +430,10 @@ admin-consent requirement, and the manual portal fallback, see
 > automatically, a tenant administrator must consent to the API permission for
 > the Web app.
 
+> **Troubleshooting:** If the script fails with an authentication error (e.g.
+> `InteractionRequired` / `TokenCreatedWithOutdatedPolicies`), run `az logout`
+> then `az login` to refresh your token and re-run the script.
+
 ### 5.4 Verify Deployment
 
 1. Access your application using the **Web App Endpoint** from the deployment output.
