@@ -55,7 +55,7 @@ def validate_json_schema(raw_bytes: bytes) -> dict[str, Any]:
     """
     errors: list[str] = []
 
-    if raw_bytes is None:
+    if not raw_bytes:
         raise SchemaValidationError(["Empty schema upload."])
 
     if len(raw_bytes) > MAX_SCHEMA_BYTES:
@@ -139,6 +139,9 @@ def derive_class_name(document: dict[str, Any], fallback: str) -> str:
     else:
         candidate = fallback
 
+    # Apply identifier sanitization to all candidates (including title) so
+    # that titles containing spaces/dashes/etc. cannot produce invalid
+    # Python class names downstream.
     cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in candidate)
     if not cleaned or not (cleaned[0].isalpha() or cleaned[0] == "_"):
         cleaned = "Schema_" + cleaned
