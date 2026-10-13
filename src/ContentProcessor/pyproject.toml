@@ -20,11 +20,11 @@ dependencies = [
     "poppler-utils==0.1.0",
     "pydantic==2.13.4",
     "pydantic-settings==2.14.2",
-    "pymongo==4.17.0",
+    "pymongo==4.18.2",
     "python-dotenv==1.2.2",
     "tiktoken==0.13.0",
     "protobuf==6.33.6",
-    "pyjwt==2.13.0",
+    "pyjwt==2.15.0",
     "pyasn1==0.6.4",
 ]
 
