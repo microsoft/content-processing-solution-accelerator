@@ -1,0 +1,7 @@
+{
+    "files": [
+        { "file_name": "claim_form.pdf", "schema_class": "AutoInsuranceClaimForm" },
+        { "file_name": "damage_photo.png", "schema_class": "DamagedVehicleImageAssessment" },
+        { "file_name": "repair_estimate.pdf", "schema_class": "RepairEstimateDocument" }
+    ]
+}
