@@ -1,5 +1,5 @@
-ARG VARIANT=latest
-FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:${VARIANT}
+ARG VARIANT=24-bookworm
+FROM mcr.microsoft.com/devcontainers/javascript-node:${VARIANT}
 
 # Install tslint, typescript. eslint is installed by javascript image
 # ARG NODE_MODULES="tslint-to-eslint-config typescript"

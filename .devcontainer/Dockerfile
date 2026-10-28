@@ -9,11 +9,11 @@ FROM mcr.microsoft.com/vscode/devcontainers/base:$DEBIAN_VERSION
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
-# Install dependencies and Node.js 20+ from NodeSource
+# Install dependencies and Node.js 24 from NodeSource
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        python3-numpy poppler-utils build-essential python3-dev curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
