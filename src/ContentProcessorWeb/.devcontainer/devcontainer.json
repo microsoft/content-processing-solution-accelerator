@@ -3,7 +3,7 @@
     "build": {
         "dockerfile": "base.Dockerfile",
         "args": {
-            "VARIANT": "latest"
+            "VARIANT": "24-bookworm"
         },
         "context": ".."
     },
