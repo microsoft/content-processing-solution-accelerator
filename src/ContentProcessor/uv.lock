@@ -603,7 +603,7 @@ requires-dist = [
     { name = "pdf2image", specifier = "==1.17.0" },
     { name = "poppler-utils", specifier = "==0.1.0" },
     { name = "protobuf", specifier = "==6.33.6" },
-    { name = "pyasn1", url = "https://github.com/pyasn1/pyasn1/releases/download/v0.6.5/pyasn1-0.6.5-py3-none-any.whl" },
+    { name = "pyasn1", specifier = "==0.6.4" },
     { name = "pydantic", specifier = "==2.13.4" },
     { name = "pydantic-settings", specifier = "==2.14.2" },
     { name = "pyjwt", specifier = "==2.15.0" },
@@ -1882,10 +1882,11 @@ wheels = [
 
 [[package]]
 name = "pyasn1"
-version = "0.6.5"
-source = { url = "https://github.com/pyasn1/pyasn1/releases/download/v0.6.5/pyasn1-0.6.5-py3-none-any.whl" }
+version = "0.6.4"
+source = { registry = "https://packagefeedproxy.microsoft.io/pypi/simple/" }
+sdist = { url = "https://ms-feed-25.pkgs.visualstudio.com/6f084628-a36d-42cb-934d-057357e379dc/_packaging/49d7402f-07bb-4b18-a9ce-086e6e98a554/pypi/download/pyasn1/0.6.4/pyasn1-0.6.4.tar.gz", hash = "sha256:9c447d8431c947fe4c8febc4ed9e760bc29011a5b01e5c74b67025bd9fb8ce81", size = 151262, upload-time = "2026-07-31T21:52:00Z" }
 wheels = [
-    { url = "https://github.com/pyasn1/pyasn1/releases/download/v0.6.5/pyasn1-0.6.5-py3-none-any.whl", hash = "sha256:4017b0fce125096b8573b39c989fdb1a4b19cf761e683398184550fea0e66587" },
+    { url = "https://ms-feed-25.pkgs.visualstudio.com/6f084628-a36d-42cb-934d-057357e379dc/_packaging/49d7402f-07bb-4b18-a9ce-086e6e98a554/pypi/download/pyasn1/0.6.4/pyasn1-0.6.4-py3-none-any.whl", hash = "sha256:deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b", size = 84410, upload-time = "2026-07-24T13:19:49Z" },
 ]
 
 [[package]]
