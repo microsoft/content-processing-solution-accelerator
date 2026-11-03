@@ -3,6 +3,8 @@
 
 """Business logic for individual schema registration, update, and deletion."""
 
+from typing import Literal
+
 from fastapi import UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -72,7 +74,7 @@ class Schemas(BaseModel):
         file: UploadFile,
         schema_id: str,
         class_name: str,
-        storage_format: str = "json",
+        storage_format: Literal["json"] = "json",
     ) -> Schema:
         """Replace the schema file in blob storage and update Cosmos metadata."""
         schemas = self.mongoHelper.find_document(query={"Id": schema_id})
