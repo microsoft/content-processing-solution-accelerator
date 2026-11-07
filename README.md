@@ -1,5 +1,5 @@
 # Content Processing Solution Accelerator
-
+> BidMatrix engine. Fork maintained by Kayla Business Solutions.
 > [!WARNING]
 > **Important Update**
 > We've made major updates to Agentic Content Processing that include breaking changes. If you need the previous version, you can still find it in the [v1 branch](https://github.com/microsoft/content-processing-solution-accelerator/tree/cps-v1).
