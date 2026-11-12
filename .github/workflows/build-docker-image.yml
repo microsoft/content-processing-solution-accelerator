@@ -47,13 +47,15 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  id-token: write
   
 jobs:
   build-and-push:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: read
+      id-token: write
     env:
       ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
 
