@@ -29,7 +29,7 @@ dependencies = [
     "tiktoken==0.13.0",
     "protobuf==6.33.6",
     "pyjwt==2.15.0",
-    "pyasn1==0.6.4",
+    "pyasn1==0.6.5",
 ]
 
 
@@ -48,6 +48,7 @@ dev = [
 [tool.uv]
 constraint-dependencies = [
     "dnspython>=2.9.0",
+    "oauthlib>=4.0.1",
     "pillow>=13.0.0",
 ]
 
