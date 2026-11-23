@@ -16,7 +16,7 @@ click==8.4.2
 colorama==0.4.6
 coverage==7.15.2
 cryptography==50.0.0
-dnspython==2.9.0
+dnspython==2.9.2
 idna==3.18
 iniconfig==2.3.0
 isodate==0.7.2

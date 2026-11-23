@@ -23,7 +23,7 @@ dependencies = [
     "fastmcp==3.2.3",
     "jinja2==3.1.6",
     "kafka-python==2.3.2",
-    "mcp==1.28.1",
+    "mcp==1.30.0",
     "mem0ai==2.0.0b2",
     "openai==2.15.0",
     "psutil==7.2.1",
@@ -53,7 +53,7 @@ dev = [
 [tool.uv]
 constraint-dependencies = [
     "certifi>=2026.10.18",
-    "dnspython>=2.9.0",
+    "dnspython>=2.9.2",
     "filelock>=4.2.1",
     "oauthlib>=4.0.1",
     "pymongo>=4.18.3",
