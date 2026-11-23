@@ -46,7 +46,7 @@ dev = [
 [tool.uv]
 constraint-dependencies = [
     "aiohttp>=3.14.4",
-    "dnspython>=2.9.0",
+    "dnspython>=2.9.2",
     "filelock>=4.2.1",
     "oauthlib>=4.0.1",
     "virtualenv>=21.14.13",
